@@ -126,8 +126,8 @@ void turnover_grass(Individual& indiv) {
 	indiv.max_n_storage = max(0.0, max(cmass_root_pre_turnover * indiv.pft.fnstorage / cton_leaf_bg, retransn_nextyear));
 
 	// Scale this year productivity to max storage
-	if (indiv.agpp_no > 0.0) {
-		indiv.scale_n_storage = max(indiv.max_n_storage * 0.1, indiv.max_n_storage - retransn_nextyear) / indiv.agpp_no;
+	if (grs_npp > 0.0) {
+		indiv.scale_n_storage = max(indiv.max_n_storage * 0.1, indiv.max_n_storage - retransn_nextyear) / grs_npp;
 	}
 
 	indiv.nstore_labile = indiv.nstore_longterm;

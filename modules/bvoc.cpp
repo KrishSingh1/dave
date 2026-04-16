@@ -37,7 +37,7 @@
 #include "bvoc.h"
 #include "canexch.h"
 
-const double CO2_conc = 370;       // standard CO2 concentration
+const double CO2 = 370;       // standard CO2 concentration
 const double Tstand = 30;          // standard temperature, oC
 
 void initbvoc(){
@@ -71,7 +71,7 @@ void initbvoc(){
 		double par = frabs_Q * Qstand * 3600 * daylength / alphaa(pft) / CQ;
 				// par for the standard condition, J m-2 d-1
 
-		ps_env.set(CO2_conc, Tstand, par, 1.0, daylength);
+		ps_env.set(CO2, Tstand, par, 1.0, daylength);
 		photosynthesis(ps_env, ps_stress, ps_status, pft, pft.lambda_max, -1, phot);
 
 		double coeff = 1e-3 / (phot.je + phot.rd_g/24) / pft.sla / Cfrac;
@@ -125,7 +125,7 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 
 	if(adtmm>0){  
 	
-		double f_co2 = CO2_conc/co2;                                // CO2 scaling factor
+		double f_co2 = CO2/co2;                                // CO2 scaling factor
 		double f_temp = min(f_tempmax, exp(epsT*(temp-Tstand)));    // temp scaling factor
 
 		double coeff = phot.je * daylength + phot.rd_g;
@@ -159,7 +159,7 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 }
 
 double leafT(double temp, double daylength, double ga, double rs_day, double aet,
-             double lai_today, double fpar, double fpc_today) {
+             double lai_today, double fpar, double fpc, double fpc_today) {
 
 	// Canopy temperature is calculated from the air temperature and the energy balance (longwave
 	// radiation, shortwave radiation and sensible and latent heat loss).
@@ -171,9 +171,9 @@ double leafT(double temp, double daylength, double ga, double rs_day, double aet
 
 	const double lam = 2.45e6;      // latent heat loss of vapourisation (J g-1 at 20 deg C)
 	const double sigma = 5.67e-8;   // Stefan-Boltzmann constant, W m-2 K-4
-	const double emiss_leaf = 0.97;  // average emissivity for leaves, Campbell and Norman, (1998)
+	const double emiss_leaf = .97;  // average emissivity for leaves, Campbell and Norman, (1998)
 	const double rhoair = 1.204;    // air density, kg m-3
-	const double cp = 1010.0;         // specific heat capacity of air, J kg-1 K-1
+	const double cp = 1010;         // specific heat capacity of air, J kg-1 K-1
 
 	// leaf temperature is calculated by balancing four fluxes:
 	// 1. net SW radiation, computed from the incoming radiation
@@ -187,9 +187,10 @@ double leafT(double temp, double daylength, double ga, double rs_day, double aet
 	//    H = deltaT*rhoair*cp*ga*phen*lai
 	//
 
-	return temp+(rs_day*fpar-aet*lam)/(3600.0*daylength)/
-		(4.*emiss_leaf*sigma*pow(temp+K2degC,3.0)*fpc_today+rhoair*cp*ga*lai_today);
+	return temp+(rs_day*fpar-aet*lam)/(3600.*daylength)/
+		(4.*emiss_leaf*sigma*pow(temp+K2degC,3.)*fpc_today+rhoair*cp*ga*lai_today);
 }
+
 
 void seasonality(Climate& climate, const Pft& pft, double& f_season) {
 
@@ -267,7 +268,7 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 
 	double temp_leaf_daytime;
 	double temp_leaf = leafT(temp, hours, pft.ga, rad, indiv.aet,
-                                 indiv.lai_today(),indiv.fpar,indiv.fpc_today());
+                                 indiv.lai_today(),indiv.fpar,indiv.fpc,indiv.fpc_today());
 
 	if (date.diurnal()) {
 			temp_leaf_daytime = temp_leaf;
@@ -278,7 +279,7 @@ void bvoc(double temp, double hours, double rad, Climate& climate, Patch& patch,
 
 		// perform air temperature to leaf temperature correction
 		temp_leaf_daytime = leafT(temp_corrected, climate.daylength, pft.ga, rad, indiv.aet,
-		                          indiv.lai_today(),indiv.fpar, indiv.fpc_today());
+		                          indiv.lai_today(),indiv.fpar,indiv.fpc, indiv.fpc_today());
 	}
 
 	// calculate isoprene and monoterpene emissions, g C m-2 d-1

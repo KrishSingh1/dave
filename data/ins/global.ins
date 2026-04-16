@@ -25,19 +25,19 @@ outputdirectory "./"
 
 ! Prefined yearly output
 ! These files may be outcommented if their output is not required.
-!file_cmass "cmass.out"
+file_cmass "cmass.out"
 !file_cmass_agb "cmass_agb.out"
-!file_anpp "anpp.out"
-!file_agpp "agpp.out"
-!file_agpp_no "agpp_no.out"
-!file_agpp_ns "agpp_ns.out"
-!file_fpc "fpc.out"
-!file_aaet "aaet.out"
+file_anpp "anpp.out"
+file_agpp "agpp.out"
+file_agpp_no "agpp_no.out"
+file_agpp_ns "agpp_ns.out"
+file_fpc "fpc.out"
+file_aaet "aaet.out"
 file_lai "lai.out"
 file_cflux "cflux.out"
-!file_doc "doc.out"
-!file_dens "dens.out"
-!file_runoff "tot_runoff.out"
+file_doc "doc.out"
+file_dens "dens.out"
+file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 !file_clitter "clitter.out"
 file_soildepth "soildepth.out"
@@ -67,11 +67,11 @@ file_rh_depth "rh_depth.out"
 !file_speciesheights "height.out"
 !file_speciesdiam "diam.out"
 
-!file_nmass "nmass.out"
-!file_cton_leaf "cton_leaf.out"
+file_nmass "nmass.out"
+file_cton_leaf "cton_leaf.out"
 file_ngases "ngases.out"
 file_nsources "nsources.out"
-!file_npool "npool.out"
+file_npool "npool.out"
 file_nsoil_depth "nsoil_depth.out"
 file_netnminsoil_depth "netnminsoil_depth.out"
 !file_ctonsom "cton_som.out"
@@ -131,6 +131,7 @@ file_wsats_depth "wsats_depth.out"
 !file_mmon_mt1 "mmon_mt1.out"
 !file_mmon_mt2 "mmon_mt2.out"
 
+!file_msoiltempdepth25 "soiltemp25cm.out"	! Soil temperature at 25cm depth
 file_mtemp "mtemp.out"
 !file_mwmasslyr "mwmasslyr.out"
 !file_mimasslyr "mimasslyr.out"
@@ -146,11 +147,11 @@ file_mtemp_depth "mtemp_depth.out"
 !file_mch4plan "mch4_plant.out"
 !file_mch4ebull "mch4_ebullition.out"
 
-file_msnow "msnowdepth.out"
+!file_msnow "msnowdepth.out"
 !file_msnowcover "msnowcover.out"
 !file_mwmass_ssw "mwmass_ssw.out"
 !file_mwtp "mwtp.out"
-file_mald "mald.out"
+!file_mald "mald.out"
 !file_wetland_water_added "wetland_water_added.out"
 
 !file_mald_peat "mald_peat.out"
@@ -191,7 +192,7 @@ firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
 hydrology "RICHARDS"	! GERTEN, MILLER, RICHARDS
 energy "CNSTEP_FULL"	! CNSTEP_FULL, CNSTEP, BELDA
-npatch 5			! Number of replicate patches to simulate
+npatch 1			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
 ifdisturb 1			! Whether generic patch-destroying disturbances enabled
@@ -260,10 +261,10 @@ moist_mod_anaerobic 0.075
 ifinundationstress 1		! Whether to reduce daily GPP if there's inundation on peatlands (1), or not (0)
 wetland_runon 0			! Extra daily water input to (>0), or output from (<0), wetlands (mm/day). 
 				! 0 by default, non-zero for site specific studies.
-ifmethane 1			! Whether to run the methane model and calculate methane fluxes
-peat_age 0                      ! Age of peat (0 peatland will be spun up to equilibrium)
+ifmethane 0			! Whether to run the methane model and calculate methane fluxes
 ifsaturatewetlands 1		! Whether to take water from runoff in association with the (default) 
 				! saturation of low latitude wetlands (1), or not (0)
+peat_age 0                      ! Age of peat (0 peatland will be spun up to equilibrium)
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! SERIALIZATION SETTINGS
@@ -337,6 +338,8 @@ group "common" (
 	has_aerenchyma 0		! PFTs do not have aerenchyma for gas transport by default
 	stem_frac 1
 	twig_frac 0
+	ligcfrac_root 0.25
+	ligcfrac_wood 0.25
 )
 
 group "tree" (
@@ -399,7 +402,7 @@ group "shrub" (
 	kest_pres 1
 	litterme 0.3
 	root_dist 0.6 0.4
-	root_beta 0.938
+	root_beta 0.982
 	longevity 100
 	ag_woody_frac 0.45
 
@@ -432,8 +435,6 @@ group "grass" (
 	cton_root 29
 	nuptoroot 0.00551
 	fnstorage 0.3
-	ligcfrac_root 0.25
-	ligcfrac_wood 0.0
 	litterme 0.2
 	parff_min 1000000
 	fireresist 0.5
@@ -456,8 +457,6 @@ group "broadleaved" (
 	gmin 0.5
 	intc 0.02
 	ga 0.040
-	ligcfrac_root 0.25
-	ligcfrac_wood 0.25
 )
 
 group "needleleaved" (
@@ -610,8 +609,6 @@ pft "BINE" (
 	seas_iso 0
 	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
-
-	greff_min 0.135
 )
 
 
@@ -636,7 +633,6 @@ pft "BNS" (
 	fireresist 0.3
 	eps_iso 8.0
 	seas_iso 1
-	root_beta 0.938
 	eps_mon 3.18 0.72 0.18 0.12 0.14 0.11 0.2 0.13 0.02
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 )
@@ -659,7 +655,6 @@ pft "TeNE" (
 	tcmax_est 10 		! Hickler et al. (2012) have 9 degC for Pin_hal
 	twmin_est 5  		! low, since Hickler et al. (2012) have -1000 for Jun_oxy
 	gdd5min_est 2000 	! Changed 2013-04-30 from value 900. As TeBE, a little lower than Jun_oxy, Pin_hal in europe.ins
-	greff_min 0.0
 	longevity 300  		! Hickler et al. (2012) have 350 for Pin_hal
 	ag_woody_frac 0.85
 	fireresist 0.3 		! Hickler et al. (2012) have 0.2 for Pin_hal and 0.4 for Jun_oxy
@@ -790,8 +785,6 @@ pft "TrIBE" (
 	eps_mon 0.32 0.09 0.07 0.06 0.06 0.04 0.04 0.07 0.05
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
 
-	respcoeff 0.2
-	greff_min 0.135
 )
 
 
@@ -815,9 +808,6 @@ pft "TrBR" (
 	seas_iso 0
 	eps_mon 0.95 0.26 0.22 0.18 0.18 0.13 0.12 0.22 0.14
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
-
-	respcoeff 0.1
-	greff_min 0.03
 )
 
 

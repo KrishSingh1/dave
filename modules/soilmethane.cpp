@@ -64,15 +64,15 @@ void cnstepgas(double Di[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX], double su
 	double cohere, cominus, coplus;
 
 	// Leading diagonal, left and right subdiagonals for Crank-Nicholson matrix.
-	double diag[NSOILLAYERS_MAX];
-	double left[NSOILLAYERS_MAX];
-	double right[NSOILLAYERS_MAX];
+	double diag[NSOILLAYERS_MAX] = {0.0};
+	double left[NSOILLAYERS_MAX] = {0.0};
+	double right[NSOILLAYERS_MAX] = {0.0};
 
 	// Right hand side vector for Crank-Nicholson scheme equations.
-	double rhs[NSOILLAYERS_MAX];
+	double rhs[NSOILLAYERS_MAX] = {0.0};
 
 	// Solution vector for Crank-Nicholson scheme equations.
-	double solution[NSOILLAYERS_MAX];
+	double solution[NSOILLAYERS_MAX] = {0.0};
 
 	// Initialise
 	dplus = dminus = dz_factor = Cplus = Cp_minus = 0.0;

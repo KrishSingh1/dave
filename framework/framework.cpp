@@ -32,7 +32,6 @@
 
 #include <memory>
 
-
 /// Prints the date and time together with the name of this simulation
 void print_logfile_heading() {
 	xtring datetime;

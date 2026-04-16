@@ -48,7 +48,6 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 !file_clitter "clitter.out"
-file_csoil "csoil.out"
 !file_aburned_area_out "annual_burned_area.out"
 !file_simfireanalysis_out "simfireanalysis.out"
 !file_firert "firert.out"
@@ -119,7 +118,7 @@ ifcalccton 1          		! Whether to calculate leaf C:N min from leaf longevity
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
 hydrology "GERTEN"		! GERTEN, MILLER, RICHARDS
-energy "CNSTEP"			! CNSTEP_FULL, CNSTEP, BELDA
+energy "CNSTEP_FULL"			! CNSTEP_FULL, CNSTEP, BELDA
 npatch 25             		! Number of replicate patches to simulate
 patcharea 1000        		! Patch area (m2)
 estinterval 5         		! Years between establishment events in cohort mode
@@ -167,7 +166,8 @@ ifinundationstress 1		! Whether to reduce daily NPP if there's inundation on pea
 wetland_runon 0			! Extra daily water input to (>0), or output from (<0), wetlands (mm/day). 
 				! 0 by default, non-zero for site specific studies.
 ifmethane 0			! Whether to run the methane model and calculate methane fluxes
-
+ifsaturatewetlands 1		! Whether to take water from runoff in association with the (default) 
+				! saturation of low latitude wetlands (1), or not (0)
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! SERIALIZATION SETTINGS

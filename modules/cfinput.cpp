@@ -333,7 +333,7 @@ double calc_relative_humidity(double temp, double specific_humidity, double pres
 
 }
 
-std::vector<std::pair<double, double> > CFInput::translate_gridlist_to_coord(std::vector<Coord>& gridlist) {
+std::vector<std::pair<double, double> > CFInput::translate_gridlist_to_coord(std::vector<Coord>& gridlist) { // DW_COMMENT IS THIS NEEDED???
 
 	std::vector<std::pair<double, double> > output;
 	for (int i = 0; i < gridlist.size(); i++) {
@@ -542,6 +542,7 @@ void CFInput::init() {
 
 	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
 
+	//soilinput.init(param["file_soildata"].str); // DW_COMMENT TRUNK HAS IT LIKE THIS!!!
 	soilinput.init(param["file_soildata"].str, translate_gridlist_to_coord(gridlist));
 
 	if (hydrology == RICHARDS) {
@@ -699,8 +700,6 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	// Get nitrogen deposition, using the found CRU coordinates
 	/* Since the historic data set does not reach decade 2010-2019,
 	* we need to use the RCP data for the last decade. */
-	cru_lon = floor(lon * 2.0) / 2.0 + 0.25;
-	cru_lat = floor(lat * 2.0) / 2.0 + 0.25;
 	ndep.getndep(param["file_ndep"].str, cru_lon, cru_lat, Lamarque::RCP60);
 
 	soilinput.get_soil(lon, lat, gridcell);

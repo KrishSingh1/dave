@@ -54,6 +54,7 @@ int freenyears;
 double nrelocfrac;
 double nfix_a;
 double nfix_b;
+
 bool ifntransform;
 double frac_labile_carbon = 1.0;
 double pH_soil;
@@ -93,6 +94,7 @@ double wetland_runon;				// Extra daily water input or output, in mm, to wetland
 bool ifmethane;						// Whether to run the methane model (for peatland only)
 int peat_age;
 bool iforganicsoilproperties;		// Whether to update physical soil properties using soil carbon content (1), or not (0)
+bool ifsaturatewetlands;			// Whether to take water from runoff to saturate low latitide wetlands
 bool ifeffvolume;					// Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)
 bool ifdepthdecaymod;               // Whether to use depth soil organic matter decay rate modifier
 bool ifthawaffectrootdist;          // Whether thaw depth affects root distribution
@@ -215,7 +217,7 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 	CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT, CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB,
 	CB_MTSELECTION, CB_MTPLANTDENSITY, CB_MTTARGETFRAC, CB_MTTARGETFRACFILENAME, CB_MTWATERUSE, CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, 
 	CB_PFT, CB_STSELECTION, CB_STPLANTDENSITY, CB_STTARGETFRAC, CB_STTARGETFRACFILENAME, CB_STWATERUSE, CB_MANAGEMENT1, 
-	CB_MANAGEMENT2, CB_MANAGEMENT3, CB_PATHWAY, CB_ROOTDISTRIBUTION, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, 
+	CB_MANAGEMENT2, CB_MANAGEMENT3, CB_PATHWAY, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, 
 	CB_WATERUPTAKE, CB_MTCOMPOUND, CB_FIREMODEL, CB_WEATHERGENERATOR, CB_HYDROLOGY, CB_ENERGY};
 
 // File local variables
@@ -281,7 +283,7 @@ void initsettings() {
 	textured_soil = true;
 	disturb_pasture = false;
 	grassforcrop = false;
-	depth_soil = 1500.0;
+	depth_soil = SOILDEPTH_UPPER + SOILDEPTH_LOWER;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -536,8 +538,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("pH_soil",&pH_soil,3.5,8.5,1,CB_NONE, "Soil pH");
 		declareitem("f_nitri_max",  &f_nitri_max,  0.01,   1.0, 1,CB_NONE, "Maximum amount of NH4 nitrified");
 
-		declareitem("k_N",    &k_N,    0.0001, 1.0, 1,CB_NONE, "Constant in denitrification");
-		declareitem("k_C",    &k_C,    0.00001, 1.0, 1,CB_NONE, "Constant in denitrification");
+		declareitem("k_N",    &k_N,    0.0000001, 1.0, 1,CB_NONE, "Denitrification Michaelis–Menten constant for N oxides [kg N kg H2O-1]");
+		declareitem("k_C",    &k_C,    0.00000001, 1.0, 1,CB_NONE, "Denitrification Michaelis–Menten constant for labile carbon [kg C kg H2O-1]");
 
 		declareitem("f_denitri_max",    &f_denitri_max,    0.0001, 1.0, 1,CB_NONE, "Maximum amount of NO3 conv. to NO2");
 		declareitem("f_denitri_gas_max",    &f_denitri_gas_max,    0.00001, 1.0, 1,CB_NONE, "Maximum gaseus losses in denitrification");
@@ -586,6 +588,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("peat_age", &peat_age, 0, 100000, 1, CB_NONE, "Age of peat (0 peatland will be spun up to equilibrium)");
 		declareitem("iforganicsoilproperties", &iforganicsoilproperties, 1, CB_NONE,
 			"Whether to update physical soil properties using soil carbon content (1), or not (0)");
+		declareitem("ifsaturatewetlands", &ifsaturatewetlands, 1, CB_NONE,
+			"Whether to take water from runoff to saturate low latitide wetlands (1), or not (0)");
 		declareitem("ifeffvolume", &ifeffvolume, 1, CB_NONE,
 			"Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)");
 		declareitem("ifdepthdecaymod", &ifdepthdecaymod, 1, CB_NONE,
@@ -1026,7 +1030,7 @@ void plib_declarations(int id,xtring setname) {
 			"Whether patch (1) or stand (2,3) deviations from pft cmass fraction targets used");
 		declareitem("suppress_second_target",&pmt->suppress_second_target,1,CB_NONE,
 			"Whether to stop cutting to reach pft fraction targets when the second (continuous) period starts");
-		declareitem("wateruse",&strparam,16,CB_MTWATERUSE, "ater use of crop (\"RAINFED\" or \"IRRIGATED\")");
+		declareitem("wateruse",&strparam,16,CB_MTWATERUSE, "water use of crop (\"RAINFED\" or \"IRRIGATED\")");
 //		declareitem("irrigation",&pmt->firr,0.0,1.0,1,CB_NONE,"Irrigation of crop");
 		declareitem("sdate",&pmt->sdate,0,364,1,CB_NONE,"Sowing date of crop");
 		declareitem("hdate",&pmt->hdate,0,364,1,CB_NONE,"Harvest date of crop");
@@ -1434,6 +1438,16 @@ void plib_callback(int callback) {
 	case CB_MTTARGETFRACFILENAME:
 		pmt->file_targetfrac_pft_mt = strparam;
 		break;
+	case CB_MTWATERUSE:
+		if (strparam.upper()=="RAINFED") pmt->wateruse = RAINFED;
+		else if (strparam.upper()=="IRRIGATED") pmt->wateruse = IRRIGATED;
+		else 
+		{
+			sendmessage("Error",
+				"Unknown water use type (valid types: \"RAINFED\", \"IRRIGATED\")");
+			plibabort();
+		}
+		break;
 	case CB_MANAGEMENT1:
 		pst->mtnames[0] = strparam;
 		break;
@@ -1455,6 +1469,15 @@ void plib_callback(int callback) {
 	case CB_STSELECTION:
 		pst->management.selection = strparam;
 		break;
+	case CB_STPLANTDENSITY:
+		pst->management.plantdensity = strparam;
+		break;
+	case CB_STTARGETFRAC:
+		pst->management.targetfrac = strparam;
+		break;
+	case CB_STTARGETFRACFILENAME:
+		pst->management.file_targetfrac_pft_mt = strparam;
+		break;
 	case CB_STWATERUSE:
 		if (strparam.upper()=="RAINFED") pst->management.wateruse = RAINFED;
 		else if (strparam.upper()=="IRRIGATED") pst->management.wateruse = IRRIGATED;
@@ -1464,15 +1487,6 @@ void plib_callback(int callback) {
 				"Unknown water use type (valid types: \"RAINFED\", \"IRRIGATED\")");
 			plibabort();
 		}
-		break;
-	case CB_STPLANTDENSITY:
-		pst->management.plantdensity = strparam;
-		break;
-	case CB_STTARGETFRAC:
-		pst->management.targetfrac = strparam;
-		break;
-	case CB_STTARGETFRACFILENAME:
-		pst->management.file_targetfrac_pft_mt = strparam;
 		break;
 	case CB_PHENOLOGY:
 		if (strparam.upper()=="SUMMERGREEN") ppft->phenology=SUMMERGREEN;
@@ -1537,7 +1551,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
 		if (!itemparsed("wateruptake")) badins("wateruptake");
 		if (!itemparsed("depth_soil")) badins("depth_soil");
-		if (hydrology != RICHARDS && depth_soil != 1500.0) {
+		if (hydrology != RICHARDS && depth_soil != (SOILDEPTH_UPPER + SOILDEPTH_LOWER)) {
 			sendmessage("Error", "Soil depth must be set to 1500mm with GERTEN or MILLER hydrology. Soil depth SET to 1500mm!");
 			depth_soil = 1500.0;
 		}
@@ -1596,6 +1610,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcarbonfreeze")) badins("ifcarbonfreeze");
 		if (!itemparsed("peat_age")) badins("peat_age");
 		if (!itemparsed("iforganicsoilproperties")) badins("iforganicsoilproperties");
+		if (!itemparsed("ifsaturatewetlands")) badins("ifsaturatewetlands"); 
 		if (!itemparsed("ifeffvolume")) badins("ifeffvolume");
 		if (!itemparsed("ifdepthdecaymod")) badins("ifdepthdecaymod");
 		if (!itemparsed("ifthawaffectrootdist")) badins("ifthawaffectrootdist");
@@ -1624,6 +1639,10 @@ void plib_callback(int callback) {
 			if (ifmethane) {
 				dprintf("Methane: Can't have methane together with GERTEN hydrology! ifmethane set to false\n");
 				ifmethane = false;
+			}
+			if (ifsaturatewetlands) {
+				dprintf("Saturated Wetland: Can't have saturated wetland together with GERTEN hydrology! ifsaturatewetlands set to false\n");
+				ifsaturatewetlands = false;
 			}
 			if (ifcarbonfreeze) {
 				dprintf("Carbon freeze: Can't have carbon freeze together with GERTEN hydrology! ifcarbonfreeze set to false\n");

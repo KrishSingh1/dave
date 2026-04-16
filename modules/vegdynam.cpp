@@ -440,8 +440,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	double c = 0.0; // constant in equation for number of new saplings (Eqn 5)
 	double est = 0.0; // expected number of new saplings for PFT in this patch
 
-
-
 	// Actual number of new saplings for PFT in this patch (may include a
 	// fractional part in cohort mode with stochastic establishment disabled)
 	double nsapling = 0.0;
@@ -1438,7 +1436,7 @@ void fire(Patch& patch, double& fireprob) {
 			ppft.cmass_litter_repr;
 	}
 
-	// Soil Litter
+	// Surface Litter
 	litter_ag += surflayer.sompool[SURFSTRUCT].cmass + surflayer.sompool[SURFMETA].cmass +
 		surflayer.sompool[SURFFWD].cmass + surflayer.sompool[SURFCWD].cmass;
 
@@ -1461,7 +1459,7 @@ void fire(Patch& patch, double& fireprob) {
 			ppft.cmass_litter_repr) * ppft.pft.litterme / litter_ag;
 	}
 
-	// Soil litter
+	// Surface litter
 	me_mean += (surflayer.sompool[SURFSTRUCT].cmass * surflayer.sompool[SURFSTRUCT].litterme +
 		surflayer.sompool[SURFMETA].cmass * surflayer.sompool[SURFMETA].litterme +
 		surflayer.sompool[SURFFWD].cmass * surflayer.sompool[SURFFWD].litterme +
@@ -1481,6 +1479,7 @@ void fire(Patch& patch, double& fireprob) {
 		else {
 			pm = 0.0;
 		}
+
 
 		// Eqn 4
 		n += pm;
@@ -1522,12 +1521,12 @@ void fire(Patch& patch, double& fireprob) {
 
 		// Account for burnt above ground litter
 
-		ppft.cmass_litter_leaf *= (1.0 - mort_fire);
-		ppft.cmass_litter_sap *= (1.0 - mort_fire);
+		ppft.cmass_litter_leaf  *= (1.0 - mort_fire);
+		ppft.cmass_litter_sap   *= (1.0 - mort_fire);
 		ppft.cmass_litter_heart *= (1.0 - mort_fire);
-		ppft.cmass_litter_repr *= (1.0 - mort_fire);
-		ppft.nmass_litter_leaf *= (1.0 - mort_fire);
-		ppft.nmass_litter_sap *= (1.0 - mort_fire);
+		ppft.cmass_litter_repr  *= (1.0 - mort_fire);
+		ppft.nmass_litter_leaf  *= (1.0 - mort_fire);
+		ppft.nmass_litter_sap   *= (1.0 - mort_fire);
 		ppft.nmass_litter_heart *= (1.0 - mort_fire);
 	}
 

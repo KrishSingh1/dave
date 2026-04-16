@@ -121,6 +121,7 @@ void Climate::serialize(ArchiveStream& arch) {
 		& temp_seasonality_lastyear
 		& var_prec
 		& var_temp
+		& aprec
 		& rainfall_annual_avg
 		& last_rainfall
 		& days_since_last_rainfall
@@ -240,55 +241,6 @@ double Fluxes::get_annual_flux(PerPatchFluxType flux_type) const {
 	}
 	return sum;
 }
-
-////////////////////////////////////////////////////////////////////////////////
-// Implementation of Pools member functions
-////////////////////////////////////////////////////////////////////////////////
-
-/*Pools::Pools(Soillayer& sl)
-	: soillayer(sl) {
-
-	reset();
-}
-
-void Pools::reset() {
-	for (size_t i = 0; i < NPERPATCHPOOLTYPES; ++i) {
-
-		annual_pools[i] = 0.0;
-
-		for (int m = 0; m < 12; ++m) {
-			monthly_pools[m][i] = 0.0;
-		}
-
-		for (int d = 0; d < date.year_length(); ++d) {
-			daily_pools[d][i] = 0.0;
-		}
-	}
-}
-
-void Pools::serialize(ArchiveStream& arch) {
-	arch & annual_pools
-		& monthly_pools
-		& daily_pools;
-}
-
-void Pools::report_flux(PerPatchPoolType pool_type, double value) {
-	annual_pools[pool_type] += value;
-	monthly_pools[date.month][pool_type] += value;
-	daily_pools[date.day][pool_type] += value;
-}
-
-double Pools::get_daily_pool(PerPatchPoolType pool_type, int month) const {
-	return monthly_pools[month][pool_type];
-}
-
-double Pools::get_monthly_pool(PerPatchPoolType pool_type, int month) const {
-	return monthly_pools[month][pool_type];
-}
-
-double Pools::get_daily_pool(PerPatchPoolType pool_type, int day) const {
-	return daily_pools[day][pool_type];
-}*/
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Vegetation member functions
@@ -473,8 +425,8 @@ void Patchpft::update_rootdist(double maxthaw, double soildepth, double soillyrd
 			// Multi layer soil scheme uses Jackson root distribution
 			// root_beta is calibrated for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
 
-			// Standard depth 1500 mm
-			const double depth_standard = 1500.0;
+			// Standard depth
+			const double depth_standard = SOILDEPTH_UPPER + SOILDEPTH_LOWER;
 
 			// Standard root depth
 			double depth_root = depth_standard;
@@ -485,7 +437,7 @@ void Patchpft::update_rootdist(double maxthaw, double soildepth, double soillyrd
 
 			if (hydrology == RICHARDS) {
 
-				// Fraction of deep soil, beyond 1500mm, that roots have access to
+				// Fraction of deep soil, beyond standard depth, that roots have access to
 				double fdeep_root = rootfrac_of_deep_soil;
 
 				// Fraction of fine roots to be homogenously distributed within root depth
@@ -725,13 +677,13 @@ double Patch::ncont(double scale_indiv, bool luc) {
 /// Water content of patch
 double Patch::water_content() {
 
-	double wcontent = soilcolumn.get_sum(&Soillayer::wmass) + soilcolumn.get_sum(&Soillayer::imass);
+	double water_content = soilcolumn.water_and_ice_content();
 
-	wcontent += soilcolumn.snow.wcontent();
+	water_content += soilcolumn.snow.water_and_ice_content();
 
-	wcontent += soilcolumn.ssw.wcontent();
+	water_content += soilcolumn.ssw.water_and_ice_content();
 
-	return wcontent;
+	return water_content;
 }
 
 /// C flux of patch
@@ -2614,7 +2566,7 @@ void Individual::partition_nstore(double& NH4_mass) {
 	double nafter = ncont() + NH4_mass;
 
 	if (fabs(nbefore - nafter) > 1.0e-16)
-		dprintf("Year %d %s IID %d Diff %g B %g A %g\n",date.year,(char*)pft.name, id, nbefore - nafter, nbefore, nafter);
+		dprintf("Year %d %s IID %d Diff %g Before %g After %g\n", date.year, (char*)pft.name, id, nbefore - nafter, nbefore, nafter);
 }
 
 /// Help function for kill(), partitions wood biomass into litter and harvest
@@ -3735,7 +3687,7 @@ void MassBalance::check(Gridcell& gridcell) {
 	double cflux = gridcell.cflux();
 
 	if (!negligible(ccont - ccont_zero + cflux, -5)) {
-		dprintf("\n(%.2f, %.2f): C balance year %d: %.5f\n", gridcell.get_lon(), gridcell.get_lat(), date.get_calendar_year(), ccont - ccont_zero + cflux);
+		dprintf("\n(%.2f, %.2f): C balance year %d: %.5f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ccont - ccont_zero + cflux);
 		dprintf("C pool change: %.5f\n", ccont - ccont_zero);
 		dprintf("C flux: %.5f\n\n",  cflux);
 	}

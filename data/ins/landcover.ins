@@ -60,14 +60,14 @@ param "file_peat" (str "")
 
 !file_cflux_cropland "cflux_cropland.out"
 !file_cflux_pasture "cflux_pasture.out"
-file_cflux_natural "cflux_natural.out"
+!file_cflux_natural "cflux_natural.out"
 !file_cflux_forest "cflux_forest.out"
-file_cflux_peatland "cflux_peatland.out"
+!file_cflux_peatland "cflux_peatland.out"
 !file_cpool_cropland "cpool_cropland.out"
 !file_cpool_pasture "cpool_pasture.out"
-file_cpool_natural "cpool_natural.out"
+!file_cpool_natural "cpool_natural.out"
 !file_cpool_forest "cpool_forest.out"
-file_cpool_peatland "cpool_peatland.out"
+!file_cpool_peatland "cpool_peatland.out"
 !file_nflux_cropland "nflux_cropland.out"
 !file_nflux_pasture "nflux_pasture.out"
 !file_nflux_natural "nflux_natural.out"
@@ -78,11 +78,11 @@ file_cpool_peatland "cpool_peatland.out"
 !file_npool_natural "npool_natural.out"
 !file_npool_forest "npool_forest.out"
 !file_npool_peatland "npool_peatland.out"
-file_csoil_depth_cropland "csoil_depth_cropland.out"
-file_csoil_depth_pasture "csoil_depth_pasture.out"
-file_csoil_depth_natural "csoil_depth_natural.out"
-file_csoil_depth_forest "csoil_depth_forest.out"
-file_csoil_depth_peatland "csoil_depth_peatland.out"
+!file_csoil_depth_cropland "csoil_depth_cropland.out"
+!file_csoil_depth_pasture "csoil_depth_pasture.out"
+!file_csoil_depth_natural "csoil_depth_natural.out"
+!file_csoil_depth_forest "csoil_depth_forest.out"
+!file_csoil_depth_peatland "csoil_depth_peatland.out"
 
 !file_anpp_sts "anpp_sts.out"
 !file_cmass_sts "cmass_sts.out"
@@ -149,13 +149,13 @@ age_limit_reduce 15			! Minimum age of stands to reduce at land cover change
 
 run_landcover 1				! Whether to use (and change) landcover fractions (1) or not (0)
 
-run_urban 1				! Whether to simulate barren land (1) or not (0)
+run_urban 0				! Whether to simulate barren land (1) or not (0)
 run_crop 1				! Whether to simulate crop vegetation (1) or not (0)
 run_forest 0				! Whether to simulate managed forest (1) or not (0)
 run_pasture 1				! Whether to simulate pasture (1) or not (0)
 run_natural 1				! Whether to simulate natural vegetation (1) or not (0)
-run_peatland 1				! Whether to simulate peatland (1) or not (0)
-run_barren 1				! Whether to simulate barren land (1) or not (0)
+run_peatland 0				! Whether to simulate peatland (1) or not (0)
+run_barren 0				! Whether to simulate barren land (1) or not (0)
 
 ifslowharvestpool 1			! If a slow harvested product pool is included in patchpft.
 ifprimary_lc_transfer 0			! Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)

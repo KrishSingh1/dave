@@ -197,9 +197,9 @@ extern double frac_labile_carbon;
 extern double pH_soil;
 /// Maximum nitrification rate, 0.03,0.15
 extern double f_nitri_max;
-/// Constant in denitrification, 0.001,0.1
+/// Denitrification Michaelis–Menten constant for N oxides [kg N kg H2O-1], 0.000001,0.0001
 extern double k_N;
-/// Constant in temperature function for denitrification, 0.005,0.05
+/// Denitrification Michaelis–Menten constant for labile carbon [kg C kg H2O-1], 0.000005,0.00005
 extern double k_C;
 /// Maximum gaseus losses in nitrification
 extern double f_nitri_gas_max;
@@ -430,6 +430,9 @@ extern int peat_age;
 
 /// Whether to update physical soil properties using soil carbon content (1), or not (0)
 extern bool iforganicsoilproperties;
+
+/// Whether to take water from runoff to saturate low latitide wetlands
+extern bool ifsaturatewetlands;
 
 /// Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)
 extern bool ifeffvolume;

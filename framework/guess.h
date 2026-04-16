@@ -1,4 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
 /// \file guess.h
 /// \brief Framework header file, LPJ-GUESS Combined Modular Framework
 ///
@@ -199,6 +200,8 @@ const double SOILDEPTH_MIN = 200.0;
 
 /// soil upper layer depth (mm)
 const double SOILDEPTH_UPPER = 500.0;
+/// soil lower layer depth (mm)
+const double SOILDEPTH_LOWER = 1000.0;
 
 /// Depth of sublayer at top of upper soil layer, from which evaporation is
 //  possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
@@ -540,7 +543,7 @@ class MassBalance : public Serializable  {
 public:
 	MassBalance() {
 
-		start_year = nyear_spinup - 20;
+		start_year = nyear_spinup;
 		ccont = 0.0;
 		ccont_zero = 0.0;
 		ccont_zero_scaled = 0.0;
@@ -1064,7 +1067,6 @@ public:
 	/// first spinup years annual average air temperature (deg C)
 	double temp_iaavr;
 
-
 	// BLAZE
 	/// average annual rainfall (mm/a)
 	double rainfall_annual_avg;
@@ -1406,8 +1408,12 @@ public:
 	enum PerPFTFluxType {
 		/// NPP (kgC/m2)
 		NPP,
-		/// GPP (kgC/m2) with all stresses
+		/// GPP (kgC/m2) with nutrient and water stress
 		GPP,
+		/// GPP (kgC/m2) with no stress
+		GPPno,
+		/// GPP (kgC/m2) with nutrient stress
+		GPPns,
 		/// Autotrophic respiration (kgC/m2)
 		RA,
 		/// Isoprene (mgC/m2)
@@ -1422,10 +1428,6 @@ public:
 		MT_TRIC,
 		MT_TBOC,
 		MT_OTHR,
-		/// GPP (kgC/m2) with no stress
-		GPPno,
-		/// GPP (kgC/m2) with N stress
-		GPPns,
 		/// Number of types, must be last
 		NPERPFTFLUXTYPES
 	};
@@ -1505,69 +1507,6 @@ private:
 	/// Stores one flux value per day and flux type
 	double daily_fluxes_pft[365][NPERPFTFLUXTYPES];
 };
-
-/// Stores daily and average monthly and annual pools.
-/** This class handles the storage and averages of pools for a single patch.
-*  Different pools can be stored in different ways, depending on what kind of
-*  pool it is and what kind of output we want. The details of whether pools
-*  are stored per pool type or just as a patch total, or per day, month or only a
-*  yearly sum, is hidden from the 'scientific' code, which merely reports the
-*  pools generated.
-*/
-/*class Pools : public Serializable {
-
-public:
-
-	/// Pools stored as totals for the whole patch
-	enum PerPatchPoolType {
-		
-		/// Water content as fraction of field capacity
-		WCONT,
-		/// Water content (kg m-3)
-		H2O,
-		/// Ice content (kg m-3)
-		ICE,
-		/// Number of pools, must be last
-		NPERPATCHPOOLTYPES
-	};
-
-	/// Reference to patch to which this Fluxes object belongs
-	Soillayer& soillayer;
-
-	// MEMBER FUNCTIONS
-
-public:
-	/// constructor: initialises members
-	Pools(Soillayer& sl);
-
-	/// Sets all fluxes to zero (call at the beginning of each year)
-	void reset();
-
-	void serialize(ArchiveStream& arch);
-
-	/// Report pool size for a certain pool type
-	void report_flux(PerPatchPoolType pool_type, double value);
-
-	/// \returns pool size for a given month and pool type
-	double get_daily_pool(PerPatchPoolType flux_type, int day) const;
-
-	/// \returns pool size for a given month and pool type
-	double get_monthly_pool(PerPatchPoolType flux_type, int month) const;
-
-	/// \returns annual pool size for a pool type
-	double get_annual_flux(PerPatchPoolType flux_type) const;
-
-private:
-
-	/// Stores one pool value per pool type
-	double annual_pools[NPERPATCHPOOLTYPES];
-
-	/// Stores one pool value per month and pool type
-	double monthly_pools[12][NPERPATCHPOOLTYPES];
-
-	/// Stores one pool value per day and pool type
-	double daily_pools[365][NPERPATCHPOOLTYPES];
-};*/
 
 /// Storage class of crop management information for one rotation period for a stand type, read from the instruction file.
 class ManagementType {
@@ -2384,6 +2323,7 @@ public:
 
 		std::fill_n(gdd0, Date::MAX_YEAR_LENGTH + 1, -1.0); // value<0 signifies "unknown"; see function phenology()
 
+		root_beta = 0.0;
 
 		drought_tolerance = 0.0; // Default, means that the PFT will never be limited by drought.
 		res_outtake = 0.0;
@@ -2617,8 +2557,8 @@ public:
 			// Multi layer soil scheme uses Jackson root distribution
 			// root_beta is calibrated for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
 
-			// Standard depth 1500 mm
-			const double depth_standard = 1500.0;
+			// Standard depth
+			const double depth_standard = SOILDEPTH_UPPER + SOILDEPTH_LOWER;
 
 			// Standard root depth
 			double depth_root = depth_standard;
@@ -2629,7 +2569,7 @@ public:
 
 			if (hydrology == RICHARDS) {
 
-				// Fraction of deep soil, beyond 1500mm, that roots have access to
+				// Fraction of deep soil, beyond standard depth, that roots have access to
 				double fdeep_root = rootfrac_of_deep_soil;
 
 				// Fraction of fine roots to be homogenously distributed within root depth
@@ -3650,66 +3590,9 @@ public:
 		}
 	}
 
-	/// Copy constructor
-	Sompool(const Sompool& that) {
-		cmass = that.cmass;
-		nmass = that.nmass;
-		cdec = that.cdec;
-		ndec = that.ndec;
-		cinc = that.cinc;
-		ninc = that.ninc;
-		respsum = that.respsum;
-		respsum_surf = that.respsum_surf;
-		ntoc = that.ntoc;
-		ligcfrac = that.ligcfrac;
-		delta_cmass = that.delta_cmass;
-		delta_nmass = that.delta_nmass;
-		fracremain = that.fracremain;
-		litterme = that.litterme;
-		fireresist = that.fireresist;
-		cmass_init = that.cmass_init;
-		multi = that.multi;
-		sign_trend = that.sign_trend;
-		same_trend = that.same_trend;
-		changed_trend = that.changed_trend;
-
-		for (int m = 0; m < 12; m++) {
-			mfracremain_mean[m] = that.mfracremain_mean[m];
-		}
-	}
-
-	/// Copy assignment operator
-	Sompool& operator=(const Sompool& that) {
-		cmass = that.cmass;
-		nmass = that.nmass;
-		cdec = that.cdec;
-		ndec = that.ndec;
-		cinc = that.cinc;
-		ninc = that.ninc;
-		respsum = that.respsum;
-		respsum_surf = that.respsum_surf;
-		ntoc = that.ntoc;
-		ligcfrac = that.ligcfrac;
-		delta_cmass = that.delta_cmass;
-		delta_nmass = that.delta_nmass;
-		fracremain = that.fracremain;
-		litterme = that.litterme;
-		fireresist = that.fireresist;
-		cmass_init = that.cmass_init;
-		multi = that.multi;
-		sign_trend = that.sign_trend;
-		same_trend = that.same_trend;
-		changed_trend = that.changed_trend;
-
-		for (int m = 0; m < 12; m++) {
-			mfracremain_mean[m] = that.mfracremain_mean[m];
-		}
-		return *this;
-	}
-
 	/// Destructor
 	~Sompool() {
-		// etc.
+		// Performs memory deallocation, closing of files or other "cleanup" functions.
 	}
 
 	/// C mass in pool kgC/m2
@@ -3770,26 +3653,9 @@ struct LitterSolveSOM : public Serializable {
 		clear();
 	}
 
-	/// Copy constructor
-	LitterSolveSOM(const LitterSolveSOM& that) {
-		for (int p = 0; p < NSOMPOOL; p++) {
-			clitter[p] = that.clitter[p];
-			nlitter[p] = that.nlitter[p];
-		}
-	}
-
-	/// Copy assignment operator
-	LitterSolveSOM& operator=(const LitterSolveSOM& that) {
-		for (int p = 0; p < NSOMPOOL; p++) {
-			clitter[p] = that.clitter[p];
-			nlitter[p] = that.nlitter[p];
-		}
-		return *this;
-	}
-
 	/// Destructor
 	~LitterSolveSOM() {
-		// etc.
+		// Performs memory deallocation, closing of files or other "cleanup" functions.
 	}
 
 	/// Clears all members
@@ -4133,221 +3999,10 @@ public:
 
 	Soillayer(Soilcolumn* soilcol, double d, double dp, bool acrotelm, bool catotelm);
 
-	/// Copy constructor
-	Soillayer(const Soillayer& that) : soilcolumn(that.soilcolumn) {
-
-		depth = that.depth; 
-		depth_profile = that.depth_profile;
-		acrotelm = that.acrotelm;
-		catotelm = that.catotelm;
-		wmass = that.wmass;
-		imass = that.imass;
-		wmass_sc = that.wmass_sc;
-		Psi = that.Psi;
-		mwcontabove = that.mwcontabove;
-		awcont = that.awcont;
-		wsats = that.wsats;
-		awc = that.awc;
-		wp = that.wp;
-		root_volume = that.root_volume;
-		mineral_volume = that.mineral_volume;
-		organic_volume = that.organic_volume;
-		perc_mass = that.perc_mass;
-		perc_base = that.perc_base;
-		Kw = that.Kw;
-		Kw_max = that.Kw_max;
-		b = that.b;
-		Psi_max = that.Psi_max;
-		a = that.a;
-		runoff_drain = that.runoff_drain;
-		runoff_baseflow = that.runoff_baseflow;
-		rho_org = that.rho_org;
-		awc_org = that.awc_org;
-		wp_org = that.wp_org;
-		wsats_org = that.wsats_org;
-		b_org = that.b_org;
-		Psi_max_org = that.Psi_max_org;
-		Kw_max_org = that.Kw_max_org;
-		peat_frac = that.peat_frac;
-		bulk_density = that.bulk_density;
-		thermdiff_0 = that.thermdiff_0;
-		thermdiff_15 = that.thermdiff_15;
-		thermdiff_100 = that.thermdiff_100;
-		Cp_min = that.Cp_min;
-		temp = that.temp;
-		temp_old = that.temp_old;
-		gtemp = that.gtemp;
-		alag = that.alag;
-		exp_alag = that.exp_alag;
-		Kh = that.Kh;
-		Ch = that.Ch;
-		CO2 = that.CO2;
-		CH4 = that.CH4;
-		CH4_ebull_ind = that.CH4_ebull_ind;
-		CH4_gas = that.CH4_gas;
-		CH4_diss = that.CH4_diss;
-		O2 = that.O2;
-		respsum = that.respsum;
-		arespsum = that.arespsum;
-		tiller_area = that.tiller_area;
-		cpool_slow = that.cpool_slow;
-		cpool_fast = that.cpool_fast;
-		decomp_litter_mean = that.decomp_litter_mean;
-		k_soilfast_mean = that.k_soilfast_mean;
-		k_soilslow_mean = that.k_soilslow_mean;
-		depth_mod = that.depth_mod;
-		orgleachfrac = that.orgleachfrac;
-		anmin = that.anmin;
-		animmob = that.animmob;
-		aminleach = that.aminleach;
-		aorgCleach = that.aorgCleach;
-		aorgNleach = that.aorgNleach;
-		NH4_mass = that.NH4_mass;
-		NO3_mass = that.NO3_mass;
-		NO2_mass = that.NO2_mass;
-		NO_mass = that.NO_mass;
-		N2O_mass = that.N2O_mass;
-		N2_mass = that.N2_mass;
-		labile_carbon = that.labile_carbon;
-		litterSolveSOM = that.litterSolveSOM;
-		acdec[0] = that.acdec[0];
-		acdec[1] = that.acdec[1];
-		acinc[0] = that.acinc[0];
-		acinc[1] = that.acinc[1];
-		acmassfinput = that.acmassfinput;
-		acmasscinput = that.acmasscinput;
-
-		for (int mth = 0; mth < 12; mth++) {
-			mwmass[mth] = that.mwmass[mth];
-			mimass[mth] = that.mimass[mth];
-			mwcont[mth] = that.mwcont[mth];
-			mdrain[mth] = that.mdrain[mth];
-			mtemp[mth] = that.mtemp[mth];
-			mnetmin[mth] = that.mnetmin[mth];
-			morgleach_mean[mth] = that.morgleach_mean[mth];
-			mminleach_mean[mth] = that.mminleach_mean[mth];
-		}
-
-		for (int p = 0; p < NSOMPOOL; p++) {
-			sompool[p] = that.sompool[p];
-		}
-
-		solvesom.resize(that.solvesom.size());
-		for (int s = 0; s < that.solvesom.size(); s++) {
-			solvesom[s] = that.solvesom[s];
-		}
-	}
-
-	/// Copy assignment operator
-	Soillayer& operator=(const Soillayer& that) {
-		depth = that.depth;
-		depth_profile = that.depth_profile;
-		acrotelm = that.acrotelm;
-		catotelm = that.catotelm;
-		wmass = that.wmass;
-		imass = that.imass;
-		wmass_sc = that.wmass_sc;
-		Psi = that.Psi;
-		mwcontabove = that.mwcontabove;
-		awcont = that.awcont;
-		wsats = that.wsats;
-		awc = that.awc;
-		wp = that.wp;
-		root_volume = that.root_volume;
-		mineral_volume = that.mineral_volume;
-		organic_volume = that.organic_volume;
-		perc_mass = that.perc_mass;
-		perc_base = that.perc_base;
-		Kw = that.Kw;
-		Kw_max = that.Kw_max;
-		b = that.b;
-		Psi_max = that.Psi_max;
-		a = that.a;
-		runoff_drain = that.runoff_drain;
-		runoff_baseflow = that.runoff_baseflow;
-		rho_org = that.rho_org;
-		awc_org = that.awc_org;
-		wp_org = that.wp_org;
-		wsats_org = that.wsats_org;
-		b_org = that.b_org;
-		Psi_max_org = that.Psi_max_org;
-		Kw_max_org = that.Kw_max_org;
-		peat_frac = that.peat_frac;
-		bulk_density = that.bulk_density;
-		thermdiff_0 = that.thermdiff_0;
-		thermdiff_15 = that.thermdiff_15;
-		thermdiff_100 = that.thermdiff_100;
-		Cp_min = that.Cp_min;
-		temp = that.temp;
-		temp_old = that.temp_old;
-		gtemp = that.gtemp;
-		alag = that.alag;
-		exp_alag = that.exp_alag;
-		Kh = that.Kh;
-		Ch = that.Ch;
-		CO2 = that.CO2;
-		CH4 = that.CH4;
-		CH4_ebull_ind = that.CH4_ebull_ind;
-		CH4_gas = that.CH4_gas;
-		CH4_diss = that.CH4_diss;
-		O2 = that.O2;
-		respsum = that.respsum;
-		arespsum = that.arespsum;
-		tiller_area = that.tiller_area;
-		cpool_slow = that.cpool_slow;
-		cpool_fast = that.cpool_fast;
-		decomp_litter_mean = that.decomp_litter_mean;
-		k_soilfast_mean = that.k_soilfast_mean;
-		k_soilslow_mean = that.k_soilslow_mean;
-		depth_mod = that.depth_mod;
-		orgleachfrac = that.orgleachfrac;
-		anmin = that.anmin;
-		animmob = that.animmob;
-		aminleach = that.aminleach;
-		aorgCleach = that.aorgCleach;
-		aorgNleach = that.aorgNleach;
-		NH4_mass = that.NH4_mass;
-		NO3_mass = that.NO3_mass;
-		NO2_mass = that.NO2_mass;
-		NO_mass = that.NO_mass;
-		N2O_mass = that.N2O_mass;
-		N2_mass = that.N2_mass;
-		labile_carbon = that.labile_carbon;
-		litterSolveSOM = that.litterSolveSOM;
-		acdec[0] = that.acdec[0];
-		acdec[1] = that.acdec[1];
-		acinc[0] = that.acinc[0];
-		acinc[1] = that.acinc[1];
-		acmassfinput = that.acmassfinput;
-		acmasscinput = that.acmasscinput;
-
-		for (int mth = 0; mth < 12; mth++) {
-			mwmass[mth] = that.mwmass[mth];
-			mimass[mth] = that.mimass[mth];
-			mwcont[mth] = that.mwcont[mth];
-			mdrain[mth] = that.mdrain[mth];
-			mtemp[mth] = that.mtemp[mth];
-			mnetmin[mth] = that.mnetmin[mth];
-			morgleach_mean[mth] = that.morgleach_mean[mth];
-			mminleach_mean[mth] = that.mminleach_mean[mth];
-		}
-
-		for (int p = 0; p < NSOMPOOL; p++) {
-			sompool[p] = that.sompool[p];
-		}
-
-		solvesom.resize(that.solvesom.size());
-		for (int s = 0; s < that.solvesom.size(); s++) {
-			solvesom[s] = that.solvesom[s];
-		}
-
-		return *this;
-	}
-
 	// Destructor
 	~Soillayer() {
 
-		// etc.
+		// Performs memory deallocation, closing of files or other "cleanup" functions.
 	}
 
 	// Mineral exponential in Campbell (1974) parameterization for soil 
@@ -4611,7 +4266,7 @@ public:
 	double ncont();
 
 	/// Returns total snowpack (water and ice) [mm]
-	double wcontent();
+	double water_and_ice_content();
 
 	/// Returns total snowpack water [mm]
 	double wmass();
@@ -4670,8 +4325,8 @@ struct SSW : public Serializable {
 		}
 	}
 
-	/// Water content of surface standing water
-	double wcontent();
+	/// Water and ice content of surface standing water
+	double water_and_ice_content();
 	/// Update surface standing water temperatures due to water fluxes
 	void update_temp(double temp_add, double wmass_add, double imass_add = 0.0);
 	/// Update thermal properties for surface standing water
@@ -4690,10 +4345,6 @@ struct SSW : public Serializable {
 *  static parameters for this soil is included as a member variable. Soilcolumn holds the
 *  object array of soil layers
 */
-
-// PMSoil_new suggestion:
-//class Soilcolumn : public GuessContainer<Soillayer>, public Serializable {
-
 class Soilcolumn : public Serializable {
 
 	// MEMBER VARIABLES
@@ -4869,149 +4520,11 @@ public:
 	Soilcolumn(Patch& p, Soiltype& s) : patch(p), soiltype(s) {
 		initdrivers();
 	}
+	
+	// Destructor
+	~Soilcolumn() {
 
-
-	// 1. copy constructor
-	Soilcolumn(const Soilcolumn& that) : patch(that.patch), soiltype(that.soiltype) {
-
-		soillayers = that.soillayers;
-		depth = that.depth;
-		nsoillayers = that.nsoillayers;
-		asurfflitterinput = that.asurfflitterinput;
-		asurfclitterinput = that.asurfclitterinput;
-		asurflitterresp = that.asurflitterresp;
-		nacrotelm = that.nacrotelm;
-		ncatotelm = that.ncatotelm;
-		NH4_input = that.NH4_input;
-		NO3_input = that.NO3_input;
-		anfix = that.anfix;
-		anfix_mean = that.anfix_mean;
-		anfix_calc = that.anfix_calc;
-		awcont_upper = that.awcont_upper;
-		wcont_evap = that.wcont_evap;
-		rain_melt = that.rain_melt;
-		rain_melt_temp = that.rain_melt_temp;
-		max_rain_melt = that.max_rain_melt;
-		wmass_wetland_added = that.wmass_wetland_added;
-		percolate = that.percolate;
-		snow = that.snow;
-		maxthaw = that.maxthaw;
-		thaw = that.thaw;
-		maxthaw_10 = that.maxthaw_10;
-		acro_co2 = that.acro_co2;
-		dmoss_wtp_limit = that.dmoss_wtp_limit;
-		dgraminoid_wtp_limit = that.dgraminoid_wtp_limit;
-		wtp = that.wtp;
-		awtp = that.awtp;
-		wtd = that.wtd;
-		k_O2 = that.k_O2;
-		k_CO2 = that.k_CO2;
-		k_CH4 = that.k_CH4;
-		Ceq_O2 = that.Ceq_O2;
-		Ceq_CO2 = that.Ceq_CO2;
-		Ceq_CH4 = that.Ceq_CH4;
-		firstTempCalc = that.firstTempCalc;
-		solvesom_end = that.solvesom_end;
-		solvesom_begin = that.solvesom_begin;
-		solvesomcent_beginyr = that.solvesomcent_beginyr;
-		solvesomcent_endyr = that.solvesomcent_endyr;
-		savesomcent = that.savesomcent;
-		slope_grade_sin = that.slope_grade_sin;
-		slope_grade_cos = that.slope_grade_cos;
-
-		for (int mth = 0; mth < 12; mth++) {
-			mthaw[mth] = that.mthaw[mth];
-			mald_mean[mth] = that.mald_mean[mth];
-			mwtp[mth] = that.mwtp[mth];
-			fNH4uptake_mean[mth] = that.fNH4uptake_mean[mth];
-			fNO3uptake_mean[mth] = that.fNO3uptake_mean[mth];
-		}
-
-		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
-			soillayerdepths[lyr] = that.soillayerdepths[lyr];
-			soillayerthicks[lyr] = that.soillayerthicks[lyr];
-			wfluxes[lyr] = that.wfluxes[lyr];
-		}
-		wfluxes[NSOILLAYERS_MAX] = that.wfluxes[NSOILLAYERS_MAX];
-
-		for (int p = 0; p < NSOMPOOL; p++) {
-			csom_litter_input[p] = that.csom_litter_input[p];
-		}
-
-		pad = that.pad;
-	}
-
-	// 2. copy assignment operator
-	Soilcolumn& operator=(const Soilcolumn& that) {
-
-		soillayers = that.soillayers;	
-		soiltype = that.soiltype;
-		depth = that.depth;
-		nsoillayers = that.nsoillayers;
-		asurfflitterinput = that.asurfflitterinput;
-		asurfclitterinput = that.asurfclitterinput;
-		asurflitterresp = that.asurflitterresp;
-		nacrotelm = that.nacrotelm;
-		ncatotelm = that.ncatotelm;
-		NH4_input = that.NH4_input;
-		NO3_input = that.NO3_input;
-		anfix = that.anfix;
-		anfix_mean = that.anfix_mean;
-		anfix_calc = that.anfix_calc;
-		awcont_upper = that.awcont_upper;
-		wcont_evap = that.wcont_evap;
-		rain_melt = that.rain_melt;
-		rain_melt_temp = that.rain_melt_temp;
-		max_rain_melt = that.max_rain_melt;
-		wmass_wetland_added = that.wmass_wetland_added;
-		percolate = that.percolate;
-		snow = that.snow;
-		maxthaw = that.maxthaw;
-		thaw = that.thaw;
-		maxthaw_10 = that.maxthaw_10;
-		acro_co2 = that.acro_co2;
-		dmoss_wtp_limit = that.dmoss_wtp_limit;
-		dgraminoid_wtp_limit = that.dgraminoid_wtp_limit;
-		wtp = that.wtp;
-		awtp = that.awtp;
-		wtd = that.wtd;
-		k_O2 = that.k_O2;
-		k_CO2 = that.k_CO2;
-		k_CH4 = that.k_CH4;
-		Ceq_O2 = that.Ceq_O2;
-		Ceq_CO2 = that.Ceq_CO2;
-		Ceq_CH4 = that.Ceq_CH4;
-		firstTempCalc = that.firstTempCalc;
-		solvesom_end = that.solvesom_end;
-		solvesom_begin = that.solvesom_begin;
-		solvesomcent_beginyr = that.solvesomcent_beginyr;
-		solvesomcent_endyr = that.solvesomcent_endyr;
-		savesomcent = that.savesomcent;
-		slope_grade_sin = that.slope_grade_sin;
-		slope_grade_cos = that.slope_grade_cos;
-
-		for (int mth = 0; mth < 12; mth++) {
-			mthaw[mth] = that.mthaw[mth];
-			mald_mean[mth] = that.mald_mean[mth];
-			mwtp[mth] = that.mwtp[mth];
-			fNH4uptake_mean[mth] = that.fNH4uptake_mean[mth];
-			fNO3uptake_mean[mth] = that.fNO3uptake_mean[mth];
-		}
-
-		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
-			soillayerdepths[lyr] = that.soillayerdepths[lyr];
-			soillayerthicks[lyr] = that.soillayerthicks[lyr];
-			wfluxes[lyr] = that.wfluxes[lyr];
-		}
-		wfluxes[NSOILLAYERS_MAX] = that.wfluxes[NSOILLAYERS_MAX];
-
-		for (int p = 0; p < NSOMPOOL; p++) {
-			csom_litter_input[p] = that.csom_litter_input[p];
-		}
-
-		pad = that.pad;
-
-		return *this;
+		// Performs memory deallocation, closing of files or other "cleanup" functions.
 	}
 
 	/// Initialize variables
@@ -5038,8 +4551,11 @@ public:
 	double ccont(grouppooltype group = GALL);
 	/// N content of soil column
 	double ncont(grouppooltype group = GALL);
+	/// Water and ice content of the soil
+	double water_and_ice_content();
 	/// Get soil property totals
 	double get_sum(double Soillayer::* var_member);
+	/// Get soil property totals of a certain month
 	double get_sum(double(Soillayer::* var_arr)[12], int m);
 	/// Get soil layers available nmass fraction
 	void get_nfrac(n_pref_type pref, double nfrac[NSOILLAYERS_MAX], double nmin, bool water_limited = false);
@@ -6427,8 +5943,7 @@ public:
 
 	/// object for keeping track of carbon, nitrogen and water balance
 	MassBalance balance;
-	
-	// SOIL
+
 	/// Soil depth for gridcell (mm)
 	double soil_depth;
 
@@ -6509,6 +6024,9 @@ public:
 
 	/// Set initial soil depth
 	void set_soil_depth();
+	
+	/// Calculates soil layer depths and number of soil layers
+	void soil_layer_depths(double soil_lyr_depth[NSOILLAYERS_MAX], int& nsoillayers);
 
 	void serialize(ArchiveStream& arch);
 
@@ -6530,8 +6048,6 @@ public:
 	double nflux();
 	/// Total gridcell water fluxes so far this year
 	double water_flux();
-	/// Calculates soil layer depths and number of soil layers
-	void soil_layer_depths(double soil_lyr_depth[NSOILLAYERS_MAX], int& nsoillayers);
 
 	/// Deletes the stand which the iterator is pointing at
 	/** Returns an iterator pointing to the object following the erased object.

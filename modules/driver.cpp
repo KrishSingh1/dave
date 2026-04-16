@@ -665,10 +665,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	// On first day of year ...
 
 	if (date.day == 0) {
-
-		// reset annual precipitation
-		climate.aprec = 0.0;
-
 		// ... reset annual GDD0 and GDD5 counter
 		climate.agdd0 = 0.0;
 		climate.agdd5 = 0.0;
@@ -677,6 +673,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		gridcell.aNH4dep = 0.0;
 		gridcell.aNO3dep = 0.0;
 
+		// reset annual precipitation
+		climate.aprec = 0.0;
+		
 		// reset annual radiation counter
 		climate.ainsol = 0;
 
@@ -747,8 +746,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 				}
 
 				patch.fluxes.reset();
-				patch.anfert = 0.0;
 				soilcolumn.anfix = 0.0;
+				patch.anfert = 0.0;
 				patch.man_strength = 0.0;
 				patch.harvest_to_litter = false;
 				patch.clearcut_this_year = false;
@@ -965,7 +964,6 @@ void dailyaccounting_patch(Patch& patch) {
 
 			// Reset month phen and set driest month for RAINGREENS
 			double phen_min = 1.0;
-
 			ppft.driest_mth = 0;
 			for (int mth = 0; mth < 12; mth++) {
 				if (ppft.pft.phenology == RAINGREEN) {
@@ -983,8 +981,6 @@ void dailyaccounting_patch(Patch& patch) {
 			if ((ifthawaffectrootdist && soilcolumn.maxthaw_10.max() < soilcolumn.depth)) {
 				ppft.update_rootdist(soilcolumn.maxthaw_10.max(), soilcolumn.depth, soilcolumn.soillayerthicks, soilcolumn.nsoillayers);
 			}
-
-			pftlist.nextobj();
 		}
 
 		if (date.year >= soilcolumn.solvesomcent_beginyr && date.year <= soilcolumn.solvesomcent_endyr) {
@@ -1021,7 +1017,7 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 
 		// Soil layers
-		soilcolumn.wfluxes[0] = 0.0;
+		// soilcolumn.wfluxes[0] = 0.0;  // DW_COMMENT do we need?
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
 			Soillayer& soillayer = soilcolumn.soillayers[lyr];
@@ -1033,7 +1029,7 @@ void dailyaccounting_patch(Patch& patch) {
 				soillayer.temp_old = 0.0;
 			}
 
-			soilcolumn.wfluxes[lyr+1] = 0.0;
+			//soilcolumn.wfluxes[lyr+1] = 0.0; // DW_COMMENT do we need?
 
 			soillayer.arespsum = 0.0;
 			soillayer.aorgCleach = 0.0;
@@ -1089,7 +1085,7 @@ void dailyaccounting_patch(Patch& patch) {
 		soilcolumn.calc_root_volume();
 
 		// Vertical movement if matter in soil layer exceed maximum volume
-		soilcolumn.vertical_movement();
+		soilcolumn.vertical_movement(); // DW_COMMENT check if we do it mth or annual
 
 		// Water to be moved due to changes in the soil layers capability to hold water
 		double wmass_move = 0.0;
@@ -1135,10 +1131,10 @@ void dailyaccounting_patch(Patch& patch) {
 	if(run_landcover)
 		dailyaccounting_patch_lc(patch);
 
-	// Calculate snow and soil layer temperatures
+	// Calculate snow, soil, and padding temperatures
 	soilcolumn.temp();
 
-	// Calculate mean monthly soil layer temperatures
+	// Calculate mean monthly temperatures
 	soilcolumn.calc_mtemp();
 
 	// Calculate mean monthly snow values
@@ -1185,7 +1181,7 @@ void respiration_temperature_response(double temp, double& gtemp, bool ifsoil) {
 	}
 
 	// Possible updates to gtemp used if temp < 0degC
-	// Needed for root respiration
+	// Needed for root respiration // DW_COMMENT Same code as at another place???
 	if (ifsoil && ifcarbonfreeze && temp <= 0.0 && hydrology != GERTEN) {
 
 		double decomp_at_freezing_point = exp(308.56 * (1.0 / 56.02 - 1.0 / (0.0 + 46.02)));
@@ -1339,7 +1335,7 @@ void daylengthinsoleet(Climate& climate) {
 
 		// deal with the fact that insolation can be radiation during
 		// daylight hours or during whole time step
-		double averaging_period = 24.0 * 3600.0;
+		double averaging_period = 24 * 3600;
 
 		if (climate.instype == NETSWRAD || climate.instype == SWRAD) {
 			// insolation is provided as radiation during daylight hours

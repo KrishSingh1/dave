@@ -72,7 +72,7 @@ const double ALPHAA_NLIM = 0.6;	// Same as ALPHAA above but chosen to give pools
 								// switched on.
 
 const double ALPHAA_CROP = 0.7;			// Value for crops without N limitation.
-const double ALPHAA_CROP_NLIM = 0.8;// 9;	// Value for crops with N limitation
+const double ALPHAA_CROP_NLIM = 0.9;	// Value for crops with N limitation
 
 // Nitrogen follow Haxeltine & Prentice 1996b
 // Leaf nitrogen (kg N kg-1 C) not associated with photosynthesis

@@ -152,7 +152,6 @@ ColumnDescriptor::ColumnDescriptor(const char* title,
 		coords_format = (char*)str;
 	}
 
-
 	FileOutputChannel::~FileOutputChannel() {
 		for (size_t i = 0; i < files.size(); i++) {
 			if(files[i] != NULL) {

@@ -57,7 +57,7 @@ void snow(Soilcolumn& soilcolumn, double prec, double temp, double u10) {
 	// temp = air temperature today (deg C)
 
 	// INPUT AND OUTPUT PARAMETER
-	// solicolumn = stored snow (rainfall mm equivalents) and rainfall and snow melt today (mm)
+	// soilcolumn = stored snow (rainfall mm equivalents) and rainfall and snow melt today (mm)
 
 	// Snowfall, precipitation or snowmelt 
 	soilcolumn.snow_or_rainfall(temp, prec, u10, soilcolumn.rain_melt, soilcolumn.rain_melt_temp);
@@ -132,7 +132,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 	snow(soilcolumn, climate.prec - patch.intercep, climate.temp, climate.u10);
 
 	// Update snowpack N content
-	snow_ninput(climate.prec - patch.intercep, soilcolumn.snow.wcontent(), soilcolumn.rain_melt, 
+	snow_ninput(climate.prec - patch.intercep, soilcolumn.snow.water_and_ice_content(), soilcolumn.rain_melt, 
 		        gridcell.dNH4dep, gridcell.dNO3dep, patch.dnfert,
 				soilcolumn.snow.NH4_mass, soilcolumn.snow.NO3_mass, 
 				soilcolumn.NH4_input, soilcolumn.NO3_input);

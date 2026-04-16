@@ -436,23 +436,6 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 				fail("When using CRU monthly data weathergenerator must be specified to either 'INTERP' or 'GWGEN'.");
 			}
 		}
-		/*else if (date.get_calendar_year() <= 2200) {
-
-			if (date.day == 0)
-				dprintf("Future climate: %d\n",date.get_calendar_year());
-
-			weathergen_get_met(gridcell, hist_mtemp[114],
-					hist_mprec[114],
-					hist_mwet[114],
-					hist_msun[114],
-					hist_mdtr[114],
-					hist_mwind[114],
-					hist_mrhum[114],
-					dtemp, dprec, dsun, ddtr, dwind, drhum);
-
-			for (int dd = 0; dd < 365; dd++)
-				dtemp[dd] += 4.0 * (date.get_calendar_year() - 2000.0) / 100.0;
-		}*/
 		else {
 			// Return false if last year was the last for the simulation
 			return false;

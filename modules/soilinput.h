@@ -187,35 +187,6 @@ const double data[10][12] = {
 	{ 0.2, 0.100,   0.2, 0.500,   0.4, 0.100, 0.250,  0.10,  0.80,  0.01, 0.364, 0.482 }   // 9 Vertisols (values not know for wp)
 };
 
-
-
-const double vG_data[13][5] = {
-
-	// Van Genuchten  soil hydraulics parameters from Carsel 1988
-
-	// 0 saturated water contents
-	// 1 residual water contents (wilting point - soil suction of 15000 hPa)
-	// 2 saturated hydraulic conductivity (m / s-1)
-	// 3 shape parameter alpha (cm-1)
-	// 4 dimensionless shape parameter n (-)
-
-	//   0       1          2       3       4        texture code
-	//  ----------------------------------------
-	{ 0.43,  0.045, 8.250e-05,   14.5,   2.68 },  // Sand
-	{ 0.41,  0.057, 4.053E-05,   12.4,   2.28 },  // Loamy sand
-	{ 0.41,  0.065, 1.228E-05,    7.5,   1.89 },  // Sandy loam
-    { 0.43,  0.078, 2.889E-06,    3.6,   1.56 },  // Loam
-    { 0.46,  0.034, 6.944E-07,    1.6,   1.37 },  // Silt
-    { 0.45,  0.067, 1.250e-06,    2.0,   1.41 },  // Silt loam
-    { 0.39,  0.100, 3.639E-06,    5.9,   1.48 },  // Sandy clay loam
-    { 0.41,  0.095, 7.222E-07,    1.9,   1.31 },  // Clay loam
-    { 0.43,  0.089, 1.944E-07,    1.0,   1.23 },  // Silty clay loam
-    { 0.38,  0.100, 3.333E-07,    2.7,   1.23 },  // Sandy clay
-    { 0.36,  0.070, 5.556E-08,    0.5,   1.09 },  // Silty clay
-    { 0.38,  0.068, 5.556E-07,    0.8,   1.09 },  // Clay
-    { 0.766, 0.010, 9.300E-07,    1.3,   1.20 }   // Organic
-};
-
 /// Set soil physical properties based in soilcode
 void soil_parameters(Soiltype& soiltype, int soilcode);
 

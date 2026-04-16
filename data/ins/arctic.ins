@@ -31,13 +31,13 @@ file_anpp "anpp.out"
 file_agpp "agpp.out"
 file_agpp_no "agpp_no.out"
 file_agpp_ns "agpp_ns.out"
-!file_fpc "fpc.out"
-!file_aaet "aaet.out"
+file_fpc "fpc.out"
+file_aaet "aaet.out"
 file_lai "lai.out"
 file_cflux "cflux.out"
-!file_doc "doc.out"
-!file_dens "dens.out"
-!file_runoff "tot_runoff.out"
+file_doc "doc.out"
+file_dens "dens.out"
+file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 !file_clitter "clitter.out"
 file_soildepth "soildepth.out"
@@ -65,11 +65,11 @@ file_rh_depth "rh_depth.out"
 !file_amon_mt2 "amon_mt2.out"
 !file_speciesheights "height.out"
 
-!file_nmass "nmass.out"
-!file_cton_leaf "cton_leaf.out"
+file_nmass "nmass.out"
+file_cton_leaf "cton_leaf.out"
 file_ngases "ngases.out"
 file_nsources "nsources.out"
-!file_npool "npool.out"
+file_npool "npool.out"
 file_nsoil_depth "nsoil_depth.out"
 file_netnminsoil_depth "netnminsoil_depth.out"
 !file_ctonsom "cton_som.out"
@@ -127,7 +127,7 @@ file_wsats_depth "wsats_depth.out"
 !file_mmon "mmon.out"
 !file_mmon_mt1 "mmon_mt1.out"
 !file_mmon_mt2 "mmon_mt2.out"
-!file_msoiltempdepth25 "msoiltempdepth25.out"
+!file_msoiltempdepth25 "soiltemp25cm.out"	! Soil temperature at 25cm depth
 
 file_mtemp "mtemp.out"
 !file_mwmasslyr "mwmasslyr.out"
@@ -144,17 +144,17 @@ file_mtemp_depth "mtemp_depth.out"
 !file_mch4plan "mch4_plant.out"
 !file_mch4ebull "mch4_ebullition.out"
 
-file_msnow "msnowdepth.out"
-file_msnowcover "msnowcover.out"
-file_mwmass_ssw "mwmass_ssw.out"
+!file_msnow "msnowdepth.out"
+!file_msnowcover "msnowcover.out"
+!file_mwmass_ssw "mwmass_ssw.out"
 !file_mwtp "mwtp.out"
-file_mald "mald.out"
+!file_mald "mald.out"
 !file_mairtemp "mairtemp.out"
 !file_wetland_water_added "wetland_water_added.out"
 
-file_mald_peat "mald_peat.out"
-file_peat_frac "peat_frac.out"
-file_peat_depth "peat_depth.out"
+!file_mald_peat "mald_peat.out"
+!file_peat_frac "peat_frac.out"
+!file_peat_depth "peat_depth.out"
 
 !file_mburned_area_out "monthly_burned_area.out"
 
@@ -187,7 +187,7 @@ firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
 hydrology "RICHARDS"	! GERTEN, MILLER, RICHARDS
 energy "CNSTEP_FULL"	! CNSTEP_FULL, CNSTEP, BELDA
-npatch 5			! Number of replicate patches to simulate
+npatch 15			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
 ifdisturb 1			! Whether generic patch-destroying disturbances enabled
@@ -208,6 +208,7 @@ ifdroughtlimitedestab 0		! Whether establishment is limited by growing season dr
 				! guess2008 - species version has 1
 ifrainonwetdaysonly 1		! Whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0			! Whether to include BVOC calculations (1) or not (0)
+
 
 !///////////////////////////////////////////////////////////////////////////////
 ! PROCESS SETTINGS SPECIFIC TO NITROGEN
@@ -253,13 +254,12 @@ moist_mod_anaerobic 0.075
 ! WETLAND SWITCHES (no effect when run_peatland 0)
 !///////////////////////////////////////////////////////////////////////////////
 
-ifinundationstress 0		! Whether to reduce daily GPP if there's inundation on peatlands (1), or not (0)
+ifinundationstress 1		! Whether to reduce daily GPP if there's inundation on peatlands (1), or not (0)
 wetland_runon 0			! Extra daily water input to (>0), or output from (<0), wetlands (mm/day). 
 				! 0 by default, non-zero for site specific studies.
-ifsaturatewetlands 1		! Whether to take water from runoff to saturate low latitide wetlands (1), or not (0)
+ifmethane 0			! Whether to run the methane model and calculate methane fluxes
 ifsaturatewetlands 1		! Whether to take water from runoff in association with the (default) 
 				! saturation of low latitude wetlands (1), or not (0)
-ifmethane 1			! Whether to run the methane model and calculate methane fluxes
 peat_age 10000                      ! Age of peat (0 peatland will be spun up to equilibrium)
 
 !///////////////////////////////////////////////////////////////////////////////
@@ -276,7 +276,7 @@ save_state 0			! Whether to save a state file
 ! LANDCOVER PARAMETERS
 !///////////////////////////////////////////////////////////////////////////////
 
-run_landcover 1			! Whether to use (and change) landcover fractions (1) or not (0)
+run_landcover 0			! Whether to use (and change) landcover fractions (1) or not (0)
 
 
 !///////////////////////////////////////////////////////////////////////////////
@@ -334,6 +334,8 @@ group "common" (
 	has_aerenchyma 0		! PFTs do not have aerenchyma for gas transport by default
 	stem_frac 1
 	twig_frac 0
+	ligcfrac_root 0.25
+	ligcfrac_wood 0.25
 )
 
 group "tree" (
@@ -396,7 +398,7 @@ group "shrub" (
 	kest_pres 1
 	litterme 0.3
 	root_dist 0.6 0.4
-	root_beta 0.938
+	root_beta 0.982
 	longevity 100
 	ag_woody_frac 0.45
 
@@ -407,6 +409,7 @@ group "shrub" (
 	turnover_harv_prod 1	! Turnover rate for long-lived harvested products (wood): 1-year turnover time
 	harvest_slow_frac 0
 )
+
 
 group "grass" (
 
@@ -428,8 +431,6 @@ group "grass" (
 	cton_root 29
 	nuptoroot 0.00551
 	fnstorage 0.3
-	ligcfrac_root 0.25
-	ligcfrac_wood 0.0
 	litterme 0.2
 	parff_min 1000000
 	fireresist 0.5
@@ -451,8 +452,6 @@ group "broadleaved" (
 	gmin 0.5
 	intc 0.02
 	ga 0.040
-	ligcfrac_root 0.25
-	ligcfrac_wood 0.25
 )
 
 group "needleleaved" (
@@ -587,8 +586,6 @@ pft "BINE" (
 	seas_iso 0
 	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
-
-	greff_min 0.135
 )
 
 
@@ -610,12 +607,12 @@ pft "BNS" (
 	gdd5min_est 350
 	phengdd5ramp 50
 	longevity 300
+	root_beta 0.938		! Tundra profile (Jackson et al, 1996)
 	fireresist 0.3
 
 	greff_min 0.06		
 	eps_iso 8.0
 	seas_iso 1
-	root_beta 0.938		! Tundra profile (Jackson et al, 1996)
 	eps_mon 3.18 0.72 0.18 0.12 0.14 0.11 0.2 0.13 0.02
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	
 )
@@ -643,8 +640,6 @@ pft "IBS" (
 	seas_iso 1
 	eps_mon 0.52 0.14 0.1 0.04 0.49 0.01 0.04 0.18 0.08
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.
-
-	greff_min 0.135 		! Version 4.1 update. Improves B(I)NE/IBS balance in boreal regions.
 )
 
 pft "TeBS" (
@@ -699,7 +694,6 @@ pft "C3G" (
 
 	! Temperate (C3) grass
 	include 1
-	landcover "peatland"
 	C3G
 	gdd0_min 1000		! Wolf et al. (2008) have 800. 1000 matches the gdd0_max limit for the GRT PFT, minimizing overlap
 	ltor_max 0.5		! possible override of the grass group value
@@ -778,15 +772,14 @@ group "prostratedwarfshrub" (
 	! Typical species: Vaccinium oxycoccus, Salix arctica, Arctostaphylos alpinus
 
 	shrub
-	landcover "peatland"
+	
 	! Allometry
 	crownarea_max 1.0
 	k_allom1 10
 	k_allom2 1
-	ltor_max 0.5   		! overrides shrub group value
 	root_dist 0.9 0.1
-	root_beta 0.9555
-	turnover_root 0.5
+	root_beta 0.914		! Tundra vegetation in Jackson et al., 1996
+	ltor_max 0.5   		! overrides shrub group value
 
 	! Longevity
 	longevity 30
@@ -824,10 +817,11 @@ group "cushionforblichenmosstundra" (
 
 	grass
    	boreal
-	landcover "peatland"
 	pathway "c3"
 
-
+	! Structure and function
+	root_dist 0.9 0.1
+	root_beta 0.9555
 	ltor_max 0.4
 	turnover_root 0.5
 	turnover_leaf 0.6
@@ -843,9 +837,6 @@ group "cushionforblichenmosstundra" (
 	! Tundra (High Arctic) peatlands
 	wtp_max -200
 	inund_duration 10
-
-	root_dist 0.9 0.1
-	root_beta 0.9555
 
 	! BVOC values - Guy Schurgers, October/November 2011, Tang et al., 2016
 	eps_iso 1.29
@@ -954,7 +945,7 @@ pft "LSS" (
 	! Typical species: Vaccinium myrtillus, V. uliginosum, Salix hastata, S. glauca etc.
 
 	include 1
-	landcover "peatland"
+
 	broadleaved
 	lowshrub 		! NB: Overrides k_latosa set in broadleaved
 	boreal
@@ -1011,7 +1002,7 @@ pft "EPDS" (
 	needleleaved
 	evergreen
 	boreal
-	landcover "peatland"
+
 	leaflong 2
 	turnover_leaf 0.5
 
@@ -1039,7 +1030,6 @@ pft "SPDS" (
 	broadleaved
 	summergreen
 	boreal
-	landcover "peatland"
 
 	k_latosa 120		! set to the same relative difference as broadleafed/needleleafed, was 100	
 

@@ -82,7 +82,7 @@ private:
 	/// The current grid cell to simulate
 	std::vector<Coord>::iterator current_gridcell;
 
-	std::vector<std::pair<double, double> > translate_gridlist_to_coord(std::vector<Coord>& gridlist);
+	std::vector<std::pair<double, double> > translate_gridlist_to_coord(std::vector<Coord>& gridlist); // DW_COMMENT NEEDED?
 
 	/// Loads data from NetCDF files for current grid cell
 	/** Returns the coordinates for the current grid cell*/

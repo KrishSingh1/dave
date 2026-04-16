@@ -7,11 +7,6 @@
 #ifndef LPJ_GUESS_MANAGEMENT_H
 #define LPJ_GUESS_MANAGEMENT_H
 
-/// Fraction of above ground wood cmass that are stems
-const double AB_STEM_FRAC = 0.83;
-/// Fraction of above ground wood cmass that are twigs
-const double AB_TWIG_FRAC = 1.0 - AB_STEM_FRAC;
-
 // Forward declaration
 struct Harvest_CN;
 

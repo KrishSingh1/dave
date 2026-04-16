@@ -222,7 +222,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	double& cmass_heart, double& nmass_leaf, double& nmass_root, double& nmass_sap,
 	double& nmass_heart, double& litter_leaf, double& litter_root, double& cmass_leaf_root_turnover,
 	double& nmass_litter_leaf, double& nmass_litter_root,
-	double& longterm_nstore, double max_n_storage,
+	double& longterm_nstore, double& max_n_storage,
 	bool alive, double& NH4_mass) {
 
 	// DESCRIPTION
@@ -745,8 +745,8 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 
 			// Calculate increase in sapwood mass (which must be negative)
 			// Eqn (2)
-			cmass_sap_inc = min(0.0, (cmass_leaf_inc + cmass_leaf) * wooddens * height * sla / k_latosa -
-				cmass_sap);
+			cmass_sap_inc = (cmass_leaf_inc + cmass_leaf) * wooddens * height * sla / k_latosa -
+				cmass_sap;
 
 			// Make sure we don't end up with negative cmass_sap
 			if (cmass_sap_inc < -cmass_sap) {
@@ -973,15 +973,14 @@ bool allometry(Individual& indiv) {
 			// Stem volume
 			double vol = indiv.height * PI * indiv.diam * indiv.diam * 0.25;
 
-			// Stem density (kgC/m3)
+			// Stem density (kg C m-3)
 			double wooddens = (indiv.cmass_heart + indiv.cmass_sap) / indiv.densindiv / vol;
 
+			// Calculated wood density is not within its limits due to strange tree height. 
+			// Keep last years tree height and recalculate stem diameter. This prevents cohort 
+			// from dying due to abnormal height, but will be affected by growth efficiency 
+			// mortality instead 
 			if (indiv.age && (wooddens < indiv.pft.wooddens * 0.9 || wooddens > indiv.pft.wooddens / 0.9)) {
-
-				// Calculated wood density is not within its limits due to starnge tree height. 
-				// Keep last years tree height and recalculate stem diameter. This prevents cohort 
-				// from dying due to abnormal height, but will be affected by growth efficiency 
-				// mortality instead 
 
 				double diam_prev = pow(height_prev / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
 
@@ -1524,9 +1523,9 @@ void growth(Stand& stand, Patch& patch) {
 							indiv.nmass_root -= nmass;
 						}
 					}
-
 					// Kill individual and transfer biomass to litter if either biomass
 					// compartment negative
+
 
 					// Note - what happens if cmass_root = 0?
 					if ((indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS) && !indiv.istruecrop_or_intercropgrass()) {
@@ -1540,6 +1539,7 @@ void growth(Stand& stand, Patch& patch) {
 						vegetation.killobj();
 						killed = true;
 					}
+
 				} // grass or moss
 
 				if (!killed && indiv.pft.phenology != CROPGREEN && !(indiv.has_daily_turnover() && indiv.continous_grass())) {
@@ -1635,6 +1635,7 @@ void growth(Stand& stand, Patch& patch) {
 			}
 		}
 
+
 		if (!killed) {
 
 			if (!allometry(indiv)) {
@@ -1680,6 +1681,7 @@ void growth(Stand& stand, Patch& patch) {
 				vegetation.nextobj();
 			}
 		}
+
 	}
 
 	// Flush nitrogen free litter from reproduction straight to atmosphere

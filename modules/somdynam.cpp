@@ -1719,18 +1719,18 @@ void soilnadd(Patch& patch) {
 	if (!negligible(cconttot) && navailtot < NMASS_SAT_NFIX) {
 
 		// Todays total N fixation normalised per organic matter content
-		double daily_nfix = min(NMASS_SAT_NFIX - navailtot, soilcolumn.anfix_calc / date.year_length()) / cconttot;
+		double daily_nfix = min(NMASS_SAT_NFIX - navailtot, soilcolumn.anfix_calc / date.year_length());
 
 		// Sum annaul N fixation
-		soilcolumn.anfix += daily_nfix * cconttot;
-		patch.fluxes.report_flux(Fluxes::NFIX, daily_nfix * cconttot);
+		soilcolumn.anfix += daily_nfix;
+		patch.fluxes.report_flux(Fluxes::NFIX, daily_nfix);
 
 		// Nitrogen fixation in each soil layer
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
 			Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
-			double daily_nfix_lyr = daily_nfix * soillayer.ccont();
+			double daily_nfix_lyr = daily_nfix * soillayer.ccont() / cconttot;
 
 			soillayer.nmass_inc(daily_nfix_lyr, NH4);
 		}

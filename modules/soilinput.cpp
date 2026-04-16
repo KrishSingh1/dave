@@ -617,7 +617,7 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 		}
 	}
 	else {
-		gridcell.soil_depth = 1500.0;
+		gridcell.soil_depth = SOILDEPTH_UPPER + SOILDEPTH_LOWER;
 	}
 
 	// Make sure soil depth is within ranges (mm)

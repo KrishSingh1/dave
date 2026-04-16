@@ -372,7 +372,7 @@ double Snow::ncont() {
 /// Function returns total water and ice mass in snow column
 /** Function returns total water and ice mass in snow column
  */
-double Snow::wcontent() {
+double Snow::water_and_ice_content() {
 	double wcontent = 0.0;
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
 		Snowlayer& snowlayer = snowlayers[lyr];
@@ -2854,11 +2854,18 @@ double Soilcolumn::ncont(grouppooltype group) {
 	return ncont;
 }
 
-/// Returns surface standing water content
-/** Returns surface standing water content
+/// Returns surface standing water and ice content
+/** Returns surface standing water and ice content
  */
-double SSW::wcontent() {
+double SSW::water_and_ice_content() {
 	return wmass + imass;
+}
+
+/// Returns soil water and ice content
+/** Returns soil water and ice content
+ */
+double Soilcolumn::water_and_ice_content() {
+	return get_sum(&Soillayer::wmass) + get_sum(&Soillayer::imass);
 }
 
 /// Returns the total value for a certain property
@@ -2995,7 +3002,7 @@ void Soilcolumn::calc_mwcont() {
 	double acc_awc = 0.0;
 
 	// Monthly standing water and ice
-	ssw.mwimass[date.month] += ssw.wcontent() / date.ndaymonth[date.month];
+	ssw.mwimass[date.month] += ssw.water_and_ice_content() / date.ndaymonth[date.month];
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
@@ -3558,7 +3565,7 @@ double Soilcolumn::var_depth_ncont(double depth_start, double depth_end, grouppo
 */
 void Soilcolumn::snowfall(double airT, double& prec, double u10) {
 
-	if (negligible(ssw.wcontent(), -10) || snow.nsnowlayers) {
+	if (negligible(ssw.water_and_ice_content(), -10) || snow.nsnowlayers) {
 
 		// Fresh snow density calculation, following eqn 1 in Vionnet et al (2012)
 		// Constant [kg m-3]
@@ -3621,7 +3628,7 @@ void Soilcolumn::snow_or_rainfall(double airT, double& prec, double u10, double&
 	if (prec == 0 && airT < 0.0)
 		return;
 
-	double w_begin = ssw.wcontent() + snow.wcontent() + prec + rain_melt;
+	double w_begin = ssw.water_and_ice_content() + snow.water_and_ice_content() + prec + rain_melt;
 
 	// Multi layer snow scheme
 	if (ifmultilayersnow) {
@@ -3728,7 +3735,7 @@ void Soilcolumn::snow_or_rainfall(double airT, double& prec, double u10, double&
 	}
 
 	// Water balance might not meet mass balance in very low productive and saturated sites 
-	double wdiff = w_begin - (ssw.wcontent() + snow.wcontent() + rain_melt);
+	double wdiff = w_begin - (ssw.water_and_ice_content() + snow.water_and_ice_content() + rain_melt);
 	if (wdiff > 0.0) {
 		rain_melt += wdiff;
 	}
@@ -3739,16 +3746,16 @@ void Soilcolumn::snow_or_rainfall(double airT, double& prec, double u10, double&
 		if (rain_melt < 0.0) {
 
 			// Extract first from standing water
-			if (ssw.wcontent() > 0.0) {
-				double frac = min(1.0, -rain_melt / ssw.wcontent());
-				rain_melt += frac * ssw.wcontent();
+			if (ssw.water_and_ice_content() > 0.0) {
+				double frac = min(1.0, -rain_melt / ssw.water_and_ice_content());
+				rain_melt += frac * ssw.water_and_ice_content();
 				ssw.wmass *= 1.0 - frac;
 				ssw.imass *= 1.0 - frac;
 			}
 
 			// Still missing water. Take from snow
 			if (rain_melt < 0.0) {
-				if (snow.wcontent() > 0.0) {
+				if (snow.water_and_ice_content() > 0.0) {
 					int lyr = snow.nsnowlayers - 1;
 					while (rain_melt < 0.0 && lyr >= 0) {
 
@@ -3785,7 +3792,7 @@ void Soilcolumn::snow_or_rainfall(double airT, double& prec, double u10, double&
 		}
 	}
 
-	double w_end = ssw.wcontent() + snow.wcontent() + rain_melt;
+	double w_end = ssw.water_and_ice_content() + snow.water_and_ice_content() + rain_melt;
 	if (fabs(w_begin - w_end) > 1.0e-10) {
 		dprintf("Year %d Day %d ERROR: Snow snow_or_rainfall diff %g\n", date.year, date.day, w_begin - w_end);
 	}
@@ -5080,8 +5087,8 @@ void Soilcolumn::hydrology_peat(const Climate& climate, double fevap) {
 	}
 
 	// Very low surface standing water -> send to runoff
-	if (negligible(ssw.wcontent(), -10)) {
-		runoff_ssw += ssw.wcontent();
+	if (negligible(ssw.water_and_ice_content(), -10)) {
+		runoff_ssw += ssw.water_and_ice_content();
 		ssw.wmass = 0.0;
 		ssw.imass = 0.0;
 	}
@@ -5653,7 +5660,7 @@ void Soilcolumn::hydrology_gerten(const Climate& climate, double fevap) {
 	double evap = 0.0;
 
 	// Evaporation only if snow equivalent water < 10mm
-	if (snow.wcontent() < 10.0) {	
+	if (snow.water_and_ice_content() < 10.0) {	
 		evap = climate.eet * PRIESTLEY_TAYLOR * wcont_evap * wcont_evap * fevap;
 	}
 
@@ -6142,7 +6149,7 @@ void Soilcolumn::hydrology_miller(const Climate& climate, double fevap) {
 
 	// water added when patch.stand.is_true_wetland_stand() should be be subtracted from runoff
 	// in proportion to its components
-	if (patch.stand.is_true_wetland_stand() && wmass_wetland_added > 0.0) {
+	if (patch.stand.is_true_wetland_stand() && ifsaturatewetlands) {
 
 		if (runoff <= wmass_wetland_added && runoff > 0.0) {
 
@@ -6579,8 +6586,8 @@ void Soilcolumn::hydrology_richards(const Climate& climate, double fevap) {
 		ssw.wmass += wmass_ssw_added;
 
 		// Very low surface standing water -> send to runoff
-		if (negligible(ssw.wcontent(), -10)) {
-			runoff_ssw += ssw.wcontent();
+		if (negligible(ssw.water_and_ice_content(), -10)) {
+			runoff_ssw += ssw.water_and_ice_content();
 			ssw.wmass = 0.0;
 			ssw.imass = 0.0;
 		}
@@ -7518,16 +7525,16 @@ void Soilcolumn::calc_temp() {
 		bool combine_surf_soil = false;
 
 		// Layer above soil exists
-		if (!negligible(snow.depth() + ssw.wcontent())) {
+		if (!negligible(snow.depth() + ssw.water_and_ice_content())) {
 
 			// If a snowpack and standing water is present then soak snowpack
-			if (!negligible(snow.depth()) && !negligible(ssw.wcontent())) {
+			if (!negligible(snow.depth()) && !negligible(ssw.water_and_ice_content())) {
 				snow.soak_snowpack(ssw.wmass, ssw.imass, ssw.temp);
 			}
 
 			// Layer above soil is thinner that 50% of top soil layer
 			// Should be combined with top soil layer for computational stability
-			if (snow.depth() + ssw.wcontent() <= soillayers[0].depth * 0.5) {
+			if (snow.depth() + ssw.water_and_ice_content() <= soillayers[0].depth * 0.5) {
 
 				// Combine additional surface layers with top soil layer
 				combine_surf_soil = true;
@@ -7590,7 +7597,7 @@ void Soilcolumn::calc_temp() {
 				// Standing water layers
 				int lyr = nairsurflayers - 1;
 
-				dz[lyr] = ssw.wcontent();
+				dz[lyr] = ssw.water_and_ice_content();
 				ci[lyr] = ssw.Ch / MM3_PER_M3; // m-3 to mm-3
 				ki[lyr] = ssw.Kh * SECS_PER_DAY / MM_PER_M; // s to day, m-1 to mm-1
 				di[lyr] = ki[lyr] / ci[lyr]; // mm2 day-1
@@ -7611,14 +7618,14 @@ void Soilcolumn::calc_temp() {
 				double depth_surf, Ch_surf, Kh_surf, temp_surf;
 				if (snow.depth()) {
 					Snowlayer& snowlayer = snow.snowlayers[0];
-					depth_surf = snowlayer.depth + ssw.wcontent();
-					Ch_surf = (snowlayer.Ch * snowlayer.depth + ssw.Ch * ssw.wcontent()) / depth_surf;
-					Kh_surf = (snowlayer.Kh * snowlayer.depth + ssw.Kh * ssw.wcontent()) / depth_surf;
-					temp_surf = (snowlayer.temp * snowlayer.depth * snowlayer.Ch + ssw.temp * ssw.wcontent() * ssw.Ch) /
-						(snowlayer.depth * snowlayer.Ch + ssw.wcontent() * ssw.Ch);
+					depth_surf = snowlayer.depth + ssw.water_and_ice_content();
+					Ch_surf = (snowlayer.Ch * snowlayer.depth + ssw.Ch * ssw.water_and_ice_content()) / depth_surf;
+					Kh_surf = (snowlayer.Kh * snowlayer.depth + ssw.Kh * ssw.water_and_ice_content()) / depth_surf;
+					temp_surf = (snowlayer.temp * snowlayer.depth * snowlayer.Ch + ssw.temp * ssw.water_and_ice_content() * ssw.Ch) /
+						(snowlayer.depth * snowlayer.Ch + ssw.water_and_ice_content() * ssw.Ch);
 				}
 				else {
-					depth_surf = ssw.wcontent();
+					depth_surf = ssw.water_and_ice_content();
 					Ch_surf = ssw.Ch;
 					Kh_surf = ssw.Kh;
 					temp_surf = ssw.temp;
@@ -7682,7 +7689,7 @@ void Soilcolumn::calc_temp() {
 		}
 
 		// Set new standing water temperatures
-		if (!negligible(ssw.wcontent(), -10)) {
+		if (!negligible(ssw.water_and_ice_content(), -10)) {
 			if (combine_surf_soil) {
 				ssw.temp = temp[1];
 			}
@@ -7693,7 +7700,7 @@ void Soilcolumn::calc_temp() {
 		}
 		else {
 			// Very low surface standing water -> send to runoff
-			patch.fluxes.report_flux(Fluxes::WRUNOFF_SSW, ssw.wcontent());
+			patch.fluxes.report_flux(Fluxes::WRUNOFF_SSW, ssw.water_and_ice_content());
 			ssw.wmass = 0.0;
 			ssw.imass = 0.0;
 		}
@@ -8001,7 +8008,7 @@ void Soilcolumn::vertical_movement() {
 	//std::vector<double> csoilfinefrac = interp_soil_conserve(fineDz);
 
 	double ccont_before = ccont();
-	double wcont_before = get_sum(&Soillayer::wmass) + get_sum(&Soillayer::imass);
+	double wcont_before = water_and_ice_content();
 	double wadd = 0.0;
 
 	for (int lyr = 0; lyr < nsoillayers; lyr++) {
@@ -8359,7 +8366,7 @@ void Soilcolumn::vertical_movement() {
 	}
 
 	double ccont_after = ccont();
-	double wcont_after = get_sum(&Soillayer::wmass) + get_sum(&Soillayer::imass);
+	double wcont_after = water_and_ice_content();
 
 	if (fabs(ccont_after - ccont_before) > 1.0e-10) {
 		dprintf("Year %d ERROR VERTMOVE C before %g after %g Diff %g\n", date.year, ccont_before, ccont_after, ccont_before - ccont_after);

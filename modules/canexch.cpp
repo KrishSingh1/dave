@@ -363,8 +363,6 @@ void fpar(Patch& patch) {
 			// Calculate FPAR at bottom of this layer
 			// Eqn 27, Prentice et al 1993
 
-			// fpar_layer_bottom = lambertbeer(Kb, plai);
-			// fpar_leafon_layer_bottom = lambertbeer(Kb, plai_leafon);
 			fpar_layer_bottom = exp_kb_lut(plai);
 			fpar_leafon_layer_bottom = exp_kb_lut(plai_leafon);
 
@@ -402,8 +400,6 @@ void fpar(Patch& patch) {
 		}
 
 		// FPAR reaching grass canopy
-		// fpar_grass = lambertbeer(Kb, plai);
-		// fpar_leafon_grass = lambertbeer(Kb, plai_leafon);
 		fpar_grass = exp_kb_lut(plai);
 		fpar_leafon_grass = exp_kb_lut(plai_leafon);
 
@@ -411,7 +407,6 @@ void fpar(Patch& patch) {
 		// BLARP: Order changed Ben 050301 to overcome optimisation bug in pgCC
 
 		//plai+=plai_grass;
-		// fpar_ff = lambertbeer(Kb, plai + plai_grass);
 		fpar_ff = exp_kb_lut(plai + plai_grass);
 		plai+=plai_grass;
 
@@ -419,8 +414,6 @@ void fpar(Patch& patch) {
 		patch.fpar_ff=fpar_ff;
 
 		plai_leafon+=plai_leafon_grass;
-
-		// fpar_leafon_ff = lambertbeer(Kb, plai_leafon);
 		fpar_leafon_ff = exp_kb_lut(plai_leafon);
 
 		// FPAR for grass PFTs is difference between relative PAR at top of grass canopy
@@ -696,7 +689,6 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 	// Make sure that only two alternative modes are possible:
 	//  * daily non-water stressed (forces Vmax calculation)
 	//  * with pre-calculated Vmax (sub-daily and water-stressed)
-
 	assert(vm >= 0 || lambda == pft.lambda_max);
 	assert(lambda <= pft.lambda_max);
 
@@ -865,12 +857,12 @@ inline double gpterm(double adtmm, double co2, double lambda, double daylength) 
 /**
  * Updated daily
  */
-double get_co2(Patch& p, Climate& climate, Pft& pft) {
+double get_co2(Patch& patch, Climate& climate, Pft& pft) {
 
 	double pftco2 = climate.co2;
 
-	if (p.stand.is_highlatitude_peatland_stand() && pft.ismoss())
-		pftco2 = p.soilcolumn.acro_co2; // override for peat mosses
+	if (patch.stand.is_highlatitude_peatland_stand() && pft.ismoss())
+		pftco2 = patch.soilcolumn.acro_co2; // override for peat mosses
 
 	return pftco2;
 }
@@ -879,11 +871,11 @@ double get_co2(Patch& p, Climate& climate, Pft& pft) {
 /**
  * Updated daily
  */
-double get_inund_stress(Patch& p, Patchpft& ppft) {
+double get_inund_stress(Patch& patch, Patchpft& ppft) {
 
 	double inund_stress = 1.0; // No stress by default
 
-	if (ifinundationstress && p.stand.is_highlatitude_peatland_stand())
+	if (ifinundationstress && patch.stand.is_highlatitude_peatland_stand())
 		inund_stress = ppft.inund_stress; // Determine inundation stress for this Patchpft
 
 	return inund_stress;
@@ -893,13 +885,13 @@ double get_inund_stress(Patch& p, Patchpft& ppft) {
 /**
  * Updated daily
  */
-double get_graminoid_wtp_limit(Patch& p, Pft& pft) {
+double get_graminoid_wtp_limit(Patch& patch, Pft& pft) {
 
 	double graminoid_wtp_limit = 1.0; // No limit by default
 
 	// Update limit if this is a graminoid
-	if (!pft.ismoss() && pft.iswetlandspecies() && p.stand.is_highlatitude_peatland_stand())
-		graminoid_wtp_limit = p.soilcolumn.dgraminoid_wtp_limit;
+	if (!pft.ismoss() && pft.iswetlandspecies() && patch.stand.is_highlatitude_peatland_stand())
+		graminoid_wtp_limit = patch.soilcolumn.dgraminoid_wtp_limit;
 
 	return graminoid_wtp_limit;
 }
@@ -908,13 +900,13 @@ double get_graminoid_wtp_limit(Patch& p, Pft& pft) {
 /**
  * Updated daily
  */
-double get_moss_wtp_limit(Patch& p, Pft& pft) {
+double get_moss_wtp_limit(Patch& patch, Pft& pft) {
 
 	double moss_wtp_limit = 1.0; // No limit by default
 
 	// Update limit if this is a moss
-	if (pft.ismoss() && p.stand.is_highlatitude_peatland_stand())
-		moss_wtp_limit = p.soilcolumn.dmoss_wtp_limit;
+	if (pft.ismoss() && patch.stand.is_highlatitude_peatland_stand())
+		moss_wtp_limit = patch.soilcolumn.dmoss_wtp_limit;
 
 	return moss_wtp_limit;
 }
@@ -949,6 +941,7 @@ void photosynthesis_nostress(Patch& patch, Climate& climate) {
 
 				pftco2 = get_co2(patch, climate, spft.pft);
 				ps_env.set(pftco2, climate.temp, climate.par, 1.0, climate.daylength);
+				
 				ps_stress.set(false, false, get_moss_wtp_limit(patch, spft.pft), get_graminoid_wtp_limit(patch, spft.pft), get_inund_stress(patch, ppft));
 
 				// Call photosynthesis assuming stomates fully open (lambda = lambda_max)
@@ -2028,16 +2021,6 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 	// Base value for actual canopy conductance calculated here for water-stressed
 	// individuals and used to derive actual photosynthesis in function npp (below)
 
-	Soilcolumn& soilcolumn = patch.soilcolumn;
-
-	double wcont[NSOILLAYERS_MAX], awc[NSOILLAYERS_MAX];
-
-	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-		Soillayer& soillayer = soilcolumn.soillayers[lyr];
-		wcont[lyr] = soillayer.temp >= 0.0 ? soillayer.wcont() : 0.0;
-		awc[lyr] = soillayer.awc;
-	}
-
 	// Calculate common point supply for each PFT in this patch
 	for (int p=0; p<npft; p++) {
 
@@ -2063,6 +2046,17 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 				wr = irrigated_water_uptake(patch, pft, day);
 			} 
 			else {
+				
+				Soilcolumn& soilcolumn = patch.soilcolumn;
+
+				double wcont[NSOILLAYERS_MAX], awc[NSOILLAYERS_MAX];
+			
+				for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+					Soillayer& soillayer = soilcolumn.soillayers[lyr];
+					wcont[lyr] = soillayer.temp >= 0.0 ? soillayer.wcont() : 0.0;
+					awc[lyr] = soillayer.awc;
+				}
+	
 				wr = water_uptake(wcont, awc, ppft.rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 					pft.lifeform == TREE, pft.drought_tolerance, soilcolumn.nsoillayers);
 			}
@@ -2680,6 +2674,7 @@ void forest_floor_conditions(Patch& patch) {
 	const Climate& climate = patch.get_climate();
 	double lambda;			// not used here
 	PhotosynthesisResult phot;
+
 	for (int p=0; p<npft; p++) {
 
 		Patchpft& ppft = patch.pft[p];

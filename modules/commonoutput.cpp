@@ -1847,7 +1847,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			wmass_snow_gridcell += snow.wmass() * to_gridcell_average;
 			imass_snow_gridcell += snow.imass() * to_gridcell_average;
-			wmass_ssw_gridcell += soilcolumn.ssw.wcontent() * to_gridcell_average;
+			wmass_ssw_gridcell += soilcolumn.ssw.water_and_ice_content() * to_gridcell_average;
 			wmass_soil_gridcell += soilcolumn.get_sum(&Soillayer::wmass) * to_gridcell_average;
 			imass_soil_gridcell += soilcolumn.get_sum(&Soillayer::imass) * to_gridcell_average;
 

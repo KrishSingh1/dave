@@ -2833,8 +2833,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
   */
 void MiscOutput::outdaily(Gridcell& gridcell) {
 
-	//if (date.year < nyear_spinup + 90) {
-	if (date.get_calendar_year() < 1963) {
+	if (date.year < nyear_spinup + 90) {
 		return;
 	}
 
@@ -2845,8 +2844,6 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 	outlimit_misc(out, out_daily_climate, gridcell.climate.temp);
 	outlimit_misc(out, out_daily_climate, gridcell.climate.prec);
 	outlimit_misc(out, out_daily_climate, gridcell.climate.rad);
-
-	Gridcell::iterator gc_itr = gridcell.begin();
 
 	double snow_depth[NSNOWLAYERS_MAX] = { 0.0 };
 	double snow_temp[NSNOWLAYERS_MAX] = { 0.0 };
@@ -2863,6 +2860,7 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 	double tsoil_depth[7] = { 0.0 };
 
 	// Loop through Stands
+	Gridcell::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
 		Stand& stand = *gc_itr;
 		stand.firstobj();

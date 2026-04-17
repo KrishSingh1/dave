@@ -122,13 +122,14 @@ void nh3_volatilization(Soillayer& soillayer, Fluxes& fluxes, double aprec_lasty
 	double nh3_max = 0.0, f_nit_T = 0.0, nh3_inc = 0.0;
 	double soil_T = soillayer.temp;
 	double wcont = hydrology == RICHARDS ? soillayer.wfps() : soillayer.wcont();
+	double pH = soillayer.pH;
 
 	// calculating soil pH value, aprec = daily mean precip, based on annual average
-	if (soillayer.pH == 0.0) {
-		soillayer.pH = 3810.0 / (762.0 + aprec_lastyear) + 3.5; // Dawson -77
+	if (pH == 0.0) {
+		pH = 3810.0 / (762.0 + aprec_lastyear) + 3.5; // Dawson -77
 	}
 
-	if (soillayer.pH > 6.0) {
+	if (pH > 6.0) {
 		nh3_max = 0.001; // Maximum conversion ratio from NH4_mass to NH3 gas
 	}
 	else {
@@ -148,7 +149,7 @@ void nh3_volatilization(Soillayer& soillayer, Fluxes& fluxes, double aprec_lasty
 	}
 
 	// NH3 increment (table 5, eqn 2, 3, 4, 6, Xu-Ri 2008)
-	nh3_inc = min(soillayer.NH4_mass, nh3_max * (wcont * (1.0 - wcont)) * f_nit_T * f_nit_T * exp(2.0 * (soillayer.pH - 10.0)) * soillayer.NH4_mass);
+	nh3_inc = min(soillayer.NH4_mass, nh3_max * (wcont * (1.0 - wcont)) * f_nit_T * f_nit_T * exp(2.0 * (pH - 10.0)) * soillayer.NH4_mass);
 
 	soillayer.NH4_mass -= nh3_inc;
 
@@ -218,7 +219,7 @@ void nitrification(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart) {
 void denitrification(Soillayer& soillayer, Fluxes& fluxes, Nsubpart& subpart) {
 	double soil_T = soillayer.temp;
 
-	// Ative water content
+	// Active water content
 	double water_cont = max(0.0, soillayer.wmass - soillayer.wp);
 
 	double wfps = soillayer.wfps();

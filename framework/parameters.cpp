@@ -1553,7 +1553,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("depth_soil")) badins("depth_soil");
 		if (hydrology != RICHARDS && depth_soil != (SOILDEPTH_UPPER + SOILDEPTH_LOWER)) {
 			sendmessage("Error", "Soil depth must be set to 1500mm with GERTEN or MILLER hydrology. Soil depth SET to 1500mm!");
-			depth_soil = 1500.0;
+			depth_soil = SOILDEPTH_UPPER + SOILDEPTH_LOWER;
 		}
 		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");
 		if (!itemparsed("nfix_a")) badins("nfix_a");

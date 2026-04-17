@@ -1017,7 +1017,6 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 
 		// Soil layers
-		// soilcolumn.wfluxes[0] = 0.0;  // DW_COMMENT do we need?
 		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 
 			Soillayer& soillayer = soilcolumn.soillayers[lyr];
@@ -1028,8 +1027,6 @@ void dailyaccounting_patch(Patch& patch) {
 				soillayer.freeze_lyr();
 				soillayer.temp_old = 0.0;
 			}
-
-			//soilcolumn.wfluxes[lyr+1] = 0.0; // DW_COMMENT do we need?
 
 			soillayer.arespsum = 0.0;
 			soillayer.aorgCleach = 0.0;

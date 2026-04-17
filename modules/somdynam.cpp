@@ -64,9 +64,6 @@ static const double TAU_LITTER=2.85; // Thonicke, Sitch, pers comm, 26/11/01
 static const double TAU_SOILFAST=33.0;
 static const double TAU_SOILSLOW=1000.0;
 
-// (Inverse of "tillage factor" in Chatskikh et al. 2009, Value selected by T.Pugh)
-static const double TILLAGE_FACTOR = 33.0 / 17.0;
-
 // fraction of litter decomposition entering fast SOM pool
 static const double FASTFRAC=0.985;
 // fraction of litter decomposition entering atmosphere
@@ -81,7 +78,7 @@ const double NMASS_SAT = 0.002 / 0.15;
 static const double NCONC_SAT = 0.02;
 // Maximum available nitrogen mass for N fixation [kg N m-2]
 // Comment: NMASS_SAT is too high when considering BNF - Zaehle
-const double NMASS_SAT_NFIX = 0.0001;
+const double NMASS_SAT_NFIX = 0.0001; // DW_COMMENT needed?
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL VARIABLES
@@ -967,7 +964,7 @@ void somfluxes(Patch& patch, bool ifequilsom, double tillage_fact) {
 						dprintf("Year %d Day %d FAIL: Lyr %d Times %d Min %g Imm %g NetMin %g\n", date.year, date.day, lyr, times, nmin_actual, nimmob, tot_net_nmin);
 				}
 				// Continue until a positive tot_net_min is reached, times doesn't matter
-				times--;
+				times--; // DW_COMMENT this is new!!!
 
 				net_mineralization = false;
 			}

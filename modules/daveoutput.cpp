@@ -38,13 +38,17 @@ DaveOutput::DaveOutput() {
 	add_gridcell_aggregated_tree_output("file_aagb_tree"         , ANNUAL, [](const Individual &i) { return i.aboveground_biomass(); }, sum, "Annual gridcell-level above-ground tree biomass (kg/m2)", true);
 	add_gridcell_output("file_dave_amet_prec"                    , ANNUAL, "prec", [](const Gridcell &g) { return g.climate.aprec; }, "Total annual precipitation (mm)");
 	add_gridcell_output("file_dave_amet_par"                     , ANNUAL, "par", [](const Gridcell &g) { return g.climate.apar; }, "Total annual PAR (J/m2)");
+	add_gridcell_aggregated_ppft_output("file_dave_lai_ymax"     , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].lai_ymax; }, "Maximum gridcell-level annual leaf area index (m2/m2)");
+	add_gridcell_aggregated_ppft_output("file_dave_agb_ymax"     , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].agb_ymax; }, "Maximum gridcell-level annual above-ground biomass (kg/m2)");
+	add_gridcell_aggregated_ppft_output("file_dave_lai_ymean"    , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].lai_ymean; }, "Mean gridcell-level annual leaf area index (m2/m2)");
+	add_gridcell_aggregated_ppft_output("file_dave_agb_ymean"    , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].agb_ymean; }, "Mean gridcell-level annual above-ground biomass (kg/m2)");
 
 	// Annual patch-level outputs.
 	add_patch_output("file_dave_patch_age"                      , ANNUAL, "age", [](const Patch &p) { return 1.0 * p.age; }, "Annual patch-level age since last disturbance (years)");
 	add_patch_output("file_dave_arunoff"                        , ANNUAL, runoff_columns, "Annual runoff (mm)");
 	add_patch_output("file_dave_acpool"                         , ANNUAL, cpool_columns, "Annual C pools (kgC/m2)", true);
 	add_patch_output("file_dave_anpool"                         , ANNUAL, npool_columns, "Annual N pools (kgN/m2)");
-	add_patch_output("file_dave_acflux"                         , ANNUAL, cflux_columns, "Annual C flux (gC/m2)");
+	add_patch_output("file_dave_acflux"                         , ANNUAL, cflux_columns, "Annual C flux (kgC/m2)");
 	add_patch_output("file_dave_anflux"                         , ANNUAL, nflux_columns, "Annual N flux (kgN/m2/year)");
 	add_patch_output("file_dave_globfirm"                       , ANNUAL, globfirm_columns, "Annual GLOBFIRM output file");
 	add_patch_output("file_dave_mwcont_upper"                   , ANNUAL, mwcont_upper_columns, "Monthly wcont_upper output file (0-1)");
@@ -85,6 +89,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_anretranslocated"    , ANNUAL, [](const Individual &i) { return i.anretranslocated; }, "Annual nitrogen retranslocated (kgN/m2)", sum);
 	add_aggregated_indiv_output("file_dave_amort_greff"         , ANNUAL, [](const Individual &i) { return i.mort_greff; }, "Annual PFT-level growth-efficiency-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.", sum);
 	add_aggregated_indiv_output("file_dave_amort_age"           , ANNUAL, [](const Individual &i) { return i.mort_age; }, "Annual PFT-level age-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.", sum);
+	add_aggregated_indiv_output("file_dave_amort_cstarve"       , ANNUAL, [](const Individual &i) { return i.mort_cstarve; }, "Annual PFT-level carbon starvation-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.", sum);
 	add_aggregated_indiv_output("file_dave_acmass_germ"         , ANNUAL, [](const Individual &i) { return i.cmass_germ; }, "Annual germinated C mass (kgC/m2)", sum, true);
 
 	// Annual per-patch pft-level outputs.
@@ -219,7 +224,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_height"              , DAILY, [](const Individual &i) { return i.height; }, "Plant height (m)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_diameter"            , DAILY, [](const Individual &i) { return i.diam; }, "Stem diameter (m)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_basalarea"           , DAILY, [](const Individual &i) { return i.basalarea; }, "Mean Basal Area (m2/tree)", mean, false, true);
-	add_aggregated_indiv_output("file_dave_basalarea_inc"       , DAILY, [](const Individual &i) { return i.basalarea_inc / 10; }, "Mean Basal Area increment (cm2/tree/day)", mean, false, true);
+	add_aggregated_indiv_output("file_dave_basalarea_inc"       , DAILY, [](const Individual &i) { return i.basalarea_inc * 10000; }, "Mean Basal Area increment (cm2/tree/day)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_density"             , DAILY, [](const Individual &i) { return i.densindiv; }, "Density of individuals over patch (/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_sapwood_area"        , DAILY, [](const Individual &i) { return i.sa; }, "sapwood area sum of individuals (m2/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_latosa"              , DAILY, [](const Individual &i) { return i.latosa /1000; }, "leaf area to sapwood area ratio / 1000 (unitless)", mean, true);
@@ -345,24 +350,30 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_indiv_lai"                    	, DAILY, "lai", [](const Individual &i) { return i.lai; }, "Cohort-level LAI (m2/m2)");
 	add_indiv_output("file_dave_indiv_c_d_dbh"                  , ANNUAL, "d_dbh", [](const Individual &i) { return i.acalloc_sap; }, "annual diamter increment (m)");
 	add_indiv_output("file_dave_indiv_respiration"              , DAILY, indiv_resp_columns, "Indiv-level respiration components (kgC/m2)"); // No auto total column
-	add_indiv_output("file_dave_indiv_cpool"                    , DAILY, indiv_cpool_columns, "Indiv-level carbon pools (kgC/m2)", false, true);
 	add_indiv_output("file_dave_indiv_tree_cpool"               , DAILY, indiv_cpool_tree_columns, "Indiv-level tree carbon pools (kgC/m2)", false, true);
 	add_indiv_output("file_dave_indiv_dbh"             	        , DAILY, indiv_dbhcoloumns_columns, "Cohort-level DBH and Delta DBH (m, m/yr)");
+	add_indiv_output("file_dave_annual_indiv_dbh"             	, ANNUAL, "dbh", [](const Individual &i) { return i.diam; }, "Cohort-level DBH  (m)");
+	add_indiv_output("file_dave_annual_indiv_c_d_dbh"           , ANNUAL, "d_dbh", [](const Individual &i) { return i.c_d_diam; }, "Annual diameter increment (m/yr)");
+	add_indiv_output("file_dave_annual_lai"          		    , ANNUAL, "alai", [](const Individual &i) { return i.lai; }, "Annual LAI");
+	add_indiv_output("file_dave_indiv_age"             	        , DAILY, "age", [](const Individual &i) { return i.age; }, "Cohort-level Age (years)");
+	add_indiv_output("file_dave_indiv_nmass_root"             	, DAILY, "nmass_root", [](const Individual &i) { return i.nmass_root; }, "Cohort-level root N content (kgN/m2)");
 	add_indiv_output("file_dave_indiv_height"                   , DAILY, "height", [](const Individual &i) { return i.height; }, "Cohort-level Height (m)");
 	add_indiv_output("file_dave_indiv_crownarea"                , DAILY, "crownarea", [](const Individual &i) { return i.crownarea; }, "crownarea (m2)");
 	add_indiv_output("file_dave_indiv_fpc"                      , DAILY, "fpc", [](const Individual &i) { return i.fpc; }, "Cohort-level FPC (-)");
-	add_indiv_output("file_dave_indiv_fpar"                     , DAILY, "fpar", [](const Individual &i) { return i.fpc; }, "Cohort-level fpar (-)");
+	add_indiv_output("file_dave_indiv_fpar"                     , DAILY, "fpar", [](const Individual &i) { return i.fpar; }, "Cohort-level fpar (-)");
 	add_indiv_output("file_dave_indiv_density"                  , DAILY, "density", [](const Individual &i) { return i.densindiv; }, "Density of individuals over patch (/m2)");
 	add_indiv_output("file_dave_indiv_alpha_sap"                , DAILY, "alpha_sap", [](const Individual &i) { return i.alpha_sap; }, "proportion allocated to sapwood (unitless)");
 	add_indiv_output("file_dave_indiv_alpha_leaf"               , DAILY, "alpha_leaf", [](const Individual &i) { return i.alpha_leaf; }, "proportion allocated to leaf (unitless)");
 	add_indiv_output("file_dave_indiv_alpha_root"               , DAILY, "alpha_root", [](const Individual &i) { return i.alpha_root; }, "proportion allocated to root (unitless)");
-	add_indiv_output("file_dave_indiv_alpha_storage"            , DAILY, "alpha_stor", [](const Individual &i) { return i.alpha_storage; }, "proportion allocated to  storage (unitless)");
+	add_indiv_output("file_dave_indiv_alpha_storage"            , DAILY, "alpha_storage", [](const Individual &i) { return i.alpha_storage; }, "proportion allocated to  storage (unitless)");
 	add_indiv_output("file_dave_indiv_cgrow"          		    , DAILY, "cgrow", [](const Individual &i) { return i.cgrow; }, "daily total growth rate of individual (kgC/m2/d)");
 	add_indiv_output("file_dave_indiv_cgrow_leaf"          		, DAILY, "cgrow_leaf", [](const Individual &i) { return i.cgrow_leaf; }, "daily leaf allocation of individual (kgC/m2/d)");
 	add_indiv_output("file_dave_indiv_cgrow_root"         	    , DAILY, "cgrow_root", [](const Individual &i) { return i.cgrow_root; }, "daily root allocation of individual (kgC/m2/d)");
 	add_indiv_output("file_dave_indiv_cgrow_sap"          	    , DAILY, "cgrow_sap", [](const Individual &i) { return i.cgrow_sap; }, "daily sapwood allocation of individual (kgC/m2/d)");
 	add_indiv_output("file_dave_indiv_cgrow_repr"     		    , DAILY, "cgrow_repr", [](const Individual &i) { return i.cgrow_repr; }, "daily reproduction allocation of individual (kgC/m2/d)");
 	add_indiv_output("file_dave_indiv_cgrow_storage"     	    , DAILY, "cgrow_storage", [](const Individual &i) { return i.cgrow_storage; }, "daily storage allocation of individual (kgC/m2/d)");
+	add_indiv_output("file_dave_cohort_gpp"     	            , DAILY, "gpp", [](const Individual &i) { return i.dgpp; }, "daily gpp (kgC/m2/d)");
+	add_indiv_output("file_dave_cohort_npp"     	            , DAILY, "npp", [](const Individual &i) { return i.dnpp; }, "daily npp (kgC/m2/d)");
 	add_indiv_output("file_dave_indiv_litter_pools"             , DAILY, get_pft_litter_pools, "Total Daily PFT-Level C Mass in Litter (kgC/m2)", true);
 
 	// Daily individual-level array outputs.
@@ -399,7 +410,13 @@ DaveOutput::DaveOutput() {
 	add_indiv_array_output("file_dave_subdaily_vcmax"           , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.vcmax[i]; }, "Subdaily max carboxylation rate (mol/m2/s)", mean);
 	add_indiv_array_output("file_dave_subdaily_jmax"            , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.ps_subdaily.jmax[i];  }, "Subdaily max electron transport rate (mol/m2/s)", mean);
 	add_indiv_array_output("file_dave_subdaily_lwp"             , DAILY, COLNAME_TIMESTEP, [](const Patch &p) { return date.subdaily; }, [](const Individual &indiv, int i) { return indiv.lwp[i];  }, "Subdaily leaf water potential (MPa)", get_lai /* Mean weighted by LAI*/);
-	
+
+	// Subdaily cohort-level per-layer photosynthesis inputs.
+	add_indiv_layer_timestep_output("file_dave_ps_inputs", ps_input_cols(), "Subdaily layered cohort-level photosynthesis inputs");
+
+	// Subdaily cohort-level per-layer photosynthesis outputs.
+	add_indiv_layer_timestep_output("file_dave_ps_outputs", ps_output_cols(), "Subdaily layered cohort-level photosynthesis outputs");
+
 	// Daily patch-level array outputs.
 	add_patch_array_output("file_dave_sw"                       , DAILY, "sw_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", true, false);
 	add_patch_array_output("file_dave_swmm"                     , DAILY, "swmm_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.awc[i] + p.soil.soiltype.wp[i]; }, "Soil water content (mm)", true, false);
@@ -572,6 +589,23 @@ void DaveOutput::add_gridcell_aggregated_indiv_output(
 	register_output(output, timestep);
 }
 
+void DaveOutput::add_gridcell_aggregated_ppft_output(
+		std::string name,
+		timestep_t timestep,
+		double (*read_output)(const Patch &, const Pft &),
+		std::string description,
+		bool sum,
+		bool mean
+) {
+	GridcellLevelOutput *output = new GridcellLevelOutput(
+		name,
+		[read_output]() -> std::vector<ColumnDefinition<Gridcell>> { return get_gridcell_patchpft_columns(read_output); },
+		description,
+		sum,
+		mean);
+	register_output(output, timestep);
+}
+
 void DaveOutput::add_gridcell_aggregated_tree_output(
 		std::string name,
 		timestep_t timestep,
@@ -690,6 +724,29 @@ void DaveOutput::add_indiv_array_output(
 	OutputReader<Individual> *weight_reader = new OutputReader<Individual>(read_weight);
 	IndivLevelArrayOutput *output = new IndivLevelArrayOutput(name, elem_name, get_nelem, reader, description, weight_reader);
 	register_output(output, timestep);
+}
+
+void DaveOutput::add_indiv_layer_timestep_output(
+		std::string name,
+		std::vector<IndivLayerTimestepOutput::Column> columns,
+		std::string description) {
+	IndivLayerTimestepOutput *output = new IndivLayerTimestepOutput(name, columns, description);
+	register_output(output, DAILY);
+}
+
+void DaveOutput::add_indiv_layer_timestep_output(
+		std::string name,
+		std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> column_defs,
+		std::string description) {
+	std::vector<IndivLayerTimestepOutput::Column> columns;
+	for (auto def : column_defs) {
+		IndivLayerTimestepOutput::Column col;
+		col.name = def.first;
+		col.read = def.second;
+		columns.push_back(col);
+	}
+	IndivLayerTimestepOutput *output = new IndivLayerTimestepOutput(name, columns, description);
+	register_output(output, DAILY);
 }
 
 void DaveOutput::add_spft_output(
@@ -1336,6 +1393,78 @@ ColumnDescriptors DaveOutput::IndividualOutput::get_cols() {
 		std::string name = column.get_name();
 		int width = max((size_t)COLUMN_WIDTH, name.length() + 1);
 		descriptors += ColumnDescriptor(name.c_str(), width, NUMERIC_PRECISION);
+	}
+
+	return descriptors;
+}
+
+// #############################################################################
+// IndivLayerTimestepOutput implementation.
+// #############################################################################
+
+DaveOutput::IndivLayerTimestepOutput::IndivLayerTimestepOutput(
+		std::string param_name,
+		std::vector<Column> columns,
+		std::string description)
+	: OutputFile(param_name, description), columns(columns) { }
+
+void DaveOutput::IndivLayerTimestepOutput::write_rows(OutputChannel *channel, Gridcell &gridcell) {
+	double lon = gridcell.get_lon();
+	double lat = gridcell.get_lat();
+	int year = date.get_calendar_year();
+	int day = date.day;
+
+	GuessContainer<Stand>::iterator gc_itr = gridcell.begin();
+	while (gc_itr != gridcell.end()) {
+		Stand &stand = *gc_itr;
+		stand.firstobj();
+
+		while (stand.isobj) {
+			const Patch &patch = stand.getobj();
+			const Vegetation &vegetation = patch.vegetation;
+
+			for (size_t i = 0; i < vegetation.nobj; i++) {
+				const Individual &indiv = vegetation[i];
+
+				int ntimesteps = (int)indiv.ps_inputs_layerwise.size();
+				for (int t = 0; t < ntimesteps; t++) {
+					int nlayers = (int)indiv.ps_inputs_layerwise[t].size();
+					for (int l = 0; l < nlayers; l++) {
+						write_output(channel, stand.id);
+						write_output(channel, patch.id);
+						write_output(channel, indiv.id);
+						write_output(channel, indiv.pft.name);
+						write_output(channel, t);
+						write_output(channel, l);
+
+						for (const Column &col : columns) {
+							write_output(channel, col.read(indiv, t, l));
+						}
+
+						finish_row(channel, lon, lat, year, day);
+					}
+				}
+			}
+
+			stand.nextobj();
+		}
+
+		gc_itr++;
+	}
+}
+
+ColumnDescriptors DaveOutput::IndivLayerTimestepOutput::get_cols() {
+	ColumnDescriptors descriptors;
+	descriptors += ColumnDescriptor(COLNAME_STAND,    COLUMN_WIDTH,     0);
+	descriptors += ColumnDescriptor(COLNAME_PATCH,    COLUMN_WIDTH,     0);
+	descriptors += ColumnDescriptor(COLNAME_INDIV_ID, COLUMN_WIDTH,     0);
+	descriptors += ColumnDescriptor(COLNAME_PFT,      COLUMN_WIDTH + 2, 0, TEXT);
+	descriptors += ColumnDescriptor(COLNAME_TIMESTEP, COLUMN_WIDTH,     0);
+	descriptors += ColumnDescriptor(COLNAME_LAYER,    COLUMN_WIDTH,     0);
+
+	for (const Column &col : columns) {
+		int width = max((size_t)COLUMN_WIDTH, col.name.length() + 1);
+		descriptors += ColumnDescriptor(col.name.c_str(), width, NUMERIC_PRECISION);
 	}
 
 	return descriptors;

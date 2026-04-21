@@ -688,6 +688,131 @@ struct Wood_harvest_struct {
 	}
 };
 
+/// Inputs required to calculate photosynthesis for a single individual in a
+/// single canopy layer at a single subdaily timestep (DAVE photosynthesis).
+class PhotosynthesisInputs {
+public:
+	// todo: do we want to protect these members?
+	// It seems like a sensible thing to do, but it makes things a bit uglier
+	// from the caller's perspective (which seems to be the only thing we care
+	// about).
+
+	// Residual stomatal conductance term
+	double gdark;
+
+	// LAI of this individual in this layer.
+	double lai;
+
+	// Fraction of PAR incident in the middle of the layer.
+	double fipar;
+
+	// Physiological downregulation due to dormancy.
+	double fphen_activity;
+
+	// Photosynthetic limitation due to sink activity [0-1].
+	double ps_sink_lim;
+
+	// Maximum carboxylation rate at 25 degC (μmol m-2 s-1).
+	double vcmax25;
+
+	// Maximum PEP carboxylation rate at 25 degC (μmol m-2 s-1).
+	double vpmax25;
+
+	// Maximum electron transport rate at 25 degC (μmol m-2 s-1).
+	double jmax25;
+
+	// Nitrogen scalar to account for the nitrogen gradient within the canopy.
+	double nscal;
+
+	// Water stress parameter (0-1 range; 1=minimum stress).
+	double wscal;
+
+	// Air temperature in °C.
+	double temp;
+
+	// activation energy for vcmax (kJ mol-1)
+	double ha_v;
+
+	// activation energy for jmax (kJ mol-1)
+	double ha_j;
+
+	// Entropy terms (deltaS) for vcmax (J mol-1 K-1)
+	double ds_v;
+
+	// Entropy terms (deltaS) for jmax (J mol-1 K-1)
+	double ds_j;
+
+	// Incident PAR in the middle of the layer (W m-2) (0.5 * climate.insols).
+	double par;
+
+	// VPD in kPa.
+	double vpd;
+
+	// Atmospheric CO2 concentration in mol mol-1.
+	double ca;
+
+	// Medlyn stomatal term.
+	double X;
+
+	// Whether stomata are open (at all). If FALSE, stomata are fully closed.
+	bool stomata_open;
+
+	// Predawn leaf water potential (MPa)
+	double predawn_lwp;
+
+	// Sensitivity parameter indicating steepness of decline in Vcmax with water stress (Zhou 2014)
+	double s_f;
+
+	// Reference value at which Vcmax or Jmax is half it's non-water-stresed value (Zhou 2014)
+	double psi_f;
+};
+
+/// Outputs from the photosynthesis function for a single individual in a single
+/// canopy layer at a single subdaily timestep (DAVE photosynthesis).
+class PhotosynthesisOutputs {
+public:
+	PhotosynthesisOutputs() {
+		clear();
+	}
+	void clear() {
+		rd = 0;
+		an = 0;
+		anc = 0;
+		anj = 0;
+		anp = 0;
+		gsc = 0;
+		ci = 0;
+		vcmax = 0;
+		jmax = 0;
+	}
+
+	//< Respiration (mol m-2 s-1).
+	double rd;
+
+	//< Net photosynthesis (mol m-2 s-1).
+	double an;
+
+	//< Rubisco-limited net photosynthesis (mol m-2 s-1).
+	double anc;
+
+	//< RuBP regeneration-limited photosynthesis (mol m-2 s-1).
+	double anj;
+
+	//< PEP carboxylation-limited photosynthesis (mol m-2 s-1) [C4 only].
+	double anp;
+
+	//< Stomatal conductance to CO2 (mol m-2 s-1).
+	double gsc;
+
+	//< Intercellular CO2 concentration (mol mol-1).
+	double ci;
+
+	//< Maximum carboxylation rate (mol m-2 s-1).
+	double vcmax;
+
+	//< Maximum electron transport rate (mol m-2 s-1).
+	double jmax;
+};
 
 /// Structure containing variables for sub-daily photosynthesis calculation.
 struct PhotosynthesisSubdaily : public Serializable {
@@ -2147,8 +2272,6 @@ public:
 	double s1;
 	/// maximum hydraulic conductance per unit xylem area (mol/m2/s/MPa)
 	double kmax;
-	/// water holding capacity of the xylem conduits plus nonconducting tissues (unitless)
-	double nx;
 	/// Nitrogen extinction coefficient within the canopy (Hikosaka et al. 2016)
 	double extkn;
 	/// Turgor loss point (MPa) - used for grasses only, where this often comes long before stomatal closure
@@ -2243,14 +2366,8 @@ public:
 	/// (Johnson & Thornley 1983).
 	double temp_senesc2;
 
-	// Maximum NSC concentration in dead bark.
-	double max_bark_nsc_conc;
-
 	// Maximum NSC concentration in leaves.
 	double max_leaf_nsc_conc;
-
-	// Maximum NSC concentration in twigs.
-	double max_twig_nsc_conc;
 
 	// Maximum NSC concentration in wood.
 	double max_wood_nsc_conc;
@@ -2266,6 +2383,8 @@ public:
 	double turnover_repr_litter;
 	/// annual turnover of "live" reproductive tissue to litter as a proportion of reproductive C biomass
 	double turnover_repr;
+	/// size of sapling
+	double sapsize;
 	/// annual sapwood turnover as a proportion of sapwood C biomass
 	double turnover_sap;
 	/// sapwood and heartwood density (kgC/m3)
@@ -2605,7 +2724,8 @@ public:
 		ha_j = 0;
 		ds_v = 0;
 		ds_j = 0;
-		formfactor = 1;
+		formfactor = 1.0;
+		sapsize = 0.1;
 		boleht_frac = 0;
 		max_mobil_cstorage = 0;
 
@@ -3482,6 +3602,14 @@ public:
     /// Photosynthesis variables for subdaily calculations
 	PhotosynthesisSubdaily ps_subdaily;
 
+	/// Per-subdaily-timestep, per-canopy-layer photosynthesis inputs.
+	/// Indexed as [timestep][layer]. Reinitialised each day in photosynthesis_gs().
+	std::vector<std::vector<PhotosynthesisInputs>> ps_inputs_layerwise;
+
+	/// Per-subdaily-timestep, per-canopy-layer photosynthesis outputs.
+	/// Indexed as [timestep][layer]. Reinitialised each day in photosynthesis_gs().
+	std::vector<std::vector<PhotosynthesisOutputs>> ps_outputs_layerwise;
+
 	/// Photosynthesis values for this individual under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
 
@@ -3615,10 +3743,12 @@ public:
 	double height;
 	// stem diameter (m)
 	double diam;
-	/// plant height increment
+	/// tree height increment (m)
 	double d_height;
-	/// plant diameter increment
+	/// tree diameter increment (m)
 	double d_diam;
+	/// tree annual diamter increment (m)
+	double c_d_diam; 
 	/// basal area increment (m2/day)
 	double basalarea_inc;
 	/// tree baseal area  (m2)
@@ -3918,6 +4048,13 @@ public:
 	// growth efficiency-related mortality.
 	double mort_greff;
 
+	// Fraction of individuals within this cohort killed this year due to
+	// carbon starvation.
+	double mort_cstarve;
+
+	// Fraction of individuals within this cohort killed today due to
+	// carbon starvation.
+	double mort_dcstarve;
 	// MEMBER FUNCTIONS
 
 public:
@@ -5341,7 +5478,20 @@ public:
 	// dormant per year.
 	HistoricDynamic<size_t> nday_dormant_historical;
 
+	// Maximum total LAI recorded on any day this year (m2/m2).
+	double lai_ymax;
 
+	// Maximum above-ground biomass recorded on any day this year (kg/m2).
+	double agb_ymax;
+
+	// Mean LAI over the year (m2/m2). Note: this is a rolling sum, divided by
+	// year length only on last day of year.
+	double lai_ymean;
+
+	// Mean above-ground biomass over the year (kg/m2). Note: this is a rolling
+	// sum, divided by year length only on last day of year.
+	double agb_ymean;
+	
 	// MEMBER FUNCTIONS:
 
 	/// Constructor: initialises id, pft and data members
@@ -5412,6 +5562,10 @@ public:
 		nday_dormant_historical.add(105);
 
 		senescence_reason.reset();
+		lai_ymax = 0;
+		agb_ymax = 0;
+		lai_ymean = 0;
+		agb_ymean = 0;
 	}
 
 	~Patchpft() {
@@ -5430,11 +5584,11 @@ public:
 	void serialize(ArchiveStream& arch);
 
 	/// Reset daily variables.
-	void daily_accounting();
+	void daily_accounting(const Patch &patch);
 private:
 	/// Reset annual variables. Called from daily_accounting() on the first day
 	/// of the year.
-	void annual_accounting();
+	void annual_accounting(const Patch &patch);
 };
 
 

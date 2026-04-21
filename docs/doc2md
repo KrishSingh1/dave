@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Detect GNU sed (supports --version and prints "GNU").
+is_gnu_sed() {
+    sed --version 2>/dev/null | grep -qi 'gnu'
+}
+
+# In-place sed wrapper that handles BSD vs GNU.
+sedi() {
+    if is_gnu_sed; then
+        # GNU sed: -i requires no extra empty argument.
+        sed -i "$@"
+    else
+        # BSD sed: -i requires an explicit (possibly empty) extension.
+        sed -i '' "$@"
+    fi
+}
+
+if [ "$#" -ne 1 ]; then
+    echo "Usage: $0 <input-file>"
+    exit 1
+fi
+
+IN_FILE="${1}"
+OUT_FILE="${1/.docx/.md}"
+
+pandoc --from docx --to markdown "${IN_FILE}" -o "${OUT_FILE}"
+
+# Replace `$$    \(3\)` with ` \tag{3} $$` in place.
+RX_SEARCH='\$\$[[:space:]]+\\\(([0-9]+)\\\)'
+sedi -E "s/${RX_SEARCH}/ \\\\tag{\1} \$\$/g" "${OUT_FILE}"
+
+# Remove whitespace before opening `$$`. Such equations render in vscode preview
+# but not via mkdocs/mathjax.
+sedi -E 's/^[[:space:]]+\$\$/\$\$/g' "${OUT_FILE}"
+
+# Replace lines with spaces, followed by 3 or more dashes (multiple times), with
+# just 3 dashes. This is to fix the partially broken horizontal rules that
+# pandoc generates for some reason.
+sedi -E 's/^([[:space:]]*-{3,}[[:space:]]*)+$/---/g' "${OUT_FILE}"
+
+# Remove trailing whitespace.
+sedi -E 's/[[:space:]]+$//g' "${OUT_FILE}"
+
+# Convert inline display equations to multiple lines (e.g. $$...$$ ->
+# $$\n...\n$$).
+sedi -E 's/[[:space:]]*\$\$(.+)\$\$/\$\$\n\1\n\$\$/g' "${OUT_FILE}"
+
+# pandoc likes to insert `---` horizontal rules after equations. If these
+# immediately follow the end of an equation, they break the math rendering. We
+# can fix such cases by inserting a blank line between the end of the equation
+# and the horizontal rule.
+sedi -E ':a;N;$!ba;s/\$\$\n-{3,}/\$\$\n\n---/g' "${OUT_FILE}"

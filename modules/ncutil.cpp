@@ -88,7 +88,7 @@ bool contains(double x, std::vector<double> vec) {
 	return false;
 }
 
-bool is_start_of_year(timepoint date, int day_length) {
+bool is_start_of_year(timepoint date) {
 	return date.day == 0 && date.timestep == 0;
 }
 

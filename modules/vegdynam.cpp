@@ -831,6 +831,15 @@ void establishment_guess(Stand& stand,Patch& patch) {
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
 
+		// define sapling size as teh constant default.
+		double sapsize = SAPSIZE;
+
+		if (ifdavegrowth){
+			// change sapling size to what is defined in the PFT (only with dave growth).
+			sapsize = pft.sapsize;
+		}
+		// from this place forward, use onlt sapsize instaed of SAPSIZE
+
 		if (pft.dave_allocation() && pft.lifeform != TREE) {
 			// This pft is using dave daily allocation and establishment.
 			pftlist.nextobj();
@@ -891,9 +900,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					if (!present) {
 
 						// ... if not, add it
-						/*if (date.year >= nyear_spinup && _ifdavediagnostics)*/ {
-						//	printf("%04d-%02d-%02d (year %d) establishing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
-						}
+						lprintf("Establishing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
 						Individual& indiv=vegetation.createobj(pft,vegetation);
 						indiv.height=0.0;
 						indiv.crownarea=1.0; // (value not used)
@@ -905,12 +912,12 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// net assimilation this year on patch area basis
 
 						if(pft.phenology == CROPGREEN) {
-							bminit = SAPSIZE * 0.01;
+							bminit = sapsize * 0.01;
 						}
 						else if(patch.has_disturbances() && patch.disturbed) {
-							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff_est_initial;
+							bminit = sapsize * patch.pft[pft.id].anetps_ff_est_initial;
 						} else
-							bminit = SAPSIZE * patch.pft[pft.id].anetps_ff;
+							bminit = sapsize * patch.pft[pft.id].anetps_ff;
 
 						if (ifdailygrass && pft.phenology != CROPGREEN)
 							bminit *= 0.1;
@@ -1033,6 +1040,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							}
 							newindiv=!negligible(nsapling / patcharea);
 								// round down to 0 if nsapling very small
+							if (pft.dave_allocation() && nsapling < 1) {
+								// Only establish with at least 1 sapling.
+								newindiv = 0;
+							}
 						}
 					}
 					else if (vegmode == INDIVIDUAL) {
@@ -1055,18 +1066,18 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 					// Now create 'newindiv' new Individual objects
 
-					if (date.year >= nyear_spinup && newindiv > 0 && _ifdavediagnostics) {
-						printf("%04d-%02d-%02d (year %d) establishing %d new %s trees...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, newindiv, (const char *)pft.name);
+					if (newindiv > 0) {
+						lprintf("Establishing new %s cohort with %d tree%s...\n", (const char *)pft.name, newindiv, newindiv > 1 ? "s" : "");
 					}
 
 					// Initial biomass proportional to potential forest floor net
 					// assimilation for this PFT in this patch
 
 					if (patch.has_been_cut && (SMALL_SAPSIZE_POST_CUT && force_planting && mt.planting_system != "")) {
-						bminit = PLANTSIZE; // Fixed sap size after first cutting
+						bminit = pft.dave_allocation() ? sapsize : PLANTSIZE; // Fixed sap size after first cutting
 					}
 					else {
-						bminit = SAPSIZE*patch.pft[pft.id].anetps_ff_est;
+						bminit = sapsize*patch.pft[pft.id].anetps_ff_est;
 					}
 					if (bminit == 0) {
 						patch.pft[pft.id].anetps_ff_est = 0;
@@ -1526,9 +1537,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 					// (in individual mode: removes individual if killed)
 
 					if (negligible(indiv.densindiv)) {
-						/*if (date.year >= nyear_spinup && _ifdavediagnostics)*/ {
-							printf("%04d-%02d-%02d (year %d) %s killed by fire...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
-						}
+						lprintf("%s killed by fire...\n", (const char *)indiv.pft.name);
 						vegetation.killobj();
 						killed=true;
 					}
@@ -1560,9 +1569,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 			patchpft.cmass_mort += indiv.ccont();
 
-			/*if (date.year >= nyear_spinup && _ifdavediagnostics)*/ {
-				printf("%04d-%02d-%02d (year %d) %s killed by exceedance of bioclimatic limits...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
-			}
+			lprintf("%s killed by exceedance of bioclimatic limits...\n", (const char *)indiv.pft.name);
 			indiv.kill();
 
 			vegetation.killobj();
@@ -1633,7 +1640,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				// Smith et al 2001; c.f. Pacala et al 1993, Eqn 5
 
 				// guess2008 - introduce a smoothly-varying mort_greff - 5 is the exponent in the global validation
-				if (ifsmoothgreffmort)
+				if (ifdailycstarvmort) {
+					mort_greff = 0.0;
+				} else if (ifsmoothgreffmort)
 					mort_greff=KMORTGREFF/(1.0+pow((greff_mean/(indiv.pft.greff_min)),5.0));
 				else {
 					// Standard case, as in guess030124
@@ -1697,9 +1706,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				// (in individual mode: removes individual if killed)
 
 				if (negligible(indiv.densindiv)) {
-					if (date.year >= nyear_spinup && _ifdavediagnostics) {
-						printf("%04d-%02d-%02d (year %d) %s killed by background mortality...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
-					}
+					lprintf("%s killed by background mortality. mort_greff=%f, mort_age=%f, total_mort_frac=%f...\n",
+						    (const char *)indiv.pft.name, mort_greff, mort_min,
+							mort);
 					vegetation.killobj();
 					killed=true;
 				}
@@ -1709,7 +1718,6 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				else allometry(indiv);
 			} 
 			else { 
-				
 				// MORTALITY in PEATLAND stands
 				// i.e. shading mortality when LAI gets too high (cf mortality_lpj above), whereupon
 				// biomass is reduced (ends up in litter) to be consistent with the given LAI limit (maxlai_peatland)
@@ -1967,10 +1975,7 @@ void disturbance(Patch& patch, double disturb_prob) {
 
 		patch.disturbed = true;
 		patch.age = 0;
-		// printf("%04d-%02d-%02d (year %d) establishing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
-		if (ifdavediagnostics) {
-			printf("\n%04d-%02d-%02d (year %d) disturbance...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year);
-		}
+		lprintf("Disturbance...\n");
 	}
 
 	else patch.disturbed = false;

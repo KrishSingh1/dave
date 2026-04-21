@@ -57,7 +57,7 @@ struct bounds {
 /*
 This enum defines the cache strategy used by this variable.
 */
-enum CacheStrategy {
+enum class CacheStrategy {
 	// Cache the entire timeseries. Fastest but most memory intensive.
 	All,
 	// Cache one year of data at a time. Reduces memory usage.
@@ -85,8 +85,7 @@ public:
 	@param units: Expected units.
 	@param check_units: Iff true, an error will be generated for invalid units.
 	*/
-	NCVariable(int file_id, xtring name, xtring dim_lon, xtring dim_lat
-	, xtring dim_time, CacheStrategy chunk_mode
+	NCVariable(int file_id, xtring name, CacheStrategy chunk_mode
 	, bool sensibility_checks, bounds limits, std::vector<xtring> units
 	, bool check_units);
 
@@ -330,6 +329,25 @@ private:
 	invalid.
 	*/
 	void validate_time_axis() const;
+
+	/*
+	Find the coordinate variable and dimension with the specified standard name.
+	This will throw an exception if the coordinate variable or dimension cannot
+	be found, or if the variable encapsulated by this object does not vary along
+	this axis.
+
+	@param std_name: The standard name of the coordinate variable/dimension to
+					 be found.
+	@param id_var: Output parameter for the variable ID of the coordinate
+	               variable.
+	@param id_dim: Output parameter for the dimension ID of the coordinate
+				   variable.
+	@param dimids: The dimension IDs of the variable encapsulated by this
+	               object. This is used to check that the variable varies along
+				   the coordinate dimension.
+	*/
+	void find_coordinate(const char *std_name, int &id_var, int &id_dim,
+						 const std::vector<int> &dimids) const;
 
 	/*
 	NetCDF file ID.

@@ -41,6 +41,8 @@ group "common" (
 	ha_j 40.71	   ! Activation energy for jmax (kJ mol-1)
 	ds_v 639.43	   ! Entropy terms (deltaS) for vcmax (J mol-1 K-1)
 	ds_j 642.97	   ! Entropy terms (deltaS) for jmax (J mol-1 K-1)
+	sapsize 0.1
+	
 	temp_dormancy 5.0
 	kmax 100 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
 	stom_clos -1.5   ! water potential at which stomata close and roots disconnect from soil (MPa)
@@ -126,14 +128,8 @@ group "tree" (
 
 	! 95% percentile NSC concentrations from eucface.
 
-	! Maximum NSC concentration in dead bark.
-	max_bark_nsc_conc  0.203
-
 	! Maximum NSC concentration in leaves.
 	max_leaf_nsc_conc  0.243
-
-	! Maximum NSC concentration in twigs.
-	max_twig_nsc_conc  0.0688
 
 	! Maximum NSC concentration in wood.
 	max_wood_nsc_conc  0.0797

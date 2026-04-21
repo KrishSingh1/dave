@@ -1,5 +1,12 @@
 # LPJ-GUESS DAVE Windows Setup Guide
 
+## Preamble
+
+This guide explains how to compile, run, and debug LPJ-GUESS DAVE on windows,
+using the msys2 toolchain + vscode. It's possible to instead use Microsoft
+compilers (MSVC) and visual studio, and while that will work, it's beyond the
+scope of this guide (ie: you're on your own).
+
 ## Software Installation
 
 - Download and install filezilla

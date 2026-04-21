@@ -413,14 +413,37 @@ bool Patchpft::growingseason() const {
 		return true;
 }
 
-void Patchpft::daily_accounting() {
+void Patchpft::daily_accounting(const Patch &patch) {
 	if (date.day == 0) {
-		annual_accounting();
+		annual_accounting(patch);
+	}
+	double total_lai = 0;
+	double total_agb = 0;
+	for (size_t i = 0; i < patch.vegetation.nobj; ++i) {
+		const Individual& indiv = patch.vegetation[i];
+		if (indiv.pft.id == pft.id) {
+			total_lai += indiv.lai;
+			total_agb += indiv.aboveground_biomass();
+		}
+	}
+
+	lai_ymax = max(lai_ymax, total_lai);
+	agb_ymax = max(agb_ymax, total_agb);
+	lai_ymean += total_lai;
+	agb_ymean += total_agb;
+
+	if (date.islastday && date.islastmonth) {
+		int year_length = date.year_length();
+		lai_ymean /= year_length;
+		agb_ymean /= year_length;
 	}
 }
 
-void Patchpft::annual_accounting() {
-
+void Patchpft::annual_accounting(const Patch &patch) {
+	lai_ymax = 0;
+	agb_ymax = 0;
+	lai_ymean = 0;
+	agb_ymean = 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1926,7 +1949,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	hydraulic_failure = false;
 	mort_age = 0;
 	mort_greff = 0;
-
+	mort_cstarve = 0.0;
+	mort_dcstarve = 0.0;
 	wscal = 0.0;
 	wscal_mean_year = 0.0;
 
@@ -1995,6 +2019,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	diam              = 0.0;
 	d_height		  = 0.0;
 	d_diam		      = 0.0;
+	c_d_diam          = 0.0;
 	basalarea    	  = 0.0;
 	basalarea_inc	  = 0.0;
 	crownarea		  = 0.0;
@@ -3260,7 +3285,9 @@ double Individual::fpc_today() const {
 /// Gets the individual's daily lai value
 double Individual::lai_today() const {
 
-	if (pft.phenology == CROPGREEN)
+	if (pft.dave_allocation()) {
+		return lai;
+	} else if (pft.phenology == CROPGREEN)
 		return patchpft().cropphen->growingseason ? lai_daily : 0;
 	else if (pft.is_grass() && ifdailygrass)
 		return lai;
@@ -3710,6 +3737,7 @@ void Individual::daily_accounting() {
 		annual_accounting();
 	}
 	cmass_germ = 0;
+	mort_dcstarve = 0.0;
 }
 
 void Individual::annual_accounting() {
@@ -3717,7 +3745,9 @@ void Individual::annual_accounting() {
 	wscal_mean_year = 0;
 	mort_age = 0;
 	mort_greff = 0;
+	mort_cstarve = 0;
 	antoavail = 0;
+	mort_cstarve = 0.0;
 }
 
 size_t Individual::get_wscal_dynamic_capacity() const {

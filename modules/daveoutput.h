@@ -736,6 +736,55 @@ class GridcellLevelOutput : public OutputFile {
 	};
 
 	/*
+	This class writes one row of output per (individual, subdaily timestep, canopy
+	layer) for each day. Columns are: stand, patch, indiv_id, pft, timestep, layer,
+	then one column per user-defined data field. Designed for the DAVE per-layer,
+	per-timestep photosynthesis inputs and outputs.
+	*/
+	class IndivLayerTimestepOutput : public OutputFile {
+		public:
+			/*
+			A single column definition: a name and a function that extracts a double
+			from the given individual at subdaily timestep t and canopy layer l.
+			*/
+			struct Column {
+				std::string name;
+				std::function<double(const Individual&, int t, int l)> read;
+			};
+
+			/*
+			Create a new output.
+
+			@param param_name:   Name of the parameter in the instruction file.
+			@param columns:      Column definitions (name + reader function).
+			@param description:  Description of the output (including units!).
+			*/
+			IndivLayerTimestepOutput(
+				std::string param_name,
+				std::vector<Column> columns,
+				std::string description);
+
+			/*
+			Write one row per (individual, timestep, layer) for the current day.
+
+			@param channel:   Pointer to an output channel.
+			@param gridcell:  The current gridcell.
+			*/
+			virtual void write_rows(OutputChannel *channel, Gridcell &gridcell) override;
+
+		protected:
+			virtual ColumnDescriptors get_cols() override;
+
+		private:
+			std::vector<Column> columns;
+
+			const char *COLNAME_INDIV_ID = "indiv";
+			const char *COLNAME_PFT      = "pft";
+			const char *COLNAME_TIMESTEP = "timestep";
+			const char *COLNAME_LAYER    = "layer";
+	};
+
+	/*
 	This class writes an array output file. One row is written per timestep
 	(which can be yearly, daily, etc). One column is written per array element.
 	*/
@@ -1110,6 +1159,26 @@ class GridcellLevelOutput : public OutputFile {
 	void add_indiv_array_output(std::string name, timestep_t timestep, std::string elem_name, int (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description, double (*read_weight)(const Individual&));
 
 	/*
+	Add a per-cohort, per-subdaily-timestep, per-canopy-layer output. One row is
+	written for each (individual, timestep, layer) combination each day.
+
+	@param name:        Parameter in the instruction file that determines the output file name.
+	@param columns:     Column definitions (name + reader function).
+	@param description: Description of the output (including units!).
+	*/
+	void add_indiv_layer_timestep_output(std::string name, std::vector<IndivLayerTimestepOutput::Column> columns, std::string description);
+
+	/*
+	Add a per-cohort, per-subdaily-timestep, per-canopy-layer output. One row is
+	written for each (individual, timestep, layer) combination each day.
+
+	@param name:        Parameter in the instruction file that determines the output file name.
+	@param columns:     Column definitions (pairs of name + reader function).
+	@param description: Description of the output (including units!).
+	*/
+	void add_indiv_layer_timestep_output(std::string name, std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> column_defs, std::string description);
+
+	/*
 	Add a patch-level output.
 
 	@param name: Parameter in the instruction file which determines output file name.
@@ -1180,6 +1249,25 @@ class GridcellLevelOutput : public OutputFile {
 	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
 	void add_gridcell_output(std::string name, timestep_t timestep, std::vector<ColumnDefinition<Gridcell>> (*get_columns)(), std::string description, bool sum = false, bool mean = false);
+
+	/*
+	Add a gridcell-level output, which contains one column per PFT. Each column
+	will have its value read from the corresponding pft in each patch, and the
+	values will be aggregated back up to the gridcell level.
+
+	@param name: Parameter in the instruction file which determines output file name.
+	@param read_output: A function which returns the output value for a specific pft in a patch.
+	@param description: Description of the output (with units!!).
+	@param sum: Iff true, a total column will be written after all other columns.
+	@param mean: Iff true, a mean column will be written after all other columns.
+	*/
+	void add_gridcell_aggregated_ppft_output(
+		std::string name,
+		timestep_t timestep,
+		double (*read_output)(const Patch &, const Pft &),
+		std::string description,
+		bool sum = false,
+		bool mean = false);
 
 	/*
 	Add a gridcell-level output, which contains one column per PFT. Each column

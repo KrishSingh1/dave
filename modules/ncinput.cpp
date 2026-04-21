@@ -1,532 +1,359 @@
 #ifdef HAVE_NETCDF
 
-#include <exception>
-#include <limits>
-#include <limits.h>
-#include <netcdf.h>
-#include <stdexcept>
-#include <string>
-#include <istream>
-#include <fstream>
-#include <sstream>
-#include <stdlib.h>
-#include <fenv.h>
-
 #include "driver.h"
 #include "guessnc.h"
-#include "guessstring.h"
+#include "pathresolver.h"
+#include "util.h"
 #include "ncinput.h"
+#include "ncinventory.h"
 #include "ncutil.h"
-#include "parameters.h"
-#include "guessmath.h"
-#include "util.h" // Required by MSVC
+#include "ncvariable.h"
+#include "variableresolver.h"
 
-#ifdef _WIN32
-#include <io.h>
-#else
-#include <unistd.h>
-#endif
+ResolveOptions to_resolve_options(const NCInputOptions &options) {
+    ResolveOptions resolve_options;
+    resolve_options.blaze_enabled = options.blaze_enabled;
+    resolve_options.allow_fixed_pressure = options.allow_fixed_pressure;
+    resolve_options.allow_netcdf_co2 = options.allow_netcdf_co2;
+    resolve_options.allow_netcdf_ndep = options.allow_netcdf_ndep;
+    resolve_options.subdaily = options.nsteps_day > 1;
+    return resolve_options;
+}
 
-REGISTER_INPUT_MODULE("nc", NCInput)
+ResolvedPlan get_forcing_plan(const std::string &file_path,
+                              const NCInputOptions &options) {
+    PathResolver path_resolver;
+    std::vector<std::string> files = path_resolver.resolve(file_path);
+    if (files.empty()) {
+        throw std::runtime_error("No files found matching path: " + file_path);
+    }
+
+    ResolveOptions resolve_options = to_resolve_options(options);
+    NCInventory inventory(files);
+    VariableResolver resolver;
+    return resolver.resolve(inventory, resolve_options);
+}
+
+void open_file(const ResolvedPlan &plan, Variable var,
+               CacheStrategy cache_strategy, bool sensibility_checks,
+               bounds limits, const std::vector<xtring> &units,
+               int &nc_id, std::unique_ptr<NCVariable> &variable) {
+    // Get variable info from bindings map.
+    auto it = plan.bindings.find(var);
+    if (it == plan.bindings.end()) {
+        // This should never happen. Such a case should be caught by
+        // ResolvedPlan::validate() before we get here.
+        throw std::runtime_error("Variable " + std::to_string(static_cast<int>(var)) + " is required by the input plan but is not bound to any variable in the inventory");
+    }
+
+    // TODO: this is really hacky.
+    // 1. Coordinate variables and dimensions may not have the same name.
+    // 2. This discovery is surely not a responsibility of NCInput.
+    // 3. We are double-parsing (this parsing has already occurred).
+    // Need to refactor this requirement out of the NCVariable contructor.
+    const VariableInfo &var_info = it->second;
+    nc_id = GuessNC::open_ncdf(var_info.file.c_str());
+    variable = std::make_unique<NCVariable>(nc_id, var_info.name.c_str(),
+                                            cache_strategy, sensibility_checks,
+                                            limits, units, true);
+}
 
 NCInput::NCInput() {
-	ctor_start = get_wall_time();
+    nc_tas = -1;
+    nc_rs = -1;
+    nc_pr = -1;
+    nc_vpd = -1;
+    nc_rh = -1;
+    nc_sh = -1;
+    nc_ps = -1;
+    nc_co2 = -1;
+    nc_nhx = -1;
+    nc_noy = -1;
+    nc_tmax = -1;
+    nc_tmin = -1;
+    nc_ws = -1;
+    open_dataset = Dataset::None;
+}
 
-	// Register instruction file parameters.
+void NCInput::init(const NCInputOptions &options) {
+    this->options = options;
 
-	// Setting max timesteps per day to the number of seconds in a day.
-	// Technically we could support more; this limitation is quite arbitrary.
-	declare_parameter("nsteps_day", &nsteps_day, 1, SECONDS_PER_DAY
-	, "Number of subdaily timesteps");
+    std::string file_met_spinup = options.file_met_spinup.empty() ?
+        options.file_met_forcing :
+        options.file_met_spinup;
 
-	// Again, this maximum file name length is pretty arbitrary and not really a
-	// hard limit.
-	declare_parameter("file_met_forcing", &file_met_forcing, PATH_MAX
-	, "Path to NetCDF file containing met forcing data");
-	declare_parameter("file_met_spinup", &file_met_spinup, PATH_MAX
-	, "(Optional) Path to NetCDF file containing met forcing data to be used for spinup");
-	declare_parameter("file_gridlist", &file_gridlist, PATH_MAX
-	, "Path to Gridlist file containing lines of the form \"lon lat\"");
-	declare_parameter("file_soildata", &file_soildata, PATH_MAX
-	, "Path to soil input file");
-	declare_parameter("file_ndep", &file_ndep, PATH_MAX
-	, "Path to nitrogen deposition fastarchive input file");
-	declare_parameter("file_co2", &file_co2, PATH_MAX
-	, "Path to global co2 concentration input file. Either this or variable_co2 must be provided.");
-	declare_parameter("file_thome", &file_thome, PATH_MAX
-	, "Path to the mean maximum daily temperature (T_home) input file, used for DAVE temperature acclimation calculations. This is optional if iftempacclimation is disabled.");
+    spinup_plan = get_forcing_plan(file_met_spinup, options);
+    simulation_plan = get_forcing_plan(options.file_met_forcing, options);
 
-	declare_parameter("cache_strategy", &cache_strategy, 0, 2
-	, "Cache strategy to be used when reading NetCDF data (0 = cache entire file (fastest), 1 = cache one year at a time (slower, but uses less memory), 2 = no caching (slowest, not recommended)");
+    separate_spinup = file_met_spinup != options.file_met_forcing;
+    open_files(spinup_plan, Dataset::Spinup);
 
-	declare_parameter("ndep_scenario", &ndep_scenario, 256
-	, "Scenario to be used for nitrogen deposition data. E.g. HISTORIC, RCP26, RCP45, RCP60, RCP85, RCP85");
+    // Ensure that input timestep is an integer multiple of simulation
+    // timestep. Note that if using a separate .nc file for spinup and
+    // simulation, the timestep may be different between the two files. In
+    // this case, we use the input timestep for the spinup, and then use
+    // the nsteps_day timestep for the simulation.
+    int input_timestep = tas->get_day_length();
+    spinup_timestep = input_timestep;
+    spinup_calendar = tas->get_calendar();
 
-	declare_parameter("spinup_met_cycle_length", &spinup_met_cycle_length, 0, 1000000, "User input from the instruction file. The number of years of data to recycle during the freenyears. If 0, all data will be recycled during freenyears.");
+    simulation_calendar = spinup_calendar;
 
-	declare_parameter("met_sampling_seed", &met_sampling_seed, 0, std::numeric_limits<int>::max(), "Seed used for random sampling of met data during spinup period");
+    spinup_start = first_timestep = tas->get_first_date();
+    spinup_end = final_timestep = tas->get_last_date();
 
-	declare_parameter("nc_check_inputs", &nc_check_inputs, "1 to enable sensibility checking of met inputs, 0 otherwise");
+    // Ensure that there is at least one year of data for the spinup.
+    verify_data_length(first_timestep, final_timestep, input_timestep,
+                       spinup_calendar);
 
-	declare_parameter("use_mean_annual_co2", &use_mean_annual_co2, "If true, each day's CO2 value will be the annual mean co2. Otherwise, a mean of that day's subdaily data will be used.");
+    // Record length of input data.
+    if (separate_spinup) {
+        // Temporarily open a file for the main simulation period.
+        int nc_tmp;
+        std::unique_ptr<NCVariable> tmp;
+        open_file(simulation_plan, Variable::Temp, CacheStrategy::Year, true,
+                  { -273.15, 1e4 }, {"degC", "degc", "°C", "℃"}, nc_tmp, tmp);
 
-	declare_parameter("progress_interval", &progress_interval, -1, std::numeric_limits<int>::max(), "Interval in seconds between progress reports; 0 for yearly or -1 for daily");
-	declare_parameter("progress_newline", &progress_newline, "Force the use of newline characters to terminate progress messages. Useful for MPI runs.");
+        // TODO: RAII.
+        try {
+            // Update simulation timesteps.
+            first_timestep = tmp->get_first_date();
+            final_timestep = tmp->get_last_date();
 
-	declare_parameter("strict_math", &strict_math, "Iff enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.");
+            // Set input_timestep to the value from file_met_forcing.
+            input_timestep = tmp->get_day_length();
+            simulation_calendar = tmp->get_calendar();
 
-	declare_parameter("temperature_delta", &temperature_delta, 0, 1e6, "Optional constant to be added to daily temperature (°C).");
-	declare_parameter("co2_delta", &co2_delta, 0, 1e6, "Optional constant to be added to daily co2 (ppm).");
+            // These three parameters all now come from file_met_forcing; last
+            // time we called this function, they came from file_met_spinup.
+            // Therefore we should check the main file. Better to fail early.
+            verify_data_length(first_timestep, final_timestep, input_timestep, tmp->get_calendar());
 
-	// Names of variables in the NetCDF file.
-	declare_parameter("variable_lon", &variable_lon, NC_MAX_NAME
-	, "Name of the longitude variable in the NetCDF file");
-	declare_parameter("variable_lat", &variable_lat, NC_MAX_NAME
-	, "Name of the latitude variable in the NetCDF file");
-	declare_parameter("variable_time", &variable_time, NC_MAX_NAME
-	, "Name of the time variable in the NetCDF file");
-	declare_parameter("variable_temp", &variable_temp, NC_MAX_NAME
-	, "Name of the mean temperature variable in the NetCDF file");
-	declare_parameter("variable_insol", &variable_insol, NC_MAX_NAME
-	, "Name of the insolation variable in the NetCDF file");
-	declare_parameter("variable_precip", &variable_precip, NC_MAX_NAME
-	, "Name of the precipitation variable in the NetCDF file");
-	declare_parameter("variable_wind", &variable_wind, NC_MAX_NAME
-	, "Optional name of the wind speed variable in the NetCDF file");
-	declare_parameter("variable_co2", &variable_co2, NC_MAX_NAME
-	, "Name of the co2 variable in the NetCDF file. Optional if file_co2 is provided instead.");
-	declare_parameter("variable_vpd", &variable_vpd, NC_MAX_NAME
-	, "Name of the VPD variable in the NetCDF file");
-	declare_parameter("variable_ps", &variable_ps, NC_MAX_NAME
-	, "Name of the atmospheric pressure variable in the NetCDF file");
-	declare_parameter("variable_tmax", &variable_tmax, NC_MAX_NAME
-	, "Name of the max temperature variable in the NetCDF file");
-	declare_parameter("variable_tmin", &variable_tmin, NC_MAX_NAME
-	, "Name of the min temperature variable in the NetCDF file");
-	declare_parameter("variable_ndep_nhx", &variable_ndep_nhx, NC_MAX_NAME
-	, "Optional name of the nhx nitrogen deposition variable in the NetCDF file. If not set, file_ndep must be set instead.");
-	declare_parameter("variable_ndep_noy", &variable_ndep_noy, NC_MAX_NAME
-	, "Optional name of the noy nitrogen deposition variable in the NetCDF file. If not set, file_ndep must be set instead.");
-	declare_parameter("variable_rh", &variable_rh, NC_MAX_NAME
-	, "Optional name of the relative humidity variable in the NetCDF file. If not set, vpd must be provided instead.");
-	declare_parameter("fixed_pressure", &fixed_pressure, 0, 200000
-	, "Optional fixed/constant air pressure to use in Pa");
-	declare_parameter("esat_method", &esat_method_name, 256
-	, "Method to use for estimating saturation vapor pressure");
+            GuessNC::close_ncdf(nc_tmp);
+            nc_tmp = -1;
+            tmp.reset();
+        }
+        catch (const std::exception &e) {
+            if (nc_tmp != -1) {
+                GuessNC::close_ncdf(nc_tmp);
+            }
+            throw;
+        }
+    }
 
-	fixed_pressure = 0;
+    // input_timestep is the timestep from file_met_forcing. Ensure that it
+    // may be aggregated to nsteps_day.
+    simulation_timestep = input_timestep;
+    verify_timestep(input_timestep);
 
-	bounds_prec.max = 1000;
-	bounds_prec.min = 0;
+    // Now we must determine the first calendar year of the simulation (not
+    // the spinup).
+    int first_year = first_timestep.year;
 
-	bounds_wind.max = 100;
-	bounds_wind.min = 0;
+    // If using a separate file for spinup, and this file ends in the year
+    // before the "main" file, we can include it as part of the main
+    // simulation after running the spinup.
+    spinup_in_simulation = false;
+    if (separate_spinup && spinup_end.year + 1 == first_timestep.year && is_end_of_year(spinup_end, spinup_timestep, spinup_calendar)) {
+        first_year = spinup_start.year;
+        spinup_in_simulation = true;
+        dprintf("file_met_spinup will be included in main simulation, which will run from %04d-%02d-%02d - %04d-%02d-%02d.\n",
+            spinup_start.year, get_month(spinup_start, spinup_calendar) + 1, get_day_of_month(spinup_start, spinup_calendar) + 1,
+            final_timestep.year, get_month(final_timestep, simulation_calendar) + 1, get_day_of_month(final_timestep, simulation_calendar) + 1);
+    }
 
-	bounds_insol.max = 1e6;
-	bounds_insol.min = 0;
+    lon = 0;
+    lat = 0;
 
-	bounds_co2.max = 900;
-	bounds_co2.min = 0;
-
-	bounds_temp.max = 100;
-	bounds_temp.min = -100;
-
-	bounds_vpd.max = 100;
-	bounds_vpd.min = 0.01; // CS updated from 0
-
-	bounds_rh.max = 1;
-	bounds_rh.min = 0;
-
-	temperature_delta = 0;
-	co2_delta = 0;
-
-	// Are these too generous?
-	bounds_ps.max = 150000;
-	bounds_ps.min = 50000;
-
-	bounds_ndep.max = 1000;
-	bounds_ndep.min = 0;
-
-	use_lamarque = true;
-	use_mean_annual_co2 = false;
-
-	double ctor_end = get_wall_time();
-	double ctor_duration = (ctor_end - ctor_start) * 1000;
-	ncinput_walltime_use = ctor_duration;
-
-	nc_file = -1;
-	nc_temp = -1;
-	nc_insol = -1;
-	nc_precip = -1;
-	nc_vpd = -1;
-	nc_huss = -1;
-	nc_ps = -1;
-	nc_wind = -1;
-	nc_co2 = -1;
-	nc_tmax = -1;
-	nc_tmin = -1;
-	nc_nhx = -1;
-	nc_noy = -1;
-	nc_rh = -1;
-
-	progress_newline = false;
+    // TODO: verify consistency of coordinates across all input files.
+    // E.g. longitude, latitude and time.
+    // At the very least, all files should have all spatial coordinates required
+    // by the gridlist, and they should have at least 1 year of overlapping time
+    // coverage. We could conditionally be more strict and require identical
+    // coordinates in all files.
 }
 
 NCInput::~NCInput() {
-	close_all();
-
-	// The NCVariable instances are dynamically allocated, but they're wrapped
-	// in smart pointers, so we don't need to manually free them.
+    close();
 }
 
-void NCInput::init(void) {
-	try {
-		double init_start = get_wall_time();
+void NCInput::begin_gridcell(double lon, double lat) {
+    this->lon = lon;
+    this->lat = lat;
 
-		// Parse the gridlist.
-		gridlist = parse_gridlist(file_gridlist);
-
-		// Open soil data file.
-		soil_input.init(file_soildata);
-
-		// Open misc input file.
-		misc_input.init(file_gridlist);
-
-		// Open management input files.
-		management_input.init(file_gridlist);
-
-		// Open landcover input file.
-		landcover_input.init(file_gridlist);
-
-		if (file_thome != "") {
-			if (iftempacclimation) {
-				thome_input.init(file_thome);
-			} else {
-				printf("WARNING: Temperature acclimation file specified but temperatue acclimation is disabled, so the file will not be used.\n");
-			}
-		} else {
-			if (iftempacclimation) {
-				fail("Temperature acclimation is enabled, but t_home input file is not specified. Please set file_thome in the instruction file.");
-			}
-			// else not specified and not needed - no problem.
-		}
-
-		if (variable_rh != "") {
-			if (esat_method_name == "") {
-				fail("Relative humidity variable specified but esat_method is not specified. Please set esat_method in the instruction file.");
-			}
-			esat_method = parse_esat_method(esat_method_name);
-		}
-
-		bool separate_spinup = file_met_spinup != "" && file_met_spinup != file_met_forcing;
-		open_netcdf(separate_spinup ? file_met_spinup : file_met_forcing);
-
-		// Ensure that input timestep is an integer multiple of simulation
-		// timestep. Note that if using a separate .nc file for spinup and
-		// simulation, the timestep may be different between the two files. In
-		// this case, we use the input timestep for the spinup, and then use
-		// the nsteps_day timestep for the simulation.
-		int input_timestep = temp->get_day_length();
-		spinup_timestep = input_timestep;
-		spinup_calendar = temp->get_calendar();
-		GuessNC::CF::CalendarType simulation_calendar = spinup_calendar;
-		date.subdaily = separate_spinup ? input_timestep : nsteps_day;
-
-		spinup_start = first_timestep = temp->get_first_date();
-		spinup_end = final_timestep = temp->get_last_date();
-
-		// Ensure that there is at least one year of data for the spinup.
-		verify_data_length(first_timestep, final_timestep, input_timestep, temp->get_calendar());
-
-		// Record length of input data.
-		if (separate_spinup) {
-			// The temperature variable currently loaded comes from the NetCDF
-			// file used for the spinup, and its start/end dates don't reflect
-			// the actual simulation start/end dates, which depend upon the
-			// NetCDF file used for the main simulation.
-			xtring fn;
-			fn.printf(file_met_forcing, (const char *)variable_temp);
-			int nc = GuessNC::open_ncdf(fn);
-
-			// Read metadata from the temperature variable.
-			// todo: verify that this is consistent across variables.
-			bounds limits;
-			limits.max = 100;
-			limits.min = -100;
-			std::vector<xtring> units(1);
-			units[0] = "degC";
-			NCVariable tmp(nc, variable_temp, variable_lon, variable_lat
-				, variable_time, (CacheStrategy)cache_strategy
-				, nc_check_inputs, limits, units, false);
-
-			// Update simulation timesteps.
-			first_timestep = tmp.get_first_date();
-			final_timestep = tmp.get_last_date();
-
-			// Set input_timestep to the value from file_met_forcing.
-			input_timestep = tmp.get_day_length();
-			simulation_calendar = tmp.get_calendar();
-
-			// These three parameters all now come from file_met_forcing; last
-			// time we called this function, they came from file_met_spinup.
-			// Therefore we should check the main file. Better to fail early.
-			verify_data_length(first_timestep, final_timestep, input_timestep, tmp.get_calendar());
-
-			// Close file_met_forcing for now.
-			GuessNC::close_ncdf(nc);
-		}
-
-		// Move to first gridcell in the gridlist.
-		current_gridcell = gridlist.begin();
-
-		// input_timestep is the timestep from file_met_forcing. Ensure that it
-		// may be aggregated to nsteps_day.
-		verify_timestep(input_timestep);
-
-		// Now we must determine the first calendar year of the simulation (not
-		// the spinup).
-		int first_year = first_timestep.year;
-
-		// If using a separate file for spinup, and this file ends in the year
-		// before the "main" file, we can include it as part of the main
-		// simulation after running the spinup.
-		spinup_in_simulation = false;
-		if (separate_spinup && spinup_end.year + 1 == first_timestep.year && is_end_of_year(spinup_end, spinup_timestep, spinup_calendar)) {
-			first_year = spinup_start.year;
-			spinup_in_simulation = true;
-			dprintf("file_met_spinup will be included in main simulation, which will run from %04d-%02d-%02d - %04d-%02d-%02d.\n",
-				spinup_start.year, get_month(spinup_start, spinup_calendar) + 1, get_day_of_month(spinup_start, spinup_calendar) + 1,
-				final_timestep.year, get_month(final_timestep, simulation_calendar) + 1, get_day_of_month(final_timestep, simulation_calendar) + 1);
-		}
-
-		// Set the calendar year at start of spinup.
-		date.set_first_calendar_year(first_year - nyear_spinup);
-
-		// Initialise PRNG.
-		srand(met_sampling_seed);
-
-	if (strict_math) {
-#ifndef _WIN32
-		// feenableexcept(FE_DIVBYZERO | FE_INVALID);
-#endif
-	}
-
-	// Set timers.
-	progress_timer.init();
-	progress_progress_timer.init();
-
-	progress_timer.settimer();
-	if (progress_interval > 0) {
-		progress_progress_timer.settimer(progress_interval);
-	}
-
-	double init_end = get_wall_time();
-	double init_duration = (init_end - init_start) * 1000;
-	ncinput_walltime_use += init_duration;
-
-	} catch (const std::exception& error) {
-		fail(get_nested_error_msg(error));
-	}
+    // Revert to spinup dataset when necessary.
+    if (separate_spinup && open_dataset != Dataset::Spinup) {
+        open_files(spinup_plan, Dataset::Spinup);
+    }
 }
 
-bool NCInput::getgridcell(Gridcell& gridcell) {
-	try {
-		double getgridcell_start = get_wall_time();
-
-		if (file_met_spinup != "" && current_gridcell != gridlist.begin()) {
-			open_netcdf(file_met_spinup);
-
-			// Ensure that input timestep is an integer multiple of simulation
-			// timestep. Note that if using a separate .nc file for spinup and
-			// simulation, the timestep may be different between the two files. In
-			// this case, we use the input timestep for the spinup, and then use
-			// the nsteps_day timestep for the simulation.
-			int input_timestep = temp->get_day_length();
-			date.subdaily = input_timestep;
-		}
-
-		if (current_gridcell == gridlist.end()) {
-			double total_walltime = (getgridcell_start - ctor_start) * 1000;
-			double prop = ncinput_walltime_use / total_walltime;
-			dprintf("Simulations completed. Total time: %.2fs.                     \nTotal time spent in dave  input: %.2fs\n", total_walltime / 1000, ncinput_walltime_use / 1000);
-			return false;
-		}
-
-		double lon = current_gridcell->lon;
-		double lat = current_gridcell->lat;
-		gridcell.set_coordinates(lon, lat);
-
-		set_insoltype(gridcell);
-
-		// Get soil data for this grid cell.
-		soil_input.get_soil(lon, lat, gridcell);
-
-		// Read N deposition data for this grid cell.
-		if (use_lamarque) {
-			ndep_input.getndep(file_ndep, lon, lat
-			, Lamarque::parse_timeseries((const char *)ndep_scenario));
-		}
-
-		if(readdisturbance || readdisturbance_st || readelevation_st) {
-			// Not all gridcells have to be included in input file.
-			misc_input.loaddisturbance(lon, lat);
-			misc_input.loadelevation(lon, lat);
-		}
-
-		if (iftempacclimation) {
-			// Temperature acclimation is enabled - read thome value for this
-			// gridcell.
-			gridcell.climate.thome = thome_input.read_gridcell(lat, lon);
-		}
-
-		// Initialise subdaily photosynthesis structures with the correct number
-		// of elements corresponding to number of subdaily timesteps.
-		resize_climate_arrays(gridcell, date.subdaily);
-
-		dprintf("\nCommencing simulation for gridcell at (%g,%g)", lon, lat);
-		if (current_gridcell->description != "") {
-			dprintf(" (%s)", (const char *)current_gridcell->description);
-		}
-		dprintf("\n");
-
-		// Increment gridlist iterator (it now points to the next grid cell).
-		current_gridcell++;
-
-		double getgridcell_end = get_wall_time();
-		double getgridcell_duration = (getgridcell_end - getgridcell_start) * 1000;
-		ncinput_walltime_use += getgridcell_duration;
-
-		return true;
-	} catch (const std::exception& e) {
-		if (current_gridcell > gridlist.begin() && current_gridcell < gridlist.end()) {
-			fprintf(stderr, "Failed to read data for gridcell (%f, %f)", current_gridcell->lon, current_gridcell->lat);
-			if (current_gridcell->description != "") {
-				fprintf(stderr, " (%s)", (const char *)current_gridcell->description);
-			}
-			fprintf(stderr, "\n");
-		}
-		fail(get_nested_error_msg(e));
-		return false; // To eliminate a compiler warning.
-	}
+void close_if_open(int &nc_id, std::unique_ptr<NCVariable> &variable) {
+    if (nc_id != -1) {
+        GuessNC::close_ncdf(nc_id);
+        nc_id = -1;
+    }
+    variable.reset();
 }
 
-bool NCInput::getclimate(Gridcell& gridcell) {
-try {
-	double getclimate_start = get_wall_time();
+void NCInput::close() {
+    close_if_open(nc_tas, tas);
+    close_if_open(nc_rs, rs);
+    close_if_open(nc_pr, pr);
+    close_if_open(nc_ws, ws);
+    close_if_open(nc_co2, co2);
+    close_if_open(nc_tmax, tmax);
+    close_if_open(nc_tmin, tmin);
+    close_if_open(nc_vpd, vpd);
+    close_if_open(nc_sh, sh);
+    close_if_open(nc_rh, rh);
+    close_if_open(nc_ps, ps);
+    close_if_open(nc_nhx, nhx);
+    close_if_open(nc_noy, noy);
+    open_dataset = Dataset::None;
+}
 
-	// Shorthand access to some variables.
-	Climate& climate = gridcell.climate;
-	double lon = gridcell.get_lon();
-	double lat = gridcell.get_lat();
-	int year = date.get_calendar_year();
+void NCInput::open_files(const ResolvedPlan &plan, Dataset dataset) {
+    // If files aren't already open, this will do nothing.
+    close();
 
+    // TODO: automatic unit conversion (where feasible).
+
+    std::vector<xtring> temp_units = {"degC", "degc", "°C", "℃"};
+    bounds temp_bounds = {-100, 100};
+    open_file(plan, Variable::Temp, options.cache_strategy,
+              options.nc_check_inputs, temp_bounds, temp_units, nc_tas, tas);
+
+	// TODO: Should provide units for other insol types as well.
+    std::vector<xtring> rs_units = {"W/m2", "W m-2", "w/m^2"};
+	bounds bounds_rs = {0, 1e6};
+    open_file(plan, Variable::Rs, options.cache_strategy, options.nc_check_inputs,
+              bounds_rs, rs_units, nc_rs, rs);
+	std::vector<xtring> pr_units = {"mm", "kg m-2", "kg/m2"};
+	bounds bounds_pr = {0, 1000};
+    open_file(plan, Variable::Pr, options.cache_strategy, options.nc_check_inputs,
+              bounds_pr, pr_units, nc_pr, pr);
+
+    if (plan.ws_mode == WsMode::Direct) {
+        std::vector<xtring> ws_units = {"m/s", "m s-1", "m s^-1"};
+        bounds bounds_ws = {0, 100};
+        open_file(plan, Variable::Ws, options.cache_strategy, options.nc_check_inputs,
+                  bounds_ws, ws_units, nc_ws, ws);
+    }
+
+    if (plan.co2_mode == Co2Mode::Direct) {
+        std::vector<xtring> co2_units = {"ppm"};
+        bounds bounds_co2 = {0, 900};
+        open_file(plan, Variable::CO2, options.cache_strategy, options.nc_check_inputs,
+                  bounds_co2, co2_units, nc_co2, co2);
+    }
+
+    if (plan.vpd_mode == VpdMode::Direct) {
+        std::vector<xtring> vpd_units = {"kPa"};
+        // CS updated max from 200 to 100, min from 0 to 0.01 to avoid log(0)
+        // issues.
+        bounds bounds_vpd = {0.01, 100};
+        open_file(plan, Variable::Vpd, options.cache_strategy, options.nc_check_inputs,
+                  bounds_vpd, vpd_units, nc_vpd, vpd);
+    } else if (plan.vpd_mode == VpdMode::FromSH) {
+        std::vector<xtring> sh_units = {"1", "kg/kg"};
+        bounds bounds_sh = {0, 1};
+        open_file(plan, Variable::SH, options.cache_strategy, options.nc_check_inputs,
+                  bounds_sh, sh_units, nc_sh, sh);
+    } else if (plan.vpd_mode == VpdMode::FromRH) {
+        std::vector<xtring> rh_units = {"1"};
+        bounds bounds_rh = {0, 1};
+        open_file(plan, Variable::RH, options.cache_strategy, options.nc_check_inputs,
+                  bounds_rh, rh_units, nc_rh, rh);
+    } else {
+        throw std::runtime_error("Invalid VPD mode in input plan: " + std::to_string(static_cast<int>(plan.vpd_mode)));
+    }
+
+    if (plan.ndep_mode == NdepMode::Direct) {
+        // We will read nitrogen deposition data directly from the input file.
+        std::vector<xtring> ndep_units = {"kgN/m2/day"};
+        bounds bounds_ndep = {0, 1000};
+        open_file(plan, Variable::Nhx, options.cache_strategy, options.nc_check_inputs,
+                  bounds_ndep, ndep_units, nc_nhx, nhx);
+        open_file(plan, Variable::Noy, options.cache_strategy, options.nc_check_inputs,
+                  bounds_ndep, ndep_units, nc_noy, noy);
+    }
+
+    if (plan.ps_mode == PsMode::Direct) {
+        std::vector<xtring> ps_units = {"Pa"};
+        bounds bounds_ps = {50000, 150000};
+        open_file(plan, Variable::Ps, options.cache_strategy, options.nc_check_inputs,
+                  bounds_ps, ps_units, nc_ps, ps);
+    }
+
+    open_dataset = dataset;
+}
+
+bool NCInput::read_day(int year, int day, Climate &climate) {
 	// First, check if we have enough data to simulate another day.
 	if (year > final_timestep.year) {
 		return false;
 	}
-	if (date.day == 0 && year == final_timestep.year) {
+
+	if (day == 0 && date.get_calendar_year() == final_timestep.year) {
 		if (final_timestep.day < Date::MAX_YEAR_LENGTH - 1) {
 			// We are in the final year, which is missing some days of data.
 			// Because the N deposition disaggregation requires an entire years'
 			// worth of precipitation data, we can't simulate part of a year.
+            dprintf("Final year (%d) of data is missing some days (contains %d but requires %d for a full year). Because the N deposition disaggregation requires an entire years' worth of precipitation data, we can't simulate this year.\n",
+                    final_timestep.year, final_timestep.day + 1,
+                    Date::MAX_YEAR_LENGTH);
 			return false;
 		}
 
-		if (final_timestep.timestep < temp->get_day_length() - 1) {
+		if (final_timestep.timestep < tas->get_day_length() - 1) {
 			// We are in the final year, and the final day is missing some
 			// timesteps.
+            dprintf("Final year (%d) of data is missing some timesteps (contains %d but requires %d for a full day). Because the N deposition disaggregation requires an entire years' worth of precipitation data, we can't simulate this year.\n",
+                    final_timestep.year, final_timestep.timestep + 1,
+                    tas->get_day_length());
 			return false;
 		}
 	}
 
-	if (date.year < nyear_spinup) {
-		// Shuffle years of met data during spinup. Whenever we move to a new
-		// year, select another year at random.
-		if (date.day == 0) {
-			spinup_year = get_spinup_year();
-		}
-		year = spinup_year;
-	} else {
-		// We are now out of the spinup. Reset spinup_year to avoid confusion.
-		spinup_year = -1;
+    if (day == 0 && date.year == 0) {
+        // TODO: find a way to improve the insoltype situation. This is a mess.
+		set_insoltype(climate);
+    }
 
-		if (date.day == 0 && date.get_calendar_year() == first_timestep.year
-			&& file_met_spinup != "" && file_met_spinup != file_met_forcing) {
-			// Open the NetCDF file used for the main simulation.
-			open_netcdf(file_met_forcing);
-			set_insoltype(gridcell);
-			// Input timestep for this .nc file was validated in init().
-			date.subdaily = nsteps_day;
-			resize_climate_arrays(gridcell, nsteps_day);
-		}
-	}
+    if (day == 0 && date.get_calendar_year() == first_timestep.year && separate_spinup) {
+        // Open the NetCDF files used for the main simulation.
+        open_files(simulation_plan, Dataset::Main);
 
-	climate.met_year = year;
+        // Update the cliamte insoltype (as it could have changed).
+        set_insoltype(climate);
+    }
 
-	int co2_year = date.get_calendar_year() < spinup_start.year ? spinup_start.year : date.get_calendar_year();
+    // TODO: is this correct? What about spinup_in_simulation?
+    ResolvedPlan plan = year < first_timestep.year ?
+                                spinup_plan :
+                                simulation_plan;
 
-	// Generate daily N deposition values on first day of year.
-	if (date.day == 0) {
-		update_ndep(lon, lat, year);
-
-		if (use_mean_annual_co2 && co2) {
-			int year_len = get_year_len(year, co2->get_calendar());
-			std::vector<double> co2_annual = co2->read(lon, lat, co2_year, 0, year_len);
-			mean_annual_co2 = mean(co2_annual);
-		}
-	}
-
-	// When reading data from the input files, we specify which day of the year
-	// to read. The 29th of February is the 60th day of the year in leap years,
-	// which would correspond to date.day == 59. This model does not simulate
-	// leap years, so date.day = 59 in this model ALWAYS means the first of
-	// March. If we pass 59 into NCVariable::read(), we will get data for the
-	// 29th of Feb in a leap year (if the data contains leap years). This is
-	// actually convenient, as it makes the outputs more directly interpretable.
-	// Whatever we do, we need to skip a day of data in that year, and the
-	// current implementation means the data for 31st December will not be used.
-	// This actually corresponds better with the day of year value that is
-	// written to the output files, and makes them easier to compare with other
-	// data. Therefore, I will leave this message here as a warning.
-	int day = date.day;
+	distribute_ndep(plan, year, day);
+    set_co2(plan, year, day, climate);
 
 	// Read data from variables (not necessarily from the file - these variable
 	// objects will handle caching internally).
 	// Note that these arrays will still be on the timestep of the input data,
 	// which is not necessarily the same as that of the nsteps_day parameter.
-	std::vector<double> temps = temp->read(lon, lat, year, day, 1);
-	std::vector<double> precs = precip->read(lon, lat, year, day, 1);
-	std::vector<double> insols = insol->read(lon, lat, year, day, 1);
-	std::vector<double> vpds;
-	if (vpd) {
-		vpds = vpd->read(lon, lat, year, day, 1);
-	} else if (rh) {
-		std::vector<double> relhum = rh->read(lon, lat, year, day, 1);
-		if (rh->has_missing_value() && contains(rh->get_missing_value(), relhum)) {
-			fail("Missing value in relative humidity data for gridcell (%f, %f)", lon, lat);
-		}
-		vpds.resize(date.subdaily);
-		for (size_t i = 0; i < vpds.size(); i++) {
-			vpds[i] = rh_to_vpd(relhum[i], temps[i], esat_method);
-		}
-	}
-	std::vector<double> pressure;
-	if (fixed_pressure == 0) {
-		pressure = ps->read(lon, lat, year, day, 1);
-	} else {
-		pressure.resize(date.subdaily);
-		for (size_t i = 0; i < pressure.size(); i++) {
-			pressure[i] = fixed_pressure;
-		}
-	}
+	std::vector<double> temps = tas->read(lon, lat, year, day, 1);
+	std::vector<double> precs = pr->read(lon, lat, year, day, 1);
+	std::vector<double> insols = rs->read(lon, lat, year, day, 1);
+	std::vector<double> pressure = get_ps(plan, year, day);
+    std::vector<double> vpds = get_vpd(plan, year, day);
 
-	if ((temp->has_missing_value() && contains(temp->get_missing_value(), temps)) ||
-		(precip->has_missing_value() && contains(precip->get_missing_value(), precs)) ||
-		(insol->has_missing_value() && contains(insol->get_missing_value(), insols)) ||
+	if ((tas->has_missing_value() && contains(tas->get_missing_value(), temps)) ||
+		(pr->has_missing_value() && contains(pr->get_missing_value(), precs)) ||
+		(rs->has_missing_value() && contains(rs->get_missing_value(), insols)) ||
 		(vpd && vpd->has_missing_value() && contains(vpd->get_missing_value(), vpds)) ||
 		(ps && ps->has_missing_value() && contains(ps->get_missing_value(), pressure))) {
 
-		dprintf("WARNING: Encountered missing value in climate data for gridcell (%f, %f) on %04d-%02d-%02d. Simulation will now terminate.\n", gridcell.get_lon(), gridcell.get_lat(), year, date.month + 1, date.dayofmonth + 1);
+		dprintf("WARNING: Encountered missing value in climate data for gridcell (%f, %f) on Year %04d day (of year) %03d. Simulation will now terminate.\n",
+                lon, lat, year, day);
 		return false;
 	}
 
@@ -545,28 +372,30 @@ try {
 	// nsteps_day is the desired simulation timestep.
 	// temp->get_day_length is the input data timestep.
 
+    // Get min/max subdaily temperature before aggregation to target timestep.
 	double maxt = max(temps);
 	double mint = min(temps);
 
-	if (date.subdaily != temp->get_day_length()) {
-		temps = aggregate(temps, date.subdaily, mean);
-		insols = aggregate(insols, date.subdaily, mean);
-		vpds = aggregate(vpds, date.subdaily, mean);
-		pressure = aggregate(pressure, date.subdaily, mean);
-		precs = aggregate(precs, date.subdaily, sum);
+    // TODO: should be handled by NCVariable.
+	if (options.nsteps_day != tas->get_day_length()) {
+		temps = aggregate(temps, options.nsteps_day, mean);
+		insols = aggregate(insols, options.nsteps_day, mean);
+		vpds = aggregate(vpds, options.nsteps_day, mean);
+		pressure = aggregate(pressure, options.nsteps_day, mean);
+		precs = aggregate(precs, options.nsteps_day, sum);
 		// If required, we can aggregate using other functions as well. E.g.
-		// precs = aggregate(precs, date.subdaily, sum);
+		// precs = aggregate(precs, options.nsteps_day, sum);
 	}
 
-	if (wind) {
-		std::vector<double> winds = wind->read(lon, lat, year, date.day, 1);
+	if (plan.ws_mode == WsMode::Direct) {
+		std::vector<double> winds = ws->read(lon, lat, year, day, 1);
 		climate.u10 = mean(winds);
 	}
 
 	for (size_t i = 0; i < vpds.size(); i++) {
 		if (vpds[i] < 0.01) {
-			if (nc_check_inputs) {
-				printf("Year %d day %d timestep %zu vpd is below 0.01: %f\n", date.year, date.day, i, vpds[i]);
+			if (options.nc_check_inputs) {
+				dprintf("Year %d day %d timestep %zu vpd is below 0.01: %f\n", year, day, i, vpds[i]);
 			}
 			vpds[i] = 0.01;
 		}
@@ -576,214 +405,45 @@ try {
 	climate.insols = insols;
 	climate.vpds = vpds;
 	climate.precs = precs;
-	gridcell.dNH4dep = nh4_dep[date.day];
-	gridcell.dNO3dep = no3_dep[date.day];
+	climate.gridcell.dNH4dep = nh4_dep[day];
+	climate.gridcell.dNO3dep = no3_dep[day];
 	climate.pressure = pressure;
 
-	climate.co2 = get_co2(lon, lat, co2_year, date.day);
-
-	if (temp->get_day_length() > 1) {
+	if (plan.dtr_mode == DtrMode::FromSubdailyTemp) {
 		climate.dtr = maxt - mint;
 		climate.tmax = maxt;
 		climate.tmin = mint;
-	} else if (tmax && tmin) {
+	} else if (plan.dtr_mode == DtrMode::Direct) {
 		// It only really makes sense to provide separate variables for tmin and
 		// tmax if input data is daily. Therefore these arrays will usually be
 		// of length 1.
-		std::vector<double> tmaxs = tmax->read(lon, lat, year, date.day, 1);
-		std::vector<double> tmins = tmin->read(lon, lat, year, date.day, 1);
+		std::vector<double> tmaxs = tmax->read(lon, lat, year, day, 1);
+		std::vector<double> tmins = tmin->read(lon, lat, year, day, 1);
 
 		climate.tmax = mean(tmaxs);
 		climate.tmin = mean(tmins);
 		climate.dtr = climate.tmax - climate.tmin;
-	} else {
+	} else if (plan.dtr_mode != DtrMode::NotNeeded) {
+        // Should never happen - this is covered by ResolvedPlan::validate().
 		throw std::runtime_error("Missing tmax/tmin data, and day length is 1");
 	}
 
-	if (temperature_delta > 0) {
-		for (int i = 0; i < date.subdaily; i++) {
-			climate.temps[i] += temperature_delta;
-		}
-		climate.temp += temperature_delta;
+    return true;
+}
+
+void NCInput::verify_timestep(int timestep) const {
+	if (timestep < options.nsteps_day) {
+		throw_xtring("Input timestep (%d/day) must be >= simulation timestep (%d/day)"
+		, timestep, options.nsteps_day);
 	}
-
-	if (co2_delta > 0) {
-		climate.co2 += co2_delta;
-	}
-
-	// rads and pars are calculated automatically in daylengthinsoleet().
-	// gtemps are calculated in respiration_temperature_response().
-
-	double getclimate_duration = (get_wall_time() - getclimate_start) * 1000;
-	ncinput_walltime_use += getclimate_duration;
-
-	// Progress reporting.
-	if (progress_interval == -1 ||
-		(progress_interval == 0 && date.day == 0) ||
-		(date.day == 0 && progress_progress_timer.getprogress() >= 1.0) ) {
-		double overall_progress = get_progress(false);
-		double progress = overall_progress;
-		if (restart) {
-			progress = get_progress(true);
-		}
-		progress_timer.setprogress(progress);
-		const char *eol = isatty(fileno(stdout)) ? "\r" : "\n";
-		if (progress_newline) {
-			eol = "\n";
-		}
-		dprintf("%3d%% complete, %s elapsed, %s remaining%s"
-			, (int)(overall_progress * 100), progress_timer.elapsed.str
-			, progress_timer.remaining.str, eol);
-		if (progress_interval > 0) {
-			progress_progress_timer.settimer(progress_interval);
-		}
-	}
-
-	// We have enough data to simulate another day.
-	return true;
-} catch (const std::exception& e) {
-	if (current_gridcell > gridlist.begin() && current_gridcell < gridlist.end()) {
-		fprintf(stderr, "Failed to read data for gridcell (%f, %f)", current_gridcell->lon, current_gridcell->lat);
-		if (current_gridcell->description != "") {
-			fprintf(stderr, " (%s)", (const char *)current_gridcell->description);
-		}
-		fprintf(stderr, "\n");
-	}
-	fail(get_nested_error_msg(e));
-	return false; // To eliminate a compiler warning.
-}
-}
-
-void NCInput::getlandcover(Gridcell& gridcell) {
-	// Proxy this request through to the landcover input module.
-	landcover_input.getlandcover(gridcell);
-}
-
-void NCInput::getmanagement(Gridcell& gridcell) {
-	// Proxy this request through to the management input module.
-	management_input.getmanagement(gridcell, landcover_input);
-}
-
-void NCInput::getmiscinput_static(Gridcell& gridcell) {
-	misc_input.getmiscinput_static(gridcell);
-}
-
-void NCInput::getmiscinput_yearly(Gridcell& gridcell) {
-	misc_input.getmiscinput_yearly(gridcell);
-}
-
-std::unique_ptr<NCVariable> NCInput::create_variable(xtring netcdf_file
-	, xtring variable_name, int &ncid, bounds limits, const std::vector<xtring>& units
-	, bool require_valid_units) const {
-
-	// nc is the ID of the file from which we will read.
-	int nc;
-
-	if (ncid != -1) {
-		// We have already opened a variable-specific file. This should probably
-		// never happen.
-		nc = ncid;
-	} else {
-		// Attempt to get a variable-specific file by treating the file name as
-		// a printf-style format string.
-		xtring filename;
-		filename.printf((const char *)netcdf_file, (const char *)variable_name);
-
-		// nc_open() can be called multiple times on the same file, and will
-		// return the same file ID each time.
-		nc = GuessNC::open_ncdf((const char *)filename);
-
-		// Store the opened file ID in ncid, but only if it's different to the
-		// 'primary' open file. If it's the same file, just store -1 in ncid.
-		ncid = nc == nc_file ? -1 : nc;
-	}
-
-	return std::unique_ptr<NCVariable>(new NCVariable(
-		nc,
-		variable_name,
-		variable_lon,
-		variable_lat,
-		variable_time,
-		(CacheStrategy)cache_strategy,
-		nc_check_inputs,
-		limits,
-		units,
-		require_valid_units
-	));
-}
-
-std::vector<NCInput::Coord> NCInput::parse_gridlist(xtring filename) const {
-	// Open the file for reading.
-	std::ifstream ifs(filename, std::ifstream::in);
-
-	std::vector<Coord> coordinates;
-
-	// Iterate over the file line by line.
-	std::string line;
-	while (getline(ifs, line)) {
-		std::istringstream iss(line);
-		Coord coord;
-		std::string description;
-
-		// Parse latitude/longitude from text.
-		if (iss >> coord.lon >> coord.lat) {
-			// Store the remainder of the line into the description field.
-			getline(iss, description);
-			coord.description = xtring(trim(description).c_str());
-		}
-		coordinates.push_back(coord);
-	}
-
-	return coordinates;
-}
-
-void NCInput::update_ndep(double lon, double lat, int year) {
-	if (use_lamarque) {
-		// Read monthly N deposition values from input file.
-		double nhx_dry[12];
-		double noy_dry[12];
-		double nhx_wet[12];
-		double noy_wet[12];
-		ndep_input.get_one_calendar_year(year, nhx_dry, noy_dry, nhx_wet, noy_wet);
-
-		// Converting N deposition data to daily values requires daily
-		// precipitation data.
-
-		// Read precipitation data for entire year.
-		int n = Date::MAX_YEAR_LENGTH;
-		std::vector<double> subdaily_prec = precip->read(lon, lat, year, 0, n);
-
-		// Aggregate to daily values. Note that precip is currently only allowed to
-		// be in mm, so we can sum the subdaily values to get a daily one.
-		std::vector<double> daily_prec = aggregate(subdaily_prec, n, sum);
-
-		assert(daily_prec.size() == Date::MAX_YEAR_LENGTH);
-
-		// Distribute N deposition
-		distribute_ndep(nhx_dry, noy_dry, nhx_wet, noy_wet,
-						&(daily_prec.front()), nh4_dep, no3_dep);
-	} else {
-		// todo: leap years.
-		int year_len = Date::MAX_YEAR_LENGTH;
-
-		// Read n deposition data from NetCDF input.
-		std::vector<double> nhx_subdaily = ndep_nhx->read(lon, lat, year, 0, year_len);
-		std::vector<double> noy_subdaily = ndep_noy->read(lon, lat, year, 0, year_len);
-
-		// Aggregate to daily timestep. Input units are mgN/m2/day, so we take
-		// the mean rate over the course of a day, and that will give us the
-		// amount of N/m2 deposited in a day.
-		std::vector<double> nhx = aggregate(nhx_subdaily, year_len, mean);
-		std::vector<double> noy = aggregate(noy_subdaily, year_len, mean);
-
-		// Copy data into the nh4_dep and no3_dep arrays.
-		// nhx = nh4, noy = no3a
-		memcpy(nh4_dep, &nhx.front(), year_len * sizeof(double));
-		memcpy(no3_dep, &noy.front(), year_len * sizeof(double));
+	if (timestep % options.nsteps_day != 0) {
+		throw_xtring("Input timestep (%d/day) must be an integer multiple of simulation timestep (%d/day)"
+		, timestep, options.nsteps_day);
 	}
 }
 
-int NCInput::get_nyear_data(timepoint start, timepoint end, int day_length, GuessNC::CF::CalendarType calendar) const {
+int NCInput::get_nyear_data(timepoint start, timepoint end, int day_length,
+                            GuessNC::CF::CalendarType calendar) const {
 	int nyear = end.year - start.year;
 
 	// If final timestep is the last timestep in a year, then we can add that
@@ -794,7 +454,7 @@ int NCInput::get_nyear_data(timepoint start, timepoint end, int day_length, Gues
 
 	// If first timestep is not the first timestep in the year, then we don't
 	// have a full year of data for the first year. Therefore decrement nyear.
-	if (!is_start_of_year(start, day_length)) {
+	if (!is_start_of_year(start)) {
 		nyear--;
 	}
 
@@ -802,216 +462,8 @@ int NCInput::get_nyear_data(timepoint start, timepoint end, int day_length, Gues
 	return max(nyear, 0);
 }
 
-double NCInput::get_progress(bool since_restart) {
-	// Number of gridcells which have been run.
-		int cells_done = distance(gridlist.begin(), current_gridcell) - 1;
-
-		// Number of years to simulate per gridcell.
-		int years_to_simulate = nyear_spinup + get_nyear_data(first_timestep, final_timestep, nsteps_day, temp->get_calendar());
-		if (spinup_in_simulation) {
-			years_to_simulate += get_nyear_data(spinup_start, spinup_end, spinup_timestep, spinup_calendar);
-		}
-
-		int skip = since_restart && restart ? state_year : 0;
-		years_to_simulate -= skip;
-
-		// Total number of years to be simulated across all gridcells.
-		int total_years = years_to_simulate * gridlist.size();
-
-		// Number of years which have been simulated (date.year starts at 0).
-		int years_simulated = years_to_simulate * cells_done + date.year - skip;
-
-		double progress = 1.0 * years_simulated / total_years;
-		return progress;
-}
-
-double NCInput::get_co2(double lon, double lat, int year, int day) {
-	if (co2) {
-		return use_mean_annual_co2
-			? mean_annual_co2
-			: mean(co2->read(lon, lat, year, date.day, 1));
-	} else {
-		// Note: using calendar year, rather than met year to avoid cycling co2
-		// concentration during the spinup period.
-		return (*co2_file)[date.get_calendar_year()];
-	}
-}
-
-void NCInput::close_if_open(int &nc) {
-	if (nc != -1) {
-		GuessNC::close_ncdf(nc);
-		nc = -1;
-	}
-}
-
-void NCInput::close_all() {
-	close_if_open(nc_file);
-	close_if_open(nc_temp);
-	close_if_open(nc_insol);
-	close_if_open(nc_precip);
-	close_if_open(nc_vpd);
-	close_if_open(nc_rh);
-	close_if_open(nc_huss);
-	close_if_open(nc_ps);
-	close_if_open(nc_wind);
-	close_if_open(nc_co2);
-	close_if_open(nc_tmax);
-	close_if_open(nc_tmin);
-	close_if_open(nc_nhx);
-	close_if_open(nc_noy);
-}
-
-void NCInput::open_netcdf(xtring netcdf_file) {
-
-	// Close the previously open file(s).
-	close_all();
-
-	// Open the met forcing file (in readonly mode).
-	xtring tmp;
-	tmp.printf(netcdf_file, (const char *)variable_temp);
-	if (tmp == netcdf_file) {
-		nc_file = GuessNC::open_ncdf((const char *)netcdf_file);
-	}
-
-	std::vector<xtring> temp_units(1);
-	temp_units[0] = "degC";
-	std::vector<xtring> insol_units(3);
-	insol_units[0] = "W/m2";
-	insol_units[1] = "W m-2";
-	insol_units[2] = "w/m^2";
-	// Should provide units for other insol types as well...
-	std::vector<xtring> precip_units(3);
-	precip_units[0] = "mm";
-	precip_units[1] = "kg m-2";
-	precip_units[2] = "kg/m2";
-
-	std::vector<xtring> wind_units(3);
-	wind_units[0] = "m/s";
-	wind_units[1] = "m s-1";
-	wind_units[2] = "m s^-1";
-
-	std::vector<xtring> co2_units(1);
-	co2_units[0] = "ppm";
-
-	std::vector<xtring> vpd_units(1);
-	vpd_units[0] = "kPa";
-
-	std::vector<xtring> rh_units(1);
-	rh_units[0] = "1";
-
-	std::vector<xtring> ndep_units(1);
-	ndep_units[0] = "kgN/m2/day";
-
-	if (nsteps_day >= SIZE_MAX) {
-		throw_xtring("nsteps_day is too large: %d", nsteps_day);
-	}
-
-	std::vector<xtring> ps_units(1);
-	ps_units[0] = "Pa";
-
-	// Create NCVariable objects for each variable of interest.
-	// This will also do some basic sanity checking.
-	temp = create_variable(netcdf_file, variable_temp, nc_temp, bounds_temp, temp_units, true);
-	insol = create_variable(netcdf_file, variable_insol, nc_insol, bounds_insol, insol_units, true);
-	precip = create_variable(netcdf_file, variable_precip, nc_precip, bounds_prec, precip_units, true);
-	if (variable_vpd != "") {
-		vpd = create_variable(netcdf_file, variable_vpd, nc_vpd, bounds_vpd, vpd_units, true);
-	} else if (variable_rh != "") {
-		rh = create_variable(netcdf_file, variable_rh, nc_rh, bounds_rh, rh_units, true);
-	} else {
-		fail("Must set either variable_vpd or variable_rh in ins file");
-	}
-	if (fixed_pressure == 0) {
-		if (variable_ps == "") {
-			fail("Either variable_ps or fixed_pressure parameters must be set in the instruction file");
-		}
-		ps = create_variable(netcdf_file, variable_ps, nc_ps, bounds_ps, ps_units, true);
-	}
-
-
-	if (variable_wind != "" && variable_exists(netcdf_file, variable_wind)) {
-		wind = create_variable(netcdf_file, variable_wind, nc_wind, bounds_wind, wind_units, true);
-	} else {
-		wind = NULL;
-		if (firemodel == BLAZE) {
-			fail("When using BLAZE, wind speed is not optional. Please specify variable_wind in the instruction file.");
-		}
-	}
-
-	int day_length = temp->get_day_length();
-
-	if (variable_co2 == "") {
-		if (file_co2 == "") {
-			fail("Must set either file_co2 or variable_co2 in ins file");
-		}
-		co2_file = std::unique_ptr<GlobalCO2File>(new GlobalCO2File());
-		co2_file->load_file((const char *)file_co2);
-		co2 = NULL;
-	} else {
-		co2 = create_variable(netcdf_file, variable_co2, nc_co2, bounds_co2, co2_units, true);
-	}
-	if (variable_tmax != "" && variable_exists(netcdf_file, variable_tmax)) {
-		tmax = create_variable(netcdf_file, variable_tmax, nc_tmax, bounds_temp, temp_units, true);
-	} else if (day_length < 2) {
-		fail("Variable '%s' does not exist in %s and timestep is daily", (const char *)variable_tmax, (const char *)netcdf_file);
-	} else {
-		tmax = NULL;
-	}
-	if (variable_tmin != "" && variable_exists(netcdf_file, variable_tmin)) {
-		tmin = create_variable(netcdf_file, variable_tmin, nc_tmin, bounds_temp, temp_units, true);
-	} else if (day_length < 2) {
-		fail("Variable '%s' does not exist in %s and timestep is daily", (const char *)variable_tmin, (const char *)netcdf_file);
-	} else {
-		tmin = NULL;
-	}
-	if (variable_ndep_nhx == "") {
-		use_lamarque = true;
-		ndep_nhx = NULL;
-	} else {
-		use_lamarque = false;
-		ndep_nhx = create_variable(netcdf_file, variable_ndep_nhx, nc_nhx, bounds_ndep, ndep_units, true);
-	}
-	if (variable_ndep_noy == "") {
-		use_lamarque = true;
-		ndep_noy = NULL;
-	} else {
-		use_lamarque = false;
-		ndep_noy = create_variable(netcdf_file, variable_ndep_noy, nc_noy, bounds_ndep, ndep_units, true);
-	}
-}
-
-void NCInput::set_insoltype(Gridcell &gridcell) const {
-		// We can get instype from insol's standard_name attribute.
-		xtring insol_name = insol->get_standard_name();
-		gridcell.climate.instype = parse_insoltype((const char*)insol_name);
-}
-
-void NCInput::verify_timestep(int timestep) const {
-	if (timestep < nsteps_day) {
-		throw_xtring("Input timestep (%d/day) must be >= simulation timestep (%d/day)"
-		, timestep, nsteps_day);
-	}
-	if (timestep % nsteps_day != 0) {
-		throw_xtring("Input timestep (%d/day) must be an integer multiple of simulation timestep (%d/day)"
-		, timestep, nsteps_day);
-	}
-}
-
-void NCInput::resize_climate_arrays(Gridcell &gridcell, size_t size) const {
-	for (Stand& stand : gridcell) {
-		for (size_t i = 0; i < stand.nobj; i++) {
-			Patch &patch = stand[i];
-			Vegetation &vegetation = patch.vegetation;
-			for (size_t j = 0; j < vegetation.nobj; j++) {
-				Individual &indiv = vegetation[j];
-				indiv.ps_subdaily.resize(size);
-				indiv.lwp.resize(size);
-			}
-		}
-	}
-}
-
-void NCInput::verify_data_length(timepoint start, timepoint end, int timestep, GuessNC::CF::CalendarType calendar) const {
+void NCInput::verify_data_length(timepoint start, timepoint end, int timestep,
+                                 GuessNC::CF::CalendarType calendar) const {
 	// Ensure the simulation file contains at least 1 year of data.
 	int nyear_data = get_nyear_data(start, end, timestep, calendar);
 	if (nyear_data < 1) {
@@ -1019,92 +471,155 @@ void NCInput::verify_data_length(timepoint start, timepoint end, int timestep, G
 	}
 }
 
-bool NCInput::variable_exists(xtring netcdf_file, xtring name) const {
-	// Note: the NetCDF API does accept NULL for the pointer argument, but in
-	// that case it will return 0 even if the variable doesn't exist.
-	xtring var_file_name;
-	var_file_name.printf(netcdf_file, (const char *)name);
-	int ncid = nc_file;
-	if (var_file_name != netcdf_file) {
-		// The variables are stored in separate files.
-		if (!exists(var_file_name)) {
-			// ...however no file exists for this variable.
-			return false;
-		}
-		// ... and a file exists for this variable.
-		ncid = GuessNC::open_ncdf(var_file_name);
-	}
-
-	int id;
-	int status = nc_inq_varid(ncid, (const char *)name, &id);
-
-	if (var_file_name != netcdf_file) {
-		GuessNC::close_ncdf(ncid);
-	}
-
-	if (status == NC_NOERR) {
-		return true;
-	}
-
-	if (status == NC_ENOTVAR) {
-		return false;
-	}
-
-	// Maybe we should return false here. I'm not sure what else could cause an
-	// error here anyway.
-	fail("NetCDF error while checking if variable %s exists: %s", (const char *)name, nc_strerror(status));
-
-	// Execution will never reach here.
-	return false;
+void NCInput::set_insoltype(Climate &climate) const {
+	// We can get instype from insol's standard_name attribute.
+	xtring insol_name = rs->get_standard_name();
+	climate.instype = parse_insoltype((const char*)insol_name);
 }
 
-int NCInput::get_spinup_year() const {
+void NCInput::set_co2(const ResolvedPlan &plan, int year, int day, Climate &climate) {
+    
+    if (plan.co2_mode != Co2Mode::Direct) {
+        // If CO2 isn't obtained from NC data, it's not out responsibility.
+        return;
+    }
 
-	int calendar_year = date.get_calendar_year();
-	if (calendar_year >= first_timestep.year ||
-		(calendar_year >= spinup_start.year && calendar_year <= spinup_end.year) ) {
-		// We are past the start of the data. Therefore use data for the current
-		// calendar year.
-		return calendar_year;
-	} else if (calendar_year > spinup_end.year && calendar_year < first_timestep.year) {
-		return spinup_end.year;
-	}
-
-	// Skip the first year if the first timestep lies partway through the year.
-	int first_year = spinup_start.year;
-	if (!is_start_of_year(spinup_start, temp->get_day_length())) {
-		first_year++;
-	}
-
-	// Get the number of years of data we have for the spinup.
-	int nyear_data = get_nyear_data(spinup_start, spinup_end, temp->get_day_length(), temp->get_calendar());
-
-	// User wants to limit the spinup to using only the first N years of data.
-	if (spinup_met_cycle_length > 0) {
-		nyear_data = min(nyear_data, spinup_met_cycle_length);
-	}
-
-	// The offset from the start of the met data to be used in the first year.
-	int cycle_length = nyear_spinup - (first_timestep.year - spinup_start.year);
-	int offset = nyear_data - modulo(cycle_length, nyear_data);
-
-	// Add offset to current year, ensure it lies within range (0..nyear_data],
-	// and add this to the first year of data. This gives us the (calendar) year
-	// of data to be used this year.
-	return (date.year + offset) % nyear_data + first_year;
+    if (options.use_mean_annual_co2) {
+        // Mean annual co2 - update once per year.
+        if (date.day == 0) {
+            int year_len = get_year_len(year, co2->get_calendar());
+            int co2_year = date.get_calendar_year() < spinup_start.year ?
+                                spinup_start.year :
+                                date.get_calendar_year();
+            std::vector<double> co2_annual = co2->read(lon, lat, co2_year, 0, year_len);
+            climate.co2 = mean(co2_annual);
+        }
+    } else {
+        // Mean of subdaily co2.
+        climate.co2 = mean(co2->read(lon, lat, year, day, 1));
+    }
 }
 
-esat_method_t NCInput::parse_esat_method(xtring name) const {
-	name = name.lower();
-	if (name == "sonntag_1990") {
-		return SONNTAG_1990;
-	} else if (name == "alduchov_1996") {
-		return ALDUCHOV_1996;
-	} else if (name == "allen_1998") {
-		return ALLEN_1998;
-	} else {
-		fail("Invalid esat_method: %s", (const char *)name);
-	}
+void NCInput::distribute_ndep(const ResolvedPlan &plan, int year, int day) {
+    // Nothing to do if NDep isn't coming from NetCDF input.
+    if (plan.ndep_mode != NdepMode::Direct) {
+        return;
+    }
+
+    // TODO: nh4_dep/no3_dep arrays are always size 365, even if they'll never
+    // be used. We could reduce memory usage by only allocating these arrays
+    // when we'll actually need them.
+
+    if (date.day == 0) {
+        // Generate daily N deposition values on first day of year.
+        // TODO: leap years.
+        int year_len = Date::MAX_YEAR_LENGTH;
+
+        // Read n deposition data from NetCDF input.
+        std::vector<double> nhx_subdaily = nhx->read(lon, lat, year, 0, year_len);
+        std::vector<double> noy_subdaily = noy->read(lon, lat, year, 0, year_len);
+
+        // Aggregate to daily timestep. Input units are mgN/m2/day, so we take
+        // the mean rate over the course of a day, and that will give us the
+        // amount of N/m2 deposited in a day. nhx and noy then are vectors with
+        // 1 value per day, and units of kgN/m2/day.
+        std::vector<double> nhx = aggregate(nhx_subdaily, year_len, mean);
+        std::vector<double> noy = aggregate(noy_subdaily, year_len, mean);
+
+        // Copy data into the nh4_dep and no3_dep arrays. nhx = nh4, noy = no3a
+        memcpy(nh4_dep, &nhx.front(), year_len * sizeof(double));
+        memcpy(no3_dep, &noy.front(), year_len * sizeof(double));
+    }
+}
+
+std::vector<double> NCInput::get_vpd(const ResolvedPlan &plan, int year, int day) {
+    if (plan.vpd_mode == VpdMode::Direct) {
+        return vpd->read(lon, lat, year, day, 1);
+    }
+
+    // Read subdaily air temperature - required for both SH and RH methods.
+    std::vector<double> temp_values = tas->read(lon, lat, year, day, 1);
+
+    // TODO: should look into ways to vectorise this.
+    std::vector<double> vpds(temp_values.size());
+
+    if (plan.vpd_mode == VpdMode::FromSH) {
+        // Estimate VPD from specific humidity.
+        std::vector<double> sh_values = sh->read(lon, lat, year, day, 1);
+        std::vector<double> ps_values = get_ps(plan, year, day);
+        for (size_t i = 0; i < temp_values.size(); i++) {
+            vpds[i] = sh_to_vpd(sh_values[i], temp_values[i], ps_values[i], options.esat_method);
+        }
+        return vpds;
+    }
+
+    if (plan.vpd_mode == VpdMode::FromRH) {
+        // Estimate VPD from relative humidity.
+        std::vector<double> rh_values = rh->read(lon, lat, year, day, 1);
+        for (size_t i = 0; i < temp_values.size(); i++) {
+            vpds[i] = rh_to_vpd(rh_values[i], temp_values[i], options.esat_method);
+        }
+        return vpds;
+    }
+
+    throw std::runtime_error("Invalid VPD mode in input plan: " + std::to_string(static_cast<int>(plan.vpd_mode)));
+}
+
+std::vector<double> NCInput::get_ps(const ResolvedPlan &plan, int year, int day) {
+    if (plan.ps_mode == PsMode::Direct) {
+        return ps->read(lon, lat, year, day, 1);
+    }
+
+    std::vector<double> pressure(tas->get_day_length());
+    for (size_t i = 0; i < pressure.size(); i++) {
+        pressure[i] = options.constant_ps;
+    }
+
+    return pressure;
+}
+
+int NCInput::get_simulation_length() const {
+    int nyear = get_nyear_data(first_timestep, final_timestep, simulation_timestep, simulation_calendar);
+    if (spinup_in_simulation) {
+        nyear += get_nyear_data(spinup_start, spinup_end, spinup_timestep, spinup_calendar);
+    }
+    return nyear;
+}
+
+bool NCInput::has_co2() const {
+    // Could check ResolvedPlan, but then we'd need to know year, because it
+    // can be different for main simulation vs spinup. This implementation is
+    // simpler, although it does assume that input files are already open.
+    return co2 != nullptr;
+}
+
+int NCInput::get_spinup_length() const {
+    return get_nyear_data(spinup_start, spinup_end, spinup_timestep, spinup_calendar);
+}
+
+std::vector<double> NCInput::read_annual_precip(int year) {
+    // Read subdaily precipitation data for the entire year.
+    int year_len = Date::MAX_YEAR_LENGTH;
+    return pr->read(lon, lat, year, 0, year_len);
+}
+
+timepoint NCInput::get_spinup_start() const {
+    return spinup_start;
+}
+
+timepoint NCInput::get_spinup_end() const {
+    return spinup_end;
+}
+
+timepoint NCInput::get_first_timestep() const {
+    return first_timestep;
+}
+
+int NCInput::get_simulation_start_year() const {
+    if (spinup_in_simulation) {
+        return spinup_start.year;
+    }
+    return first_timestep.year;
 }
 
 #endif // HAVE_NETCDF

@@ -57,12 +57,10 @@ group "common" (
 	! hydraulics module parameters
 	kmax 20 				! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
 	stom_clos -1.5   		! water potential at which stomata close and roots disconnect from soil (MPa)
-	p50 -5.8   				! water potential at 50% loss of xylem conductance (MPa)
-	p88 -7.7   				! water potential at 88% loss of xylem conductance (MPa)
-	nx 0.5  				! water holding capacity of the xylem conduits plus nonconducting tissues (unitless)
-	g1x 3.9  					! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014)
-	b1z 2  					! Parameter for Zhou et al. (2014) stomatal model 
-
+	p50 -3   				! water potential at 50% loss of xylem conductance (MPa)
+	p88 -4   				! water potential at 88% loss of xylem conductance (MPa)
+	g1x 2  					! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014)
+	b1z 2  					! Parameter for Zhou et al. (2014) stomatal model
 )
 
 group "tree" (
@@ -109,20 +107,22 @@ group "tree" (
 
 	! 95% percentile NSC concentrations from eucface.
 
-	! Maximum NSC concentration in dead bark.
-	max_bark_nsc_conc  0.203
-
 	! Maximum NSC concentration in leaves.
 	max_leaf_nsc_conc  0.243
 
-	! Maximum NSC concentration in twigs.
-	max_twig_nsc_conc  0.0688
-
 	! Maximum NSC concentration in wood.
-	max_wood_nsc_conc  0.0797
+	max_wood_nsc_conc  0.0797 
 
 	! Fraction of dead woody biomass that is bark. Plucked out of thin air.
 	bark_frac  0.01
+
+	! size of sapling
+	sapsize 0.1
+
+	! form factor to use in tree height calculations to that takes into account
+	! the relationship betweeb the difference in tree mass betweenthe cylindrical
+	! stem hypothesis and measured mass of tree log with its branches.
+	formfactor 1.0
 )
 
 group "shrub" (
@@ -759,7 +759,7 @@ pft "SRS" (
 	turnover_root 1 ! ?? to have higher root allocation?
 	k_latosa 4400
 	ltor_max 0.4
-	ltor_max 1  ! <<<<<
+	ltor_max 1 
 	k_allom2 22
 	k_allom3 0.67
 	longevity 100
@@ -814,7 +814,7 @@ pft "TRS" (
 	turnover_sap 0.1
 	turnover_root 1 ! ?? to have higher root allocation?
 	k_latosa 1840
-	! k_latosa 6000 ! <<<< TEST >>>>
+	! k_latosa 6000 ! TEST
 	ltor_max 1 ! can be also 1.5 (Warra)
 	k_allom2 45
 	k_allom3 0.67

@@ -22,6 +22,9 @@ set(headers
   spline.h
   interpolator.h
   thome.h
+  pathresolver.h
+  ncinventory.h
+  variableresolver.h
 )
 
 set(source
@@ -45,6 +48,9 @@ set(source
   spline.cpp
   interpolator.cpp
   thome.cpp
+  pathresolver.cpp
+  ncinventory.cpp
+  variableresolver.cpp
 )
 
 include(add_guess_sources)

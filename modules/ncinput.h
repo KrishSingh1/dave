@@ -1,234 +1,175 @@
-///////////////////////////////////////////////////////////////////////////////////////
-/// \file ncinput.h
-/// \brief Input module for NetCDF files with subdaily data.
-///
-/// \author Drew Holzworth
-/// $Date: 2022-11-15 11:14:08 +1100 (Tue, 15 Nov 2022) $
-///
-///////////////////////////////////////////////////////////////////////////////////////
-
 #ifndef LPJ_GUESS_NCINPUT_H
 #define LPJ_GUESS_NCINPUT_H
 
-#include "driver.h"
 #ifdef HAVE_NETCDF
 
-#include <memory>
-#include <limits>
-#include <stdint.h>
 #include <string>
-#include <vector>
 
-#include "externalinput.h"
-#include "guessnc.h"
-#include "inputmodule.h"
-#include "lamarquendep.h"
+#include "driver.h"
+#include "guess.h"
+#include "gutil.h"
+// TODO: ncutil.h and ncvariable.h include order is important, but shouldn't be.
 #include "ncutil.h"
 #include "ncvariable.h"
-#include "soilinput.h"
-#include "globalco2file.h"
-#include "thome.h"
+#include "variableresolver.h"
 
 /*
-NC Input: An input module which reads gridded met forcing data from a single
-NetCDF file.
-
-Requirements:
-
-- A single .nc file containing met forcing data
-- Requires the following variables in the NetCDF file:
-  - Mean Temperature (°C)
-  - Solar Insolation (W.m^-2)
-  - Precipitation (mm)
-  - CO2 (ppm) (optional if file_co2 is provided instead)
-  - Maximum temperature (°C) (optional if temperature data is subdaily or if not using blaze)
-  - Minimum temperature (°C) (optional if temperature data is subdaily or if not using blaze)
-  - Nitrogen Deposition (MgN.m^-2)
-
-Input data can be daily or subdaily. The following options must be specified in
-the instruction file (run guess -help for descriptions, otherwise consult the
-description in the code below):
-  - nsteps_day
-  - file_met_forcing
-  - file_gridlist
-  - file_soildata
-  - file_ndep
-  - ndep_scenario
-  - cache_strategy
-  - variable_lon
-  - variable_lat
-  - variable_time
-  - variable_temp
-  - variable_insol
-  - variable_precip
-  - variable_co2
-  - variable_tmax
-  - variable_tmin
+Configuration options which control the behaviour of the NCInput module.
 */
-class NCInput : public InputModule {
+struct NCInputOptions {
+    // Path to NetCDF file containing met forcing data.
+    std::string file_met_forcing;
+    // Path to NetCDF file containing met forcing data to be used for spinup. If
+    // not set, the file specified by file_met_forcing will be used for the
+    // spinup as well.
+    std::string file_met_spinup;
+    // Number of timesteps per day to be used in the simulation.
+    int nsteps_day;
+    // Cache strategy.
+    CacheStrategy cache_strategy;
+    // Whether to perform strict checks on the input data.
+    bool nc_check_inputs;
+    // Whether the blaze fire module is enabled.
+    bool blaze_enabled;
+    // Whether to allow constant air pressure.
+    bool allow_fixed_pressure;
+    // Whether to allow NetCDF CO2 data.
+    bool allow_netcdf_co2;
+    // Whether to allow NetCDF NDEP data.
+    bool allow_netcdf_ndep;
+    // Constant air pressure to be used (Pa). This is only used if
+    // allow_fixed_pressure is true and the input files don't contain surface
+    // air pressure.
+    double constant_ps;
+    // If false, raw co2 values from NetCDF file (if it contains CO2 data) will
+    // be used. If true, the mean annual co2 will be used each day instead.
+    bool use_mean_annual_co2;
+    // The method to use for estimating saturation vapor pressure, which is
+    // required for calculating VPD from RH or SH.
+    esat_method_t esat_method;
+};
+
+class NCInput {
 public:
-	/*
-	NCInput Constructor. This is called to create an NCInput instance.
-	*/
-	NCInput();
+    /*
+    Constructor. Initializes member variables, but does not open any files or
+    read any data.
+    */
+    NCInput();
 
-	/*
-	Destructor.
-	*/
-	~NCInput();
+    /*
+    Destructor. Closes any open file handles.
+    */
+    ~NCInput();
 
-	/*
-	Initialise this input module by checking settings, opening input files, etc.
-	This is called once at the start of the simulation.
-	*/
-	void init(void);
+    /*
+    Initialise the NCInput module with the given configuration options.
+    */
+    void init(const NCInputOptions &options);
 
-	/*
-	Called once per gridcell. Obtains coordinates and soil static parameters for
-	the gridcell before it is run. See base class documentation for more info.
-	*/
-	bool getgridcell(Gridcell&);
+    /*
+    Load data for the given gridcell. Data for this gridcell will be used for
+    all subsequent calls to read_day() until begin_gridcell() is called again
+    with a different gridcell.
 
-	/*
-	Called once per day to load met forcing data for this day and store it in
-	the gridcell's climate object. See base class documentation for more info.
+    @param lon The longitude of the gridcell.
+    @param lat The latitude of the gridcell.
+    */
+    void begin_gridcell(double lon, double lat);
 
-	@return: True if there is another day to simulate. False otherwise.
-	*/
-	bool getclimate(Gridcell&);
+    /*
+    Read the climate data for the current day from the NetCDF file, and populate
+    the given Climate object with this data.
 
-	/*
-	Obtain land transitions for this gridcell. See base class documentation for
-	more info.
-	*/
-	void getlandcover(Gridcell&);
+    @param year    The calendar year of the day to read.
+    @param day     The day of the year to read (0-based).
+    @param climate The Climate object to populate with the data read from the
+                   NetCDF file.
+    @return        True if the data was successfully read and the Climate
+                   object was populated, false if there was no more data to
+                   read (e.g. end of file reached).
 
-	/*
-	Obtain land management data for one day. Called once per day. See base class
-	documentation for more info.
-	*/
-	void getmanagement(Gridcell&);
+    TODO: refactor this so that it returns some kind of daily climate
+    structure. Passing the entire climate object is not ideal.
+    */
+    bool read_day(int year, int day, Climate &climate);
 
-	/*
-	Obtains additional environmental data that are not dynamic (e.g. elevation).
-	*/
-	void getmiscinput_static(Gridcell& gridcell);
+    /*
+    Get the timepoint representing the start of the spinup period.
+    */
+    timepoint get_spinup_start() const;
 
-	/*
-	Obtains additional environmental data (e.g. disturbance) for one year.
-	*/
-	void getmiscinput_yearly(Gridcell& gridcell);
+    /*
+    Get the timepoint representing the end of the spinup period.
+    */
+    timepoint get_spinup_end() const;
 
+    /*
+    Get the timepoint representing the first timestep of the main simulation
+    period.
+    */
+    timepoint get_first_timestep() const;
+
+    /*
+    Get the total number of years in the main simulation.
+    */
+    int get_simulation_length() const;
+
+    /*
+    Get the total number of years in the spinup period.
+    */
+    int get_spinup_length() const;
+
+    /*
+    Check if the input data contains CO2 information.
+    */
+    bool has_co2() const;
+
+    /*
+    Read one year of precipitation data (in mm) for the current gridcell.
+
+    @param year The calendar year to read.
+    @return A vector of 365 * timestep subdaily precipitation values,
+    */
+    std::vector<double> read_annual_precip(int year);
+
+    /*
+    Get the start year of the main simulation.
+    */
+    int get_simulation_start_year() const;
 private:
+    /*
+    Close all open file handles.
+    */
+    void close();
 
-	/*
-	Structure used to store coordinate information.
-	*/
-	struct Coord {
-		/*
-		Longitude of this coordinate.
-		*/
-		double lon;
+    /*
+    The different datasets that can be used in the simulation.
+    */
+    enum class Dataset {
+        Spinup,
+        Main,
+        None
+    };
 
-		/*
-		Latitude of this coordinate.
-		*/
-		double lat;
+    /*
+    Open all files required by the given input plan, store the file IDs in the
+    nc_* members, and store the variable objects in the corresponding NCVariable
+    members.
 
-		/*
-		Optional description of this coordinate, if one is provided.
-		*/
-		xtring description;
-	};
+    @param plan The input management plan specifying which variables are
+                required and how to obtain them.
+    @param dataset The dataset encapsulated by the plan.
+    */
+    void open_files(const ResolvedPlan &plan, Dataset dataset);
 
-	/*
-	Create a new NCVariable object on the heap for the specified variable name.
+    /*
+    Verify that the given timestep is valid for the simulation configuration.
 
-	@param netcdf_file: Path to the netcdf file to be used. This will be treated
-	as a printf-style format string, and can contain a single %s format
-	specifier, which will be applied to the variable name.
-	@param variable_name: Name of the variable.
-	@param ncid: (Output) File ID of the opened file will be stored here if a
-	separate file is used for this variable. Otherwise, -1 will be stored here.
-	@param limits: Upper/lower bounds of the variable.
-	@param units: Expected units of the variable.
-	@param require_valid_units: Iff true, an error will be thrown upon
-								encountering invalid units.
-	*/
-	std::unique_ptr<NCVariable> create_variable(xtring netcdf_file
-		, xtring variable_name, int &ncid, bounds limits
-		, const std::vector<xtring>& units, bool require_valid_units) const;
-
-	/*
-	Parse grid list from the specified plain text file.
-
-	@param filename: Path to the gridlist file.
-	*/
-	std::vector<Coord> parse_gridlist(xtring filename) const;
-
-	/*
-	Calculate daily values of ndep for the current year and store them in dndep.
-
-	@param lon: Longitude of the current gridcell.
-	@param lat: Latitude of the current gridcell.
-	@param year: Year of data to be used.
-	*/
-	void update_ndep(double lon, double lat, int year);
-
-	/*
-	Get the number of complete years of data which exist in the input file.
-
-	@param start: Start of time range.
-	@param end: End of time range.
-	@param day_length: Number of timesteps per day in the specified time range.
-	@param calendar: The calendar type used in the file.
-	*/
-	int get_nyear_data(timepoint start, timepoint end, int day_length, GuessNC::CF::CalendarType calendar) const;
-
-	/*
-	Get the progress of the current simulation in range [0, 1].
-
-	@param since_spinup: If true, only consider progress since the restart.
-	*/
-	double get_progress(bool since_restart);
-
-	/*
-	Get an atmospheric co2 concentration for the specified location on the
-	specified date.
-
-	@param lon: Longitude of the gridcell.
-	@param lat: Latitude of the gridcell.
-	@param year: Year of data to be retrieved.
-	@param day: Day of year (0-364) of data to be retrieved.
-	*/
-	double get_co2(double lon, double lat, int year, int day);
-
-	/*
-	Set the insoltype in the gridcell to that specified by the insolation
-	variable in the currently-open NetCDF file.
-	*/
-	void set_insoltype(Gridcell &gridcell) const;
-
-	/*
-	Open a netcdf file.
-
-	This will modify class properties such as the variable pointers.
-
-	@param netcdf_file: The file to be opened.
-	*/
-	void open_netcdf(xtring netcdf_file);
-
-	/*
-	Ensure that this timestep is a valid timestep. For that to be true, this
-	timestep must match the timestep specified by the parameter "nsteps_day",
-	or it must be an integer multiple of nsteps_day.
-	*/
-	void verify_timestep(int timestep) const;
-
-	/*
-	Get the year of data to be used for the current year of the spinup.
-	*/
-	int get_spinup_year() const;
+    @param timestep The actual number of timesteps per day in input data.
+    @throws std::runtime_error if the timestep is invalid.
+    */
+    void verify_timestep(int timestep) const;
 
 	/*
 	Verify that the specified time range covers at least one complete year.
@@ -238,339 +179,103 @@ private:
 	@param timestep: Timestep of time range.
 	@param calendar: The CF calendar type used in this file.
 	*/
-	void verify_data_length(timepoint start, timepoint end, int timestep, GuessNC::CF::CalendarType calendar) const;
+    void verify_data_length(timepoint start, timepoint end,
+                                     int timestep,
+                                     GuessNC::CF::CalendarType calendar) const;
 
 	/*
-	Resize the climate arrays in the gridcell to match the specified value.
+	Get the number of complete years of data which exist in the input file.
+
+	@param start: Start of time range.
+	@param end: End of time range.
+	@param day_length: Number of timesteps per day in the specified time range.
+	@param calendar: The calendar type used in the file.
 	*/
-	void resize_climate_arrays(Gridcell &gridcell, size_t size) const;
+	int get_nyear_data(timepoint start, timepoint end, int day_length,
+                       GuessNC::CF::CalendarType calendar) const;
 
 	/*
-	Check if a variable exists with the specified name.
+	Set the insoltype in the gridcell to that specified by the insolation
+	variable in the currently-open NetCDF file.
 	*/
-	bool variable_exists(xtring netcdf_file, xtring name) const;
+    void set_insoltype(Climate &climate) const;
+
+    /*
+    Set the CO2 value in the given Climate object according to the specified
+    input plan. This may involve reading from the NetCDF file.
+
+    @param plan The input management plan specifying how to obtain the CO2 data.
+    @param year The current calendar year.
+    @param day The current day of the year (0-based).
+    @param climate The Climate object to set the CO2 value in.
+    */
+    void set_co2(const ResolvedPlan &plan, int year, int day, Climate &climate);
+
+    /*
+    Distribute this year's N deposition data to the daily timestep, based on
+    daily precipitation. This will populate the nh4_dep and no3_dep arrays with
+    the daily N deposition values for the current year in units of kgN/m2/day.
+
+    @param plan The input management plan specifying how to obtain the N deposition data.
+    @param year The current calendar year.
+    @param day The current day of the year (0-based).
+    @param climate The Climate object to set the N deposition value in.
+    */
+    void distribute_ndep(const ResolvedPlan &plan, int year, int day);
+
+    /*
+    Get the subdaily surface air pressure values for the specified day (Pa).
+
+    @param plan The input management plan specifying how to obtain the surface
+                air pressure data.
+    @param year The current calendar year.
+    @param day The current day of the year (0-based).
+    @return A vector of surface air pressure values for the specified day, with one value per subdaily timestep.
+    */
+    std::vector<double> get_ps(const ResolvedPlan &plan, int year, int day);
+
+    /*
+    Get the VPD values for the current day according to the specified input plan.
+    This may involve reading from the NetCDF file, or calculating from other
+    variables.
+
+    @param plan The input management plan specifying how to obtain the VPD data.
+    @param year The current calendar year.
+    @param day The current day of the year (0-based).
+    @return A vector of VPD values for the current day.
+    */
+    std::vector<double> get_vpd(const ResolvedPlan &plan, int year, int day);
+
+    /*
+    Configuration options which control the behaviour of this module.
+    */
+    NCInputOptions options;
+
+    /*
+    Input management plan for the spinup. This will be the same as
+    simulation_plan if not using a separate dataset for the spinup.
+    */
+    ResolvedPlan spinup_plan;
+
+    /*
+    Input management plan for the main simulation.
+    */
+    ResolvedPlan simulation_plan;
 
 	/*
-	Parse the specified esat_method name into an esat_method_t.
+	The NetCDF file ID for the air temperature variable.
 	*/
-	esat_method_t parse_esat_method(xtring name) const;
+	int nc_tas;
 
 	/*
-	Close the specified NetCDF file if it is open.
+	The NetCDF file ID for the shortwave radiation variable.
 	*/
-	void close_if_open(int &nc);
+	int nc_rs;
 
 	/*
-	Close all open netcdf files.
+	The NetCDF file ID for the precipitation variable.
 	*/
-	void close_all();
-
-	/*
-	Land cover input module.
-	*/
-	LandcoverInput landcover_input;
-
-	/*
-	Management input module.
-	*/
-	ManagementInput management_input;
-
-	/*
-	Additional text data input module.
-	*/
-	MiscInput misc_input;
-
-	/*
-	Soil input module.
-	*/
-	SoilInput soil_input;
-
-	/*
-	THome input module (use for temperature acclimation of photosynthesis).
-	*/
-	THomeInput thome_input;
-
-	/*
-	Nitrogen deposition input module.
-	*/
-	Lamarque::NDepData ndep_input;
-
-	/*
-	True iff the Lamarque N deposition data source should be used.
-	*/
-	bool use_lamarque;
-
-	/*
-	Grid cells to be simulated.
-	*/
-	std::vector<Coord> gridlist;
-
-	/*
-	The current grid cell.
-	*/
-	std::vector<Coord>::iterator current_gridcell;
-
-	/*
-	Number of time steps per day. This is a user-configurable setting in the
-	instruction file.
-	*/
-	int32_t nsteps_day;
-
-	/*
-	Path to the NetCDF file. This is a user-configurable setting in the
-	instruction file.
-	*/
-	xtring file_met_forcing;
-
-	/*
-	Path to the NetCDF file used for the spinup. This is a user-configurable
-	setting in the instruction file.
-	*/
-	xtring file_met_spinup;
-
-	/*
-	Path to gridlist file. This is a user-configurable setting in the
-	instruction file.
-	*/
-	xtring file_gridlist;
-
-	/*
-	Path to the soil data file. This is a user-configurable setting in the
-	instruction file.
-	*/
-	xtring file_soildata;
-
-	/*
-	Optional path to text file containing co2 concentration by year. If not set,
-	variable_co2 must be set, allowing co2 data to be read from the netcdf file.
-	*/
-	xtring file_co2;
-
-	/*
-	Path to the nitrogen deposition fastarchive file. This is a
-	user-configurable setting in the instruction file.
-	*/
-	xtring file_ndep;
-
-	/*
-	Path to the mean maximum daily temperature (T_home) input file, used for
-	DAVE temperature acclimation calculations.
-	*/
-	xtring file_thome;
-
-	/*
-	Scenario to be used for nitrogen deposition data. This is a
-	user-configurable setting in the instruction file. Valid values are
-	HISTORIC, RCP26, RCP45, RCP60, RCP85, and RCP85.
-	*/
-	xtring ndep_scenario;
-
-	/*
-	Caching strategy to be used when reading NetCDF data. This is a
-	user-configurable setting in the instruction file.
-	*/
-	int cache_strategy;
-
-	/*
-	If true, met inputs will be checked for sensibility. This is a
-	user-configurable setting in the instruction file.
-	*/
-	bool nc_check_inputs;
-
-	/*
-	Seed used for random sampling of met data during spinup period.
-	*/
-	int met_sampling_seed;
-
-	/*
-	User input from the instruction file. The number of years of data to recycle
-	during the spinup. If <= 0, all data will be recycled during freenyears.
-	*/
-	int spinup_met_cycle_length;
-
-	/*
-	Name of the longitude variable in the NetCDF file.
-	*/
-	xtring variable_lon;
-
-	/*
-	Name of the latitude variable in the NetCDF file.
-	*/
-	xtring variable_lat;
-
-	/*
-	Name of the time variable in the NetCDF file.
-	*/
-	xtring variable_time;
-
-	/*
-	Name of the mean temperature variable in the NetCDF file.
-	*/
-	xtring variable_temp;
-
-	/*
-	Name of the insolation variable in the NetCDF file.
-	*/
-	xtring variable_insol;
-
-	/*
-	Name of the precipitation variable in the NetCDF file.
-	*/
-	xtring variable_precip;
-
-	/*
-	Name of the wind speed variable in the NetCDF file.
-	*/
-	xtring variable_wind;
-
-	/*
-	Name of the co2 variable in the NetCDF file.
-	*/
-	xtring variable_co2;
-
-	/*
-	Name of the max temperature variable in the NetCDF file.
-	*/
-	xtring variable_tmax;
-
-	/*
-	Name of the min temperature variable in the NetCDF file.
-	*/
-	xtring variable_tmin;
-
-	/*
-	Name of the VPD variable in the NetCDF file.
-	*/
-	xtring variable_vpd;
-
-	/*
-	Name of the atmospheric pressure variable in the NetCDF file.
-	*/
-	xtring variable_ps;
-
-	/*
-	Name of the nhx nitrogen deposition variable in the NetCDF file (optional).
-	*/
-	xtring variable_ndep_nhx;
-
-	/*
-	Name of the noy nitrogen deposition variable in the NetCDF file (optional).
-	*/
-	xtring variable_ndep_noy;
-
-	/*
-	Name of the relative humidity variable in the NetCDF file (optional).
-	*/
-	xtring variable_rh;
-
-	/*
-	Constant to be added to daily temperature (°C). Set in instruction file.
-	*/
-	double temperature_delta;
-
-	/*
-	Constant to be added to daily co2 (ppm). Set in instruction file.
-	*/
-	double co2_delta;
-
-	/*
-	If true, each day's CO2 value will be the annual mean co2. Otherwise, a mean
-	of that day's subdaily data will be used.
-	*/
-	bool use_mean_annual_co2;
-
-	/*
-	Temp variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> temp;
-
-	/*
-	Insolation variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> insol;
-
-	/*
-	Precipitation variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> precip;
-
-	/*
-	Wind speed variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> wind;
-
-	/*
-	CO2 variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> co2;
-
-	/*
-	Tmax variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> tmax;
-
-	/*
-	Tmin variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> tmin;
-
-	/*
-	VPD variable in the NetCDF file (kPa).
-	*/
-	std::unique_ptr<NCVariable> vpd;
-
-	/*
-	Atmospheric pressure variable in the NetCDF file (Pa).
-	*/
-	std::unique_ptr<NCVariable> ps;
-
-	/*
-	Optional nhx nitrogen deposition variable in the NetCDF file. If not set,
-	ndep_input will be used.
-	*/
-	std::unique_ptr<NCVariable> ndep_nhx;
-
-	/*
-	Optional noy nitrogen deposition variable in the NetCDF file. If not set,
-	ndep_input will be used.
-	*/
-	std::unique_ptr<NCVariable> ndep_noy;
-
-	/*
-	Optional relative humidity variable in the NetCDF file. If not set,
-	vpd must be provided instead.
-	*/
-	std::unique_ptr<NCVariable> rh;
-
-	/*
-	Optional co2 text file reader.
-	*/
-	std::unique_ptr<GlobalCO2File> co2_file;
-
-	/*
-	Number of seconds per day. Leap seconds are a myth.
-	*/
-	const int SECONDS_PER_DAY = 60 * 60 * 24;
-
-	/*
-	The NetCDF file ID.
-	*/
-	int nc_file;
-
-	/*
-	The NetCDF file ID for the temp variable.
-	*/
-	int nc_temp;
-
-	/*
-	The NetCDF file ID for the insol variable.
-	*/
-	int nc_insol;
-
-	/*
-	The NetCDF file ID for the precip variable.
-	*/
-	int nc_precip;
+	int nc_pr;
 
 	/*
 	The NetCDF file ID for the vpd variable. This will be -1 if vpd is being
@@ -582,17 +287,22 @@ private:
 	The NetCDF file ID for the specific humidity variable. This will be -1 if
 	vpd is being read directly from the input file.
 	*/
-	int nc_huss;
+	int nc_sh;
 
 	/*
-	The NetCDF file ID for the ps variable.
+	The NetCDF file ID for the relative humidity variable.
+	*/
+	int nc_rh;
+
+	/*
+	The NetCDF file ID for the air pressure variable.
 	*/
 	int nc_ps;
 
 	/*
-	The NetCDF file ID for the wind variable.
+	The NetCDF file ID for the wind speed variable.
 	*/
-	int nc_wind;
+	int nc_ws;
 
 	/*
 	The NetCDF file ID for the co2 variable.
@@ -610,19 +320,140 @@ private:
 	int nc_tmin;
 
 	/*
-	The NetCDF file ID for the nhx variable.
+	The NetCDF file ID for the nhx N deposition variable.
 	*/
 	int nc_nhx;
 
 	/*
-	The NetCDF file ID for the noy variable.
+	The NetCDF file ID for the noy N deposition variable.
 	*/
 	int nc_noy;
 
 	/*
-	The NetCDF file ID for the rh variable.
+	Air temperature variable in the NetCDF file.
 	*/
-	int nc_rh;
+	std::unique_ptr<NCVariable> tas;
+
+	/*
+	Shortwave radiation variable in the NetCDF file.
+	*/
+	std::unique_ptr<NCVariable> rs;
+
+	/*
+	Precipitation variable in the NetCDF file.
+	*/
+	std::unique_ptr<NCVariable> pr;
+
+	/*
+	Wind speed variable in the NetCDF file.
+	*/
+	std::unique_ptr<NCVariable> ws;
+
+	/*
+	CO2 variable in the NetCDF file.
+	*/
+	std::unique_ptr<NCVariable> co2;
+
+	/*
+	Tmax variable in the NetCDF file.
+	*/
+	std::unique_ptr<NCVariable> tmax;
+
+	/*
+	Tmin variable in the NetCDF file.
+	*/
+	std::unique_ptr<NCVariable> tmin;
+
+	/*
+	VPD variable in the NetCDF file.
+	*/
+	std::unique_ptr<NCVariable> vpd;
+
+	/*
+	Optional specific humidity variable in the NetCDF file. If not set,
+	vpd must be provided instead.
+	*/
+	std::unique_ptr<NCVariable> sh;
+
+	/*
+	Optional relative humidity variable in the NetCDF file. If not set,
+	vpd must be provided instead.
+	*/
+	std::unique_ptr<NCVariable> rh;
+
+	/*
+	Atmospheric pressure variable in the NetCDF file.
+	*/
+	std::unique_ptr<NCVariable> ps;
+
+	/*
+	Optional nhx nitrogen deposition variable in the NetCDF file.
+	*/
+	std::unique_ptr<NCVariable> nhx;
+
+	/*
+	Optional noy nitrogen deposition variable in the NetCDF file.
+	*/
+	std::unique_ptr<NCVariable> noy;
+
+    /*
+    Longitude of the current gridcell. This is set in begin_gridcell() and used
+    in read_day() when reading data from the NetCDF file.
+    */
+    double lon;
+
+    /*
+    Latitude of the current gridcell. This is set in begin_gridcell() and used
+    in read_day() when reading data from the NetCDF file.
+    */
+    double lat;
+
+    /*
+    The timestep used in the input data for the main simulation.
+    */
+    int simulation_timestep;
+
+    /*
+    The calendar type used in the input data for the main simulation. This is
+    used when calculating the number of years of data available in the input
+    file, and for determining leap years when updating the date.
+    */
+    GuessNC::CF::CalendarType simulation_calendar;
+
+	/*
+	The timestep used in the spinup data file, if a separate file is being used
+	for spinup.
+	*/
+	int spinup_timestep;
+
+    /*
+    Is the spinup being run with a separate dataset to the main simulation?
+    */
+    bool separate_spinup;
+
+	/*
+	Are we using a separate input file for the spinup, and if so, should we use
+	the data for this file as part of the "main" simulation after the spinup?
+	This can only happen if the last timestep in the spinup file is at the end
+	of a year, and the next timestep is the first timestep in the "main"
+	simulation input file. In that case, the simulation will be run as:
+
+	1. Spinup (recycling first N years of data from spinup file)
+	2. Main simulation (using entire timeseries from spinup file)
+	3. Main simulation continued (using entire timeseries from "main" data file)
+
+	This parameter is not a user input, but is automatically enabled if the
+	input files are configured appropriately. In that case, a log message will
+	be written. This is provided as an optimisation, to avoid having to
+	concatenate large datasets.
+	*/
+	bool spinup_in_simulation;
+
+	/*
+	The calendar used in the spinup data file, if a separate file is being used
+	for spinup.
+	*/
+	GuessNC::CF::CalendarType spinup_calendar;
 
 	/*
 	The first timestep in the input data of the main simulation.
@@ -657,148 +488,10 @@ private:
 	*/
 	double no3_dep[Date::MAX_YEAR_LENGTH];
 
-	/*
-	Upper and lower bounds for prec.
-	*/
-	bounds bounds_prec;
-
-	/*
-	Upper and lower bounds for wind speed (m/s).
-	*/
-	bounds bounds_wind;
-
-	/*
-	Upper and lower bounds for temp.
-	*/
-	bounds bounds_temp;
-
-	/*
-	Upper and lower bounds for insol.
-	*/
-	bounds bounds_insol;
-
-	/*
-	Upper and lower bounds for co2.
-	*/
-	bounds bounds_co2;
-
-	/*
-	Upper and lower bounds for VPD.
-	*/
-	bounds bounds_vpd;
-
-	/*
-	Upper and lower bounds for relative humidity.
-	*/
-	bounds bounds_rh;
-
-	/*
-	Upper and lower bounds for atmospheric pressure.
-	*/
-	bounds bounds_ps;
-
-	/*
-	Upper and lower bounds for nitrogen deposition data.
-	*/
-	bounds bounds_ndep;
-
-	/*
-	The year of data currently being sampled in the spinup. This will have a
-	value of -1 when not in the spinup period.
-	*/
-	int spinup_year;
-
-	/*
-	Timer used to track simulation progress/runtime.
-	*/
-	Timer progress_timer;
-
-	/*
-	Timer used to display a progress message every MUTESEC seconds. (In other 
-	words, it tracks the progress toward showing the next progress message - it
-	tracks the progress progress.)
-	*/
-	Timer progress_progress_timer;
-
-	/*
-	Minimum amount of time (in seconds) to wait between progress messages.
-	*/
-	int progress_interval;
-
-	/*
-	Force the use of newline characters to terminate progress messages. Useful
-	for MPI runs. If false, \r would be used if stdout is a terminal, and \n
-	would be used otherwise.
-	*/
-	bool progress_newline;
-
-	/*
-	If enabled, invalid mathematical operations (e.g. division by 0) will result
-	in a fatal error.
-	*/
-	bool strict_math;
-
-	/*
-	Total walltime spent in ncinput (cumulatively) (ms).
-	*/
-	double ncinput_walltime_use;
-
-	/*
-	Walltime at start of simulation.
-	*/
-	double ctor_start;
-
-	/*
-	Annual mean CO2 concentration (ppm) for the current simulation year. This
-	will only have a value during the simulation (not before), and only if
-	use_mean_annual_co2 is enabled by the user.
-	*/
-	double mean_annual_co2;
-
-	/*
-	Are we using a separate input file for the spinup, and if so, should we use
-	the data for this file as part of the "main" simulation after the spinup?
-	This can only happen if the last timestep in the spinup file is at the end
-	of a year, and the next timestep is the first timestep in the "main"
-	simulation input file. In that case, the simulation will be run as:
-
-	1. Spinup (recycling first N years of data from spinup file)
-	2. Main simulation (using entire timeseries from spinup file)
-	3. Main simulation continued (using entire timeseries from "main" data file)
-
-	This parameter is not a user input, but is automatically enabled if the
-	input files are configured appropriately. In that case, a log message will
-	be written. This is provided as an optimisation, to avoid having to
-	concatenate large datasets.
-	*/
-	bool spinup_in_simulation;
-
-	/*
-	The timestep used in the spinup data file, if a separate file is being used
-	for spinup.
-	*/
-	int spinup_timestep;
-
-	/*
-	Fixed/constant air pressure to use, in Pa.
-	*/
-	double fixed_pressure;
-
-	/*
-	Name of the method to use for estimating saturation vapor pressure.
-	*/
-	xtring esat_method_name;
-
-	/*
-	Method to use for estimating saturation vapor pressure.
-	*/
-	esat_method_t esat_method;
-
-	/*
-	The calendar used in the spinup data file, if a separate file is being used
-	for spinup.
-	*/
-	GuessNC::CF::CalendarType spinup_calendar;
+    /*
+    The currently-open dataset.
+    */
+    Dataset open_dataset;
 };
 
 #endif // HAVE_NETCDF

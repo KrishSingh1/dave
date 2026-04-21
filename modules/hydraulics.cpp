@@ -318,6 +318,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 
         if (!e_met) {
             indiv.lwp[day.period] = pft.p88;
+            printf("[%04d-%02d] hydraulic vulnerability curve doesn't allow E to be met\n", date.year, date.day);
         }
 
         indiv.k_loss[day.period] = 1 - exp(-pow(psi2 / pft.s1, pft.s2));

@@ -238,6 +238,8 @@ void NCInput::open_files(const ResolvedPlan &plan, Dataset dataset) {
         bounds bounds_ws = {0, 100};
         open_file(plan, Variable::Ws, options.cache_strategy, options.nc_check_inputs,
                   bounds_ws, ws_units, nc_ws, ws);
+    } else {
+        ws = nullptr;
     }
 
     if (plan.co2_mode == Co2Mode::Direct) {
@@ -245,6 +247,8 @@ void NCInput::open_files(const ResolvedPlan &plan, Dataset dataset) {
         bounds bounds_co2 = {0, 900};
         open_file(plan, Variable::CO2, options.cache_strategy, options.nc_check_inputs,
                   bounds_co2, co2_units, nc_co2, co2);
+    } else {
+        co2 = nullptr;
     }
 
     if (plan.vpd_mode == VpdMode::Direct) {
@@ -387,7 +391,7 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
 		// precs = aggregate(precs, options.nsteps_day, sum);
 	}
 
-	if (plan.ws_mode == WsMode::Direct) {
+	if (plan.ws_mode == WsMode::Direct && ws) {
 		std::vector<double> winds = ws->read(lon, lat, year, day, 1);
 		climate.u10 = mean(winds);
 	}

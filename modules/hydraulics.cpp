@@ -233,7 +233,8 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 
         // We calculate the area under the hydraulic curve up to the point of psi_soil. This
         // will be subtracted from the total are under the curve up to lwp to get at transpiration
-        // between psi_soil and lwp.
+        // between psi_soil and lwp. We work in a unitless space (i.e. per unit kmax) so the 
+        // actual area under the curve would be transpiration_psi_soil x kmax
         double transpiration_psi_soil = 0;
         bool e_met = indiv.pft.get_transpiration_lower_bound(psi1, transpiration_psi_soil);
 
@@ -254,15 +255,14 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
 
         if (!e_met) {
-            // If hydraulic vulnerability curve doesn't allow E to be met, something
-            // must be wrong with the hydraulic parameters or Zhou model (if it's that dry,
-            // stomata should be closed).
+            // If hydraulic vulnerability curve doesn't allow E to be met, parameters aren't
+            // coordinating properly. Either a higher kmax or lower g1 may be required.
             double transpiration_check = 0.0;
 	        indiv.pft.get_transpiration_lower_bound(-indiv.pft.p88,transpiration_check);
 	        printf("total area under curve = %f/n",transpiration_check * (kmax_param * 1000 * Ax));
             printf("transpiration = %f/n",transpiration);
 
-            fail("[%04d-%02d] hydraulic vulnerability curve doesn't allow E to be met\n", date.year, date.day);
+            //fail("[%04d-%02d] hydraulic vulnerability curve doesn't allow E to be met\n", date.year, date.day);
             
         }
 

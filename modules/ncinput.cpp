@@ -294,7 +294,7 @@ void NCInput::open_files(const ResolvedPlan &plan, Dataset dataset) {
 
 bool NCInput::read_day(int year, int day, Climate &climate) {
 	// First, check if we have enough data to simulate another day.
-	if (year > final_timestep.year) {
+	if (date.year > nyear_spinup && year > final_timestep.year) {
 		return false;
 	}
 

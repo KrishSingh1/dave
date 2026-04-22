@@ -2244,8 +2244,6 @@ public:
 
 	/// shape parameter for initialisation of root distribtion
 	double root_beta;
-	/// canopy conductance component not associated with photosynthesis (mm/s)
-	double gmin;
     /// Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)
     double g0;
 	/// Cuticular conductance (mol m-2 s-1)
@@ -2383,7 +2381,7 @@ public:
 	double turnover_repr_litter;
 	/// annual turnover of "live" reproductive tissue to litter as a proportion of reproductive C biomass
 	double turnover_repr;
-	/// size of sapling
+	/// Scalar for initial tree biomass.
 	double sapsize;
 	/// annual sapwood turnover as a proportion of sapwood C biomass
 	double turnover_sap;
@@ -2403,8 +2401,6 @@ public:
 	double k_latosa;
 	/// specific leaf area (m2/kgC)
 	double sla;
-	/// leaf longevity (years)
-	double leaflong;
 	/// leaf to root mass ratio under non-water-stressed conditions
 	double ltor_max;
 	/// litter moisture flammability threshold (fraction of AWC)
@@ -2420,9 +2416,10 @@ public:
 	 */
 	double alphar;
 
-	/// form factor to use in tree height calculations to that takes into account
-	/// the relationship betweeb the difference in tree mass betweenthe cylindrical
-	/// stem hypothesis and measured mass of tree log with its branches.
+	/// Form factor to use in tree height calculations that takes into account
+	/// the relationship between the difference in tree mass between the
+	/// cylindrical stem hypothesis and measured mass of tree log with its
+	/// branches.
 	double formfactor;
 
 	/// Whether vcmax is calculated from leaf nutrient content (alt: prescribed)
@@ -2830,10 +2827,10 @@ public:
 			// m2/kgC)
 
 			if (leafphysiognomy == BROADLEAF) {
-				sla = 0.2 * pow(10.0, 2.41 - 0.38 * log10(12.0 * leaflong));
+				sla = 0.2 * pow(10.0, 2.41 - 0.38 * log10(12.0 * leaflong()));
 			}
 			else if (leafphysiognomy == NEEDLELEAF) {
-				sla = 0.2 * pow(10.0, 2.29 - 0.4 * log10(12.0 * leaflong));
+				sla = 0.2 * pow(10.0, 2.29 - 0.4 * log10(12.0 * leaflong()));
 			}
 		}
 	}
@@ -2856,10 +2853,15 @@ public:
 			// kgN/kgC)
 
 			if (leafphysiognomy == BROADLEAF)
-				cton_leaf_min = 500.0 / pow(10.0, 1.75 - 0.33 * log10(12.0 * leaflong));
+				cton_leaf_min = 500.0 / pow(10.0, 1.75 - 0.33 * log10(12.0 * leaflong()));
 			else if (leafphysiognomy == NEEDLELEAF)
-				cton_leaf_min = 500.0 / pow(10.0, 1.52 - 0.26 * log10(12.0 * leaflong));
+				cton_leaf_min = 500.0 / pow(10.0, 1.52 - 0.26 * log10(12.0 * leaflong()));
 		}
+	}
+
+	// Calculate leaf longevity in years.
+	double leaflong() {
+		return 1.0 / turnover_leaf;
 	}
 
 	void init_cton_limits() {
@@ -3011,11 +3013,11 @@ public:
 
 			//transferconst = 0.01 / leaflong; // DW_COMMENT to be calibrated!!! 0.0091 / leaflong;
 			if (pathway == C3) {
-				transferconst = 0.02 / leaflong; // DW_COMMENT to be calibrated!!! 0.0091 / leaflong;
+				transferconst = 0.02 / leaflong(); // DW_COMMENT to be calibrated!!! 0.0091 / leaflong;
 				//transferconst = 0.005 / leaflong; // Sturt Plains: 0.005, Yanco: 0.02, Otway: 0.025
 			} 
 			else {
-				transferconst = 0.022 / leaflong; 
+				transferconst = 0.022 / leaflong(); 
 				//transferconst = 0.01 / leaflong; // Otway: 0.02, Yanco: 0.022
 			}
 		}

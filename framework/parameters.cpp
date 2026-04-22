@@ -770,8 +770,6 @@ void plib_declarations(int id,xtring setname) {
 			"Shape parameter to determine fraction of roots in each soil layer");
  		declareitem("rootdist",ppft->input_rootdist,0.0,1.0,NSOILLAYER,CB_ROOTFRAC,
 			"Fraction of roots in each soil layer (first value=upper layer)");
-		declareitem("gmin",&ppft->gmin,0.0,1.0,1,CB_NONE,
-			"Canopy conductance not assoc with photosynthesis (mm/s)");
 		declareitem("emax",&ppft->emax,0.0,50.0,1,CB_NONE,
 			"Maximum evapotranspiration rate (mm/day)");
 		// guess2008 - increased the upper limit to possible respcoeff values (was 1.2)
@@ -962,8 +960,6 @@ void plib_declarations(int id,xtring setname) {
 			"Expected longevity under lifetime non-stressed conditions (yr)");
 		declareitem("greff_min",&ppft->greff_min,0.0,1.0,1,CB_NONE,
 			"Threshold for growth suppression mortality (kgC/m2 leaf/yr)");
-		declareitem("leaflong",&ppft->leaflong,0.1,100.0,1,CB_NONE,
-			"Leaf longevity (years)");
 		declareitem("intc",&ppft->intc,0.0,1.0,1,CB_NONE,"Interception coefficient");
 		declareitem("sapsize",&ppft->sapsize,0.01,1.0,1,CB_NONE,
 			"Initial sapling size coefficient");
@@ -1427,6 +1423,12 @@ void plib_declarations(int id,xtring setname) {
 
 		break;
 	}
+}
+
+void badins(xtring block, xtring missing) {
+	xtring message=(xtring)"Block " + block + (xtring)": Missing mandatory setting: " + missing;
+	sendmessage("Error",message);
+	plibabort();
 }
 
 void badins(xtring missing) {
@@ -2162,19 +2164,20 @@ void plib_callback(int callback) {
 
 			if (!itemparsed("lifeform")) badins("lifeform");
 			if (!itemparsed("phenology")) badins("phenology");
-			if (ppft->phenology==SUMMERGREEN || ppft->phenology==ANY)
+			if (!(ppft->dave_allocation() || ifbvoc) && (ppft->phenology==SUMMERGREEN || ppft->phenology==ANY))
 				if (!itemparsed("phengdd5ramp")) badins("phengdd5ramp");
-			if (ppft->phenology==RAINGREEN || ppft->phenology==ANY)
+			if (ppft->phenology==RAINGREEN || ppft->phenology==ANY ||
+				(ppft->dave_allocation() && ppft->is_grass()))
 				if (!itemparsed("wscal_min")) badins("wscal_min");
 			if (!itemparsed("leafphysiognomy")) badins("leafphysiognomy");
 			if (!itemparsed("pathway")) badins("pathway");
-			if (!ifdavegrowth) {
+			if (!ifdavephotosyn) {
 				if (!itemparsed("pstemp_min")) badins("pstemp_min");
 				if (!itemparsed("pstemp_low")) badins("pstemp_low");
 				if (!itemparsed("pstemp_high")) badins("pstemp_high");
 				if (!itemparsed("pstemp_max")) badins("pstemp_max");
 			}
-			if (!itemparsed("lambda_max")) badins("lambda_max");
+			if (!itemparsed("lambda_max") && !ifdavephotosyn) badins("lambda_max");
 			if (rootdistribution == ROOTDIST_FIXED) {
 				if (!itemparsed("rootdist")) badins("rootdist");
 				// if (itemparsed("root_beta")) badins("root_beta given but rootdistribution is fixed. This does not make sense.");
@@ -2193,19 +2196,32 @@ void plib_callback(int callback) {
 				if (!itemparsed("cton_leaf_min")) badins("cton_leaf_min");
 
 
-			if (!itemparsed("cton_root")) badins("cton_root");
-			if (!itemparsed("nuptoroot")) badins("nuptoroot");
-			if (!itemparsed("km_volume")) badins("km_volume");
-			if (!itemparsed("fnstorage")) badins("fnstorage");
+			if (!ppft->dave_allocation()) {
+				if (!itemparsed("nuptoroot")) badins("nuptoroot");
+				if (!itemparsed("km_volume")) badins("km_volume");
+				if (!itemparsed("fnstorage")) badins("fnstorage");
+				if (ppft->lifeform == TREE) {
+					if (!itemparsed("cton_root")) badins("cton_root");
+					if (!itemparsed("cton_sap")) badins("cton_sap");
+				}
+			}
+
 			if (!itemparsed("extkn"))     badins("extkn");
 
 			if (!itemparsed("reprfrac")) badins("reprfrac");
-			if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
-			if (!itemparsed("turnover_root")) badins("turnover_root");
+
+			// turnover_leaf not required by dave grasses.
+			if (!(ppft->dave_allocation() && ppft->is_grass())) {
+				if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
+				if (!itemparsed("turnover_root")) badins("turnover_root");
+			}
 			if (!itemparsed("ltor_max")) badins("ltor_max");
 			if (!itemparsed("intc")) badins("intc");
-			if (!itemparsed("stem_frac")) badins("stem_frac");
-			if (!itemparsed("twig_frac")) badins("twig_frac");
+
+			if (!ppft->is_grass() && run_landcover && ppft->landcover != NATURAL) {
+				if (!itemparsed("stem_frac")) badins("stem_frac");
+				if (!itemparsed("twig_frac")) badins("twig_frac");
+			}
 
 			if (ifdavegrowth) {
 				// Mandatory parameters for pfts using dave daily growth.
@@ -2213,6 +2229,7 @@ void plib_callback(int callback) {
 					if (!itemparsed("turnover_repr")) badins("turnover_repr");
 					if (!itemparsed("sapsize")) badins("sapsize");
 					if (!itemparsed("formfactor")) badins("formfactor");
+					if (!itemparsed("sapsize")) badins("sapsize");
 				}
 				if (!itemparsed("turnover_repr_litter")) badins("turnover_repr");
 
@@ -2226,7 +2243,6 @@ void plib_callback(int callback) {
 					if (!itemparsed("turnover_repr")) badins("turnover_repr");
 					if (!itemparsed("max_leaf_nsc_conc")) badins("max_leaf_nsc_conc");
 					if (!itemparsed("max_wood_nsc_conc")) badins("max_wood_nsc_conc");
-					if (!itemparsed("bark_frac")) badins("bark_frac");
 				}
 
 				if (ifdailygrass && ppft->is_grass() && ifdavegrowth) {
@@ -2402,7 +2418,6 @@ void plib_callback(int callback) {
 			}
 
 			if (ppft->lifeform==TREE) {
-				if (!itemparsed("cton_sap")) badins("cton_sap");
 				if (!itemparsed("turnover_sap")) badins("turnover_sap");
 				if (ppft->dave_allocation() && ppft->lifeform == TREE && !itemparsed("turnover_repr")) badins("turnover_repr");
 				if (!itemparsed("wooddens")) badins("wooddens");

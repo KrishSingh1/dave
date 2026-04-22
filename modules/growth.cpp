@@ -2609,7 +2609,7 @@ void growth(Stand& stand, Patch& patch) {
 					// BLARP! excess allocation to roots now also included (assumes leaf longevity = root longevity)
 
 					cmass_excess = max((double)indiv.aphen_raingreen /
-							(indiv.pft.leaflong * (double)date.year_length()) * (indiv.cmass_leaf + indiv.cmass_root) -
+							(indiv.pft.leaflong() * (double)date.year_length()) * (indiv.cmass_leaf + indiv.cmass_root) -
 							indiv.cmass_leaf - indiv.cmass_root, 0.0);
 
 					if (cmass_excess > bminc) cmass_excess = bminc;
@@ -4453,10 +4453,6 @@ void carbon_allocation_tree_grote(Individual &indiv) {
 	const double MAX_HEIGHT = 150;
 	const double MIN_HEIGHT = 0.05;
 
-	// proportion of cgrow that goes to reproduction.
-	// TODO: find literature values
-	const double REPR_PROP = 0.02;
-
 	// minimum age for reproduction in years.
 	// TODO: fix to be a function of tree size and not age, and a PFT parameter.
 	// also, check that age is counted in years and not days.
@@ -4498,7 +4494,7 @@ void carbon_allocation_tree_grote(Individual &indiv) {
 	// - storage_fraction > MIN_STORFRAC_FOR_REPR
 	double storage_fraction = indiv.cmass_storage / indiv.cstorage_max;
 	if (indiv.age > MIN_AGE_FOR_REPR && storage_fraction > MIN_STORFRAC_FOR_REPR) {
-		indiv.cgrow_repr = REPR_PROP * indiv.cgrow;
+		indiv.cgrow_repr = indiv.pft.reprfrac * indiv.cgrow;
 	}
 
 	// Remaining carbon available for growth (kgC/m2).
@@ -5849,8 +5845,9 @@ void turnover_dave_tree(Individual &indiv) {
 		double fleafage = 1.0;
 
 		// fleafage = 1.0 + indiv.meanleafage / indiv.pft.leaflong;
+		double leaflong = 1.0 / pft.turnover_leaf;
 		if (iftreephen) {
-			fleafage = indiv.meanleafage / indiv.pft.leaflong;
+			fleafage = indiv.meanleafage / leaflong;
 		}
 		// fleafage = 1.0 + indiv.meanleafage / indiv.pft.leaflong;
 		// fleafage = 0.5 + 0.002 * pow(indiv.meanleafage, 5.0);

@@ -4448,6 +4448,7 @@ void forest_floor_dave(Patch &patch) {
 			}
 
 			// Stomatal term (Medlyn et al. 2011)
+			// TODO: should we use g1x here?
 			inputs.X = stomatal_conductance_term(inputs.wscal, pft.g1, inputs.vpd, inputs.ca);
 
 			// Residual stomatal conductance term.

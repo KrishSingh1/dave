@@ -46,6 +46,9 @@ std::unique_ptr<NCInventory::VariableMetadata> NCInventory::get_variable_info(in
     if (has_std_name && has_units) {
         return std::make_unique<VariableMetadata>(name, std_name, units);
     }
+    // TODO: true logging
+    dprintf("WARNING: Ignoring variable '%s' in file '%s' because it doesn't have both a standard_name and units attribute\n",
+            name.c_str(), GuessNC::get_variable_name(ncid, varid).c_str());
     return nullptr;
 }
 

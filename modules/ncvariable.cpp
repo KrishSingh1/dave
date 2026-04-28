@@ -11,6 +11,7 @@
 #include "gutil.h"
 #include "ncutil.h"
 #include "ncvariable.h"
+#include "logging.h"
 
 int NCVariable::get_dimension_id(xtring dim_name) const {
 	int dim_id;
@@ -81,13 +82,13 @@ void NCVariable::check_units(const std::vector<xtring>& expected, bool fatal) co
 	, (const char *)actual);
 
 	// todo: automatic unit conversion (where feasible).
-	dprintf("TBI: Automatic unit conversion\n");
+	log_error("TBI: Automatic unit conversion\n");
 	fatal = true; // fixme
 
 	if (fatal) {
 		throw std::runtime_error((const char *)msg);
 	} else {
-		dprintf("WARNING: %s. Values will be converted to %s, but consider fixing the input data for faster simulations."
+		log_warning("%s. Values will be converted to %s, but consider fixing the input data for faster simulations."
 		, (const char *)msg, (const char *)actual);
 	}
 }

@@ -3,6 +3,7 @@
 #include "shell.h"
 #include "ncinventory.h"
 #include "guessnc.h"
+#include "logging.h"
 
 static const char *ATTR_STD_NAME = "standard_name";
 static const char *ATTR_UNITS = "units";
@@ -47,7 +48,7 @@ std::unique_ptr<NCInventory::VariableMetadata> NCInventory::get_variable_info(in
         return std::make_unique<VariableMetadata>(name, std_name, units);
     }
     // TODO: true logging
-    dprintf("WARNING: Ignoring variable '%s' in file '%s' because it doesn't have both a standard_name and units attribute\n",
+    log_warning("Ignoring variable '%s' in file '%s' because it doesn't have both a standard_name and units attribute\n",
             name.c_str(), GuessNC::get_variable_name(ncid, varid).c_str());
     return nullptr;
 }

@@ -285,6 +285,13 @@ void NCInput::open_files(const ResolvedPlan &plan, Dataset dataset) {
                   bounds_ps, ps_units, nc_ps, ps);
     }
 
+    if (plan.dtr_mode == DtrMode::Direct) {
+        open_file(plan, Variable::Tmax, options.cache_strategy, options.nc_check_inputs,
+                  temp_bounds, temp_units, nc_tmax, tmax);
+
+        open_file(plan, Variable::Tmin, options.cache_strategy, options.nc_check_inputs,
+                  temp_bounds, temp_units, nc_tmin, tmin);
+    }
     open_dataset = dataset;
 }
 

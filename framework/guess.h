@@ -389,6 +389,7 @@ public:
 private:
 
 	int nyear;
+	bool initialised;
 
 	// MEMBER FUNCTIONS
 
@@ -409,6 +410,7 @@ public:
 		first_calendar_year = 0;
 		nyear = 0;
 		ismidday = false;
+		initialised = false;
 	}
 
 	/// Initialises date to day 0 of year 0 and sets intended number of simulation years
@@ -423,6 +425,7 @@ public:
 		islastmonth = islastday = ismidday = false;
 		if (nyear == 1) islastyear = true;
 		else islastyear = false;
+		initialised = true;
 	}
 
 	/// Call at end of every simulation day to update member variables.
@@ -521,6 +524,10 @@ public:
 			return day + step + MAX_YEAR_LENGTH;
 		else
 			return 0;
+	}
+
+	bool is_initialised() const {
+		return initialised;
 	}
 };
 

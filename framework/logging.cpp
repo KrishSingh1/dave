@@ -13,13 +13,13 @@
         va_end(args); \
     } while (0)
 
-const char *PFX_FATAL = "FTL";
-const char *PFX_ERROR = "ERR";
-const char *PFX_WARNING = "WRN";
-const char *PFX_INFORMATION = "INF";
-const char *PFX_DIAGNOSTIC = "DIA";
-const char *PFX_DEBUG = "DBG";
-const char *PFX_TRACE = "TRC";
+const char *PFX_FATAL = "FATAL";
+const char *PFX_ERROR = "ERROR";
+const char *PFX_WARNING = " WARN";
+const char *PFX_INFORMATION = " INFO";
+const char *PFX_DIAGNOSTIC = " DIAG";
+const char *PFX_DEBUG = " DEBUG";
+const char *PFX_TRACE = " TRACE";
 
 void get_pfx(LogLevel level, const char **pfx) {
     switch (level) {
@@ -68,8 +68,11 @@ void vlog(LogLevel level, const char *fmt, va_list args) {
 
     const char *pfx;
     get_pfx(level, &pfx);
-    lprintf("[%04d-%02d-%02d %s] ", date.get_calendar_year(), date.month + 1,
-            date.dayofmonth + 1, pfx);
+    lprintf("[");
+    if (date.is_initialised()) {
+        lprintf("%04d-%02d-%02d ", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1);
+    }
+    lprintf("%s] ", pfx);
 
     vlprintf(fmt, args);
     lprintf("\n");

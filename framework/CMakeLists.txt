@@ -25,6 +25,7 @@ set(headers
   pathresolver.h
   ncinventory.h
   variableresolver.h
+  logging.h
 )
 
 set(source
@@ -51,6 +52,7 @@ set(source
   pathresolver.cpp
   ncinventory.cpp
   variableresolver.cpp
+  logging.cpp
 )
 
 include(add_guess_sources)

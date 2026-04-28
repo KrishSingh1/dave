@@ -650,8 +650,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
 		declareitem("save_state", &save_state, 1, CB_NONE, "Whether to save new state files");
 		declareitem("state_year", &state_year, 1, 20000, 1, CB_NONE, "Save/restart year. Unspecified means just after spinup");
-		declareitem("verbosity", &verbosity, 0, 4, 1, CB_NONE,
-			"Determines the amount of information that is printed to the logfile. 0 = suppress all output (even errors) 4 = print all information");
+		declareitem("verbosity", &verbosity, 0, 6, 1, CB_NONE,
+			"Determines the amount of information that is printed to the logfile. 0 = suppress all output (even errors) 6 = print all information");
 		declareitem("ifdailyoutput", &ifdailyoutput, 1, CB_NONE, "Whether to produce daily output. Unspecified means no, do not.");
 
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");

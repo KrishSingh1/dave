@@ -9,6 +9,7 @@
 #include "ncutil.h"
 #include "ncvariable.h"
 #include "variableresolver.h"
+#include "logging.h"
 
 ResolveOptions to_resolve_options(const NCInputOptions &options) {
     ResolveOptions resolve_options;
@@ -157,7 +158,7 @@ void NCInput::init(const NCInputOptions &options) {
     if (separate_spinup && spinup_end.year + 1 == first_timestep.year && is_end_of_year(spinup_end, spinup_timestep, spinup_calendar)) {
         first_year = spinup_start.year;
         spinup_in_simulation = true;
-        dprintf("file_met_spinup will be included in main simulation, which will run from %04d-%02d-%02d - %04d-%02d-%02d.\n",
+        log_info("file_met_spinup will be included in main simulation, which will run from %04d-%02d-%02d - %04d-%02d-%02d.\n",
             spinup_start.year, get_month(spinup_start, spinup_calendar) + 1, get_day_of_month(spinup_start, spinup_calendar) + 1,
             final_timestep.year, get_month(final_timestep, simulation_calendar) + 1, get_day_of_month(final_timestep, simulation_calendar) + 1);
     }
@@ -306,7 +307,7 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
 			// We are in the final year, which is missing some days of data.
 			// Because the N deposition disaggregation requires an entire years'
 			// worth of precipitation data, we can't simulate part of a year.
-            dprintf("Final year (%d) of data is missing some days (contains %d but requires %d for a full year). Because the N deposition disaggregation requires an entire years' worth of precipitation data, we can't simulate this year.\n",
+            log_error("Final year (%d) of data is missing some days (contains %d but requires %d for a full year). Because the N deposition disaggregation requires an entire years' worth of precipitation data, we can't simulate this year.\n",
                     final_timestep.year, final_timestep.day + 1,
                     Date::MAX_YEAR_LENGTH);
 			return false;
@@ -315,7 +316,7 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
 		if (final_timestep.timestep < tas->get_day_length() - 1) {
 			// We are in the final year, and the final day is missing some
 			// timesteps.
-            dprintf("Final year (%d) of data is missing some timesteps (contains %d but requires %d for a full day). Because the N deposition disaggregation requires an entire years' worth of precipitation data, we can't simulate this year.\n",
+            log_error("Final year (%d) of data is missing some timesteps (contains %d but requires %d for a full day). Because the N deposition disaggregation requires an entire years' worth of precipitation data, we can't simulate this year.\n",
                     final_timestep.year, final_timestep.timestep + 1,
                     tas->get_day_length());
 			return false;
@@ -359,7 +360,7 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
 		(vpd && vpd->has_missing_value() && contains(vpd->get_missing_value(), vpds)) ||
 		(ps && ps->has_missing_value() && contains(ps->get_missing_value(), pressure))) {
 
-		dprintf("WARNING: Encountered missing value in climate data for gridcell (%f, %f) on Year %04d day (of year) %03d. Simulation will now terminate.\n",
+		log_fatal("Encountered missing value in climate data for gridcell (%f, %f) on Year %04d day (of year) %03d. Simulation will now terminate.\n",
                 lon, lat, year, day);
 		return false;
 	}
@@ -402,7 +403,7 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
 	for (size_t i = 0; i < vpds.size(); i++) {
 		if (vpds[i] < 0.01) {
 			if (options.nc_check_inputs) {
-				dprintf("Year %d day %d timestep %zu vpd is below 0.01: %f\n", year, day, i, vpds[i]);
+				log_warning("Year %d day %d timestep %zu vpd is below 0.01: %f\n", year, day, i, vpds[i]);
 			}
 			vpds[i] = 0.01;
 		}

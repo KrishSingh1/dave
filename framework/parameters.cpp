@@ -19,6 +19,7 @@
 #include "parameters.h"
 #include "guess.h"
 #include "plib.h"
+#include "logging.h"
 #include <map>
 
 // Definitions of parameters defined globally in parameters.h,
@@ -2094,7 +2095,7 @@ void plib_callback(int callback) {
 
 			int pftid = pftlist.getpftid(st.get_management(0).pftname);
 			if(st.intercrop == NATURALGRASS && pftid >= 0 && pftlist[pftid].phenology != CROPGREEN)
-				dprintf("Warning: covercrop grass should not be activated in stand types without true crops\n");
+				log_warning("covercrop grass should not be activated in stand types without true crops\n");
 			stlist.nextobj();
 		}
 
@@ -2271,9 +2272,9 @@ void plib_callback(int callback) {
 				if (!itemparsed("vpmax_25")) badins("vpmax_25");
 				if (!itemparsed("jmax_25")) badins("jmax_25");
 			} else {
-				if (itemparsed("vcmax_25")) dprintf("WARNING: %s vcmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
-				if (itemparsed("vpmax_25")) dprintf("WARNING: %s vpmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
-				if (itemparsed("jmax_25")) dprintf("WARNING: %s jmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
+				if (itemparsed("vcmax_25")) log_warning("%s vcmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
+				if (itemparsed("vpmax_25")) log_warning("%s vpmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
+				if (itemparsed("jmax_25")) log_warning("%s jmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
 			}
 
 			if (ifdavephotosyn) {
@@ -2287,7 +2288,7 @@ void plib_callback(int callback) {
 				if (!itemparsed("ds_v")) badins("ds_v");
 				if (!itemparsed("ds_j")) badins("ds_j");
 				if (!ifdavegrowth && ppft->ifcalcvcmax) {
-					printf("WARNING: using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 0");
+					log_warning("Using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 0");
 				}
 			}
 

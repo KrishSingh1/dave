@@ -35,6 +35,7 @@
 #include "vegdynam.h"
 #include "growth.h"
 #include "driver.h"
+#include "logging.h"
 
 // Alternatives for forestry:
 
@@ -900,7 +901,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					if (!present) {
 
 						// ... if not, add it
-						lprintf("Establishing %s...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
+						log_info("Establishing %s...", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
 						Individual& indiv=vegetation.createobj(pft,vegetation);
 						indiv.height=0.0;
 						indiv.crownarea=1.0; // (value not used)
@@ -1067,7 +1068,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					// Now create 'newindiv' new Individual objects
 
 					if (newindiv > 0) {
-						lprintf("Establishing new %s cohort with %d tree%s...\n", (const char *)pft.name, newindiv, newindiv > 1 ? "s" : "");
+						log_info("Establishing new %s cohort with %d tree%s...", (const char *)pft.name, newindiv, newindiv > 1 ? "s" : "");
 					}
 
 					// Initial biomass proportional to potential forest floor net
@@ -1537,7 +1538,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 					// (in individual mode: removes individual if killed)
 
 					if (negligible(indiv.densindiv)) {
-						lprintf("%s killed by fire...\n", (const char *)indiv.pft.name);
+						log_info("%s killed by fire...", (const char *)indiv.pft.name);
 						vegetation.killobj();
 						killed=true;
 					}
@@ -1569,7 +1570,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 			patchpft.cmass_mort += indiv.ccont();
 
-			lprintf("%s killed by exceedance of bioclimatic limits...\n", (const char *)indiv.pft.name);
+			log_info("%s killed by exceedance of bioclimatic limits...", (const char *)indiv.pft.name);
 			indiv.kill();
 
 			vegetation.killobj();
@@ -1706,7 +1707,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				// (in individual mode: removes individual if killed)
 
 				if (negligible(indiv.densindiv)) {
-					lprintf("%s killed by background mortality. mort_greff=%f, mort_age=%f, total_mort_frac=%f...\n",
+					log_info("%s killed by background mortality. mort_greff=%f, mort_age=%f, total_mort_frac=%f...",
 						    (const char *)indiv.pft.name, mort_greff, mort_min,
 							mort);
 					vegetation.killobj();
@@ -1975,7 +1976,7 @@ void disturbance(Patch& patch, double disturb_prob) {
 
 		patch.disturbed = true;
 		patch.age = 0;
-		lprintf("Disturbance...\n");
+		log_info("Disturbance...");
 	}
 
 	else patch.disturbed = false;

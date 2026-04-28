@@ -21,6 +21,7 @@
 #include "parameters.h"
 #include "guessmath.h"
 #include "util.h" // Required by MSVC
+#include "logging.h"
 
 #ifdef _WIN32
 #include <io.h>
@@ -31,7 +32,7 @@
 REGISTER_INPUT_MODULE("nc", DaveInput)
 
 DaveInput::DaveInput() {
-	ctor_start = get_wall_time();
+	double ctor_start = get_wall_time();
 
 	// Register instruction file parameters.
 
@@ -227,9 +228,8 @@ bool DaveInput::getgridcell(Gridcell& gridcell) {
 		double getgridcell_start = get_wall_time();
 
 		if (current_gridcell == gridlist.end()) {
-			double total_walltime = (getgridcell_start - ctor_start) * 1000;
-			double prop = ncinput_walltime_use / total_walltime;
-			printf("Simulations completed. Total time: %.2fs.                     \nTotal time spent in dave  input: %.2fs\n", total_walltime / 1000, ncinput_walltime_use / 1000);
+			log_diagnostic("Total time spent in dave  input: %.2fs\n",
+					       ncinput_walltime_use / 1000);
 			return false;
 		}
 

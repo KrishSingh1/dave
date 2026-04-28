@@ -2,6 +2,7 @@
 #define LPJ_GUESS_LOGGING_H
 
 #include <string>
+#include <stdint.h>
 
 /*
 Defines the level of a log message.
@@ -81,5 +82,26 @@ Log a trace message.
 @param ...: Arguments corresponding to the format string.
 */
 void log_trace(const char *fmt, ...);
+
+/*
+Resets the run statistics, including log message count, error count, and warning
+count.
+*/
+void logging_reset_run_stats();
+
+/*
+Retrieves the current run statistics, including log message count, error count,
+and warning count.
+
+@param out_log_message_count: Pointer to a variable to receive the log message count.
+@param out_error_count: Pointer to a variable to receive the error count.
+@param out_warning_count: Pointer to a variable to receive the warning count.
+*/
+void logging_get_run_stats(uint64_t *out_log_message_count, uint64_t *out_error_count, uint64_t *out_warning_count);
+
+/*
+Prints a summary of the run, including total log messages, errors, and warnings.
+*/
+void logging_print_run_summary();
 
 #endif // LPJ_GUESS_LOGGING_H

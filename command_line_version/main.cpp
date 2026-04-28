@@ -16,6 +16,7 @@
 #include "framework.h"
 #include "commandlinearguments.h"
 #include "parallel.h"
+#include "logging.h"
 #include <stdlib.h>
 
 #ifdef __unix__
@@ -95,6 +96,7 @@ int main(int argc,char* argv[]) {
 	framework(args);
 
 	// Say goodbye
+	logging_print_run_summary();
 	dprintf("\nFinished\n");
 
 	return EXIT_SUCCESS;

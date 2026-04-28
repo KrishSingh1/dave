@@ -1,9 +1,11 @@
 #include <stdarg.h>
 #include <stdexcept>
+#include <stdint.h>
 
 #include "logging.h"
 #include "shell.h"
 #include "guess.h"
+#include "util.h"
 
 #define write_message(level, fmt) \
     do { \
@@ -20,6 +22,33 @@ const char *PFX_INFORMATION = " INFO";
 const char *PFX_DIAGNOSTIC = " DIAG";
 const char *PFX_DEBUG = " DEBUG";
 const char *PFX_TRACE = " TRACE";
+
+uint64_t log_message_count = 0;
+uint64_t error_count = 0;
+uint64_t warning_count = 0;
+double start_time = get_wall_time();
+
+void logging_reset_run_stats() {
+    log_message_count = 0;
+    error_count = 0;
+    warning_count = 0;
+    start_time = get_wall_time();
+}
+
+void logging_get_run_stats(uint64_t *out_log_message_count,
+    uint64_t *out_error_count, uint64_t *out_warning_count, double *out_elapsed_time) {
+    *out_log_message_count = log_message_count;
+    *out_error_count = error_count;
+    *out_warning_count = warning_count;
+    *out_elapsed_time = get_wall_time() - start_time;
+}
+
+void logging_print_run_summary() {
+    double elapsed_time = get_wall_time() - start_time;
+    printf("\nSimulation completed in %.2f seconds with %lu errors and %lu warnings.\n",
+             elapsed_time, error_count, warning_count);
+    printf("See guess.log for full details\n");
+}
 
 void get_pfx(LogLevel level, const char **pfx) {
     switch (level) {
@@ -64,6 +93,12 @@ void vlog_fatal(const char *fmt, va_list args) {
 void vlog(LogLevel level, const char *fmt, va_list args) {
     if (!should_log(level)) {
         return;
+    }
+
+    if (level == LogLevel::Error) {
+        error_count++;
+    } else if (level == LogLevel::Warning) {
+        warning_count++;
     }
 
     const char *pfx;

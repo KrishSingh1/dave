@@ -435,11 +435,6 @@ private:
 	double ncinput_walltime_use;
 
 	/*
-	Walltime at start of simulation.
-	*/
-	double ctor_start;
-
-	/*
 	Fixed/constant air pressure to use, in Pa.
 	*/
 	double fixed_pressure;

@@ -20,6 +20,7 @@
 #include "outputmodule.h"
 #include "parameters.h"
 #include "util.h"
+#include "logging.h"
 
 namespace GuessOutput {
 
@@ -445,7 +446,7 @@ DaveOutput::DaveOutput() {
 }
 
 DaveOutput::~DaveOutput() {
-	printf("Total time spent in dave output: %.2fs\n", total_time);
+	log_diagnostic("Total time spent in dave output: %.2fs\n", total_time);
 }
 
 void DaveOutput::init() {

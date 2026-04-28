@@ -47,6 +47,7 @@
 #include <assert.h>
 #include "somdynam.h"
 #include "driver.h"
+#include "logging.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -2758,7 +2759,7 @@ void growth(Stand& stand, Patch& patch) {
 							if(indiv.alive)
 								patchpft.cmass_mort += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
 
-							lprintf("%s killed by carbon starvation...\n", (const char *)indiv.pft.name);
+							log_info("%s killed by carbon starvation...", (const char *)indiv.pft.name);
 							indiv.kill();
 
 							vegetation.killobj();
@@ -2850,7 +2851,7 @@ void growth(Stand& stand, Patch& patch) {
 							if(indiv.alive)
 								patchpft.cmass_mort += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
 
-							lprintf("%s killed by carbon starvation...\n", (const char *)indiv.pft.name);
+							log_info("%s killed by carbon starvation...", (const char *)indiv.pft.name);
 							indiv.kill();
 
 							vegetation.killobj();
@@ -2900,7 +2901,7 @@ void growth(Stand& stand, Patch& patch) {
 
 				if (!allometry(indiv)) {
 
-					lprintf("%s killed by carbon starvation...\n", (const char *)indiv.pft.name);
+					log_info("%s killed by carbon starvation...", (const char *)indiv.pft.name);
 					indiv.kill();
 
 					vegetation.killobj();
@@ -2954,7 +2955,7 @@ void growth(Stand& stand, Patch& patch) {
 						indiv.flush_repr_litter_DAVE();
 					}
 
-					lprintf("%s killed by carbon starvation...\n", (const char *)indiv.pft.name);
+					log_info("%s killed by carbon starvation...", (const char *)indiv.pft.name);
 					indiv.kill();
 
 					vegetation.killobj();
@@ -3574,7 +3575,7 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 			cstore = indiv.dnpp - indiv.cgrow;
 		}
 		else {
-			lprintf("%s killed by carbon starvation: negative NPP cannot be fulfilled by storage. NPP: %.9g kgC/m2, cmass_storage: %.9g kgC/m2\n",
+			log_info("%s killed by carbon starvation: negative NPP cannot be fulfilled by storage. NPP: %.9g kgC/m2, cmass_storage: %.9g kgC/m2",
 				    (const char *)indiv.pft.name, indiv.dnpp, indiv.cmass_storage);
 			// Not enough C in storage to fulfill respiration demands --> kill individual
 			double cmass_deficit = -(indiv.cmass_storage + indiv.dnpp);
@@ -3789,7 +3790,7 @@ bool carbon_starvation_mortality(Individual &indiv) {
 	if (indiv.cmass_storage > 0) {
 		storage_state = min(indiv.cmass_storage / indiv.cstorage_max, 1.0);
 	} else {
-		lprintf("%s killed by carbon starvation: negative NPP cannot be fulfilled by storage. NPP: %.9g kgC/m2, cmass_storage: %.9g kgC/m2\n",
+		log_info("%s killed by carbon starvation: negative NPP cannot be fulfilled by storage. NPP: %.9g kgC/m2, cmass_storage: %.9g kgC/m2",
 				(const char *)indiv.pft.name, indiv.dnpp, indiv.cmass_storage);
 		// next check: if adding the NPP to the storage caused storage to be 
 		// negitive - kill tree and return.
@@ -3840,7 +3841,7 @@ bool carbon_starvation_mortality(Individual &indiv) {
 			// indiv.cstarvmort = cmass_before - cmass_after;4 4
         } else {
 			// kill individual
-			lprintf("%s killed by carbon starvation: Cohort density (%g/m2) has fallen below kill threshold of %g/m2\n",
+			log_info("%s killed by carbon starvation: Cohort density (%g/m2) has fallen below kill threshold of %g/m2",
 				    (const char *)indiv.pft.name, indiv.densindiv, KILL_THRESHOLD);
             indiv.kill();
             indiv.vegetation.killobj();

@@ -43,6 +43,7 @@
 #include "somdynam.h"
 #include <assert.h>
 #include "hydraulics.h"
+#include "logging.h"
 
 // TODO Drew: move mean/sum out of ncutil
 #include "ncutil.h"
@@ -3242,7 +3243,7 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 
 	// Michaelis-Menten parameters and photorespiratory CO2 compensation point (mol mol-1).
 	double ko = Arrhenius_temp_response(KO25, inputs.temp, HA_KO, 0.0, 0.0);
-	double kc = Arrhenius_temp_response(KC25, inputs.temp, HA_KC, 0.0, 0.0); 
+	double kc = Arrhenius_temp_response(KC25, inputs.temp, HA_KC, 0.0, 0.0);
 	double gamstar = Arrhenius_temp_response(GAMSTAR25, inputs.temp, HA_GS, 0.0, 0.0);
 
 	// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax.
@@ -3648,7 +3649,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				g0 = min(g0,g0 * exp(b1z * (water_potential + 0.3)));
 
 				// for co2
-				inputs.X = divide(divide(1.0 + g1, sqrt(max(inputs.vpd, 0.1))), inputs.ca);
+				inputs.X = divide(1.0 + divide(g1, sqrt(max(inputs.vpd, 0.1))), inputs.ca);
 
 				// Residual stomatal conductance term
 				// Note: g0 is for H20, here conversion to conductances to CO2
@@ -3663,6 +3664,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				// Note: g0 is for H20, here conversion to conductances to CO2
 				inputs.gdark = stomatal_conductance_residual(g0, inputs.wscal);  // TODO: do we need a different qs here?
 			}
+
+			// Don't allow gdark to fall below gcutic.
+			inputs.gdark = max(inputs.gdark, gcutic_adj);
 
 			// Initialise cumulative LAI.
 			double lai_cum_bottom = 0.0;
@@ -3837,24 +3841,53 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 	} // end cohort loop
 }
 
+double photosyn_solver_gdark(double gd, double rd, double km, double ca, double vcmax, double gamstar) {
+	double b2 = -1.6;
+	double b1 = gd * (ca + km) - 1.6 * (rd + vcmax);
+	double b0 = gd * (rd * (ca + km) - vcmax * (ca + gamstar));
+
+	double an = (-b1 + sqrt(pow(b1, 2) - 4.0 * b0 * b2)) / (2.0 * b2);
+	return an;
+}
 
 // System of equations to solve coupled photosynthesis-stomatal conductance scheme.
 // Wang & Leuning 1998
 double photosyn_solver(double g0, double X, double gamma, double beta, 
 					   double gamstar, double Rd, double Ca) {
-	
+	// km = beta, gamma = vcmax
 	double b2 = g0 + X * (gamma - Rd);
 	double b1 = (1.0 - Ca * X) * (gamma - Rd) + g0 * (beta - Ca) - X * (gamma * gamstar + beta * Rd);
 	double b0 = -(1.0 - Ca * X) * (gamma * gamstar + beta * Rd) - g0 * beta * Ca;
 
 	assert(b2 != 0);
 
-	double Ci = (-b1 + sqrt(pow(b1,2) - 4.0 * b0 * b2)) / (2.0 * b2); 
+	double b1_sq = b1 * b1;
+	double four_ac = 4.0 * b0 * b2;
+	double discriminant = b1_sq - four_ac;
+
+	// Variable tolerance based on magnitude of inputs.
+	double discriminant_tol =
+		64.0 * DBL_EPSILON * max(fabs(b1_sq), fabs(four_ac));
+
+    // Roundoff error can lead to a very slightly negative discriminant. In this
+	// case, we set the discriminant to zero.
+	if (discriminant < 0.0 && discriminant >= -discriminant_tol) {
+		discriminant = 0.0;
+	}
+
+	// This will catch cases where the discriminant is truly negative.
+	assert(discriminant >= 0.0);
+
+	double Ci = (-b1 + sqrt(discriminant)) / (2.0 * b2);
 	
 	if (is_zero(Ci + beta)) {
+		log_warning("Ci + beta is zero in photosyn_solver. Returning An = 0 to avoid crash.");
 		return 0; // dh fixme - to avoid crash. Need to discuss
 	}
-	double An = gamma * divide(Ci - gamstar, Ci + beta) - Rd;
+	double solution = gamma * divide(Ci - gamstar, Ci + beta);
+
+	assert(solution >= 0);
+	double An = solution - Rd;
 
 	return An;  // net photosynthesis (mol m-2 s-1)
 }

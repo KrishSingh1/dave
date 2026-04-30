@@ -772,6 +772,9 @@ public:
 
 	// Reference value at which Vcmax or Jmax is half it's non-water-stresed value (Zhou 2014)
 	double psi_f;
+
+	/// Tgrowth, mean air temperature of preceding 30 d.
+	double tgrowth;
 };
 
 /// Outputs from the photosynthesis function for a single individual in a single

@@ -41,7 +41,8 @@ bool ifstochestab;
 bool ifstochmort;
 bool ifdisturb;
 bool ifcalcsla;
-bool iftempacclimation;
+bool ifvcmaxtempacclimation;
+bool ifresptempacclimation;
 bool ifcalccton;
 int estinterval;
 double distinterval;
@@ -283,7 +284,8 @@ void initsettings() {
 	iftreephen=false;
 	ifdisturb=false;
 	ifcalcsla=false;
-	iftempacclimation = false;
+	ifvcmaxtempacclimation = false;
+	ifresptempacclimation = false;
 	ifdavehydraulics = false;
 	ifdavehydrology = false;
 	ifstoreuptake = true;
@@ -530,8 +532,10 @@ void plib_declarations(int id,xtring setname) {
 			"Deterministic disturbance input file. Required when disttype = \"DETERMINISTIC\". Path to a plaintext file containing one year per line, specifying the years in which disturbance occurs.");
 		declareitem("ifcalcsla",&ifcalcsla,1,CB_NONE,
 			"Whether SLA calculated from leaf longevity");
-		declareitem("iftempacclimation",&iftempacclimation,1,CB_NONE,
-			"Whether vcmax acclimation to temperature is enabeld (alt: prescribed)");
+		declareitem("ifvcmaxtempacclimation",&ifvcmaxtempacclimation,1,CB_NONE,
+			"Whether vcmax acclimation to temperature is enabled (alt: prescribed)");
+		declareitem("ifresptempacclimation",&ifresptempacclimation,1,CB_NONE,
+			"Whether maintenance respiration acclimation to temperature is enabled");
 		declareitem("ifcalccton",&ifcalccton,1,CB_NONE,
 			"Whether leaf C:N min calculated from leaf longevity");
 		declareitem("ifcdebt",&ifcdebt,1,CB_NONE,

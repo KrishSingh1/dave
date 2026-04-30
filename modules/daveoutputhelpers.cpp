@@ -1353,6 +1353,10 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_
 		{"ca",           [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ca; }},
 		{"X",            [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].X; }},
 		{"stomata_open", [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].stomata_open ? 1.0 : 0.0; }},
+		{"predawn_lwp",  [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].predawn_lwp; }},
+		{"s_f",          [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].s_f; }},
+		{"psi_f",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].psi_f; }},
+		{"tgrowth",      [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].tgrowth; }},
 	};
 }
 

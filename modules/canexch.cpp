@@ -3883,15 +3883,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 	} // end cohort loop
 }
 
-double photosyn_solver_gdark(double gd, double rd, double km, double ca, double vcmax, double gamstar) {
-	double b2 = -1.6;
-	double b1 = gd * (ca + km) - 1.6 * (rd + vcmax);
-	double b0 = gd * (rd * (ca + km) - vcmax * (ca + gamstar));
-
-	double an = (-b1 + sqrt(pow(b1, 2) - 4.0 * b0 * b2)) / (2.0 * b2);
-	return an;
-}
-
 // System of equations to solve coupled photosynthesis-stomatal conductance scheme.
 // Wang & Leuning 1998
 double photosyn_solver(double g0, double X, double gamma, double beta, 

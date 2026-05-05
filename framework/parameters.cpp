@@ -2274,6 +2274,10 @@ void plib_callback(int callback) {
 				if (!itemparsed("g1")) badins("g1");
 				if (!itemparsed("gcutic")) badins("gcutic");
 				if (!itemparsed("extkn")) badins("extkn");
+				if (ppft->extkn == 0) {
+					sendmessage("Error", "extkn cannot be 0 in dave photosynthesis model");
+					plibabort();
+				}
 				if (!itemparsed("ha_v")) badins("ha_v");
 				if (!itemparsed("ha_j")) badins("ha_j");
 				if (!itemparsed("ds_v")) badins("ds_v");

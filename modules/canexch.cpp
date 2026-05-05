@@ -3091,6 +3091,10 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 Calculate leaf N content at the top of the canopy (kgN m-2 per green leaf area).
 */
 double calc_nmass_leaf0(const Pft &pft, double lai, double nmass_leaf) {
+	if (lai == 0) {
+		return 0;
+	}
+
 	// We know Ntot is the integral of N0 * exp(-extkn * LAI) over LAI. Solving
 	// for N0 gives:
 	return nmass_leaf / ((1.0 - exp(-pft.extkn * lai)) / pft.extkn);

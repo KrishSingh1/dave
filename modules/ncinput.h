@@ -47,6 +47,9 @@ struct NCInputOptions {
     // The method to use for estimating saturation vapor pressure, which is
     // required for calculating VPD from RH or SH.
     esat_method_t esat_method;
+    /// Whether thome should be calculated from the input dataset and stored in
+    /// the climate object.
+    bool calculate_thome;
 };
 
 class NCInput {
@@ -179,9 +182,8 @@ private:
 	@param timestep: Timestep of time range.
 	@param calendar: The CF calendar type used in this file.
 	*/
-    void verify_data_length(timepoint start, timepoint end,
-                                     int timestep,
-                                     GuessNC::CF::CalendarType calendar) const;
+    void verify_data_length(timepoint start, timepoint end, int timestep,
+                            GuessNC::CF::CalendarType calendar) const;
 
 	/*
 	Get the number of complete years of data which exist in the input file.
@@ -245,6 +247,15 @@ private:
     @return A vector of VPD values for the current day.
     */
     std::vector<double> get_vpd(const ResolvedPlan &plan, int year, int day);
+
+    /*
+    Calculate the thome value for the given gridcell from the currently-loaded
+    dataset.
+
+    @param lon The longitude of the gridcell.
+    @param lat The latitude of the gridcell.
+    */
+    double calculate_thome(double lon, double lat) const;
 
     /*
     Configuration options which control the behaviour of this module.

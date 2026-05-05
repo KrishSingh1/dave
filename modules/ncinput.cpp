@@ -1,5 +1,9 @@
 #ifdef HAVE_NETCDF
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
+
 #include "driver.h"
 #include "guessnc.h"
 #include "pathresolver.h"
@@ -326,6 +330,10 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
     if (day == 0 && date.year == 0) {
         // TODO: find a way to improve the insoltype situation. This is a mess.
 		set_insoltype(climate);
+
+        if (options.calculate_thome) {
+            climate.thome = calculate_thome(lon, lat);
+        }
     }
 
     if (day == 0 && date.get_calendar_year() == first_timestep.year && separate_spinup) {
@@ -334,6 +342,10 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
 
         // Update the cliamte insoltype (as it could have changed).
         set_insoltype(climate);
+
+        if (options.calculate_thome) {
+            climate.thome = calculate_thome(lon, lat);
+        }
     }
 
     // TODO: is this correct? What about spinup_in_simulation?
@@ -628,6 +640,78 @@ int NCInput::get_simulation_start_year() const {
         return spinup_start.year;
     }
     return first_timestep.year;
+}
+
+double NCInput::calculate_thome(double lon, double lat) const {
+    double calc_thome_start = get_wall_time();
+    if (!tas) {
+        throw std::runtime_error("Cannot calculate thome: temperature data is not open");
+    }
+
+    timepoint start = tas->get_first_date();
+    timepoint end = tas->get_last_date();
+    GuessNC::CF::CalendarType calendar = tas->get_calendar();
+    int day_length = tas->get_day_length();
+
+    int start_year = start.year;
+    if (!is_start_of_year(start)) {
+        start_year++;
+    }
+
+    int end_year = end.year;
+    if (!is_end_of_year(end, day_length, calendar)) {
+        end_year--;
+    }
+
+    if (end_year < start_year) {
+        throw std::runtime_error("Cannot calculate thome: temperature data contains no complete years");
+    }
+
+    std::vector<double> monthly_daily_max_sum(12, 0.0);
+    std::vector<int> monthly_day_count(12, 0);
+
+    for (int year = start_year; year <= end_year; year++) {
+        int year_len = get_year_len(year, calendar);
+
+        for (int day = 0; day < year_len; day++) {
+            std::vector<double> temps = tas->read(lon, lat, year, day, 1);
+
+            if (tas->has_missing_value() &&
+                contains(tas->get_missing_value(), temps)) {
+                throw_xtring("Cannot calculate thome: missing temperature value for gridcell (%f, %f) year %04d day %03d",
+                             lon, lat, year, day);
+            }
+
+            timepoint timestamp;
+            timestamp.year = year;
+            timestamp.day = day;
+            timestamp.timestep = 0;
+
+            int month = get_month(timestamp, calendar);
+            monthly_daily_max_sum[month] += *std::max_element(temps.begin(), temps.end());
+            monthly_day_count[month]++;
+        }
+    }
+
+    double thome = -std::numeric_limits<double>::infinity();
+    for (int month = 0; month < 12; month++) {
+        if (monthly_day_count[month] == 0) {
+            continue;
+        }
+
+        double monthly_mean_daily_max =
+            monthly_daily_max_sum[month] / monthly_day_count[month];
+        thome = std::max(thome, monthly_mean_daily_max);
+    }
+
+    if (!std::isfinite(thome)) {
+        throw std::runtime_error("Cannot calculate thome: no monthly temperature data was found");
+    }
+
+    double calc_thome_end = get_wall_time();
+    log_info("Calculated thome: %f for gridcell (%f, %f) in %f ms",
+             thome, lon, lat, (calc_thome_end - calc_thome_start) * 1000.0);
+    return thome;
 }
 
 #endif // HAVE_NETCDF

@@ -186,7 +186,18 @@ void DaveInput::init(void) {
 		options.constant_ps = fixed_pressure;
 		options.use_mean_annual_co2 = use_mean_annual_co2;
 		options.esat_method = esat_method;
+		// Calculate thome from dataset if acclimation is enabled but no thome
+		// file is provided.
+		options.calculate_thome = ifvcmaxtempacclimation && file_thome == "";
 		ncinput.init(options);
+
+		if (options.calculate_thome) {
+			log_diagnostic("Thome values will be calculated from the input climate data");
+		} else if (ifvcmaxtempacclimation) {
+			log_diagnostic("Thome values will be read from file %s", file_thome);
+		} else {
+			log_warning("Thome input file was provided, but ifvcmaxtempacclimation is disabled, so thome values will not be used.");
+		}
 
 		if (!options.allow_netcdf_co2) {
 			co2_file = std::unique_ptr<GlobalCO2File>(new GlobalCO2File());

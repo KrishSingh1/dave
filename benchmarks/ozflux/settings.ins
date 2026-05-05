@@ -58,9 +58,10 @@ param "file_disturbance_st"   (str "")
 param "file_elevation_st"     (str "")
 
 ! File containing long-term mean maximum temperature of warmest month, used for
-! DAVE temperature acclimation of photosynthesis.
-! Only required if iftempacclimation is enabled.
-file_thome                      "../forcing/ozflux.thome.csv"
+! DAVE temperature acclimation of photosynthesis. Only required if
+! ifvcmaxtempacclimation is enabled. If not provided, thome will be calculated
+! from the climate data.
+file_thome                      ""
 
 ! Number of timesteps per day.
 nsteps_day            			8

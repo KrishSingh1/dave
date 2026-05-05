@@ -787,8 +787,6 @@ void plib_declarations(int id,xtring setname) {
 			"Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)");
 		declareitem("g1",&ppft->g1,0.0,50.0,1,CB_NONE,
 			"Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)");
-		declareitem("vcmax_25",&ppft->vcmax_25,0.0,10.0,1,CB_NONE, 
-			"Maximum carboxylation rate at 25 degC (mol m-2 s-1)");
 		// Subdaily photosynthesis parameters, Zhou model
 		declareitem("g1x",&ppft->g1x,0,20.0,1,CB_NONE,
 			"g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), units are (kPa^0.5)");
@@ -2269,15 +2267,6 @@ void plib_callback(int callback) {
 
 				if (!itemparsed("max_mobil_cstorage")) badins("max_mobil_cstorage");
 			}
-			if (!ppft->ifcalcvcmax) {
-				if (!itemparsed("vcmax_25")) badins("vcmax_25");
-				if (!itemparsed("vpmax_25")) badins("vpmax_25");
-				if (!itemparsed("jmax_25")) badins("jmax_25");
-			} else {
-				if (itemparsed("vcmax_25")) log_warning("%s vcmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
-				if (itemparsed("vpmax_25")) log_warning("%s vpmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
-				if (itemparsed("jmax_25")) log_warning("%s jmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
-			}
 
 			if (ifdavephotosyn) {
 				// Mandatory parameters for dave photosynthesis.
@@ -2292,6 +2281,16 @@ void plib_callback(int callback) {
 				if (!itemparsed("extkn")) badins("extkn");
 				if (!ifdavegrowth && ppft->ifcalcvcmax) {
 					log_warning("Using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 0");
+				}
+
+				if (!ppft->ifcalcvcmax) {
+					if (!itemparsed("vcmax_25")) badins("vcmax_25");
+					if (!itemparsed("vpmax_25")) badins("vpmax_25");
+					if (!itemparsed("jmax_25")) badins("jmax_25");
+				} else {
+					if (itemparsed("vcmax_25")) log_warning("%s vcmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
+					if (itemparsed("vpmax_25")) log_warning("%s vpmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
+					if (itemparsed("jmax_25")) log_warning("%s jmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
 				}
 			}
 

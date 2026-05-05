@@ -3925,8 +3925,8 @@ double photosyn_solver(double g0, double X, double gamma, double beta,
 	double b0 = -(1.0 - Ca * X) * (gamma * gamstar + beta * Rd) - g0 * beta * Ca;
 
 	if (is_zero(b2)) {
-		log_warning("b2 is zero in photosyn_solver. Returning An = 0 to avoid crash.");
-		return 0;
+		log_warning("b2 is zero in photosyn_solver. Returning An = -Rd to avoid crash.");
+		return -Rd;
 	}
 
 	double b1_sq = b1 * b1;
@@ -3945,15 +3945,15 @@ double photosyn_solver(double g0, double X, double gamma, double beta,
 
 	// This will catch cases where the discriminant is truly negative.
 	if (discriminant < 0.0) {
-		log_warning("Negative discriminant in photosyn_solver. Returning An = 0 to avoid numerical instability.");
-		return 0;
+		log_warning("Negative discriminant in photosyn_solver. Returning An = -Rd to avoid numerical instability.");
+		return -Rd;
 	}
 
 	double Ci = (-b1 + sqrt(discriminant)) / (2.0 * b2);
 	
 	if (is_zero(Ci + beta)) {
-		log_warning("Ci + beta is zero in photosyn_solver. Returning An = 0 to avoid crash.");
-		return 0;
+		log_warning("Ci + beta is zero in photosyn_solver. Returning An = -Rd to avoid crash.");
+		return -Rd;
 	}
 
 	double solution = gamma * divide(Ci - gamstar, Ci + beta);

@@ -3814,10 +3814,14 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				}
 			} // end canopy layer loop
 
+			// lai_layerwise should sum to lai_today(), which is lai * phen.
+			// For deciduous trees, this may not be the same as indiv.lai.
+			double lai_tot = sum(indiv.lai_layerwise);
+
 			// calculate mean for some variables
-			ci_canopy /= indiv.lai;
-			vcmax_canopy /= indiv.lai;
-			jmax_canopy /= indiv.lai;
+			ci_canopy /= lai_tot;
+			vcmax_canopy /= lai_tot;
+			jmax_canopy /= lai_tot;
 
 			assert(indiv.lai < 20);
 

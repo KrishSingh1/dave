@@ -2211,8 +2211,6 @@ void plib_callback(int callback) {
 				}
 			}
 
-			if (!itemparsed("extkn"))     badins("extkn");
-
 			if (!itemparsed("reprfrac")) badins("reprfrac");
 
 			// turnover_leaf not required by dave grasses.
@@ -2291,6 +2289,7 @@ void plib_callback(int callback) {
 				if (!itemparsed("ha_j")) badins("ha_j");
 				if (!itemparsed("ds_v")) badins("ds_v");
 				if (!itemparsed("ds_j")) badins("ds_j");
+				if (!itemparsed("extkn")) badins("extkn");
 				if (!ifdavegrowth && ppft->ifcalcvcmax) {
 					log_warning("Using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 0");
 				}

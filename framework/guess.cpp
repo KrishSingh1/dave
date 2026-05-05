@@ -2092,6 +2092,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	man_strength = 0.0;
 	nscal_5.add(1.0);
 	nscal_30.add(1.0);
+	ps_inputs_layerwise.resize(date.subdaily);
+	ps_outputs_layerwise.resize(date.subdaily);
 }
 
 void Individual::serialize(ArchiveStream& arch) {
@@ -3737,6 +3739,10 @@ void Individual::daily_accounting() {
 	}
 	cmass_germ = 0;
 	mort_dcstarve = 0.0;
+	for (size_t i = 0; i < date.subdaily; i++) {
+		ps_inputs_layerwise[i].clear();
+		ps_outputs_layerwise[i].clear();
+	}
 }
 
 void Individual::annual_accounting() {

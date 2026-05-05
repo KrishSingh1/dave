@@ -3709,6 +3709,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 			// Loop over canopy layers (from top layer to bottom layer)
 			size_t nlayer = indiv.fipar_layerwise.size();
+			indiv.ps_inputs_layerwise[day.period].assign(nlayer, PhotosynthesisInputs{});
+			indiv.ps_outputs_layerwise[day.period].assign(nlayer, PhotosynthesisOutputs{});
+
 		    for (size_t j = 0; j < nlayer; j++) {
 
 				// No LAI means we can skip this layer as an optimisation. This
@@ -3760,6 +3763,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				} else {
 					photosynthesis_dave_c4(inputs, outputs);
 				}
+
+				indiv.ps_inputs_layerwise[day.period][j] = inputs;
+				indiv.ps_outputs_layerwise[day.period][j] = outputs;
 
 				// TODO drew: multiply by LAI only once, after canopy loop.
 

@@ -201,7 +201,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
     const Soil &soil = patch.soil;
 
     if (!ifdavephotosyn || !ifdavehydraulics) {
-		// Only apply if using DAVE photosynthesis
+		// Only apply if using DAVE photosynthesis and hydraulics.
 		return;
 	}
 

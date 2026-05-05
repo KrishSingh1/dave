@@ -45,7 +45,7 @@ void logging_get_run_stats(uint64_t *out_log_message_count,
 
 void logging_print_run_summary() {
     double elapsed_time = get_wall_time() - start_time;
-    printf("\nSimulation completed in %.2f seconds with %lu errors and %lu warnings.\n",
+    printf("\n\nSimulation completed in %.2f seconds with %lu errors and %lu warnings.\n",
              elapsed_time, error_count, warning_count);
     printf("See guess.log for full details\n");
 }

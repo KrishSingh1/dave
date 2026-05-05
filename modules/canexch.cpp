@@ -3467,7 +3467,18 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 			double c_c = (vcmax - rd) * (vp - rm + gbs * ci) - 
 					(vcmax * gbs * lgamstar * O2atm + rd * gbs * km);
 
-			anc = (-b_c - sqrt(pow(b_c,2) - 4.0 * a_c * c_c)) / (2 * a_c);
+			if (a_c == 0) {
+				log_warning("Zero a_c in C4 photosynthesis solver. A value of 1e-10 will be used instead, but this will invalidate the solution. a_c: %g", a_c);
+				a_c = 1e-10; // Avoid division by zero, but this also means the solution is not valid.
+			}
+
+			double discriminant = pow(b_c, 2) - 4.0 * a_c * c_c;
+			if (discriminant < 0) {
+				log_warning("Negative anc discriminant (%g) in C4 photosynthesis solver. A 0 value will be used instead, but this will invalidate the solution.", discriminant);
+				discriminant = 0;
+			}
+
+			anc = (-b_c - sqrt(discriminant)) / (2 * a_c);
 		}
 		// TODO: check value of alpha_PSII.
 
@@ -3487,7 +3498,18 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 			double c_j = ((divide(zj,2.0) * xj * je) - rm + gbs * ci) * (divide(zj,3.0) * (1.0 - xj) * je - rd) - 
 					gbs * lgamstar * O2atm * (divide(zj,3.0) * (1.0 - xj) * je + divide((7.0 * rd),3.0));
 
-			anj = (-b_j - sqrt(pow(b_j,2) - 4.0 * a_j * c_j)) / (2 * a_j);
+			if (a_j == 0) {
+				log_warning("Zero a_j in C4 photosynthesis solver. A value of 1e-10 will be used instead, but this will invalidate the solution. a_j: %g", a_j);
+				a_j = 1e-10; // Avoid division by zero, but this also means the solution is not valid.
+			}
+
+			double discriminant = pow(b_j,2) - 4.0 * a_j * c_j;
+			if (discriminant < 0) {
+				log_warning("Negative anj discriminant (%g) in C4 photosynthesis solver. A 0 value will be used instead, but this will invalidate the solution.", discriminant);
+				discriminant = 0;
+			}
+
+			anj = (-b_j - sqrt(discriminant)) / (2 * a_j);
 		}
 
 		// Net photosynthesis rate (mol m-2 s-1)
@@ -3819,9 +3841,15 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			double lai_tot = sum(indiv.lai_layerwise);
 
 			// calculate mean for some variables
-			ci_canopy /= lai_tot;
-			vcmax_canopy /= lai_tot;
-			jmax_canopy /= lai_tot;
+			if (lai_tot == 0) {
+				log_warning("Individual %d (%s): Total layerwise LAI is zero (%g) (indiv.lai = %g)",
+					        indiv.id, (const char *)pft.name, lai_tot,
+							indiv.lai);
+			} else {
+				ci_canopy /= lai_tot;
+				vcmax_canopy /= lai_tot;
+				jmax_canopy /= lai_tot;
+			}
 
 			assert(indiv.lai < 20);
 
@@ -3896,7 +3924,10 @@ double photosyn_solver(double g0, double X, double gamma, double beta,
 	double b1 = (1.0 - Ca * X) * (gamma - Rd) + g0 * (beta - Ca) - X * (gamma * gamstar + beta * Rd);
 	double b0 = -(1.0 - Ca * X) * (gamma * gamstar + beta * Rd) - g0 * beta * Ca;
 
-	assert(b2 != 0);
+	if (is_zero(b2)) {
+		log_warning("b2 is zero in photosyn_solver. Returning An = 0 to avoid crash.");
+		return 0;
+	}
 
 	double b1_sq = b1 * b1;
 	double four_ac = 4.0 * b0 * b2;
@@ -3913,17 +3944,26 @@ double photosyn_solver(double g0, double X, double gamma, double beta,
 	}
 
 	// This will catch cases where the discriminant is truly negative.
-	assert(discriminant >= 0.0);
+	if (discriminant < 0.0) {
+		log_warning("Negative discriminant in photosyn_solver. Returning An = 0 to avoid numerical instability.");
+		return 0;
+	}
 
 	double Ci = (-b1 + sqrt(discriminant)) / (2.0 * b2);
 	
 	if (is_zero(Ci + beta)) {
 		log_warning("Ci + beta is zero in photosyn_solver. Returning An = 0 to avoid crash.");
-		return 0; // dh fixme - to avoid crash. Need to discuss
+		return 0;
 	}
+
 	double solution = gamma * divide(Ci - gamstar, Ci + beta);
 
-	assert(solution >= 0);
+	if (solution < 0.0) {
+		// Logging as an error because this should never happen.
+		log_error("Negative solution (gpp) in photosyn_solver: %g. A gross value of 0 will be used instead.", solution);
+		solution = 0;
+	}
+
 	double An = solution - Rd;
 
 	return An;  // net photosynthesis (mol m-2 s-1)
@@ -3996,8 +4036,13 @@ double electron_transport_rate(double PAR,double Jmax) {
 							// updated value from Yang et al (2020), alternative parameterisation
 
 
-	double J = (alpha * PPFD + Jmax - sqrt(pow(alpha * PPFD + Jmax,2) - 
-				4.0 * THETA * alpha * PPFD * Jmax)) / (2.0 * THETA);  
+    double discriminant = pow(alpha * PPFD + Jmax,2) - 4.0 * THETA * alpha * PPFD * Jmax;
+	if (discriminant < 0) {
+		log_warning("Negative discriminant (%g) in electron transport rate calculation. A 0 value will be used instead, but this will invalidate the solution.", discriminant);
+		discriminant = 0;
+	}
+
+	double J = (alpha * PPFD + Jmax - sqrt(discriminant)) / (2.0 * THETA);
 
 	return J;   // electron transport rate in mol (electrons) m-2 s-1
 

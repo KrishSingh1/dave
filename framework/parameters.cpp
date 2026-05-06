@@ -823,6 +823,8 @@ void plib_declarations(int id,xtring setname) {
 			"fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen storage scalar");
 		declareitem("extkn",&ppft->extkn,-0.5,2.0,1,CB_NONE,
 			"Canopy nitrogen extinction coefficient (Hikosaka et al. 2016)");
+		declareitem("racclim",&ppft->racclim,-5000,5000,1,CB_NONE,
+			"Acclimation sensitivity coefficient for respiration (1/degC)");
 
 		declareitem("vcmax_25",&ppft->vcmax_25,-5000,5000,1,CB_NONE,
 			"Maximum carboxylation rate at 25 degC (μmol m-2 s-1).");
@@ -2283,6 +2285,7 @@ void plib_callback(int callback) {
 				if (!itemparsed("ds_v")) badins("ds_v");
 				if (!itemparsed("ds_j")) badins("ds_j");
 				if (!itemparsed("extkn")) badins("extkn");
+				if (!itemparsed("racclim")) badins("racclim");
 				if (!ifdavegrowth && ppft->ifcalcvcmax) {
 					log_warning("Using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 0");
 				}

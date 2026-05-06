@@ -2555,17 +2555,20 @@ double get_tgrowth(const Climate &climate) {
 Get the temperature scalar encapsulating the effect of temperature acclimation
 on respiration.
 
+@param tgrowth The growth temperature for the current day, calculated as the
+mean of the previous 30 days' mean daily air temperatures.
+@param racclim The acclimation sensitivity coefficient for respiration (1/degC).
+
 TODO:
 - Implement
 - Document/add references etc
 */
-double resp_temp_acclimation_scalar(double tgrowth) {
+double resp_temp_acclimation_scalar(double tgrowth, double racclim) {
 	if (!ifresptempacclimation) {
 		return 1.0;
 	}
 
-	// Placeholder, awaiting equations.
-	return 1.0;
+	return exp(-racclim * (tgrowth - 15.0));
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -2576,7 +2579,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	double respcoeff, double cton_sap, double cton_root, double cton_crown,
 	double cmass_sap, double cmass_root_today, double cmass_crown, double cmass_repr, 
 	double growth, double fphen_activity, double assim, double resp_leaf,
-	double tgrowth, double& resp, double &resp_maintenance, double &resp_growth,
+	double tgrowth, double racclim, double& resp, double &resp_maintenance, double &resp_growth,
 	double &resp_repr, double &resp_crown, double &resp_root, double &resp_sap) {
 
 	// DESCRIPTION
@@ -2687,7 +2690,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 	// Get scalar encapsulating the effect of temperature acclimation. This will
 	// be 1 if acclimation is disabled.
-	double scalar = resp_temp_acclimation_scalar(tgrowth);
+	double scalar = resp_temp_acclimation_scalar(tgrowth, racclim);
 
 	if (lifeform == TREE) {
 
@@ -2882,7 +2885,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root, 0.0,
 			indiv.cmass_sap, cmass_root, 0.0, 0.0, 0.0, 0.0,
-			assim, 0.0, tgrowth, resp, indiv.resp_maintenance,
+			assim, 0.0, tgrowth, pft.racclim, resp, indiv.resp_maintenance,
 			indiv.resp_growth, indiv.resp_repr, indiv.resp_crown,
 			indiv.resp_root, indiv.resp_sap);
 
@@ -3259,7 +3262,7 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	// in mol m-2 s-1.
 	double vcmax25_mol = inputs.vcmax25 / UMOL_PER_MOL;
 	double jmax25_mol  = inputs.jmax25  / UMOL_PER_MOL;
-	double resp_scalar = resp_temp_acclimation_scalar(inputs.tgrowth);
+	double resp_scalar = resp_temp_acclimation_scalar(inputs.tgrowth, inputs.racclim);
 
 	double rd = inputs.fphen_activity * pow(inputs.wscal, qb) * BC3 * vcmax25_mol * inputs.nscal *
 			respiration_temp_response(inputs.temp) * light_inhibition(inputs.par) * resp_scalar;
@@ -3374,18 +3377,16 @@ timestep.
 @param outputs: Outputs from this function (passed by reference).
 */
 void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOutputs &outputs) {
-	// Maximum number of iterations used to find An, gs, and ci.
-	const double NIT_MAX = 20;
-
 	// Parameters at 25 °C (mol m-2 s-1).
 	double vpmax_mol = inputs.vpmax25 / UMOL_PER_MOL;
 	double vcmax25_c4 = rVC4 * vpmax_mol;
 	double jmax25_c4  = rJC4 * vcmax25_c4;
 	double vpr        = rVPr * vcmax25_c4;
+	double resp_scalar = resp_temp_acclimation_scalar(inputs.tgrowth, inputs.racclim);
 
 	// Daytime (mitochondrial) leaf respiration (mol m-2 s-1).
 	double rd = inputs.fphen_activity * pow(inputs.wscal, qb) * BC4 * vcmax25_c4 * inputs.nscal *
-			respiration_temp_response(inputs.temp) * light_inhibition(inputs.par);
+			respiration_temp_response(inputs.temp) * light_inhibition(inputs.par) * resp_scalar;
 
 	// Rd in the mesophyll cells.
 	double rm = 0.5 * rd;
@@ -3617,6 +3618,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		inputs.psi_f = pft.psi_f;
 		inputs.predawn_lwp = indiv.predawn_lwp;
 		inputs.tgrowth = get_tgrowth(climate);
+		inputs.racclim = pft.racclim;
 
 		get_temp_acclimation_parameters(climate, pft, inputs.ha_v, inputs.ha_j, inputs.ds_v, inputs.ds_j);
 
@@ -4461,7 +4463,7 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			indiv.pft.respcoeff, cton_sap, cton_root, cton_crown, indiv.cmass_sap, 
 			cmass_root, cmass_crown, cmass_repr, indiv.cgrow, indiv.fphen_activity,
-			assim, indiv.resp_leaf, tgrowth, resp, indiv.resp_maintenance,
+			assim, indiv.resp_leaf, tgrowth, pft.racclim, resp, indiv.resp_maintenance,
 			indiv.resp_growth, indiv.resp_repr, indiv.resp_crown,
 			indiv.resp_root, indiv.resp_sap);
 
@@ -4545,6 +4547,7 @@ void forest_floor_dave(Patch &patch) {
 			inputs.s_f = pft.s_f;
 			inputs.psi_f = pft.psi_f;
 			inputs.predawn_lwp = patch.soil.soil_psi;
+			inputs.racclim = pft.racclim;
 
 			// Atmospheric CO2 concentration in mol mol-1.
 			inputs.ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;

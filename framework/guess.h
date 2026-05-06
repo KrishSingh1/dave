@@ -775,6 +775,9 @@ public:
 
 	/// Tgrowth, mean air temperature of preceding 30 d.
 	double tgrowth;
+
+    /// The acclimation sensitivity coefficient for respiration (1/degC).
+	double racclim;
 };
 
 /// Outputs from the photosynthesis function for a single individual in a single
@@ -2282,6 +2285,12 @@ public:
 	double kmax;
 	/// Nitrogen extinction coefficient within the canopy (Hikosaka et al. 2016)
 	double extkn;
+    /// The acclimation sensitivity coefficient for respiration (1/degC).
+    /// Positive values reduce the respiration scalar when tgrowth is above 15
+    /// degC and increase it when tgrowth is below 15 degC, with the strength of
+    /// the effect determined by racclim. A value of zero means no acclimation
+    /// effect.
+	double racclim;
 	/// Turgor loss point (MPa) - used for grasses only, where this often comes long before stomatal closure
 	double tlp;
 	// Sensitivity parameter indicating steepness of decline in Vcmax with water stress (Zhou 2014)
@@ -2823,6 +2832,8 @@ public:
 		temp_senesc1 = 0;
 		temp_senesc2 = 0;
 
+		extkn = 0;
+		racclim = 0;
 		for (int i=0; i<3; i++)
 			photo[i]=0.0;
 	}

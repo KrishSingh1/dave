@@ -353,7 +353,14 @@ void fpar(Patch& patch) {
 		double vstep = nlayer_canopy ? height_veg / nlayer_canopy : layer_thickness_canopy;
 
 		// Calculate number of layers (minus 1) from ground surface to top of canopy
-		toplayer = (int)(height_veg/vstep-0.0001);
+		toplayer = (int)(height_veg/vstep);
+
+		if (toplayer > 0 && height_veg <= toplayer * vstep) {
+			// Top layer results in an empty layer. This can happen if the
+			// vegetation height falls exactly on a layer boundary. In this case
+			// we simply reduce the layer count by one.
+			toplayer--;
+		}
 
 		// Calculate FPAR by integration from the top of the canopy (Eqn 2)
 		plai=0.0;
@@ -3594,6 +3601,13 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 		if (is_zero(indiv.get_nmass_leaf()) || is_zero(indiv.get_wscal())) {
 			continue;
+		}
+
+		double lai_layer_sum = sum(indiv.lai_layerwise);
+		if (!equal(lai_layer_sum, indiv.lai_today())) {
+			log_warning("Individual %d (%s): layerwise LAI sum (%g) does not equal total LAI (%g) (phen=%g)",
+						i, (const char *)pft.name, lai_layer_sum,
+						indiv.lai_today(), indiv.phen);
 		}
 
 		// get PFT-specfic stomatal conductance parameters (Medlyn et al. 2011)

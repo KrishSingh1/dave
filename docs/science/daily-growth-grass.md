@@ -1117,7 +1117,7 @@ https://doi.org/10.1002/hyp.15152
 
 # Appendix A: Photosynthesis
 
-## $C_3$ photosynthesis
+## C3 photosynthesis
 
 Photosynthesis for $C_3$ plants was implemented following Farquhar et al.
 (1980):
@@ -1187,7 +1187,7 @@ We solve equations (A2) and (A3) in combination with stomatal
 conductance Eq. (9) using the analytic solution presented in Wang &
 Leuning (1998).
 
-## $C_4$ photosynthesis
+## C4 photosynthesis
 
 We implemented the $C_4$ photosynthesis model as described in von
 Caemmerer & Furbank (1999) and von Caemmerer (2000, 2021). Net
@@ -1208,14 +1208,15 @@ A_{c} = \min\left( \left( V_{p}\  + \ g_{bs}\ C_{m} - \ R_{m} \right),(V_{cmax} 
 $$
 
 where $V_{p}$ is the phosphoenolpyruvate (PEP) carboxylation rate ($\text{mol m}^{-2}
-\text{s}^{-1}$), $g_{bs}$ is the bundle sheath is conductance to CO_2 ($\text{mol m}^{-2}\
-\text{s}^{-1}$), $C_{m}$ is the CO_2 concentration in the mesophyll cell
-($\text{mol mol}^{-1}$), $R_{m}$ is leaf mitochondrial respiration in the
-mesophyll cell ($\text{mol m}^{-2} \text{s}^{-1}$), $V_{cmax}$ is the maximum
-rubisco carboxylation rate ($\text{mol m}^{-2} \text{s}^{-1}$), and $R_{d}$ is
-leaf mitochondrial respiration (($\text{mol m}^{-2} \text{s}^{-1}$), see Eq.
-(A12). An explanation of the parameters as well as their units and default
-values can be found in Table A1.
+\text{s}^{-1}$), $g_{bs}$ is the bundle sheath is conductance
+to $\text{CO}_2$ ($\text{mol m}^{-2} \text{s}^{-1}$), $C_{m}$ is the
+$\text{CO}_2$ concentration in the mesophyll cell ($\text{mol mol}^{-1}$),
+$R_{m}$ is leaf mitochondrial respiration in the mesophyll cell (
+$\text{mol m}^{-2} \text{s}^{-1}$), $V_{cmax}$ is the maximum rubisco
+carboxylation rate ($\text{mol m}^{-2} \text{s}^{-1}$), and $R_{d}$ is leaf
+mitochondrial respiration (($\text{mol m}^{-2} \text{s}^{-1}$), see Eq. (A12).
+An explanation of the parameters as well as their units and default values can
+be found in Table A1.
 
 $V_p$ is calculated as:
 
@@ -1226,7 +1227,7 @@ $$
 
 Where $V_{pmax}$ is the maximum PEP carboxylation rate ($\text{mol m}^{-2}
 \text{s}^{-1}$), $K_{p}$ is the Michaelis-Menten constant of PEP carboxylase for
-CO_2 ($\text{mol mol}^{-1}$), and $V_{pr}$ is the PEP regeneration rate
+$\text{CO}_2$ ($\text{mol mol}^{-1}$), and $V_{pr}$ is the PEP regeneration rate
 ($\text{mol m}^{-2} \
 \text{s}^{-1}$).
 

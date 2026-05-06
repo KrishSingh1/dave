@@ -3158,7 +3158,7 @@ void vcmax_from_N(Individual &indiv) {
 	if (!is_zero(indiv.get_nmass_leaf())) {
 
 		// Calculate leaf N content at the top of the canopy (kgN m-2 per green leaf area)
-		nmass_leaf0 = calc_nmass_leaf0(pft, indiv.lai, indiv.get_nmass_leaf());
+		nmass_leaf0 = calc_nmass_leaf0(pft, indiv.lai_today(), indiv.get_nmass_leaf());
 
 		assert(positive(nmass_leaf0));
 

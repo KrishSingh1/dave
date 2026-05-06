@@ -3462,7 +3462,8 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 			anc = min((vp + gbs * ci - rm),(vcmax - rd));
 		} 
 		else {
-			double a_c = 1.0 - alpha_PSII/a0 * kc/ko;
+			// Previously: 1 - alpha / a0 * kc / k0
+			double a_c = alpha_PSII/a0 * kc/ko;
 			double b_c = -((vp - rm + gbs * ci) + (vcmax - rd) + gbs * km + alpha_PSII / a0 
 					* (lgamstar * vcmax + rd * kc / ko));
 			double c_c = (vcmax - rd) * (vp - rm + gbs * ci) - 
@@ -3493,9 +3494,9 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 		} 
 		else {
 			double a_j = 1.0 - (7.0 * lgamstar * alpha_PSII) / (3.0 * a0);
-			double b_j = -(divide(zj,2.0) * xj * je - rm + gbs * ci) + (divide(zj,3.0) * (1.0 - xj) * je - rd) + 
+			double b_j = -((divide(zj,2.0) * xj * je - rm + gbs * ci) + (divide(zj,3.0) * (1.0 - xj) * je - rd) +
 					gbs * (divide((7.0 * lgamstar * O2atm),3.0)) + divide((alpha_PSII * lgamstar),a0) *
-					(divide(zj,3.0) * (1.0 - xj) * je + divide((7.0 * rd),3.0));
+					(divide(zj,3.0) * (1.0 - xj) * je + divide((7.0 * rd),3.0)));
 			double c_j = ((divide(zj,2.0) * xj * je) - rm + gbs * ci) * (divide(zj,3.0) * (1.0 - xj) * je - rd) - 
 					gbs * lgamstar * O2atm * (divide(zj,3.0) * (1.0 - xj) * je + divide((7.0 * rd),3.0));
 

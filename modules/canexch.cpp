@@ -4078,33 +4078,13 @@ double photosyn_solver(double g0, double X, double gamma, double beta,
 	double b1 = (1.0 - Ca * X) * (gamma - Rd) + g0 * (beta - Ca) - X * (gamma * gamstar + beta * Rd);
 	double b0 = -(1.0 - Ca * X) * (gamma * gamstar + beta * Rd) - g0 * beta * Ca;
 
-	if (is_zero(b2)) {
-		log_warning("b2 is zero in photosyn_solver. Returning An = -Rd to avoid crash.");
+	double Ci;
+	if (!solve_quadratic(b2, b1, b0, Ci, false)) {
+		log_error("photosyn_solver: No solution for quadratic Ci. Returning An = -Rd to avoid crash. g0=%g, X=%g, gamma=%g, beta=%g, gamstar=%g, Rd=%g, Ca=%g",
+				  g0, X, gamma, beta, gamstar, Rd, Ca);
 		return -Rd;
 	}
 
-	double b1_sq = b1 * b1;
-	double four_ac = 4.0 * b0 * b2;
-	double discriminant = b1_sq - four_ac;
-
-	// Variable tolerance based on magnitude of inputs.
-	double discriminant_tol =
-		64.0 * DBL_EPSILON * max(fabs(b1_sq), fabs(four_ac));
-
-    // Roundoff error can lead to a very slightly negative discriminant. In this
-	// case, we set the discriminant to zero.
-	if (discriminant < 0.0 && discriminant >= -discriminant_tol) {
-		discriminant = 0.0;
-	}
-
-	// This will catch cases where the discriminant is truly negative.
-	if (discriminant < 0.0) {
-		log_warning("Negative discriminant in photosyn_solver. Returning An = -Rd to avoid numerical instability.");
-		return -Rd;
-	}
-
-	double Ci = (-b1 + sqrt(discriminant)) / (2.0 * b2);
-	
 	if (is_zero(Ci + beta)) {
 		log_warning("Ci + beta is zero in photosyn_solver. Returning An = -Rd to avoid crash.");
 		return -Rd;

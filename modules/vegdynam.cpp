@@ -568,7 +568,7 @@ void establishment_daily(Patch& patch) {
 		for (int i = 0; i < pftlist.nobj; i++) {
 			Pft &pft = pftlist[i];
 
-			if (!pft.dave_allocation() || pft.lifeform == TREE) {
+			if (!pft.daily_establishment()) {
 				// This pft is not using the dave allocation. This could happen,
 				// for example, if it's a tree and ifdailytree is false.
 				continue;

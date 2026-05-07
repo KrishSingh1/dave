@@ -152,7 +152,7 @@ void water_stress_dave_root_resistance(Patch &patch) {
 		Individual &indiv = patch.vegetation[i];
 		// Patchpft &ppft = indiv.patchpft();
 		Pft &pft = indiv.pft; 
-		
+
 		double wstress_layer[NSOILLAYER];
 		double wstress = 0.0;
 		double root_cond_sum = 0.0;
@@ -177,7 +177,7 @@ void water_stress_dave_root_resistance(Patch &patch) {
 			// Weight by root resistance.
 			// double weight = 1.0 / indiv.Rs_r[j];
 
-			// Alternative: weight by root distributeion. Reason: weighting by
+			// Alternative: weight by root distribution. Reason: weighting by
 			// root resistance leads to a flatter relationship with wcont.
 			double weight = indiv.rootdist[j];
 
@@ -206,7 +206,7 @@ void water_stress_dave_root_resistance(Patch &patch) {
 		// stress_base = soil.get_layer_soil_water(j);
 		double stress_base = soil.get_layer_soil_water(j) / wcont_crit;
 
-		// Guard to [0, 1].
+		// Clamp to [0, 1].
 		stress_base = max(min(stress_base, 1.0), 0.0);
 
 		// Weight by layer thickness.
@@ -224,18 +224,12 @@ void water_stress_dave_root_resistance(Patch &patch) {
 		ppft.wscal_10.add(ppft.wscal);
 		ppft.wscal_30.add(ppft.wscal);
 
-		ppft.airtemp_10.add(patch.get_climate().temp);
-
-		if (date.day == 0){
-			ppft.wscal_mean = 0.0;
-		}
-
+		// Reset to 0 in Patchpft::annual_accounting().
 		ppft.wscal_mean += wstress_pft;
 
 		if (date.islastmonth && date.islastday){
 			ppft.wscal_mean /= Date::MAX_YEAR_LENGTH;
 		}
-
 	}
 }
 
@@ -273,7 +267,6 @@ void water_stress_dave(Patch &patch) {
 	// - indiv.wscal_running (call .add() to add today's value in once at end of day)
 	// - ppft.wscal_5 and ppft.wscal_10 -> 5 and 10 day running mean of wscal
 
-	// Iterate over individuals in patch.
 	for (size_t i = 0; i < pftlist.nobj; i++) {
 		Patchpft &ppft = patch.pft[i];
 		Pft &pft = pftlist[i];
@@ -284,38 +277,10 @@ void water_stress_dave(Patch &patch) {
 		// Store water stress.
 		ppft.wscal = wstress;
 
-		if (date.day == 0 && (ppft.pft.phenology==CROPGREEN || ppft.pft.isintercropgrass) ) {
-			ppft.cropphen->growingdays_y = 0;
-		}
-
-		if (patch.stand.landcover!=CROPLAND //natural, urban, pasture, forest and peatland stands
-			|| ppft.pft.phenology==ANY 
-			&& ppft.pft.id==patch.stand.pftid) {
-			// Normal grass growth.
-			ppft.wscal_mean += ppft.wscal;
-
-			// Convert from sum to mean on last day of year.
-			if (date.islastday && date.islastmonth) {
-				ppft.wscal_mean /= date.year_length();
-			}
-		}
-		else if (ppft.cropphen->growingseason
-				|| ppft.pft.phenology == CROPGREEN && date.day == ppft.cropphen->hdate
-				|| ppft.pft.isintercropgrass && date.day == patch.pft[patch.stand.pftid].cropphen->eicdate) {
-			// True crops and cover-crop grass.
-			ppft.cropphen->growingdays_y++;
-			ppft.wscal_mean = ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen->growingdays_y;
-		} else {
-			// Either cropland but not a crop, or a crop outside growing season.
-		}
-
 		// Update the ppft-level moving averages of water stress.
 		ppft.wscal_5.add(ppft.wscal);
 		ppft.wscal_10.add(ppft.wscal);
 		ppft.wscal_30.add(ppft.wscal);
-
-		// Also update air temperature for some reason (why is this here?).
-		ppft.airtemp_10.add(patch.get_climate().temp);
 	}
 
 	// Update the corresponding indiv-level moving averages of water stress.
@@ -501,13 +466,14 @@ double light_inhibition(double PAR) {
 
 }
 
-// Calculate electron transport rate from PAR
-// e.g. von Caemmerer 2013 (Plant, Cell and Environment)
-double electron_transport_rate(double PAR,double Jmax) {
-	/// Inputs
-	// PAR  = incident photosynthetically active radiation (W m-2) 
-    // Jmax = max. electron transport rate (mol m-2 s-1)
+/*
+Calculate electron transport rate from PAR
+e.g. von Caemmerer 2013 (Plant, Cell and Environment)
 
+@param PAR  = incident photosynthetically active radiation (W m-2)
+@param Jmax = max. electron transport rate (mol m-2 s-1)
+*/
+double electron_transport_rate(double PAR,double Jmax) {
 	double PPFD = PAR * JTOMOL;  // photosynthetic photon flux density (mol (photons) m-2 s-1) 
 	double alpha = 0.2145;  // quantum yield of electron transport (mol (electrons) mol-1 (photon))
 						    // value from von Caemmerer 2013 (Plant, Cell and Environment) 
@@ -529,7 +495,15 @@ double electron_transport_rate(double PAR,double Jmax) {
 	return J;   // electron transport rate in mol (electrons) m-2 s-1
 }
 
-// scales Vcmax and Jmax under water stress based on Zhou (2014)
+/*
+Scales Vcmax and Jmax under water stress based on Zhou (2014)
+
+@param s_f         Sensitivity parameter indicating steepness of decline in
+                   Vcmax with water stress (Zhou 2014)
+@param psi_f       Reference value at which Vcmax or Jmax is half its non-water-
+                   stresed value (Zhou 2014)
+@param predawn_lwp Pre-dawn leaf water potential (MPa)
+*/
 double pslim_lwp_scalar(double s_f, double psi_f, double predawn_lwp){
 	return (1 + exp(s_f * psi_f)) / (1 + exp(s_f * (psi_f - predawn_lwp)));
 }
@@ -539,7 +513,7 @@ Get the temperature scalar encapsulating the effect of temperature acclimation
 on respiration.
 
 @param tgrowth The growth temperature for the current day, calculated as the
-mean of the previous 30 days' mean daily air temperatures.
+               mean of the previous 30 days' mean daily air temperatures.
 @param racclim The acclimation sensitivity coefficient for respiration (1/degC).
 */
 double resp_temp_acclimation_scalar(double tgrowth, double racclim) {
@@ -727,6 +701,10 @@ double calc_c4_ac_full(const C4Biochemistry &biochemistry,
 	return -rd;
 }
 
+/*
+Solve C4 photosynthesis for Ac, using either the approximate or full solution
+based on the simulation configuration.
+*/
 double calc_c4_ac(const C4Biochemistry &biochemistry,
 	              const PhotosynthesisInputs &inputs,
 				  const C4IterationState &state) {
@@ -788,6 +766,10 @@ double calc_c4_aj_full(const C4Biochemistry &biochemistry,
 	return -rd;
 }
 
+/*
+Solve C4 photosynthesis for Aj, using either the approximate or full solution
+based on the simulation configuration.
+*/
 double calc_c4_aj(const C4Biochemistry &biochemistry,
 				  const PhotosynthesisInputs &inputs,
 				  const C4IterationState &state) {
@@ -884,6 +866,9 @@ C4SolverResult solve_c4_photosynthesis(const C4Biochemistry &rates,
 	return state;
 }
 
+/*
+Get the C4 biochemical parameters for a given PFT/timestep/layer.
+*/
 C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
 	C4Biochemistry result;
 
@@ -988,7 +973,9 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	outputs.jmax = biochemistry.jmax;
 }
 
-// Coupled model of photosynthesis and stomatal conductance for C3 and C4 vegetation.
+/*
+Coupled model of photosynthesis and stomatal conductance for C3 and C4 plants.
+*/
 void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 	double height_veg = get_veg_height(vegetation);
@@ -1019,10 +1006,13 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		double g1   = pft.g1;    // kPa^0.5
 		double gcutic = pft.gcutic;  // mol m-2 s-1
 
-
-		// stomatal parameters for Zhou model (Zhou et al. 2014) - used for hydraulics mode
+		// stomatal parameters for Zhou model (Zhou et al. 2014) - used for
+		// hydraulics mode
 		double g1x = pft.g1x;
-		double b1z = log(0.1)/(pft.stom_clos+0.3); // We set parameter b1z to the value that results in 90% reduction in g1 at stom_clos (for compatibility with hydraulic module)
+
+        // We set parameter b1z to the value that results in 90% reduction in g1
+        // at stom_clos (for compatibility with hydraulic module).
+		double b1z = log(0.1)/(pft.stom_clos+0.3);
 
 		// Atmospheric CO2 concentration (mol mol-1)
 		// TODO: check if annual global means would make more sense 
@@ -1032,14 +1022,16 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		inputs.vcmax25 = indiv.ps_subdaily.vcmax25;
 		inputs.vpmax25 = indiv.ps_subdaily.vpmax25;
 		inputs.jmax25 = indiv.ps_subdaily.jmax25;
-		inputs.wscal = indiv.get_wscal(); // returns wscal based on root resistance if using hydraulics, otherwise wscal based on wcont
+        // wscal based on root resistance if using hydraulics, otherwise wcont.
+		inputs.wscal = indiv.get_wscal();
 		inputs.s_f = pft.s_f;
 		inputs.psi_f = pft.psi_f;
 		inputs.predawn_lwp = indiv.predawn_lwp;
 		inputs.tgrowth = climate.get_tgrowth();
 		inputs.racclim = pft.racclim;
 
-		get_temp_acclimation_parameters(climate, pft, inputs.ha_v, inputs.ha_j, inputs.ds_v, inputs.ds_j);
+		get_temp_acclimation_parameters(climate, pft, inputs.ha_v, inputs.ha_j,
+                                        inputs.ds_v, inputs.ds_j);
 
 		indiv.photosynthesis.agd_g = 0.0;
 		indiv.photosynthesis.rd_g = 0.0;
@@ -1088,25 +1080,40 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 			inputs.stomata_open = indiv.stomata_open;
 
-			// CS, Testing adjustment to gcutic with temperature - based on Cochard 2021 Eq 13 & 14, https://peercommunityjournal.org/item/10.24072/pcjournal.45.pdf
-			double Q10a = 1.2; // Scaling parameter
-			double Tp = 40; // Transition temperature, degC - to discuss with Erick
-			double Q10b = 4.8; // Scaling parameter
+			// CS, Testing adjustment to gcutic with temperature - based on
+			// Cochard 2021 Eq 13 & 14,
+			// https://peercommunityjournal.org/item/10.24072/pcjournal.45.pdf
+
+            // Scaling parameter
+			const double Q10a = 1.2;
+
+            // Transition temperature, degC - to discuss with Erick
+			const double Tp = 40;
+
+            // Scaling parameter
+			const double Q10b = 4.8;
+
 			double gcutic_adj = 0.0;
 
-			double gcutic_Tp = gcutic * pow(Q10a,(Tp - 25)/10); // calculate gcutic at phase change T for use in equation below
-			
-			if (inputs.temp < Tp){ // note this should all be based on leaf temperature, but using air temperature as an approximation
-				gcutic_adj = gcutic * pow(Q10a,(inputs.temp - 25)/10); // Note Erick's measurements start at 25, so changed 20 to 25 in equations
+            // Calculate gcutic at phase change T for use in equation below.
+			double gcutic_Tp = gcutic * pow(Q10a, (Tp - 25) / 10);
+
+            // This should all be based on leaf temperature, but using air
+            // temperature as an approximation.
+			if (inputs.temp < Tp) {
+                // Erick's measurements start at 25, so changed 20 to 25 in eqns
+				gcutic_adj = gcutic * pow(Q10a, (inputs.temp - 25) / 10);
 			} else {
-				gcutic_adj = gcutic_Tp * pow(Q10b,(inputs.temp - Tp)/10);
+				gcutic_adj = gcutic_Tp * pow(Q10b, (inputs.temp - Tp) / 10);
 			}
 
 			double X = 0.0;
 			double gdark = 0.0;
 
 			if (ifzhou) {
-				// Stomatal term (Medlyn et al. 2011), with g1 defined by pre-dawn soil water potential (Zhou et al. 2014)
+				// Stomatal term (Medlyn et al. 2011), with g1 defined by
+				// pre-dawn soil water potential (Zhou et al. 2014).
+
 				// X needs to represent gs for CO2, hence no 1.6 factor
 
 				// for water
@@ -1120,6 +1127,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					water_potential = indiv.weighted_psi;
 				}
 				g1 = g1x * exp(b1z * (water_potential + 0.3));
+
 				// Update indiv.g1 for outputting.
 				indiv.g1 = g1;
 
@@ -1134,14 +1142,15 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				// Note: g0 is for H20, here conversion to conductances to CO2
 				inputs.gdark = divide(max(0.0, g0), DWDC);  // TODO: do we need a different qs here?
 			}
-			else{
+			else {
 				// Stomatal term (Medlyn et al. 2011)
 				// X needs to represent gs for CO2, hence no 1.6 factor
 				inputs.X = stomatal_conductance_term(inputs.wscal, g1, inputs.vpd, inputs.ca);
 
 				// Residual stomatal conductance term
 				// Note: g0 is for H20, here conversion to conductances to CO2
-				inputs.gdark = stomatal_conductance_residual(g0, inputs.wscal);  // TODO: do we need a different qs here?
+                // TODO: do we need a different qs here?
+				inputs.gdark = stomatal_conductance_residual(g0, inputs.wscal);
 			}
 
 			// Don't allow gdark to fall below gcutic.
@@ -1152,6 +1161,10 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 			// Loop over canopy layers (from top layer to bottom layer)
 			size_t nlayer = indiv.fipar_layerwise.size();
+
+            // Initialise the layerwise inputs and outputs for this timestep.
+            // This can't happen earlier because we need to know the number of
+            // layers, which isn't known until we call fpar().
 			indiv.ps_inputs_layerwise[day.period].assign(nlayer, PhotosynthesisInputs{});
 			indiv.ps_outputs_layerwise[day.period].assign(nlayer, PhotosynthesisOutputs{});
 
@@ -1224,7 +1237,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				Anj_canopy += outputs.anj * lai_layer;
 				Anp_canopy += outputs.anp * lai_layer;
 				if (ifdavehydraulics && outputs.gsc < gcutic_adj / DWDC) {
-					gsw_canopy += gcutic_adj * lai_layer; // don't allow gsw to fall below cuticular conductance
+                    // Don't allow gsw to fall below cuticular conductance.
+					gsw_canopy += gcutic_adj * lai_layer;
 				} else {
 					gsw_canopy += (outputs.gsc * DWDC) * lai_layer;
 				}
@@ -1261,7 +1275,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			// For deciduous trees, this may not be the same as indiv.lai.
 			double lai_tot = sum(indiv.lai_layerwise);
 
-			// calculate mean for some variables
+			// Calculate mean for some variables.
 			if (lai_tot == 0) {
 				log_warning("Individual %d (%s): Total layerwise LAI is zero (%g) (indiv.lai = %g)",
 					        indiv.id, (const char *)pft.name, lai_tot,
@@ -1424,7 +1438,9 @@ void transpiration_dave(Patch &patch, Climate& climate, Vegetation& vegetation) 
 
         if (ifdavehydraulics && !indiv.stomata_open) {
             for (int i = 0; i<NSOILLAYER; i++) {
-                indiv.fwuptake[i] = 0; // if the stomata are closed, we assume roots are hydraulically isolated from the soil
+                // If the stomata are closed, we assume roots are hydraulically
+                // isolated from the soil.
+                indiv.fwuptake[i] = 0;
             }
         }
 	} // end cohort loop
@@ -1439,9 +1455,9 @@ void transpiration_dave(Patch &patch, Climate& climate, Vegetation& vegetation) 
 		}
 		if (uptake > wcont[i]) {
 			if (ifdavehydraulics) {
-				printf("Transpiration exceeds soil water content, this shouldn't happen\n");
-	//			fail("%d %d Transpiration exceeds soil water content, this shouldn't happen",date.year,date.day);
+				log_error("Transpiration exceeds soil water content, this shouldn't happen\n");
 			}
+
 			// Demand in this layer exceeds supply.
 			double fwavail = 0.999 * wcont[i] / uptake;
 			for (int j = 0; j < vegetation.nobj; j++) {
@@ -1458,39 +1474,29 @@ void transpiration_dave(Patch &patch, Climate& climate, Vegetation& vegetation) 
 	}
 }
 
-// This is a modification of the original npp routine of standard LPJ-GUESS.
-// Modifications include:
-// - called once a day (no sub-daily option, day structure not an input)
-// - no more calculation of photosynthesis
-// - bvoc function not implemented (could be added later)
+/*
+This is a modification of the original npp routine of standard LPJ-GUESS.
+
+Modifications include:
+
+- called once a day (no sub-daily option, day structure not an input)
+- no more calculation of photosynthesis
+- bvoc function not implemented (could be added later)
+*/
 void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
-	// Note: climate.gtemp will be uninitialised here when running in diurnal
-	// (ie subdaily) mode, and climate.gtemps will be uninitialised when running
-	// in non-diurnal mode.
-	double gtemp; // Response of respiration rate to temperature
-	if (date.diurnal()) {
-		gtemp = mean(&climate.gtemps.front(), date.subdaily);
-	} else {
-		gtemp = climate.gtemp;
-	}
+	// Response of respiration rate to temperature
+	double gtemp = climate.get_gtemp_mean();
 
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv = vegetation.getobj();
-
-		// For this individual ...
-
-		// Retrieve PFT and patch PFT
-
+	for (size_t i = 0; i < vegetation.nobj; i++) {
+		Individual& indiv = vegetation[i];
 		Pft& pft = indiv.pft;
 		Patchpft& ppft = patch.pft[pft.id];
 
-		//Don't do calculations for crops outside their growingseason
+		// Don't do calculations for crops outside their growing season.
 		if (!indiv.growingseason()) {
 			indiv.dnpp=0.0;
 			indiv.lambda = 0;
-			vegetation.nextobj();
 			continue;
 		}
 
@@ -1498,21 +1504,14 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		double assim = indiv.photosynthesis.gross_assimilation();
 
 		// Calculate autotrophic respiration
-		double cmass_root;
-		if (indiv.cropindiv && indiv.cropindiv->isintercropgrass && indiv.phen == 0.0)
-			cmass_root = 0.0;
-		else
-			cmass_root = indiv.cmass_root_today();
 
-		double cmass_crown = 0.0;
-		double cmass_repr = 0.0;
-		if (ifdavegrowth && ifdailygrass && indiv.pft.is_grass()) {
-			cmass_crown = indiv.cmass_crown;
-			cmass_repr = indiv.cmass_repr;
-		} else {
-			cmass_crown = 0.0;
-			cmass_repr = 0.0;
-		}
+		double cmass_root = indiv.cmass_root_today();
+
+		// 0 for trees
+		double cmass_crown = indiv.get_cmass_crown();
+
+		// 0 for PFTs using annual (trunk) allocation
+		double cmass_repr = indiv.get_cmass_repr();
 
 		// Static root and sap wood C:N ratio if no N limitation
 		// to not let N affect respiration for C only version of model
@@ -1524,8 +1523,6 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		double cton_root  = 0.0;
 		double cton_crown = 0.0;
 		if (ifnlim) {
-			//cton_sap = max(indiv.cton_sap(), indiv.pft.cton_leaf_min * indiv.pft.cton_sap_avr / indiv.pft.cton_leaf_avr);
-			//cton_root = max(indiv.cton_root(), indiv.pft.cton_leaf_min * indiv.pft.cton_root_avr / indiv.pft.cton_leaf_avr);
 			cton_sap   = indiv.cton_sap();
 			cton_root  = indiv.cton_root();
 			cton_crown = indiv.cton_crown();
@@ -1536,21 +1533,27 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			cton_crown = pft.cton_root_avr;
 		}
 
-		if (!indiv.pft.dave_allocation()){ // set CN ratios if not using DAVE allocation (since trunk allocation + DAVE photosynthesis can give unrealistic values)
+		if (!indiv.pft.dave_allocation()) {
+			// Set CN ratios if not using DAVE allocation (since trunk
+			// allocation + DAVE photosynthesis can give unrealistic values).
 			cton_sap = 330.0;
 			cton_root = 29.0;
 		}
 
+		// Set leaf respiration.
 		indiv.resp_leaf = indiv.photosynthesis.rd_g * KG_PER_G;
 
-		double resp = 0;
+		// 30 day moving average of air temperature.
 		double tgrowth = patch.get_climate().get_tgrowth();
 
-        // Get scalar encapsulating the effect of temperature acclimation. This will
-        // be 1 if acclimation is disabled.
+        // Get scalar encapsulating the effect of temperature acclimation. This
+        // will be 1 if acclimation is disabled.
         double scalar = resp_temp_acclimation_scalar(tgrowth, pft.racclim);
+
+		// Respiration coefficient is reduced based on temperature acclimation.
         double respcoeff = pft.respcoeff * scalar;
 
+		double resp = 0;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			respcoeff, cton_sap, cton_root, cton_crown, indiv.cmass_sap, 
 			cmass_root, cmass_crown, cmass_repr, indiv.cgrow, indiv.fphen_activity,
@@ -1572,15 +1575,6 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		indiv.report_flux(Fluxes::NPP, indiv.dnpp);
 		indiv.report_flux(Fluxes::GPP, assim);
 		indiv.report_flux(Fluxes::RA, resp);
-
-		if (indiv.lai_today() > indiv.mlai_max[date.month])
-			indiv.mlai_max[date.month] = indiv.lai_today();
-
-		// This is the same as indiv.lai for grasses, but it includes phen for trees/mosses.
-		// TODO Assaf: should trees or mosses use phen here?
-		indiv.mlai[date.month] += indiv.lai_today() / (double)date.ndaymonth[date.month];
-
-		vegetation.nextobj();
 	}
 }
 
@@ -1627,13 +1621,12 @@ void forest_floor_dave(Patch &patch) {
 
 		for (size_t i = 0; i < pftlist.nobj; i++) {
 			const Pft &pft = pftlist[i];
+			Patchpft &ppft = patch.pft[i];
 
-			// Only do this calculation for PFTs using annual (trunk) allocation.
-			if (pft.dave_allocation() && pft.lifeform != TREE) {
+			// Skip this calculation for PFTs using daily establishment.
+			if (pft.daily_establishment()) {
 				continue;
 			}
-
-			Patchpft &ppft = patch.pft[i];
 
 			inputs.s_f = pft.s_f;
 			inputs.psi_f = pft.psi_f;
@@ -1643,7 +1636,7 @@ void forest_floor_dave(Patch &patch) {
 			// Atmospheric CO2 concentration in mol mol-1.
 			inputs.ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;
 
-			if (/*ifdavehydraulics && wateruptake == WR_ROOT_RESISTANCE*/ifzhou) {
+			if (ifzhou) {
 				double Psi_wp = patch.soil.soiltype.Psi_wp / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
 				double Psi_whc = patch.soil.soiltype.Psi_whc / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
 				inputs.wscal = max(min((patch.soil.psi_layer[0] - Psi_wp) / (Psi_whc - Psi_wp),1.0),0.0);
@@ -1651,8 +1644,8 @@ void forest_floor_dave(Patch &patch) {
 				inputs.wscal = ppft.wscal;
 			}
 
-			// No soil water on first day of simulation - this results wscal = 0,
-			// which results in a division by zero. We can just skip this
+			// No soil water on first day of simulation - this results in wscal
+			// of 0, which results in a division by zero. We can just skip this
 			// calculation on the first day of the simulation.
 			if (is_zero(inputs.wscal)) {
 				continue;

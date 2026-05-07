@@ -152,12 +152,19 @@ void Climate::serialize(ArchiveStream& arch) {
 		& weathergenstate;
 }
 
-/*
-Get the growth temperature for the current day, calculated as the mean of the
-previous 30 days' mean daily air temperatures.
-*/
 double Climate::get_tgrowth() const {
 	return dtemp_31.periodicmean(30);
+}
+
+double Climate::get_gtemp_mean() const {
+	if (date.diurnal()) {
+		double sum = 0;
+		for (size_t i = 0; i < date.subdaily; i++) {
+			sum += gtemps[i];
+		}
+		return sum / date.subdaily;
+	}
+	return gtemp;
 }
 
 void WeatherGenState::serialize(ArchiveStream& arch) {
@@ -445,6 +452,8 @@ void Patchpft::daily_accounting(const Patch &patch) {
 		lai_ymean /= year_length;
 		agb_ymean /= year_length;
 	}
+
+	airtemp_10.add(patch.get_climate().temp);
 }
 
 void Patchpft::annual_accounting(const Patch &patch) {
@@ -452,6 +461,10 @@ void Patchpft::annual_accounting(const Patch &patch) {
 	agb_ymax = 0;
 	lai_ymean = 0;
 	agb_ymean = 0;
+	wscal_mean = 0;
+	if (pft.phenology==CROPGREEN || pft.isintercropgrass) {
+		cropphen->growingdays_y = 0;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2955,6 +2968,16 @@ bool Pft::dave_allocation() const {
 	return false;
 }
 
+bool Pft::daily_establishment() const {
+	if (is_grass() && ifdailygrass && ifdavegrowth) {
+		// DAVE daily grass.
+		return true;
+	}
+
+	// Everything else uses annual establishment.
+	return false;
+}
+
 // b is s1
 // c is s2
 
@@ -3278,6 +3301,22 @@ double Individual::cmass_root_today() const {
 		return cmass_root;
 	else
 		return cmass_root * phen;
+}
+
+double Individual::get_cmass_crown() const {
+	if (pft.is_grass() && pft.dave_allocation()) {
+		return cmass_crown;
+	} else {
+		return 0.0;
+	}
+}
+
+double Individual::get_cmass_repr() const {
+	if (pft.dave_allocation()) {
+		return cmass_repr;
+	} else {
+		return 0.0;
+	}
 }
 
 /// Gets the individual's daily fpc value
@@ -3788,6 +3827,29 @@ void Individual::set_wscal(double wscal) {
 	if (date.islastmonth && date.islastday) {
 		wscal_mean_year /= Date::MAX_YEAR_LENGTH;
 	}
+
+	Patchpft &ppft = patchpft();
+	if (vegetation.patch.stand.landcover != CROPLAND // natural, urban, pasture, forest and peatland stands
+		|| ppft.pft.phenology==ANY 
+		&& ppft.pft.id==vegetation.patch.stand.pftid) {
+		// Normal grass growth.
+		ppft.wscal_mean += ppft.wscal;
+
+		// Convert from sum to mean on last day of year.
+		if (date.islastday && date.islastmonth) {
+			ppft.wscal_mean /= date.year_length();
+		}
+	}
+	else if (ppft.cropphen->growingseason
+			|| ppft.pft.phenology == CROPGREEN && date.day == ppft.cropphen->hdate
+			|| ppft.pft.isintercropgrass && date.day == vegetation.patch.pft[vegetation.patch.stand.pftid].cropphen->eicdate) {
+		// True crops and cover-crop grass.
+		ppft.cropphen->growingdays_y++;
+		ppft.wscal_mean = ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen->growingdays_y;
+	} else {
+		// Either cropland but not a crop, or a crop outside growing season.
+	}
+
 }
 
 double Individual::wscal_mean() const {

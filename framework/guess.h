@@ -1505,6 +1505,11 @@ public:
 	*/
 	double get_tgrowth() const;
 
+	/*
+	Get mean daily respiration response to today's soil temperature at 0.25 m
+	depth.
+	*/
+	double get_gtemp_mean() const;
 public:
 	/// constructor function: initialises gridcell member
 	Climate(Gridcell& gc):gridcell(gc) {
@@ -2775,6 +2780,10 @@ public:
 
 	/// Check whether DAVE allocation is enabled for this PFT.
 	bool dave_allocation() const;
+
+	/// Return true if this PFT is using daily establishment, or false otherwise
+	/// (ie if it's using the annual (trunk) establishment).
+	bool daily_establishment() const;
 
 	/// transfer constant of leaf material between compartments (used for daily grass growth)
 	double transferconst;
@@ -4295,6 +4304,12 @@ public:
 	double cmass_leaf_today() const;
 	/// Gets the individual's daily cmass_root value
 	double cmass_root_today() const;
+
+	/// Return crown cmass for DAVE grasses, 0 for all other PFTs (kgC/m2).
+	double get_cmass_crown() const;
+
+	/// Return live reproductive cmass for DAVE PFTs, 0 for all other PFTs (kgC/m2).
+	double get_cmass_repr() const;
 
 	/// Gets the individual's daily LAI value (patch-level)
 	/** Based on total leaf area for whatever the individual represents

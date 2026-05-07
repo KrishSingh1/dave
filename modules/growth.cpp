@@ -850,6 +850,18 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 			// decide on phenological state (from Grote)
 			tree_phenology_grote(indiv);
 		}
+
+		if (!indiv.pft.dave_allocation()) {
+			// Update mlai. Better here than in npp(). No effect on dave indivs
+			// because they will update this after calling allometry each day.
+			if (indiv.lai_today() > indiv.mlai_max[date.month]) {
+				indiv.mlai_max[date.month] = indiv.lai_today();
+			}
+
+			// This is the same as indiv.lai for grasses, but it includes phen for trees/mosses.
+			indiv.mlai[date.month] += indiv.lai_today() / (double)date.ndaymonth[date.month];
+		}
+
 		// ... on to next individual
 		vegetation.nextobj();
 	}
@@ -6525,6 +6537,13 @@ void allometry_dave(Vegetation& vegetation) {
 			// TODO: Assaf
 			allometry_dave_tree(indiv);
 		}
+
+		if (indiv.lai_today() > indiv.mlai_max[date.month]) {
+			indiv.mlai_max[date.month] = indiv.lai_today();
+		}
+
+		// This is the same as indiv.lai for grasses, but it includes phen for trees/mosses.
+		indiv.mlai[date.month] += indiv.lai_today() / (double)date.ndaymonth[date.month];
 	}
 }
 

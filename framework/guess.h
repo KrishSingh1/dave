@@ -831,11 +831,11 @@ public:
 Inputs to the C4 photosynthesis solver function for a single layer/timestep.
 */
 struct C4Biochemistry {
-	// Maximum Rubisco carboxylation rate at 25 degC (mol m-2 s-1).
+	// Scaled maximum Rubisco carboxylation rate (mol m-2 s-1).
 	double vcmax;
-	// Maximum electron transport rate at 25 degC (mol m-2 s-1).
+	// Scaled maximum electron transport rate (mol m-2 s-1).
 	double jmax;
-	// Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1).
+	// Scaled maximum PEP carboxylation rate (mol m-2 s-1).
 	double vpmax;
 	// PEP regeneration rate (mol m-2 s-1).
 	double vpr;

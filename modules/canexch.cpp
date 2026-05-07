@@ -3596,6 +3596,7 @@ C4SolverResult solve_c4_photosynthesis(const C4Biochemistry &rates, const Photos
 	state.ci = ci;
 	state.iterations = it;
 	state.ci_diff = ci_diff;
+	state.converged = (it < NIT_MAX - 1);
 	return state;
 }
 
@@ -3677,12 +3678,12 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 
 	C4SolverResult result = solve_c4_photosynthesis(biochemistry, inputs);
 
-	if (result.iterations == NIT_MAX) {
-		log_warning("C4 photosynthesis solver did not converge after %d iterations (ci_diff = %g).",
-					NIT_MAX, result.ci_diff);
-	} else {
+	if (result.converged) {
 		log_diagnostic("C4 photosynthesis solver converged after %d iterations (ci_diff = %g).",
 					   result.iterations, result.ci_diff);
+	} else {
+		log_warning("C4 photosynthesis solver did not converge after %d iterations (ci_diff = %g).",
+					NIT_MAX, result.ci_diff);
 	}
 
 	outputs.rd = biochemistry.rd;

@@ -3357,7 +3357,7 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 		an = -rd;
 	}
 
-	if (is_zero(gsc)){
+	if (is_zero(gsc)) {
 		ci = inputs.ca;
 	} else {
 		ci = inputs.ca - divide(an, gsc);

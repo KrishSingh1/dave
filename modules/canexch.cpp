@@ -3419,6 +3419,10 @@ bool solve_quadratic(double a, double b, double c, double &root, bool lower) {
 	return true;
 }
 
+/*
+Approximate solution of Ac for C4 photosynthesis, following the equations in von
+Caemmerer (2021).
+*/
 double calc_c4_ac_approx(const C4Biochemistry &biochemistry,
 						 const PhotosynthesisInputs &inputs,
 						 const C4IterationState &state) {
@@ -3428,9 +3432,14 @@ double calc_c4_ac_approx(const C4Biochemistry &biochemistry,
 	double vp = state.vp;
 	double ci = state.ci;
 
+	// Equation 25
 	return min(vp + gbs * ci - rm, vcmax - rd);
 }
 
+/*
+Full solution for Ac for C4 photosynthesis, following the equations in von
+Caemmerer (2021).
+*/
 double calc_c4_ac_full(const C4Biochemistry &biochemistry,
 	                   const PhotosynthesisInputs &inputs,
 				       const C4IterationState &state) {
@@ -3447,7 +3456,7 @@ double calc_c4_ac_full(const C4Biochemistry &biochemistry,
 
 	// TODO: check value of alpha_PSII.
 
-	// Previously: 1 - alpha / a0 * kc / k0
+	// Equations 22-24
 	double a_c = alpha_PSII / a0 * kc / ko;
 	double b_c = -((vp - rm + gbs * ci) + (vcmax - rd) + gbs * km + alpha_PSII / a0
 			* (lgamstar * vcmax + rd * kc / ko));
@@ -3472,6 +3481,10 @@ double calc_c4_ac(const C4Biochemistry &biochemistry,
 	return calc_c4_ac_full(biochemistry, inputs, state);
 }
 
+/*
+Approximate solution of Aj for C4 photosynthesis, following the equations in von
+Caemmerer (2021).
+*/
 double calc_c4_aj_approx(const C4Biochemistry &biochemistry,
 						 const PhotosynthesisInputs &inputs,
 						 const C4IterationState &state) {
@@ -3481,10 +3494,16 @@ double calc_c4_aj_approx(const C4Biochemistry &biochemistry,
 	double rm = biochemistry.rm;
 	double ci = state.ci;
 	double rd = biochemistry.rd;
+
+	// Equation 44
 	return min(((divide(zj,2.0) * xj * je) - rm + gbs * ci),
 					((divide(zj,3.0) * (1.0 - xj) * je) - rd));
 }
 
+/*
+Full solution for Aj for C4 photosynthesis, following the equations in von
+Caemmerer (2021).
+*/
 double calc_c4_aj_full(const C4Biochemistry &biochemistry,
 					   const PhotosynthesisInputs &inputs,
 					   const C4IterationState &state) {
@@ -3496,6 +3515,7 @@ double calc_c4_aj_full(const C4Biochemistry &biochemistry,
 	double ci = state.ci;
 	double rd = biochemistry.rd;
 
+	// Equations 41-43
 	double a_j = 1.0 - (7.0 * lgamstar * alpha_PSII) / (3.0 * a0);
 	double b_j = -((divide(zj,2.0) * xj * je - rm + gbs * ci) + (divide(zj,3.0) * (1.0 - xj) * je - rd) +
 			gbs * (divide((7.0 * lgamstar * O2atm),3.0)) + divide((alpha_PSII * lgamstar),a0) *
@@ -3513,14 +3533,21 @@ double calc_c4_aj_full(const C4Biochemistry &biochemistry,
 	return -rd;
 }
 
-double calc_c4_aj(const C4Biochemistry &biochemistry, const PhotosynthesisInputs &inputs, const C4IterationState &state) {
+double calc_c4_aj(const C4Biochemistry &biochemistry,
+				  const PhotosynthesisInputs &inputs,
+				  const C4IterationState &state) {
 	if (ifapproximate_C4) {
 		return calc_c4_aj_approx(biochemistry, inputs, state);
 	}
 	return calc_c4_aj_full(biochemistry, inputs, state);
 }
 
-C4SolverResult solve_c4_photosynthesis(const C4Biochemistry &rates, const PhotosynthesisInputs &inputs) {
+/*
+Solve C4 photosynthesis for a single C4 indiv in a single layer at a given
+timestep, following the equations in von Caemmerer (2021).
+*/
+C4SolverResult solve_c4_photosynthesis(const C4Biochemistry &rates,
+									   const PhotosynthesisInputs &inputs) {
 
 	// C4/day time
 	double anc = 0;
@@ -3563,7 +3590,9 @@ C4SolverResult solve_c4_photosynthesis(const C4Biochemistry &rates, const Photos
 		// gsc = g0 + An * X;
 		// gsc = max(inputs.gdark, an * inputs.X);
 		double floor = ifdavehydraulics ? 0.0 : inputs.gdark;
-		gsc = max(floor, an * inputs.X); // CS removed floor at gdark since water stress can take gsc to zero
+
+		// CS removed floor at gdark since water stress can take gsc to zero.
+		gsc = max(floor, an * inputs.X);
 
 		// Intercellular CO2 concentration (mol mol-1)
 		if (!inputs.stomata_open) {
@@ -3604,8 +3633,8 @@ C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
 	C4Biochemistry result;
 
 	// Parameters at 25 °C (mol m-2 s-1).
-	double vpmax_mol = inputs.vpmax25 / UMOL_PER_MOL;
-	double vcmax25_c4 = rVC4 * vpmax_mol;
+	double vpmax25_mol = inputs.vpmax25 / UMOL_PER_MOL;
+	double vcmax25_c4 = rVC4 * vpmax25_mol;
 	double jmax25_c4  = rJC4 * vcmax25_c4;
 	result.vpr        = rVPr * vcmax25_c4;
 	double resp_scalar = resp_temp_acclimation_scalar(inputs.tgrowth, inputs.racclim);
@@ -3639,7 +3668,7 @@ C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
 	result.jmax  = pslim * Arrhenius_temp_response(jmax25_c4, inputs.temp, HA_J4, HD, DS_J4);
 
 	// Temperature dependency of Vpmax and Michaelis-Menten constants
-	result.vpmax = pslim * Arrhenius_temp_response(vpmax_mol, inputs.temp, HA_VP, HD, DS_VP);
+	result.vpmax = pslim * Arrhenius_temp_response(vpmax25_mol, inputs.temp, HA_VP, HD, DS_VP);
 
 	result.kp = Arrhenius_temp_response(KP25, inputs.temp, HA_KP, 0.0, 0.0);
 	result.kc = Arrhenius_temp_response(KC25_C4, inputs.temp, HA_KC_C4, 0.0, 0.0);

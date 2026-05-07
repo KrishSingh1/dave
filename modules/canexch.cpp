@@ -3385,7 +3385,21 @@ Solve a quadratic equation ax^2 + bx + c = 0.
 @return: True if a real root exists; false otherwise.
 */
 bool solve_quadratic(double a, double b, double c, double &root, bool lower) {
-	double discriminant = pow(b, 2) - 4.0 * a * c;
+
+	double b_sq = b * b;
+	double four_ac = 4.0 * a * c;
+	double discriminant = b_sq - four_ac;
+
+	// Variable tolerance based on magnitude of inputs.
+	double discriminant_tol =
+		64.0 * DBL_EPSILON * max(fabs(b_sq), fabs(four_ac));
+
+    // Roundoff error can lead to a very slightly negative discriminant. In this
+	// case, we set the discriminant to zero.
+	if (discriminant < 0.0 && discriminant >= -discriminant_tol) {
+		discriminant = 0.0;
+	}
+
 	if (discriminant < 0) {
 		return false;
 	}

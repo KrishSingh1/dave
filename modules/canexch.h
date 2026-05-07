@@ -173,7 +173,7 @@ const double xj = 0.4;
 const double fcyc = 0.3;
 
 // Ratio of ATP production to linear electron transport (JATP/J).
-const double zj = divide(3.0 - fcyc, 4.0 * (1.0 - fcyc));
+const double zj = (3.0 - fcyc) / (4.0 * (1.0 - fcyc));
 
 // Bundle-sheath conductance to CO2 (mol m-2 s-1)
 const double gbs = 0.003;  // von Caemmerer 2000

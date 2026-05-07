@@ -3660,18 +3660,26 @@ timestep.
 */
 void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOutputs &outputs) {
 	C4Biochemistry biochemistry = c4_biochemistry(inputs);
-	if (is_zero(inputs.par)) {
-		// No photosynthesis at night.
+
+	if (is_zero(inputs.par) || !inputs.stomata_open) {
+		// No photosynthesis (stomata closed - night time, water stress, etc).
+		// Gross assimilation = 0, net assimilation = -Rd, and Ci = Ca.
 		outputs.rd = biochemistry.rd;
 		outputs.an = -biochemistry.rd;
-		outputs.gsc = inputs.gdark;
-		if (!is_zero(outputs.gsc)) {
-			// TODO: do we even need this?
-			outputs.ci = inputs.ca - divide(outputs.an, outputs.gsc);
-		}
-		if (!inputs.stomata_open) {
-			outputs.gsc = 0;
+		outputs.anc = -biochemistry.rd;
+		outputs.anj = -biochemistry.rd;
+		outputs.vcmax = biochemistry.vcmax;
+		outputs.jmax = biochemistry.jmax;
+		outputs.anp = 0; // Not used in C4 photosynthesis
+
+		// Hydraulic stress can take gsc to zero.
+		outputs.gsc = inputs.stomata_open ? inputs.gdark : 0;
+
+		if (is_zero(outputs.gsc)) {
 			outputs.ci = inputs.ca;
+		} else {
+			// Unsure if this is necessary.
+			outputs.ci = inputs.ca - divide(outputs.an, outputs.gsc);
 		}
 		return;
 	}

@@ -29,24 +29,6 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 					double vm,
 					PhotosynthesisResult& result);
 
-// Temperature response function following a modified Arrhenius equation (Johnson et al. 1942) 
-double Arrhenius_temp_response(double k25, double Tl, double Ha, double Hd, double dS);
-
-// Temperature response function for leaf mitochondrial respiration (Heskel et al. 2016, PNAS)
-double respiration_temp_response(double Tl);
-
-// Light inhibition of leaf mitochondrial respiration.
-double light_inhibition(double PAR);
-
-// System of equations to solve coupled photosynthesis-stomatal conductance scheme.
-// Wang & Leuning 1998
-double photosyn_solver(double g0, double X, double gamma, double beta, 
-					   double gamstar, double Rd, double Ca);
-
-// Calculate electron transport rate from PAR
-// e.g. von Caemmerer 2013
-double electron_transport_rate(double PAR,double Jmax);
-
 /// Nitrogen- and landuse specific alpha a
 double alphaa(const Pft& pft);
 
@@ -61,6 +43,35 @@ double nitrogen_uptake_strength(const Individual& indiv);
 
 /// Use nitrogen storage to limit stress
 void nstore_usage(Vegetation& vegetation);
+
+/// Get CO2 concentration in air (ppm).
+double get_co2(const Patch& p, const Climate& climate, const Pft& pft);
+
+void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
+	double respcoeff, double cton_sap, double cton_root, double cton_crown,
+	double cmass_sap, double cmass_root_today, double cmass_crown, double cmass_repr, 
+	double growth, double fphen_activity, double assim, double resp_leaf,
+	double& resp, double &resp_maintenance, double &resp_growth,
+	double &resp_repr, double &resp_crown, double &resp_root, double &resp_sap);
+
+/// Leaf senescence for crops Eqs. 8,9,13 and 14 in Olin 2015
+void leaf_senescence(Vegetation& vegetation);
+
+void ndemand(Patch& patch, Vegetation& vegetation);
+
+void nitrogen_uptake(Vegetation &vegetation);
+
+double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual &indiv);
+
+double water_uptake_twolayer(double wcont[NSOILLAYER], double awc[NSOILLAYER],
+	double rootdist[NSOILLAYER], double emax, double fpc_rescale,
+	double fwuptake[NSOILLAYER], bool ifsmart, double species_drought_tolerance);
+
+
+double water_uptake(double wcont[NSOILLAYER], double awc[NSOILLAYER],
+	double rootdist[NSOILLAYER], double emax, double fpc_rescale,
+	double fwuptake[NSOILLAYER], bool ifsmart, double species_drought_tolerance,
+	double Rs_r[NSOILLAYER]);
 
 // Constants for photosynthesis calculations
 
@@ -178,9 +189,6 @@ const double zj = (3.0 - fcyc) / (4.0 * (1.0 - fcyc));
 // Bundle-sheath conductance to CO2 (mol m-2 s-1)
 const double gbs = 0.003;  // von Caemmerer 2000
 						   // 0.00287 in Yin et al. 2016 
-
-// Average leaf N:P ratio for C3 grasses from Thum et al. 2019 (SI Table 8).
-const double C3_LEAF_NTOP = 10.7;
 
 // The following parameters are only used for the complex C4 photosynthesis formulation
 // Michaelis-Menten constant for CO2 and O2 (Boyd et al. 2015)

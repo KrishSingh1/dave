@@ -97,6 +97,18 @@ inline bool is_zero(double x, double eps = DBL_EPSILON) {
 }
 
 /*
+Solve a quadratic equation ax^2 + bx + c = 0.
+
+@param a: Coefficient of x^2.
+@param b: Coefficient of x.
+@param c: Constant term.
+@param root: The root to return (passed by reference).
+@param lower: If true, return the lower root; otherwise, return the higher root.
+@return: True if a real root exists; false otherwise.
+*/
+bool solve_quadratic(double a, double b, double c, double &root, bool lower);
+
+/*
 Returns true if x is sufficiently close to y.
 
 The tolerance increases with the magnitude of the operands, to allow for the

@@ -1498,6 +1498,13 @@ public:
 
 	/// Long-term mean maximum temperature of the warmest month (°C).
 	double thome;
+
+	/*
+	Get the growth temperature for the current day, calculated as the mean of the
+	previous 30 days' mean daily air temperatures.
+	*/
+	double get_tgrowth() const;
+
 public:
 	/// constructor function: initialises gridcell member
 	Climate(Gridcell& gc):gridcell(gc) {

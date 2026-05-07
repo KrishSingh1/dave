@@ -53,6 +53,7 @@ set(source
   ncinventory.cpp
   variableresolver.cpp
   logging.cpp
+  guessmath.cpp
 )
 
 include(add_guess_sources)

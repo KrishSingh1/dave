@@ -152,6 +152,14 @@ void Climate::serialize(ArchiveStream& arch) {
 		& weathergenstate;
 }
 
+/*
+Get the growth temperature for the current day, calculated as the mean of the
+previous 30 days' mean daily air temperatures.
+*/
+double Climate::get_tgrowth() const {
+	return dtemp_31.periodicmean(30);
+}
+
 void WeatherGenState::serialize(ArchiveStream& arch) {
 
 	arch & carry

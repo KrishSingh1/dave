@@ -94,6 +94,13 @@ const double BC3 = 0.015;
 /// leaf respiration as fraction of maximum carboxylation rate, C4 plants
 const double BC4 = 0.025;
 
+// Maximum number of iterations that the C4 photosynthesis solver can use to
+// find An, gs, and ci.
+const int NIT_MAX = 20;
+
+// Iteration ceases when ci changes by less than this amount.
+const double CI_DIFF_MAX = 5e-7; // mol mol-1
+
 /// Radiation conversion from J m-2 s-1 (=W m-2) to mol (quanta) m-2 s-1
 const double JTOMOL = 4.6E-6;
 
@@ -164,6 +171,9 @@ const double xj = 0.4;
 
 // Fraction of cyclic electron transport (von Caemmerer 2021)
 const double fcyc = 0.3;
+
+// Ratio of ATP production to linear electron transport (JATP/J).
+const double zj = divide(3.0 - fcyc, 4.0 * (1.0 - fcyc));
 
 // Bundle-sheath conductance to CO2 (mol m-2 s-1)
 const double gbs = 0.003;  // von Caemmerer 2000

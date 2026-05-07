@@ -3375,49 +3375,235 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 }
 
 /*
-C4 photosynthesis (von Caemmerer 2000).
+Solve a quadratic equation ax^2 + bx + c = 0.
 
-Calculates photosynthesis for a single C4 indiv in a single layer at a given
-timestep.
-
-@param inputs: Inputs to this function.
-@param outputs: Outputs from this function (passed by reference).
+@param a: Coefficient of x^2.
+@param b: Coefficient of x.
+@param c: Constant term.
+@param root: The root to return (passed by reference).
+@param lower: If true, return the lower root; otherwise, return the higher root.
+@return: True if a real root exists; false otherwise.
 */
-void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOutputs &outputs) {
+bool solve_quadratic(double a, double b, double c, double &root, bool lower) {
+	double discriminant = pow(b, 2) - 4.0 * a * c;
+	if (discriminant < 0) {
+		return false;
+	}
+
+	if (is_zero(a)) {
+		// Equation degenerates to linear.
+		if (is_zero(b)) {
+			// No solution - not a function.
+			return false;
+		}
+		root = -c / b;
+		return true;
+	}
+
+	int sign = lower ? -1 : 1;
+	root = (-b + sign * sqrt(discriminant)) / (2 * a);
+	return true;
+}
+
+double calc_c4_ac_approx(const C4Biochemistry &biochemistry,
+						 const PhotosynthesisInputs &inputs,
+						 const C4IterationState &state) {
+	double vcmax = biochemistry.vcmax;
+	double rd = biochemistry.rd;
+	double rm = biochemistry.rm;
+	double vp = state.vp;
+	double ci = state.ci;
+
+	return min(vp + gbs * ci - rm, vcmax - rd);
+}
+
+double calc_c4_ac_full(const C4Biochemistry &biochemistry,
+	                   const PhotosynthesisInputs &inputs,
+				       const C4IterationState &state) {
+    double kc = biochemistry.kc;
+	double ko = biochemistry.ko;
+	double vp = state.vp;
+	double rm = biochemistry.rm;
+	double ci = state.ci;
+	double vcmax = biochemistry.vcmax;
+	double rd = biochemistry.rd;
+
+	// kc * (1 + om / ko)
+	double km = biochemistry.km;
+
+	// TODO: check value of alpha_PSII.
+
+	// Previously: 1 - alpha / a0 * kc / k0
+	double a_c = alpha_PSII / a0 * kc / ko;
+	double b_c = -((vp - rm + gbs * ci) + (vcmax - rd) + gbs * km + alpha_PSII / a0
+			* (lgamstar * vcmax + rd * kc / ko));
+	double c_c = (vcmax - rd) * (vp - rm + gbs * ci) -
+			(vcmax * gbs * lgamstar * O2atm + rd * gbs * km);
+
+	double anc;
+	if (solve_quadratic(a_c, b_c, c_c, anc, true)) {
+		return anc;
+	}
+	log_warning("No solution to C4 photosynthesis quadratic equation for Ac. A value of -Rd (%g) will be used for Ac. a_c: %g, b_c: %g, c_c: %g",
+				rd, a_c, b_c, c_c);
+	return -rd;
+}
+
+double calc_c4_ac(const C4Biochemistry &biochemistry,
+	              const PhotosynthesisInputs &inputs,
+				  const C4IterationState &state) {
+	if (ifapproximate_C4) {
+		return calc_c4_ac_approx(biochemistry, inputs, state);
+	}
+	return calc_c4_ac_full(biochemistry, inputs, state);
+}
+
+double calc_c4_aj_approx(const C4Biochemistry &biochemistry,
+						 const PhotosynthesisInputs &inputs,
+						 const C4IterationState &state) {
+	// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
+	double je = electron_transport_rate(inputs.par, biochemistry.jmax);
+
+	double rm = biochemistry.rm;
+	double ci = state.ci;
+	double rd = biochemistry.rd;
+	return min(((divide(zj,2.0) * xj * je) - rm + gbs * ci),
+					((divide(zj,3.0) * (1.0 - xj) * je) - rd));
+}
+
+double calc_c4_aj_full(const C4Biochemistry &biochemistry,
+					   const PhotosynthesisInputs &inputs,
+					   const C4IterationState &state) {
+
+	// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
+	double je = electron_transport_rate(inputs.par, biochemistry.jmax);
+
+	double rm = biochemistry.rm;
+	double ci = state.ci;
+	double rd = biochemistry.rd;
+
+	double a_j = 1.0 - (7.0 * lgamstar * alpha_PSII) / (3.0 * a0);
+	double b_j = -((divide(zj,2.0) * xj * je - rm + gbs * ci) + (divide(zj,3.0) * (1.0 - xj) * je - rd) +
+			gbs * (divide((7.0 * lgamstar * O2atm),3.0)) + divide((alpha_PSII * lgamstar),a0) *
+			(divide(zj,3.0) * (1.0 - xj) * je + divide((7.0 * rd),3.0)));
+	double c_j = ((divide(zj,2.0) * xj * je) - rm + gbs * ci) * (divide(zj,3.0) * (1.0 - xj) * je - rd) -
+			gbs * lgamstar * O2atm * (divide(zj,3.0) * (1.0 - xj) * je + divide((7.0 * rd),3.0));
+
+	double anj;
+	if (solve_quadratic(a_j, b_j, c_j, anj, true)) {
+		return anj;
+	}
+
+	log_warning("No solution to C4 photosynthesis quadratic equation for Aj. A value of -Rd (%g) will be used for Aj. a_j: %g, b_j: %g, c_j: %g",
+				rd, a_j, b_j, c_j);
+	return -rd;
+}
+
+double calc_c4_aj(const C4Biochemistry &biochemistry, const PhotosynthesisInputs &inputs, const C4IterationState &state) {
+	if (ifapproximate_C4) {
+		return calc_c4_aj_approx(biochemistry, inputs, state);
+	}
+	return calc_c4_aj_full(biochemistry, inputs, state);
+}
+
+C4SolverResult solve_c4_photosynthesis(const C4Biochemistry &rates, const PhotosynthesisInputs &inputs) {
+
+	// C4/day time
+	double anc = 0;
+	double anj = 0;
+	double an  = 0;
+	double gsc = 0;
+
+	double vpmax = rates.vpmax;
+	double vpr = rates.vpr;
+	double kp = rates.kp;
+
+	// Iteration to find An, gs, and ci
+	double ci = 0.5 * inputs.ca;
+
+	double ci_diff;
+	int it;
+	for (it = 0; it < NIT_MAX; it++) {
+		if (it == NIT_MAX - 1) {
+			// No solution found. Use initial ci guess on last iteration.
+			ci = 0.5 * inputs.ca;
+		}
+
+		// PEP carboxylation rate
+		double vp = min(divide(ci * vpmax, ci + kp), vpr);
+
+		C4IterationState state;
+		state.ci = ci;
+		state.vp = vp;
+
+		// Enzyme-limited net photosynthesis rate (mol m-2 s-1)
+		anc = calc_c4_ac(rates, inputs, state);
+
+		// Light-limited net photosynthesis rate (mol m-2 s-1)
+		anj = calc_c4_aj(rates, inputs, state);
+
+		// Net photosynthesis rate (mol m-2 s-1)
+		an = min(anc, anj);
+
+		// Stomatal conductance to CO2 (mol m-2 s-1)
+		// gsc = g0 + An * X;
+		// gsc = max(inputs.gdark, an * inputs.X);
+		double floor = ifdavehydraulics ? 0.0 : inputs.gdark;
+		gsc = max(floor, an * inputs.X); // CS removed floor at gdark since water stress can take gsc to zero
+
+		// Intercellular CO2 concentration (mol mol-1)
+		if (!inputs.stomata_open) {
+			gsc = 0.0;
+		}
+
+		double ci_new = is_zero(gsc) ? inputs.ca : inputs.ca - divide(an, gsc);
+
+		if (it != NIT_MAX - 1) {
+			// Don't update ci_diff on final iteration, because its value will
+			// be misleading (as ci was reset to its initial value for this
+			// iteration).
+			ci_diff = ci - ci_new;
+
+			// If we can't find a solution, use initial guess on last iteration.
+			ci -= ci_diff / 2.0;
+		}
+
+		// Cease iteration if ci has converged to within CI_DIFF_MAX.
+		if (it > 0 && abs(ci_diff) <= CI_DIFF_MAX) {
+			break;
+		}
+	} // end solver
+
+	C4SolverResult state;
+	state.an = an;
+	state.ac = anc;
+	state.aj = anj;
+	state.gsc = gsc;
+	state.ci = ci;
+	state.iterations = it;
+	state.ci_diff = ci_diff;
+	return state;
+}
+
+C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
+	C4Biochemistry result;
+
 	// Parameters at 25 °C (mol m-2 s-1).
 	double vpmax_mol = inputs.vpmax25 / UMOL_PER_MOL;
 	double vcmax25_c4 = rVC4 * vpmax_mol;
 	double jmax25_c4  = rJC4 * vcmax25_c4;
-	double vpr        = rVPr * vcmax25_c4;
+	result.vpr        = rVPr * vcmax25_c4;
 	double resp_scalar = resp_temp_acclimation_scalar(inputs.tgrowth, inputs.racclim);
 
 	// Daytime (mitochondrial) leaf respiration (mol m-2 s-1).
-	double rd = inputs.fphen_activity * pow(inputs.wscal, qb) * BC4 * vcmax25_c4 * inputs.nscal *
+	result.rd = inputs.fphen_activity * pow(inputs.wscal, qb) * BC4 * vcmax25_c4 * inputs.nscal *
 			respiration_temp_response(inputs.temp) * light_inhibition(inputs.par) * resp_scalar;
 
 	// Rd in the mesophyll cells.
-	double rm = 0.5 * rd;
+	result.rm = 0.5 * result.rd;
 
 	// Rd in the bundle-sheath cells.
-	double rs = rd - rm;
-
-	if (is_zero(inputs.par)) {
-		// No photosynthesis at night.
-		outputs.rd = rd;
-		outputs.an = -rd;
-		outputs.gsc = inputs.gdark;
-		if (!is_zero(outputs.gsc)) {
-			// TODO: do we even need this?
-			outputs.ci = inputs.ca - divide(outputs.an, outputs.gsc);
-		}
-		if (!inputs.stomata_open) {
-			outputs.gsc = 0;
-			outputs.ci = inputs.ca;
-		}
-		return;
-	}
-
-	// C4/day time
+	result.rs = result.rd - result.rm;
 
 	// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
 	double pslim = inputs.fphen_activity * inputs.ps_sink_lim * inputs.nscal;
@@ -3431,140 +3617,68 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 		pslim = pslim * pow(inputs.wscal, qb);
 	}
 
-	double vcmax = pslim * Arrhenius_temp_response(vcmax25_c4, inputs.temp, HA_V4, HD, DS_V4);
+	result.vcmax = pslim * Arrhenius_temp_response(vcmax25_c4, inputs.temp, HA_V4, HD, DS_V4);
 
 	// Note: Jmax temperature response has been refitted to an Arrhenius equation
-	// Jmax  = pslim * (Jmax25_C4 * exp(-(pow((temp - 43.0)/26.0,2)))); 
-	double jmax  = pslim * Arrhenius_temp_response(jmax25_c4, inputs.temp, HA_J4, HD, DS_J4);
+	// Jmax  = pslim * (Jmax25_C4 * exp(-(pow((temp - 43.0)/26.0,2))));
+	result.jmax  = pslim * Arrhenius_temp_response(jmax25_c4, inputs.temp, HA_J4, HD, DS_J4);
 
 	// Temperature dependency of Vpmax and Michaelis-Menten constants
-	double vpmax = pslim * Arrhenius_temp_response(vpmax_mol, inputs.temp, HA_VP, HD, DS_VP);
-	double kp    = Arrhenius_temp_response(KP25, inputs.temp, HA_KP, 0.0, 0.0);
-	double kc    = Arrhenius_temp_response(KC25_C4, inputs.temp, HA_KC_C4, 0.0, 0.0);
-	double ko    = Arrhenius_temp_response(KO25_C4, inputs.temp, HA_KO_C4, 0.0, 0.0);
-	double km    = kc * (1.0 + divide(O2atm, ko));
+	result.vpmax = pslim * Arrhenius_temp_response(vpmax_mol, inputs.temp, HA_VP, HD, DS_VP);
 
-	double anc = 0;
-	double anj = 0;
-	double an  = 0;
-	double gsc = 0;
+	result.kp = Arrhenius_temp_response(KP25, inputs.temp, HA_KP, 0.0, 0.0);
+	result.kc = Arrhenius_temp_response(KC25_C4, inputs.temp, HA_KC_C4, 0.0, 0.0);
+	result.ko = Arrhenius_temp_response(KO25_C4, inputs.temp, HA_KO_C4, 0.0, 0.0);
+	result.km = result.kc * (1.0 + divide(O2atm, result.ko));
 
-	// Iteration to find An, gs, and ci
-	double ci = 0.5 * inputs.ca;
-	double ci_diff_max = 0.5e-6; // mol mol-1
-	double ci_diff = 2.0 * ci_diff_max;
-	double nit = 0;
-	double ci_new = 0;
-	while (abs(ci_diff) > ci_diff_max && nit < NIT_MAX) {
-		if (nit == NIT_MAX - 1) {
-			// No solution found. Use initial guess.
-			ci = 0.5 * inputs.ca;
+	return result;
+}
+
+/*
+C4 photosynthesis (von Caemmerer 2000).
+
+Calculates photosynthesis for a single C4 indiv in a single layer at a given
+timestep.
+
+@param inputs: Inputs to this function.
+@param outputs: Outputs from this function (passed by reference).
+*/
+void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOutputs &outputs) {
+	C4Biochemistry biochemistry = c4_biochemistry(inputs);
+	if (is_zero(inputs.par)) {
+		// No photosynthesis at night.
+		outputs.rd = biochemistry.rd;
+		outputs.an = -biochemistry.rd;
+		outputs.gsc = inputs.gdark;
+		if (!is_zero(outputs.gsc)) {
+			// TODO: do we even need this?
+			outputs.ci = inputs.ca - divide(outputs.an, outputs.gsc);
 		}
-
-		// PEP carboxylation rate
-		double vp = min(divide(ci * vpmax, ci + kp), vpr);
-
-		// Enzyme-limited net photosynthesis rate (mol m-2 s-1)
-		if (ifapproximate_C4){
-			anc = min((vp + gbs * ci - rm),(vcmax - rd));
-		} 
-		else {
-			// Previously: 1 - alpha / a0 * kc / k0
-			double a_c = alpha_PSII/a0 * kc/ko;
-			double b_c = -((vp - rm + gbs * ci) + (vcmax - rd) + gbs * km + alpha_PSII / a0 
-					* (lgamstar * vcmax + rd * kc / ko));
-			double c_c = (vcmax - rd) * (vp - rm + gbs * ci) - 
-					(vcmax * gbs * lgamstar * O2atm + rd * gbs * km);
-
-			if (a_c == 0) {
-				log_warning("Zero a_c in C4 photosynthesis solver. A value of 1e-10 will be used instead, but this will invalidate the solution. a_c: %g", a_c);
-				a_c = 1e-10; // Avoid division by zero, but this also means the solution is not valid.
-			}
-
-			double discriminant = pow(b_c, 2) - 4.0 * a_c * c_c;
-			if (discriminant < 0) {
-				log_warning("Negative anc discriminant (%g) in C4 photosynthesis solver. A 0 value will be used instead, but this will invalidate the solution.", discriminant);
-				discriminant = 0;
-			}
-
-			anc = (-b_c - sqrt(discriminant)) / (2 * a_c);
-		}
-		// TODO: check value of alpha_PSII.
-
-		// Light-limited net photosynthesis rate (mol m-2 s-1)
-		// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
-		double je = electron_transport_rate(inputs.par, jmax);
-		double zj = divide((3.0 - fcyc),(4.0 * (1.0 - fcyc)));
-		if (ifapproximate_C4){
-			anj = min(((divide(zj,2.0) * xj * je) - rm + gbs * ci),
-						((divide(zj,3.0) * (1.0 - xj) * je) - rd));
-		} 
-		else {
-			double a_j = 1.0 - (7.0 * lgamstar * alpha_PSII) / (3.0 * a0);
-			double b_j = -((divide(zj,2.0) * xj * je - rm + gbs * ci) + (divide(zj,3.0) * (1.0 - xj) * je - rd) +
-					gbs * (divide((7.0 * lgamstar * O2atm),3.0)) + divide((alpha_PSII * lgamstar),a0) *
-					(divide(zj,3.0) * (1.0 - xj) * je + divide((7.0 * rd),3.0)));
-			double c_j = ((divide(zj,2.0) * xj * je) - rm + gbs * ci) * (divide(zj,3.0) * (1.0 - xj) * je - rd) - 
-					gbs * lgamstar * O2atm * (divide(zj,3.0) * (1.0 - xj) * je + divide((7.0 * rd),3.0));
-
-			if (a_j == 0) {
-				log_warning("Zero a_j in C4 photosynthesis solver. A value of 1e-10 will be used instead, but this will invalidate the solution. a_j: %g", a_j);
-				a_j = 1e-10; // Avoid division by zero, but this also means the solution is not valid.
-			}
-
-			double discriminant = pow(b_j,2) - 4.0 * a_j * c_j;
-			if (discriminant < 0) {
-				log_warning("Negative anj discriminant (%g) in C4 photosynthesis solver. A 0 value will be used instead, but this will invalidate the solution.", discriminant);
-				discriminant = 0;
-			}
-
-			anj = (-b_j - sqrt(discriminant)) / (2 * a_j);
-		}
-
-		// Net photosynthesis rate (mol m-2 s-1)
-		an = min(anc, anj);
-		//assert(an >= 0);
-
-		// Stomatal conductance to CO2 (mol m-2 s-1)
-		// gsc = g0 + An * X;
-		// gsc = max(inputs.gdark, an * inputs.X);
-		double floor = ifdavehydraulics ? 0.0 : inputs.gdark;
-		gsc = max(floor, an * inputs.X); // CS removed floor at gdark since water stress can take gsc to zero
-
-		// Intercellular CO2 concentration (mol mol-1)
 		if (!inputs.stomata_open) {
-			gsc = 0.0;
+			outputs.gsc = 0;
+			outputs.ci = inputs.ca;
 		}
-
-		if (is_zero(gsc)){
-			ci_new = inputs.ca;
-		} else {
-			ci_new = inputs.ca - divide(an, gsc);
-		}
-
-		ci_diff = ci - ci_new;
-		if (nit != NIT_MAX - 1) {
-			// If we can't find a solution, use initial guess
-			// on last iteration.
-			// TODO: check how often we get in here with new gs scheme?
-			ci -= ci_diff / 2.0;
-		}
-		nit += 1;
-	} // end solver
-
-	if (nit == NIT_MAX) {
-		// If we didn't find a solution, use initial guess.
-		ci = 0.5 * inputs.ca;
+		return;
 	}
 
-	outputs.rd = rd;
-	outputs.an = an;
-	outputs.anc = anc;
-	outputs.anj = anj;
-	outputs.gsc = gsc;
-	outputs.ci = ci;
-	outputs.vcmax = vcmax;
-	outputs.jmax = jmax;
+	C4SolverResult result = solve_c4_photosynthesis(biochemistry, inputs);
+
+	if (result.iterations == NIT_MAX) {
+		log_warning("C4 photosynthesis solver did not converge after %d iterations (ci_diff = %g).",
+					NIT_MAX, result.ci_diff);
+	} else {
+		log_diagnostic("C4 photosynthesis solver converged after %d iterations (ci_diff = %g).",
+					   result.iterations, result.ci_diff);
+	}
+
+	outputs.rd = biochemistry.rd;
+	outputs.an = result.an;
+	outputs.anc = result.ac;
+	outputs.anj = result.aj;
+	outputs.gsc = result.gsc;
+	outputs.ci = result.ci;
+	outputs.vcmax = biochemistry.vcmax;
+	outputs.jmax = biochemistry.jmax;
 }
 
 /*
@@ -3976,7 +4090,7 @@ double photosyn_solver(double g0, double X, double gamma, double beta,
 	double solution = gamma * divide(Ci - gamstar, Ci + beta);
 
 	if (solution < 0.0) {
-		// Logging as an error because this should never happen.
+		// Logging as a recoverable error because this should never happen.
 		log_error("Negative solution (gpp) in photosyn_solver: %g. A gross value of 0 will be used instead.", solution);
 		solution = 0;
 	}

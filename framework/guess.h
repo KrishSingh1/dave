@@ -799,32 +799,89 @@ public:
 		jmax = 0;
 	}
 
-	//< Respiration (mol m-2 s-1).
+	// Respiration (mol m-2 s-1).
 	double rd;
 
-	//< Net photosynthesis (mol m-2 s-1).
+	// Net photosynthesis (mol m-2 s-1).
 	double an;
 
-	//< Rubisco-limited net photosynthesis (mol m-2 s-1).
+	// Rubisco-limited net photosynthesis (mol m-2 s-1).
 	double anc;
 
-	//< RuBP regeneration-limited photosynthesis (mol m-2 s-1).
+	// RuBP regeneration-limited photosynthesis (mol m-2 s-1).
 	double anj;
 
-	//< PEP carboxylation-limited photosynthesis (mol m-2 s-1) [C4 only].
+	// PEP carboxylation-limited photosynthesis (mol m-2 s-1) [C3 only].
 	double anp;
 
-	//< Stomatal conductance to CO2 (mol m-2 s-1).
+	// Stomatal conductance to CO2 (mol m-2 s-1).
 	double gsc;
 
-	//< Intercellular CO2 concentration (mol mol-1).
+	// Intercellular CO2 concentration (mol mol-1).
 	double ci;
 
-	//< Maximum carboxylation rate (mol m-2 s-1).
+	// Maximum carboxylation rate (mol m-2 s-1).
 	double vcmax;
 
-	//< Maximum electron transport rate (mol m-2 s-1).
+	// Maximum electron transport rate (mol m-2 s-1).
 	double jmax;
+};
+
+/*
+Inputs to the C4 photosynthesis solver function for a single layer/timestep.
+*/
+struct C4Biochemistry {
+	// Maximum Rubisco carboxylation rate at 25 degC (mol m-2 s-1).
+	double vcmax;
+	// Maximum electron transport rate at 25 degC (mol m-2 s-1).
+	double jmax;
+	// Maximum PEP carboxylation rate at 25 degC (mol m-2 s-1).
+	double vpmax;
+	// PEP regeneration rate (mol m-2 s-1).
+	double vpr;
+	// Daytime (mitochondrial) leaf respiration (mol m-2 s-1).
+	double rd;
+	// Rd in the mesophyll cells (mol m-2 s-1).
+	double rm;
+	// Rd in the bundle-sheath cells (mol m-2 s-1).
+	double rs;
+	// Michaelis-Menten constant of PEPC for CO2 (mol mol-1).
+	double kp;
+	// Michaelis-Menten constant of Rubisco for CO2 (mol mol-1).
+	double kc;
+	// Michaelis-Menten constant of Rubisco for O2 (mol mol-1).
+	double ko;
+	// Effective Michaelis-Menten constant of Rubisco for CO2 in the presence of O2 (mol mol-1).
+	double km;
+};
+
+struct C4IterationState {
+	// Intercellular CO2 concentration (mol mol-1).
+	double ci;
+	// PEP carboxylation rate (mol m-2 s-1).
+	double vp;
+};
+
+/*
+Outputs from the C4 photosynthesis solver function for a single layer/timestep.
+*/
+struct C4SolverResult {
+	// Rubisco-limited net photosynthesis (mol m-2 s-1).
+	double ac;
+	// RuBP regeneration-limited photosynthesis (mol m-2 s-1).
+	double aj;
+	// Net photosynthesis rate (mol m-2 s-1).
+	double an;
+	// Stomatal conductance to CO2 (mol m-2 s-1).
+	double gsc;
+	// Intercellular CO2 concentration (mol mol-1).
+	double ci;
+	// Number of iterations taken to find a solution.
+	int iterations;
+	// Whether the solution converged within the maximum number of iterations.
+	bool converged;
+	// Difference between ci in the last two iterations (mol mol-1).
+	double ci_diff;
 };
 
 /// Structure containing variables for sub-daily photosynthesis calculation.

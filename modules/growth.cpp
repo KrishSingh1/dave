@@ -5302,7 +5302,6 @@ void senescence_dave_grass(Individual &indiv) {
 
 	const Pft &pft = indiv.pft;
 	Vegetation &vegetation = indiv.vegetation;
-	Patchpft ppft = indiv.patchpft();
 
 	// TODO: is there an active retranslocation of storage C and N in senescing
 	// annual plants?

@@ -1015,6 +1015,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 					if (vegmode==COHORT) {
 
+						patch.pft[pft.id].nsapling_year = nsapling;
+
 						// BLARP added for OECD experiment (is this sensible?)
 						if (patch.has_disturbances() && patch.disturbed || force_planting) {
 
@@ -1030,7 +1032,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							// Establishment each year in managed patches
 
 							patch.pft[pft.id].nsapling+=nsapling;
-							patch.pft[pft.id].nsapling_year = nsapling;
 							newindiv=0;
 						}
 						else {

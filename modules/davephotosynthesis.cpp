@@ -1026,7 +1026,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		inputs.wscal = indiv.get_wscal();
 		inputs.s_f = pft.s_f;
 		inputs.psi_f = pft.psi_f;
-		inputs.predawn_lwp = ifdavehydraulics ? indiv.predawn_lwp : indiv.weighted_psi;
 		inputs.tgrowth = climate.get_tgrowth();
 		inputs.racclim = pft.racclim;
 
@@ -1079,6 +1078,11 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			inputs.vpd   = climate.vpds[day.period];
 
 			inputs.stomata_open = indiv.stomata_open;
+
+			// Predawn LWP will hold yesterday's value for the first few time
+			// steps, until we hit the dawn-transition timestep. Therefore it's
+			// important to set this inside the subdaily loop.
+			inputs.predawn_lwp = ifdavehydraulics ? indiv.predawn_lwp : indiv.weighted_psi;
 
 			// CS, Testing adjustment to gcutic with temperature - based on
 			// Cochard 2021 Eq 13 & 14,

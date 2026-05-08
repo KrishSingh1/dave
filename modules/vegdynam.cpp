@@ -1068,7 +1068,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					// Now create 'newindiv' new Individual objects
 
 					if (newindiv > 0) {
-						log_info("Establishing new %s cohort with %d tree%s...", (const char *)pft.name, newindiv, newindiv > 1 ? "s" : "");
+						log_info("Establishing new %s cohort with %.0f tree%s...", (const char *)pft.name, nsapling, nsapling > 1 ? "s" : "");
 					}
 
 					// Initial biomass proportional to potential forest floor net

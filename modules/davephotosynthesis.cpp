@@ -1085,26 +1085,26 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			// https://peercommunityjournal.org/item/10.24072/pcjournal.45.pdf
 
             // Scaling parameter
-			const double Q10a = 1.2;
+			const double Q10A = 1.2;
 
             // Transition temperature, degC - to discuss with Erick
-			const double Tp = 40;
+			const double TP = 40;
 
             // Scaling parameter
-			const double Q10b = 4.8;
+			const double Q10B = 4.8;
 
 			double gcutic_adj = 0.0;
 
             // Calculate gcutic at phase change T for use in equation below.
-			double gcutic_Tp = gcutic * pow(Q10a, (Tp - 25) / 10);
+			double gcutic_Tp = gcutic * pow(Q10A, (TP - 25) / 10);
 
             // This should all be based on leaf temperature, but using air
             // temperature as an approximation.
-			if (inputs.temp < Tp) {
+			if (inputs.temp < TP) {
                 // Erick's measurements start at 25, so changed 20 to 25 in eqns
-				gcutic_adj = gcutic * pow(Q10a, (inputs.temp - 25) / 10);
+				gcutic_adj = gcutic * pow(Q10A, (inputs.temp - 25) / 10);
 			} else {
-				gcutic_adj = gcutic_Tp * pow(Q10b, (inputs.temp - Tp) / 10);
+				gcutic_adj = gcutic_Tp * pow(Q10B, (inputs.temp - TP) / 10);
 			}
 
 			double X = 0.0;
@@ -1570,6 +1570,10 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 	}
 }
 
+/*
+Calculate potential forest-floor photosynthesis for all PFTs not using daily
+establishment.
+*/
 void forest_floor_dave(Patch &patch) {
 	// These calculations are only required for pfts using the annual (trunk)
 	// establishment.

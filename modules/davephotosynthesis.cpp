@@ -1001,13 +1001,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 						indiv.lai_today(), indiv.phen);
 		}
 
-		// get PFT-specfic stomatal conductance parameters (Medlyn et al. 2011)
-		double gcutic = pft.gcutic;  // mol m-2 s-1
-
-        // We set parameter b1z to the value that results in 90% reduction in g1
-        // at stom_clos (for compatibility with hydraulic module).
-		double b1z = log(0.1)/(pft.stom_clos+0.3);
-
 		// Atmospheric CO2 concentration (mol mol-1)
 		// TODO: check if annual global means would make more sense 
 		inputs.ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;  // mol mol-1
@@ -1076,7 +1069,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			// Predawn LWP will hold yesterday's value for the first few time
 			// steps, until we hit the dawn-transition timestep. Therefore it's
 			// important to set this inside the subdaily loop.
-			inputs.predawn_lwp = ifdavehydraulics ? indiv.predawn_lwp : indiv.weighted_psi;
+			inputs.predawn_lwp = ifdavehydraulics
+				? indiv.predawn_lwp
+				: indiv.weighted_psi;
 
 			// CS, Testing adjustment to gcutic with temperature - based on
 			// Cochard 2021 Eq 13 & 14,
@@ -1091,28 +1086,26 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
             // Scaling parameter
 			const double Q10B = 4.8;
 
-			double gcutic_adj = 0.0;
-
             // Calculate gcutic at phase change T for use in equation below.
-			double gcutic_Tp = gcutic * pow(Q10A, (TP - 25) / 10);
+			double gcutic_Tp = pft.gcutic * pow(Q10A, (TP - 25) / 10);
 
             // This should all be based on leaf temperature, but using air
             // temperature as an approximation.
+			double gcutic_adj = 0.0;
 			if (inputs.temp < TP) {
                 // Erick's measurements start at 25, so changed 20 to 25 in eqns
-				gcutic_adj = gcutic * pow(Q10A, (inputs.temp - 25) / 10);
+				gcutic_adj = pft.gcutic * pow(Q10A, (inputs.temp - 25) / 10);
 			} else {
 				gcutic_adj = gcutic_Tp * pow(Q10B, (inputs.temp - TP) / 10);
 			}
-
-			double X = 0.0;
-			double gdark = 0.0;
 
 			if (ifzhou) {
 				// Stomatal term (Medlyn et al. 2011), with g1 defined by
 				// pre-dawn soil water potential (Zhou et al. 2014).
 
-				// X needs to represent gs for CO2, hence no 1.6 factor
+				// We set parameter b1z to the value that results in 90% reduction in g1
+				// at stom_clos (for compatibility with hydraulic module).
+				double b1z = log(0.1) / (pft.stom_clos + 0.3);
 
 				// for water
 				double rescale = exp(b1z * (inputs.predawn_lwp + 0.3));
@@ -1123,7 +1116,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				// rescale similar to g1, but don't allow values bigger than assigned g0
 				double g0 = min(pft.g0, pft.g0 * rescale);
 
-				// for co2
+				// X needs to represent gs for CO2, hence no 1.6 factor
 				inputs.X = divide(1.0 + divide(indiv.g1, sqrt(max(inputs.vpd, 0.1))), inputs.ca);
 
 				// Residual stomatal conductance term
@@ -1252,8 +1245,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				}
 			} // end canopy layer loop
 
-			// lai_layerwise should sum to lai_today(), which is lai * phen.
-			// For deciduous trees, this may not be the same as indiv.lai.
+			// lai_layerwise should sum to lai_today(), which is lai * phen. For
+			// deciduous trees not using the DAVE allocation pathway, this may
+			// not be the same as indiv.lai.
 			double lai_tot = sum(indiv.lai_layerwise);
 
 			// Calculate mean for some variables.
@@ -1269,7 +1263,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 			assert(indiv.lai < 20);
 
-			// save key variables to PhotosynthesisSubdaily Structure
+			// Save key variables to PhotosynthesisSubdaily Structure.
 			indiv.ps_subdaily.Rd[day.period]    = Rd_canopy;
 			indiv.ps_subdaily.An[day.period]    = An_canopy;
 			indiv.ps_subdaily.Anc[day.period]   = Anc_canopy;
@@ -1284,7 +1278,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			indiv.photosynthesis.rd_g  += Rd_canopy;
 			indiv.photosynthesis.je    += indiv.ps_subdaily.Anj[day.period];
 
-			// run hydraulics module and check for stomatal closure in next timestep
+			// Run hydraulics module and check for stomatal closure in next
+			// timestep.
 			if (ifdavehydraulics) {
 				if (indiv.pft.is_grass()) {
 					grass_hydraulics(day, indiv);

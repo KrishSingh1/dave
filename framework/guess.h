@@ -710,9 +710,6 @@ public:
 	// LAI of this individual in this layer.
 	double lai;
 
-	// Fraction of PAR incident in the middle of the layer.
-	double fipar;
-
 	// Physiological downregulation due to dormancy.
 	double fphen_activity;
 

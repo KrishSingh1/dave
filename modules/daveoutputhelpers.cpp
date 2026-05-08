@@ -1335,7 +1335,6 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_
 	return {
 		{"gdark",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].gdark; }},
 		{"lai",          [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].lai; }},
-		{"fipar",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].fipar; }},
 		{"fphen",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].fphen_activity; }},
 		{"ps_sink_lim",  [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ps_sink_lim; }},
 		{"vcmax25",      [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].vcmax25; }},

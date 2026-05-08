@@ -1178,12 +1178,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					continue;
 				}
 
-				// determine fpar and apar of the layer
-				// Fraction of PAR incident in the middle of the layer.
-		        inputs.fipar = indiv.fipar_layerwise[j];
-
-				assert(inputs.fipar > 0);
-
 				// LAI of this individual in this layer.
 				// Note: this takes phen into account for indivs running trunk
 				// allocation, because fpar() looks at indiv.lai_today().
@@ -1197,8 +1191,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				// Question: can we skip this layer if lai_layer is 0?
 				assert(inputs.lai >= 0);
 
-				assert(inputs.fipar > 0);
-
 				// Determine, for this indiv, LAI and cumulative LAI of the layer.
 
 				// Cumulative LAI at the bottom of current layer.
@@ -1208,7 +1200,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				double lai_cum = lai_cum_bottom - 0.5 * inputs.lai;
 
 				// Incident PAR in the middle of the layer (W m-2).
-				inputs.par = inputs.fipar * par;
+				assert(indiv.fipar_layerwise[j] > 0);
+				inputs.par = indiv.fipar_layerwise[j] * par;
 
 				// Account for the nitrogen gradient within the canopy.
 				inputs.nscal = max(1.0e-12, exp(-pft.extkn * lai_cum));
@@ -1311,7 +1304,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					tree_hydraulics(day, indiv);
 				}
 			}
-
 		} // end subdaily loop
 
 		if (an_total > 0) {
@@ -1599,10 +1591,6 @@ void forest_floor_dave(Patch &patch) {
 		inputs.vpd   = climate.vpds[day.period];
 		double par = climate.pars[day.period];
 
-		// determine fpar and apar of the layer
-		// Fraction of PAR incident in the middle of the layer.
-		inputs.fipar = patch.fpar_ff;
-
 		// No limitation from phenology or sink activity.
 		inputs.fphen_activity = 1;
 		inputs.ps_sink_lim = 1;
@@ -1617,7 +1605,7 @@ void forest_floor_dave(Patch &patch) {
 		inputs.lai = LAI_HYPOTHETICAL;
 
 		// Incident PAR in the middle of the layer (W m-2).
-		inputs.par = inputs.fipar * par;
+		inputs.par = patch.fpar_ff * par;
 
 		for (size_t i = 0; i < pftlist.nobj; i++) {
 			const Pft &pft = pftlist[i];

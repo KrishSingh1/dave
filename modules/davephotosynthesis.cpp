@@ -1466,6 +1466,42 @@ void transpiration_dave(Patch &patch, Climate& climate, Vegetation& vegetation) 
 	}
 }
 
+struct CtonRatios {
+	double sap;
+	double root;
+	double crown;
+};
+
+CtonRatios cton_effective(const Individual &indiv) {
+	CtonRatios cton{};
+
+	// Static root and sap wood C:N ratio if no N limitation to not let N affect
+	// respiration for C only version of model Also not allow lower C:N ratios
+	// than minimum which would affect respiration severely (happens for
+	// deciduous trees in the beginning of the season)
+
+	if (ifnlim) {
+		cton.sap   = indiv.cton_sap();
+		cton.root  = indiv.cton_root();
+		cton.crown = indiv.cton_crown();
+	} else {
+		cton.sap   = indiv.pft.cton_sap_avr;
+		cton.root  = indiv.pft.cton_root_avr;
+		// Crowns use root stoichiometric limits.
+		cton.crown = indiv.pft.cton_root_avr;
+	}
+
+	if (!indiv.pft.dave_allocation()) {
+		// Set C:N ratios if not using DAVE allocation (since trunk
+		// allocation + DAVE photosynthesis can give unrealistic values).
+		cton.sap   = min(cton.sap, indiv.pft.cton_sap_max);
+		cton.root  = min(cton.root, indiv.pft.cton_root_max);
+		// Non-DAVE allocated PFTs don't have crowns.
+	}
+
+	return cton;
+}
+
 /*
 This is a modification of the original npp routine of standard LPJ-GUESS.
 
@@ -1505,32 +1541,8 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		// 0 for PFTs using annual (trunk) allocation
 		double cmass_repr = indiv.get_cmass_repr();
 
-		// Static root and sap wood C:N ratio if no N limitation
-		// to not let N affect respiration for C only version of model
-		// Also not allow lower C:N ratios than minimum which
-		// would affect respiration severely (happens for deciduous trees
-		// in the beginning of the season)
-
-		double cton_sap   = 0.0;
-		double cton_root  = 0.0;
-		double cton_crown = 0.0;
-		if (ifnlim) {
-			cton_sap   = indiv.cton_sap();
-			cton_root  = indiv.cton_root();
-			cton_crown = indiv.cton_crown();
-		}
-		else {
-			cton_sap = pft.cton_sap_avr;
-			cton_root = pft.cton_root_avr;
-			cton_crown = pft.cton_root_avr;
-		}
-
-		if (!indiv.pft.dave_allocation()) {
-			// Set CN ratios if not using DAVE allocation (since trunk
-			// allocation + DAVE photosynthesis can give unrealistic values).
-			cton_sap = 330.0;
-			cton_root = 29.0;
-		}
+		// Get effective C:N ratios for sap, root, and crown.
+		CtonRatios cton = cton_effective(indiv);
 
 		// Set leaf respiration.
 		indiv.resp_leaf = indiv.photosynthesis.rd_g * KG_PER_G;
@@ -1547,7 +1559,7 @@ void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 		double resp = 0;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-			respcoeff, cton_sap, cton_root, cton_crown, indiv.cmass_sap, 
+			respcoeff, cton.sap, cton.root, cton.crown, indiv.cmass_sap,
 			cmass_root, cmass_crown, cmass_repr, indiv.cgrow, indiv.fphen_activity,
 			assim, indiv.resp_leaf, resp, indiv.resp_maintenance,
 			indiv.resp_growth, indiv.resp_repr, indiv.resp_crown,

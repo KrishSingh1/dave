@@ -1002,13 +1002,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		}
 
 		// get PFT-specfic stomatal conductance parameters (Medlyn et al. 2011)
-		double g0   = pft.g0;    // mol m-2 s-1
-		double g1   = pft.g1;    // kPa^0.5
 		double gcutic = pft.gcutic;  // mol m-2 s-1
-
-		// stomatal parameters for Zhou model (Zhou et al. 2014) - used for
-		// hydraulics mode
-		double g1x = pft.g1x;
 
         // We set parameter b1z to the value that results in 90% reduction in g1
         // at stom_clos (for compatibility with hydraulic module).
@@ -1121,26 +1115,16 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				// X needs to represent gs for CO2, hence no 1.6 factor
 
 				// for water
-				double water_potential;
-				if (ifdavehydraulics) {
-					water_potential = indiv.predawn_lwp;
-				} else {
-					// For now, use soil water potential weighted by root
-					// resistance if running without dave hydraulics.
-					// water_potential = patch.soil.soil_psi;
-					water_potential = indiv.weighted_psi;
-				}
-				g1 = g1x * exp(b1z * (water_potential + 0.3));
+				double rescale = exp(b1z * (inputs.predawn_lwp + 0.3));
 
-				// Update indiv.g1 for outputting.
-				indiv.g1 = g1;
+				indiv.g1 = pft.g1x * rescale;
 
 				// for water
 				// rescale similar to g1, but don't allow values bigger than assigned g0
-				g0 = min(g0,g0 * exp(b1z * (water_potential + 0.3)));
+				double g0 = min(pft.g0, pft.g0 * rescale);
 
 				// for co2
-				inputs.X = divide(1.0 + divide(g1, sqrt(max(inputs.vpd, 0.1))), inputs.ca);
+				inputs.X = divide(1.0 + divide(indiv.g1, sqrt(max(inputs.vpd, 0.1))), inputs.ca);
 
 				// Residual stomatal conductance term
 				// Note: g0 is for H20, here conversion to conductances to CO2
@@ -1149,12 +1133,12 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			else {
 				// Stomatal term (Medlyn et al. 2011)
 				// X needs to represent gs for CO2, hence no 1.6 factor
-				inputs.X = stomatal_conductance_term(inputs.wscal, g1, inputs.vpd, inputs.ca);
+				inputs.X = stomatal_conductance_term(inputs.wscal, pft.g1, inputs.vpd, inputs.ca);
 
 				// Residual stomatal conductance term
 				// Note: g0 is for H20, here conversion to conductances to CO2
                 // TODO: do we need a different qs here?
-				inputs.gdark = stomatal_conductance_residual(g0, inputs.wscal);
+				inputs.gdark = stomatal_conductance_residual(pft.g0, inputs.wscal);
 			}
 
 			// Don't allow gdark to fall below gcutic.

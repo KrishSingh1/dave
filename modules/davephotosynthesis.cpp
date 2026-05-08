@@ -1026,7 +1026,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		inputs.wscal = indiv.get_wscal();
 		inputs.s_f = pft.s_f;
 		inputs.psi_f = pft.psi_f;
-		inputs.predawn_lwp = indiv.predawn_lwp;
+		inputs.predawn_lwp = ifdavehydraulics ? indiv.predawn_lwp : indiv.weighted_psi;
 		inputs.tgrowth = climate.get_tgrowth();
 		inputs.racclim = pft.racclim;
 

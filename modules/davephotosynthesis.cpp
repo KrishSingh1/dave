@@ -70,8 +70,10 @@ double calc_vpmax25(double nmass_leaf) {
 	return exp(3.118 + 0.751 * log(nmass_leaf * G_PER_KG));
 }
 
-// Calculate Vcmax and Jmax from leaf N following Ellsworth et al. 2022 (page 8) for C3 grasses
-// and preliminary data from Yuzhen Fan for C4 grasses.
+/*
+Calculate Vcmax and Jmax from leaf N following Ellsworth et al. 2022 (page 8) for C3 grasses
+and preliminary data from Yuzhen Fan for C4 grasses.
+*/
 void vcmax_from_N(Individual &indiv) {
 
 	const Pft &pft = indiv.pft;
@@ -133,124 +135,66 @@ void store_vcmax_values(Vegetation &vegetation) {
 }
 
 /*
-DAVE water stress scalar routine, used when ifzhou is enabled.
+Calculate water stress factor [0-1] in the root zone. This is calculated as a
+weighted mean of wcont / wcont_crit (clamped to [0, 1]) across soil layers.
 */
-void water_stress_dave_root_resistance(Patch &patch) {
-	// Must set:
-	// - ppft.wscal_mean (scalar, total annual water stress, convert to mean at end of year)
-	// - ppft.cropphen->growingdays_y -> increment once per day for true crops and cover-crop grass
-	// - ppft.wscal -> mean daily wscal value in range [0, day_len]
-	// - indiv.wscal_running (call .add() to add today's value in once at end of day)
-	// - ppft.wscal_5 and ppft.wscal_10 -> 5 and 10 day running mean of wscal
-	const Soil &soil = patch.soil;
-
-	double Psi_wp = soil.soiltype.Psi_wp / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
-	double Psi_whc = soil.soiltype.Psi_whc / 100 * 1000 * 9.81 * 1e-6; // convert from cm to MPa
-
-	// Iterate over individuals in patch.
-	for (int i = 0; i < patch.vegetation.nobj; i++) {
-		Individual &indiv = patch.vegetation[i];
-		// Patchpft &ppft = indiv.patchpft();
-		Pft &pft = indiv.pft; 
-
-		double wstress_layer[NSOILLAYER];
-		double wstress = 0.0;
-		double root_cond_sum = 0.0;
-	
-		for (int j = 0; j<NSOILLAYER; j++) {
-			// get actual water content and available water content per layer
-			// double wcont = soil.get_layer_soil_water(j);
-
-			// Calculate water stress factor per layer and weight with root
-			// conductance.
-			// double stress_base = (soil.psi_layer[j] - Psi_wp) / (Psi_whc - Psi_wp);
-
-			// Alternative: calculate stress from water content, because water
-			// potential is so nonlinear that we rarely see stress in practice
-			// (ie WP only gets close to psi_wp at extreme water contents).
-			// stress_base = soil.get_layer_soil_water(j);
-			double stress_base = soil.get_layer_soil_water(j) / wcont_crit;
-
-			// Guard to [0, 1].
-			stress_base = max(min(stress_base, 1.0), 0.0);
-
-			// Weight by root resistance.
-			// double weight = 1.0 / indiv.Rs_r[j];
-
-			// Alternative: weight by root distribution. Reason: weighting by
-			// root resistance leads to a flatter relationship with wcont.
-			double weight = indiv.rootdist[j];
-
-			wstress_layer[j] = stress_base * weight;
-
-			wstress += wstress_layer[j];
-			root_cond_sum += weight;
-		}
-
-		// Water stress factor [0-1] in the root zone.
-		wstress /= root_cond_sum;
-
-		// Mean daily water stress value.
-		indiv.set_wscal(wstress);
-	}
-
-	double wstress_pft = 0.0;
+double calc_water_stress_dave(const Soil &soil, const double weight[NSOILLAYER]) {
+	double wstress = 0;
+	double total_weight = 0;
 	for (int j = 0; j<NSOILLAYER; j++) {
-		// Alternative wstress to be used at PFT level, since we can't use the
-		// root resistance (which depends on root biomass) for weighting.
-		// double stress_base = (soil.psi_layer[j] - Psi_wp) / (Psi_whc - Psi_wp);
-
-		// Alternative: calculate stress from water content, because water
-		// potential is so nonlinear that we rarely see stress in practice
-		// (ie WP only gets close to psi_wp at extreme water contents).
-		// stress_base = soil.get_layer_soil_water(j);
 		double stress_base = soil.get_layer_soil_water(j) / wcont_crit;
 
 		// Clamp to [0, 1].
 		stress_base = max(min(stress_base, 1.0), 0.0);
 
-		// Weight by layer thickness.
-		double weight = soil.Dz[j + 7] / sum(soil.Dz + 7, NSOILLAYER);
+		wstress += stress_base * weight[j];
 
-		wstress_pft += stress_base * weight;
+		// Root distribution should add up to 1 but summed here just in case.
+		total_weight += weight[j];
 	}
 
-	for (int i = 0; i < pftlist.nobj; i++) {
-		Patchpft &ppft = patch.pft[i];
-		Pft &pft = pftlist[i]; 
-		
-		ppft.wscal = wstress_pft;
-		ppft.wscal_5.add(ppft.wscal);
-		ppft.wscal_10.add(ppft.wscal);
-		ppft.wscal_30.add(ppft.wscal);
-
-		// Reset to 0 in Patchpft::annual_accounting().
-		ppft.wscal_mean += wstress_pft;
-
-		if (date.islastmonth && date.islastday){
-			ppft.wscal_mean /= Date::MAX_YEAR_LENGTH;
-		}
-	}
+	// Normalise by sum of weights.
+	wstress /= total_weight;
+	assert(wstress >= 0.0);
+	assert(wstress <= 1.0);
+	return wstress;
 }
 
 /*
-Calculate water stress factor [0-1] in the root zone.
+DAVE water stress scalar routine, used when ifzhou is enabled.
 */
-double calc_water_stress_dave(const Soil &soil, const double rootdist[NSOILLAYER]) {
-	double wstress = 0;
-	double rootdist_sum = 0;
-	for (int j = 0; j<NSOILLAYER; j++) {
-		// Get actual water content and available water content per layer.
-		double wcont = soil.get_layer_soil_water(j);
+void water_stress_dave_zhou(Patch &patch) {
+	const Soil &soil = patch.soil;
 
-		// Calculate water stress factor per layer and weight by root fraction.
-		wstress += max(min(wcont / wcont_crit, 1.0), 0.0) * rootdist[j];
+	// Iterate over individuals in patch.
+	for (int i = 0; i < patch.vegetation.nobj; i++) {
+		Individual &indiv = patch.vegetation[i];
 
-		// Root distribution should add up to 1 but summed here just in case.
-		rootdist_sum += rootdist[j];
+		// Previously, we calculated water stress using water potential weighted
+		// by root resistance. We stopped using water potential because it's
+		// non-linear with water content, which meant that getting water
+		// stressed required extremely low water contents. We changed from root
+		// resistance to root distribution for much the same reason - it has a
+		// flatter relationship with water content.
+
+		// Water stress factor [0-1] in the root zone.
+		double wstress = calc_water_stress_dave(soil, indiv.rootdist);
+
+		// Mean daily water stress value.
+		indiv.set_wscal(wstress);
 	}
-	// Normalise by sum of root distribution in case it doesn't sum to 1.
-	return wstress / rootdist_sum;
+
+	// We also need to calculate a water stress for all PFTs, even if they're
+	// not currently established. We do this by weighting by layer thickness.
+	// Note that Dz is of length NLAYERS, not NSOILLAYERS, so it includes the 6
+	// snow layers and air layer before the soil layers, which is why we start
+	// at index 7 here.
+	double wstress_pft = calc_water_stress_dave(soil, soil.Dz + 7);
+
+	for (int i = 0; i < pftlist.nobj; i++) {
+		Patchpft &ppft = patch.pft[i];
+		ppft.set_wscal(wstress_pft);
+	}
 }
 
 /*
@@ -273,14 +217,7 @@ void water_stress_dave(Patch &patch) {
 
 		// Aggregate water stress factor [0-1] in the root zone.
 		double wstress = calc_water_stress_dave(patch.soil, pft.input_rootdist);
-
-		// Store water stress.
-		ppft.wscal = wstress;
-
-		// Update the ppft-level moving averages of water stress.
-		ppft.wscal_5.add(ppft.wscal);
-		ppft.wscal_10.add(ppft.wscal);
-		ppft.wscal_30.add(ppft.wscal);
+		ppft.set_wscal(wstress);
 	}
 
 	// Update the corresponding indiv-level moving averages of water stress.
@@ -298,8 +235,6 @@ void water_stress_dave(Patch &patch) {
 		}
 
 		indiv.set_wscal(wscal);
-		assert(ppft.wscal <= 1.0);
-		assert(ppft.wscal >= 0.0);
 	}
 }
 
@@ -1352,7 +1287,9 @@ double calc_water_uptake_dave(Individual &indiv) {
                 pft.lifeform == TREE, pft.drought_tolerance, indiv.Rs_r);
 }
 
-// Canopy transpiration
+/*
+Calculate canopy transpiration.
+*/
 void transpiration_dave(Patch &patch, Climate& climate, Vegetation& vegetation) {
 
 	// this formulation assumes infinite Ga
@@ -1455,6 +1392,11 @@ struct CtonRatios {
 	double crown;
 };
 
+/*
+Get the effective C:N ratios for sap, root, and crown to use in respiration
+calculations, based on the individual's C:N ratios and whether N limitation is
+enabled.
+*/
 CtonRatios cton_effective(const Individual &indiv) {
 	CtonRatios cton{};
 
@@ -1692,7 +1634,7 @@ void canopy_exchange_dave(Patch &patch, Climate &climate) {
 
     // Calculate water stress factor
     if (ifzhou) {
-        water_stress_dave_root_resistance(patch);
+        water_stress_dave_zhou(patch);
     } else {
         water_stress_dave(patch);
     }

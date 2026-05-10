@@ -5441,6 +5441,11 @@ public:
 	Historic<double, 10> soiltemp_10;
 	/// thirty day mean of wscal. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 30> wscal_30;
+	/// Populate all wscal fields with today's wscal value.
+	void set_wscal(double wstress);
+	/// Flag to track whether wscal has been set today, to avoid multiple
+	/// updates per day.
+	bool wscal_set_today;
 
 	// Assaf: ???? Probably reason for senescence
 	sen_type senescence_reason;
@@ -5665,6 +5670,7 @@ public:
 		agb_ymax = 0;
 		lai_ymean = 0;
 		agb_ymean = 0;
+		wscal_set_today = false;
 	}
 
 	~Patchpft() {

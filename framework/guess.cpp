@@ -406,6 +406,46 @@ void Patchpft::serialize(ArchiveStream& arch) {
 
 }
 
+/*
+Ensure the given wscal value lies within range [0, 1]. If not, terminate the
+simulation.
+*/
+void validate_wscal(double wscal, const char *context, const char *pft) {
+	if (wscal < 0 || wscal > 1) {
+		fail("%s: wscal value %f for PFT %s out of range [0,1]", context, wscal, pft);
+	}
+}
+
+void Patchpft::set_wscal(double wstress) {
+	if (wscal_set_today) {
+		// Debatable what we should do in this case. For now I'm going with an
+		// immediate fail. Alternatively, we could update to the newer values,
+		// although why you would want to do that is beyond me. If you do that,
+		// make sure you take that into account wrt wscal_mean and the moving
+		// averages.
+		fail("Patchpft::set_wscal(): wscal has already been set today. Don't do this to yourself.");
+	}
+
+	if (pft.landcover == CROPLAND) {
+		fail("Patchpft::set_wscal(): crops not supported (need to implement growing-season wscal as in canexch.cpp water_scalar())");
+	}
+	validate_wscal(wstress, "Patchpft::set_wscal()", (const char *)pft.name);
+
+	// This gets reset to false in daily_accounting().
+	wscal_set_today = true;
+
+	wscal = wstress;
+	wscal_5.add(wstress);
+	wscal_10.add(wstress);
+	wscal_30.add(wstress);
+
+	// This is reset to 0 in Patchpft::annual_accounting().
+	wscal_mean += wstress;
+	if (date.islastmonth && date.islastday) {
+		wscal_mean /= date.year_length();
+	}
+}
+
 cropphen_struct* Patchpft::get_cropphen() {
 	if (pft.landcover != CROPLAND) {
 		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
@@ -454,6 +494,7 @@ void Patchpft::daily_accounting(const Patch &patch) {
 	}
 
 	airtemp_10.add(patch.get_climate().temp);
+	wscal_set_today = false;
 }
 
 void Patchpft::annual_accounting(const Patch &patch) {
@@ -3815,6 +3856,8 @@ double Individual::get_wscal_moving_average() const {
 }
 
 void Individual::set_wscal(double wscal) {
+	validate_wscal(wscal, "Individual::set_wscal()", (const char *)pft.name);
+
 	this->wscal = wscal;
 	wscal_dynamic.add(wscal);
 	// TODO: combine the 5-, 10-, and 30-day moving averages into a single
@@ -3827,29 +3870,6 @@ void Individual::set_wscal(double wscal) {
 	if (date.islastmonth && date.islastday) {
 		wscal_mean_year /= Date::MAX_YEAR_LENGTH;
 	}
-
-	Patchpft &ppft = patchpft();
-	if (vegetation.patch.stand.landcover != CROPLAND // natural, urban, pasture, forest and peatland stands
-		|| ppft.pft.phenology==ANY 
-		&& ppft.pft.id==vegetation.patch.stand.pftid) {
-		// Normal grass growth.
-		ppft.wscal_mean += ppft.wscal;
-
-		// Convert from sum to mean on last day of year.
-		if (date.islastday && date.islastmonth) {
-			ppft.wscal_mean /= date.year_length();
-		}
-	}
-	else if (ppft.cropphen->growingseason
-			|| ppft.pft.phenology == CROPGREEN && date.day == ppft.cropphen->hdate
-			|| ppft.pft.isintercropgrass && date.day == vegetation.patch.pft[vegetation.patch.stand.pftid].cropphen->eicdate) {
-		// True crops and cover-crop grass.
-		ppft.cropphen->growingdays_y++;
-		ppft.wscal_mean = ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen->growingdays_y;
-	} else {
-		// Either cropland but not a crop, or a crop outside growing season.
-	}
-
 }
 
 double Individual::wscal_mean() const {

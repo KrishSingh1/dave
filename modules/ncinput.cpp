@@ -88,7 +88,9 @@ void NCInput::init(const NCInputOptions &options) {
         options.file_met_spinup;
 
     spinup_plan = get_forcing_plan(file_met_spinup, options);
+    log_info("NCInput: successfully resolved all variables from spinup dataset");
     simulation_plan = get_forcing_plan(options.file_met_forcing, options);
+    log_info("NCInput: successfully resolved all variables from main simulation dataset");
 
     separate_spinup = file_met_spinup != options.file_met_forcing;
     open_files(spinup_plan, Dataset::Spinup);

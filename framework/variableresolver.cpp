@@ -13,7 +13,7 @@
 
 // Standard name of the temperature variable, as per CF conventions. Canonical
 // units are K.
-static const std::string STD_TEMP = "air_temperature";
+static const std::vector<std::string> STDS_TEMP = {"air_temperature"};
 
 // Standard names of the insolation variable, as per CF conventions. Canonical
 // units are W m-2.
@@ -181,9 +181,8 @@ VariableInfo get_var_info(const NCInventory &inventory, const std::vector<std::s
     for (const std::string &std_name : aliases) {
         VariableInfo binding;
         if (inventory.try_get_variable_name(std_name, binding)) {
-            log_info("Found variable with standard name '%s': %s (file: %s)",
-                     std_name.c_str(), binding.name.c_str(),
-                     binding.file.c_str());
+            log_diagnostic("Resolved variable via standard name: %s (file: %s)",
+                     binding.name.c_str(), binding.file.c_str());
             return binding;
         }
     }
@@ -196,11 +195,11 @@ void resolve_pressure(const NCInventory &inventory,
                       const ResolveOptions &options, PressureWriter &writer) {
     VariableInfo ps;
     if (inventory.try_get_variable_name(STD_PS, ps)) {
-        log_info("Found surface pressure variable: %s (file: %s)",
+        log_diagnostic("Resolved variable via standard name: %s (file: %s)",
                  ps.name.c_str(), ps.file.c_str());
         writer.set_direct(ps);
     } else if (options.allow_fixed_pressure) {
-        log_info("No variable found with standard name '%s', but constant pressure is allowed, and will therefore be used.",
+        log_diagnostic("No variable found with standard name '%s', but constant pressure is allowed, and will therefore be used.",
                  STD_PS.data());
         writer.set_fixed();
     } else {
@@ -212,7 +211,7 @@ void resolve_wind_speed(const NCInventory &inventory,
                         const ResolveOptions &options, WindSpeedWriter &writer) {
     VariableInfo ws;
     if (inventory.try_get_variable_name(STD_WIND, ws)) {
-        log_info("Found wind speed variable: %s (file: %s)",
+        log_diagnostic("Resolved variable via standard name: %s (file: %s)",
                  ws.name.c_str(), ws.file.c_str());
         writer.set_direct(ws);
     } else if (options.blaze_enabled) {
@@ -227,7 +226,7 @@ void resolve_co2(const NCInventory &inventory,
                  const ResolveOptions &options, CO2Writer &writer) {
     VariableInfo co2;
     if (options.allow_netcdf_co2 && inventory.try_get_variable_name(STD_CO2, co2)) {
-        log_info("Found CO2 variable: %s (file: %s)",
+        log_diagnostic("Resolved variable via standard name: %s (file: %s)",
                  co2.name.c_str(), co2.file.c_str());
         writer.set_direct(co2);
     } else {
@@ -246,9 +245,9 @@ void resolve_ndep(const NCInventory &inventory,
     bool has_nhx = options.allow_netcdf_ndep && inventory.try_get_variable_name(STD_NDEP_NHX, nhx);
     bool has_noy = options.allow_netcdf_ndep && inventory.try_get_variable_name(STD_NDEP_NOY, noy);
     if (has_nhx && has_noy) {
-        log_info("Found NHX variable: %s (file: %s)",
+        log_diagnostic("Resolved variable via standard name: %s (file: %s)",
                  nhx.name.c_str(), nhx.file.c_str());
-        log_info("Found NOY variable: %s (file: %s)",
+        log_diagnostic("Resolved variable via standard name: %s (file: %s)",
                  noy.name.c_str(), noy.file.c_str());
         writer.set_direct(nhx, noy);
     } else {
@@ -267,7 +266,7 @@ void resolve_ndep(const NCInventory &inventory,
 void resolve_dtr(const NCInventory &inventory,
                  const ResolveOptions &options, DtrWriter &writer) {
     if (options.subdaily) {
-        log_info("Input data is subdaily, so Tmax and Tmin will be calculated from subdaily temperature data.");
+        log_diagnostic("Input data is subdaily, so Tmax and Tmin will be calculated from subdaily temperature data.");
         writer.set_from_subdaily();
     } else {
         VariableInfo tmax;
@@ -275,9 +274,9 @@ void resolve_dtr(const NCInventory &inventory,
         bool has_tmax = inventory.try_get_variable_name(STD_TMAX, tmax);
         bool has_tmin = inventory.try_get_variable_name(STD_TMIN, tmin);
         if (has_tmax && has_tmin) {
-            log_info("Found Tmax variable: %s (file: %s)",
+            log_diagnostic("Resolved variable via standard name: %s (file: %s)",
                 tmax.name.c_str(), tmax.file.c_str());
-            log_info("Found Tmin variable: %s (file: %s)",
+            log_diagnostic("Resolved variable via standard name: %s (file: %s)",
                 tmin.name.c_str(), tmin.file.c_str());
             writer.set_direct(tmax, tmin);
         } else if (!options.blaze_enabled) {
@@ -302,17 +301,17 @@ void resolve_vpd(const NCInventory &inventory,
     VariableInfo var;
     if (try_get_binding(inventory, STDS_VPD, var)) {
         // VPD has been provided directly.
-        log_info("Found VPD variable: %s (file: %s)",
+        log_diagnostic("Resolved variable via standard name: %s (file: %s)",
             var.name.c_str(), var.file.c_str());
         writer.set_direct(var);
     } else if (inventory.try_get_variable_name(STD_RH, var)) {
         // VPD can be calculated from relative humidity.
-        log_info("No variable found with standard names for VPD, but found variable with standard name '%s'. VPD will be calculated from relative humidity.",
+        log_diagnostic("No variable found with standard names for VPD, but found variable with standard name '%s'. VPD will be calculated from relative humidity.",
             STD_RH.data());
         writer.set_from_rh(var);
     } else if (inventory.try_get_variable_name(STD_SH, var)) {
         // VPD can be calculated from specific humidity.
-        log_info("No variable found with standard names for VPD, but found variable with standard name '%s', and temperature and pressure data are available. VPD will be calculated from specific humidity, temperature, and pressure.",
+        log_diagnostic("No variable found with standard names for VPD, but found variable with standard name '%s', and temperature and pressure data are available. VPD will be calculated from specific humidity, temperature, and pressure.",
             STD_SH.data());
         writer.set_from_sh(var);
     } else {
@@ -326,7 +325,7 @@ ResolvedPlan VariableResolver::resolve(const NCInventory &inventory,
 
     plan.bindings[Variable::Pr] = get_var_info(inventory, STDS_PR);
     plan.bindings[Variable::Rs] = get_var_info(inventory, STDS_INSOL);
-    plan.bindings[Variable::Temp] = inventory.get_variable_name(STD_TEMP);
+    plan.bindings[Variable::Temp] = get_var_info(inventory, STDS_TEMP);
 
     WindSpeedWriter ws_writer(plan);
     resolve_wind_speed(inventory, options, ws_writer);

@@ -1616,7 +1616,7 @@ void forest_floor_dave(Patch &patch) {
 			ppft.anetps_ff += outputs.an * MOL2G_C / 1000 * secs_per_timestep;
 
 			Standpft &spft = patch.stand.pft[pft.id];
-			if (date.islastday && date.islastmonth) {
+			if (day.isend && date.islastday && date.islastmonth) {
 				spft.anetps_ff_max = max(spft.anetps_ff_max, ppft.anetps_ff);
 				ppft.anetps_ff = max(0.0, ppft.anetps_ff);
 			}

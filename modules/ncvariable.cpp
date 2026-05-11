@@ -15,7 +15,7 @@
 
 int NCVariable::get_dimension_id(xtring dim_name) const {
 	int dim_id;
-	int status = nc_inq_dimid(id_file, (const char *)dim_name, &dim_id);
+	int status = nc_inq_dimid(file->id(), (const char *)dim_name, &dim_id);
 
 	// Handle an error (if an error occurred).
 	handle_nc_error(status, "Failed to get ID of dimension '%s'", (const char *)dim_name);
@@ -25,7 +25,7 @@ int NCVariable::get_dimension_id(xtring dim_name) const {
 
 int NCVariable::get_variable_id(xtring var_name) const {
 	int var_id;
-	int status = nc_inq_varid(id_file, (const char *)var_name, &var_id);
+	int status = nc_inq_varid(file->id(), (const char *)var_name, &var_id);
 
 	// Handle an error (if an error occurred).
 	handle_nc_error(status, "Failed to get variable '%s'", (const char *)var_name);
@@ -35,10 +35,10 @@ int NCVariable::get_variable_id(xtring var_name) const {
 
 int NCVariable::get_num_dimensions(int var_id) const {
 	int ndims;
-	int status = nc_inq_varndims(id_file, var_id, &ndims);
+	int status = nc_inq_varndims(file->id(), var_id, &ndims);
 
 	handle_nc_error(status, "Failed to read number of dimensions of variable %s"
-	, (const char *)var_name);
+	                , (const char *)var_name);
 
 	return ndims;
 }
@@ -50,7 +50,7 @@ void NCVariable::check_num_dims(int var_id, int ndim_expected) const {
 	// Throw error if not correct.
 	if (ndims != ndim_expected) {
 		char name[NC_MAX_NAME];
-		nc_inq_varname(id_file, var_id, name);
+		nc_inq_varname(file->id(), var_id, name);
 		const char *fmt = "Invalid number of dimensions in variable %s; expected %d but was %d";
 		throw_xtring(fmt, (const char *)name, ndim_expected, ndims);
 	}
@@ -58,7 +58,7 @@ void NCVariable::check_num_dims(int var_id, int ndim_expected) const {
 
 xtring NCVariable::get_units() const {
 	std::string result;
-	if (GuessNC::get_attribute(id_file, id_var, ATTR_UNITS, result)) {
+	if (GuessNC::get_attribute(file->id(), id_var, ATTR_UNITS, result)) {
 		return xtring(result.c_str());
 	}
 	else {
@@ -93,11 +93,15 @@ void NCVariable::check_units(const std::vector<xtring>& expected, bool fatal) co
 	}
 }
 
-NCVariable::NCVariable(int file_id, xtring name, CacheStrategy chunk_mode,
-				       bool sensibility_checks, bounds bounds,
-					   std::vector<xtring> units, bool force_legal_units) {
+NCVariable::NCVariable(std::shared_ptr<NCFile> file, xtring name,
+					   CacheStrategy chunk_mode, bool sensibility_checks,
+					   bounds bounds, std::vector<xtring> units,
+					   bool force_legal_units) {
 	try {
-		id_file = file_id;
+		if (!file) {
+			throw std::runtime_error("NCVariable::NCVariable: File pointer is null");
+		}
+		this->file = file;
 		var_name = name;
 		cache_strategy = chunk_mode;
 		id_var = get_variable_id(name);
@@ -112,7 +116,7 @@ NCVariable::NCVariable(int file_id, xtring name, CacheStrategy chunk_mode,
 		// - Duplicates logic from NCInventory
 		// - If multiple data variables are in the same file, work is duplicated
 		std::vector<int> dimensions(ndim);
-		int status = nc_inq_vardimid(id_file, id_var, &(dimensions.front()));
+		int status = nc_inq_vardimid(file->id(), id_var, &(dimensions.front()));
 		GuessNC::handle_error(status, "Failed to get dimensions");
 
 		// Get longitude variable ID.
@@ -178,7 +182,7 @@ NCVariable::NCVariable(int file_id, xtring name, CacheStrategy chunk_mode,
 		cache_prev.day = -1;
 		cache_prev.timestep = -1;
 
-		has_missval = GuessNC::get_attribute(id_file, id_var, "missing_value", missing_value);
+		has_missval = GuessNC::get_attribute(file->id(), id_var, "missing_value", missing_value);
 	} catch (...) {
 		// Rethrow the exception with some extra context added to the message.
 		throw_xtring_nested("Failed to initialise variable %s", (const char *)name);
@@ -341,7 +345,7 @@ std::vector<double> NCVariable::load_data(double lon, double lat, int time_start
 	count[dim_time] = ntimesteps;
 
 	std::vector<double> data(ntimesteps);
-	int status = nc_get_varm_double(id_file, id_var, &(start.front())
+	int status = nc_get_varm_double(file->id(), id_var, &(start.front())
 		, &(count.front()), NULL, &(imap.front()), &(data.front()));
 	GuessNC::handle_error(status, "Failed to load data from file");
 	return data;
@@ -390,7 +394,7 @@ int NCVariable::get_timesteps_between(timepoint date0, timepoint date1) const {
 
 xtring NCVariable::get_standard_name() const {
 	std::string attribute;
-	if (!GuessNC::get_attribute(id_file, id_var, "standard_name", attribute)) {
+	if (!GuessNC::get_attribute(file->id(), id_var, "standard_name", attribute)) {
 		throw std::runtime_error("Unable to read standard_name attribute");
 	}
 	return xtring(attribute.c_str());
@@ -418,13 +422,13 @@ bool NCVariable::is_cache_valid(double lon, double lat, int year, int day) const
 
 xtring NCVariable::get_dimension_name(int id_dim) const {
 	char name[NC_MAX_NAME + 1];
-	int status = nc_inq_dimname(id_file, id_dim, name);
+	int status = nc_inq_dimname(file->id(), id_dim, name);
 	return xtring(name);
 }
 
 size_t NCVariable::get_dimension_length(int id_dim) const {
 	size_t result;
-	int status = nc_inq_dimlen(id_file, id_dim, &result);
+	int status = nc_inq_dimlen(file->id(), id_dim, &result);
 
 	handle_nc_error(status
 	, "Unable to read length of dimension %s"
@@ -440,24 +444,24 @@ int NCVariable::index_of(double x, int var_id) const {
 
 	// Now get the ID of the one and only dimension.
 	int id_dim;
-	int status = nc_inq_vardimid(id_file, var_id, &id_dim);
+	int status = nc_inq_vardimid(file->id(), var_id, &id_dim);
 	handle_nc_error(status, "Failed to get dimensions of variable %s"
-	, GuessNC::get_variable_name(id_file, var_id).c_str());
+	, GuessNC::get_variable_name(file->id(), var_id).c_str());
 
 	// Get the length of the dimension.
 	size_t length = get_dimension_length(id_dim);
 
 	nc_type var_type;
-	status = nc_inq_vartype(id_file, var_id, &var_type);
+	status = nc_inq_vartype(file->id(), var_id, &var_type);
 	handle_nc_error(status, "Failed to get type of variable %s"
-	, GuessNC::get_variable_name(id_file, var_id).c_str());
+	, GuessNC::get_variable_name(file->id(), var_id).c_str());
 
 	if (var_type == NC_DOUBLE) {
 		// Read all data from this variable along its only dimension.
 		std::vector<double> data(length);
-		status = nc_get_var_double(id_file, var_id, &(data.front()));
+		status = nc_get_var_double(file->id(), var_id, &(data.front()));
 		handle_nc_error(status, "Failed to read data for %s"
-		, GuessNC::get_variable_name(id_file, var_id).c_str());
+		, GuessNC::get_variable_name(file->id(), var_id).c_str());
 
 		// Finally we can search the data for the specified input value (x).
 		return index_of_double(x, &(data.front()), data.size());
@@ -466,9 +470,9 @@ int NCVariable::index_of(double x, int var_id) const {
 	if (var_type == NC_FLOAT) {
 		// Read all data from this variable along its only dimension.
 		std::vector<float> data(length);
-		status = nc_get_var_float(id_file, var_id, &(data.front()));
+		status = nc_get_var_float(file->id(), var_id, &(data.front()));
 		handle_nc_error(status, "Failed to read data for %s"
-		, GuessNC::get_variable_name(id_file, var_id).c_str());
+		, GuessNC::get_variable_name(file->id(), var_id).c_str());
 
 		// Finally we can search the data for the specified input value (x).
 		return index_of_float(x, &(data.front()), data.size());
@@ -501,7 +505,7 @@ timepoint NCVariable::to_timepoint(const GuessNC::CF::DateTime& date) const {
 
 GuessNC::CF::DateTime NCVariable::get_nth_date(size_t n) const {
 	double value;
-	int status = nc_get_var1_double(id_file, id_time, &n, &value);
+	int status = nc_get_var1_double(file->id(), id_time, &n, &value);
 	GuessNC::handle_error(status, "Failed to read from time variable");
 
 	// Parse this time value according to the specified calendar type.
@@ -539,7 +543,7 @@ GuessNC::CF::CalendarType NCVariable::get_calendar_type() const {
 	// NetCDF4 would require special care since we can't represent that with
 	// a double.
 	nc_type type;
-	int status = nc_inq_vartype(id_file, id_time, &type);
+	int status = nc_inq_vartype(file->id(), id_time, &type);
 	GuessNC::handle_error(status, "Failed to get type of time variable");
 
 	if (!(type == NC_BYTE
@@ -553,7 +557,7 @@ GuessNC::CF::CalendarType NCVariable::get_calendar_type() const {
 
 	// Get information about calendar and time unit
 	std::string calendar_attribute;
-	if (!GuessNC::get_attribute(id_file, id_time, CALENDAR, calendar_attribute)) {
+	if (!GuessNC::get_attribute(file->id(), id_time, CALENDAR, calendar_attribute)) {
 		auto& msg = "Time coordinate variable didn't have a calendar attribute";
 		throw std::runtime_error(msg);
 	}
@@ -564,7 +568,7 @@ GuessNC::CF::CalendarType NCVariable::get_calendar_type() const {
 GuessNC::CF::TimeUnitSpecification NCVariable::get_time_spec() const {
 	std::string units;
 	// Get the units on the time variable.std::string attribute;
-	if (!GuessNC::get_attribute(id_file, id_time, ATTR_UNITS, units)) {
+	if (!GuessNC::get_attribute(file->id(), id_time, ATTR_UNITS, units)) {
 		throw std::runtime_error("Unable to read units attribute on time variable");
 	}
 
@@ -603,7 +607,7 @@ void NCVariable::validate_time_axis() const {
 
 	// Bulk-read entire time coordinate
 	std::vector<double> time_vals(ntime);
-	int status = nc_get_var_double(id_file, id_time, &(time_vals.front()));
+	int status = nc_get_var_double(file->id(), id_time, &(time_vals.front()));
 	GuessNC::handle_error(status, "Failed to read entire time coordinate for validation");
 
 	// Ensure strictly increasing and constant delta within tolerance
@@ -680,11 +684,11 @@ void NCVariable::find_coordinate(const char *expected, int &id_var,
 								 int &id_dim,
 								 const std::vector<int> &dimids) const {
 	std::string expected_name(expected);
-	int nvars = GuessNC::get_nvars(id_file);
+	int nvars = GuessNC::get_nvars(file->id());
 
 	for (int i = 0; i < nvars; i++) {
 		std::string std_name;
-		GuessNC::get_attribute(id_file, i, "standard_name", std_name);
+		GuessNC::get_attribute(file->id(), i, "standard_name", std_name);
 
 		if (std_name != expected_name) {
 			continue;
@@ -695,7 +699,7 @@ void NCVariable::find_coordinate(const char *expected, int &id_var,
 		// guarantees that we're using a rectilinear grid (the only kind of grid
 		// we explicitly support).
 		int ndim;
-		int status = nc_inq_varndims(id_file, i, &ndim);
+		int status = nc_inq_varndims(file->id(), i, &ndim);
 		GuessNC::handle_error(status,
 			"Failed to get number of dimensions for coordinate variable");
 		if (ndim != 1) {
@@ -705,7 +709,7 @@ void NCVariable::find_coordinate(const char *expected, int &id_var,
 		}
 
 		id_var = i;
-		status = nc_inq_vardimid(id_file, id_var, &id_dim);
+		status = nc_inq_vardimid(file->id(), id_var, &id_dim);
 		GuessNC::handle_error(status,
 			"Failed to get dimension ID for coordinate variable");
 

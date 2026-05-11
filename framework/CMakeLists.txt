@@ -26,6 +26,7 @@ set(headers
   ncinventory.h
   variableresolver.h
   logging.h
+  ncfile.h
 )
 
 set(source
@@ -54,6 +55,7 @@ set(source
   variableresolver.cpp
   logging.cpp
   guessmath.cpp
+  ncfile.cpp
 )
 
 include(add_guess_sources)

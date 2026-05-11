@@ -11,6 +11,7 @@
 #include "ncinput.h"
 #include "ncinventory.h"
 #include "ncutil.h"
+#include "ncfile.h"
 #include "ncvariable.h"
 #include "variableresolver.h"
 #include "logging.h"
@@ -39,10 +40,21 @@ ResolvedPlan get_forcing_plan(const std::string &file_path,
     return resolver.resolve(inventory, resolve_options);
 }
 
-void open_file(const ResolvedPlan &plan, Variable var,
-               CacheStrategy cache_strategy, bool sensibility_checks,
-               bounds limits, const std::vector<xtring> &units,
-               int &nc_id, std::unique_ptr<NCVariable> &variable) {
+std::shared_ptr<NCFile> NCInput::open_file(const std::string &file_path) {
+    auto it = files.find(file_path);
+    if (it != files.end()) {
+        return it->second;
+    }
+
+    std::shared_ptr<NCFile> file = std::make_shared<NCFile>(file_path);
+    files[file_path] = file;
+    return file;
+}
+
+void NCInput::open_file(const ResolvedPlan &plan, Variable var,
+                                           bounds limits,
+                                           const std::vector<xtring> &units,
+                                           std::unique_ptr<NCVariable> &variable) {
     // Get variable info from bindings map.
     auto it = plan.bindings.find(var);
     if (it == plan.bindings.end()) {
@@ -57,26 +69,14 @@ void open_file(const ResolvedPlan &plan, Variable var,
     // 3. We are double-parsing (this parsing has already occurred).
     // Need to refactor this requirement out of the NCVariable contructor.
     const VariableInfo &var_info = it->second;
-    nc_id = GuessNC::open_ncdf(var_info.file.c_str());
-    variable = std::make_unique<NCVariable>(nc_id, var_info.name.c_str(),
-                                            cache_strategy, sensibility_checks,
+    std::shared_ptr<NCFile> file = open_file(var_info.file);
+    variable = std::make_unique<NCVariable>(file, var_info.name.c_str(),
+                                            options.cache_strategy,
+                                            options.nc_check_inputs,
                                             limits, units, true);
 }
 
 NCInput::NCInput() {
-    nc_tas = -1;
-    nc_rs = -1;
-    nc_pr = -1;
-    nc_vpd = -1;
-    nc_rh = -1;
-    nc_sh = -1;
-    nc_ps = -1;
-    nc_co2 = -1;
-    nc_nhx = -1;
-    nc_noy = -1;
-    nc_tmax = -1;
-    nc_tmin = -1;
-    nc_ws = -1;
     open_dataset = Dataset::None;
 }
 
@@ -114,36 +114,31 @@ void NCInput::init(const NCInputOptions &options) {
     // Record length of input data.
     if (separate_spinup) {
         // Temporarily open a file for the main simulation period.
-        int nc_tmp;
-        std::unique_ptr<NCVariable> tmp;
-        open_file(simulation_plan, Variable::Temp, CacheStrategy::Year, true,
-                  { -273.15, 1e4 }, {"degC", "degc", "°C", "℃"}, nc_tmp, tmp);
+        // Need to manually open the NCFile handle so as to avoid polluting the
+        // open files map.
+        // TODO: consolidate units/bounds/etc
+        VariableInfo var_info = simulation_plan.bindings.at(Variable::Temp);
+        std::shared_ptr<NCFile> file_tmp = std::make_shared<NCFile>(var_info.file);
+        bounds bounds = {-273.15, 1e4};
+        std::vector<xtring> units = {"degC", "degc", "°C", "℃"};
+        std::unique_ptr<NCVariable> tmp = std::make_unique<NCVariable>(file_tmp,
+                                            xtring(var_info.name.c_str()),
+                                            options.cache_strategy,
+                                            options.nc_check_inputs,
+                                            bounds, units, true);
 
-        // TODO: RAII.
-        try {
-            // Update simulation timesteps.
-            first_timestep = tmp->get_first_date();
-            final_timestep = tmp->get_last_date();
+        // Update simulation timesteps.
+        first_timestep = tmp->get_first_date();
+        final_timestep = tmp->get_last_date();
 
-            // Set input_timestep to the value from file_met_forcing.
-            input_timestep = tmp->get_day_length();
-            simulation_calendar = tmp->get_calendar();
+        // Set input_timestep to the value from file_met_forcing.
+        input_timestep = tmp->get_day_length();
+        simulation_calendar = tmp->get_calendar();
 
-            // These three parameters all now come from file_met_forcing; last
-            // time we called this function, they came from file_met_spinup.
-            // Therefore we should check the main file. Better to fail early.
-            verify_data_length(first_timestep, final_timestep, input_timestep, tmp->get_calendar());
-
-            GuessNC::close_ncdf(nc_tmp);
-            nc_tmp = -1;
-            tmp.reset();
-        }
-        catch (const std::exception &e) {
-            if (nc_tmp != -1) {
-                GuessNC::close_ncdf(nc_tmp);
-            }
-            throw;
-        }
+        // These three parameters all now come from file_met_forcing; last
+        // time we called this function, they came from file_met_spinup.
+        // Therefore we should check the main file. Better to fail early.
+        verify_data_length(first_timestep, final_timestep, input_timestep, tmp->get_calendar());
     }
 
     // input_timestep is the timestep from file_met_forcing. Ensure that it
@@ -192,28 +187,24 @@ void NCInput::begin_gridcell(double lon, double lat) {
     }
 }
 
-void close_if_open(int &nc_id, std::unique_ptr<NCVariable> &variable) {
-    if (nc_id != -1) {
-        GuessNC::close_ncdf(nc_id);
-        nc_id = -1;
-    }
-    variable.reset();
-}
-
 void NCInput::close() {
-    close_if_open(nc_tas, tas);
-    close_if_open(nc_rs, rs);
-    close_if_open(nc_pr, pr);
-    close_if_open(nc_ws, ws);
-    close_if_open(nc_co2, co2);
-    close_if_open(nc_tmax, tmax);
-    close_if_open(nc_tmin, tmin);
-    close_if_open(nc_vpd, vpd);
-    close_if_open(nc_sh, sh);
-    close_if_open(nc_rh, rh);
-    close_if_open(nc_ps, ps);
-    close_if_open(nc_nhx, nhx);
-    close_if_open(nc_noy, noy);
+    // All NCVariables hold a shared_ptr to their NCFile. Therefore, clearing
+    // all variables and emptying the map will close all open file handles.
+    tas.reset();
+    rs.reset();
+    pr.reset();
+    ws.reset();
+    vpd.reset();
+    rh.reset();
+    sh.reset();
+    co2.reset();
+    nhx.reset();
+    noy.reset();
+    ps.reset();
+    tmax.reset();
+    tmin.reset();
+
+    files.clear();
     open_dataset = Dataset::None;
 }
 
@@ -225,31 +216,26 @@ void NCInput::open_files(const ResolvedPlan &plan, Dataset dataset) {
 
     std::vector<xtring> temp_units = {"degC", "degc", "°C", "℃"};
     bounds temp_bounds = {-100, 100};
-    open_file(plan, Variable::Temp, options.cache_strategy,
-              options.nc_check_inputs, temp_bounds, temp_units, nc_tas, tas);
+    open_file(plan, Variable::Temp, temp_bounds, temp_units, tas);
 
 	// TODO: Should provide units for other insol types as well.
     std::vector<xtring> rs_units = {"W/m2", "W m-2", "w/m^2"};
 	bounds bounds_rs = {0, 1e6};
-    open_file(plan, Variable::Rs, options.cache_strategy, options.nc_check_inputs,
-              bounds_rs, rs_units, nc_rs, rs);
+    open_file(plan, Variable::Rs, bounds_rs, rs_units, rs);
 	std::vector<xtring> pr_units = {"mm", "kg m-2", "kg/m2"};
 	bounds bounds_pr = {0, 1000};
-    open_file(plan, Variable::Pr, options.cache_strategy, options.nc_check_inputs,
-              bounds_pr, pr_units, nc_pr, pr);
+    open_file(plan, Variable::Pr, bounds_pr, pr_units, pr);
 
     if (plan.ws_mode == WsMode::Direct) {
         std::vector<xtring> ws_units = {"m/s", "m s-1", "m s^-1"};
         bounds bounds_ws = {0, 100};
-        open_file(plan, Variable::Ws, options.cache_strategy, options.nc_check_inputs,
-                  bounds_ws, ws_units, nc_ws, ws);
+        open_file(plan, Variable::Ws, bounds_ws, ws_units, ws);
     }
 
     if (plan.co2_mode == Co2Mode::Direct) {
         std::vector<xtring> co2_units = {"ppm"};
         bounds bounds_co2 = {0, 900};
-        open_file(plan, Variable::CO2, options.cache_strategy, options.nc_check_inputs,
-                  bounds_co2, co2_units, nc_co2, co2);
+        open_file(plan, Variable::CO2, bounds_co2, co2_units, co2);
     }
 
     if (plan.vpd_mode == VpdMode::Direct) {
@@ -257,18 +243,15 @@ void NCInput::open_files(const ResolvedPlan &plan, Dataset dataset) {
         // CS updated max from 200 to 100, min from 0 to 0.01 to avoid log(0)
         // issues.
         bounds bounds_vpd = {0.01, 100};
-        open_file(plan, Variable::Vpd, options.cache_strategy, options.nc_check_inputs,
-                  bounds_vpd, vpd_units, nc_vpd, vpd);
+        open_file(plan, Variable::Vpd, bounds_vpd, vpd_units, vpd);
     } else if (plan.vpd_mode == VpdMode::FromSH) {
         std::vector<xtring> sh_units = {"1", "kg/kg"};
         bounds bounds_sh = {0, 1};
-        open_file(plan, Variable::SH, options.cache_strategy, options.nc_check_inputs,
-                  bounds_sh, sh_units, nc_sh, sh);
+        open_file(plan, Variable::SH, bounds_sh, sh_units, sh);
     } else if (plan.vpd_mode == VpdMode::FromRH) {
         std::vector<xtring> rh_units = {"1"};
         bounds bounds_rh = {0, 1};
-        open_file(plan, Variable::RH, options.cache_strategy, options.nc_check_inputs,
-                  bounds_rh, rh_units, nc_rh, rh);
+        open_file(plan, Variable::RH, bounds_rh, rh_units, rh);
     } else {
         throw std::runtime_error("Invalid VPD mode in input plan: " + std::to_string(static_cast<int>(plan.vpd_mode)));
     }
@@ -277,25 +260,19 @@ void NCInput::open_files(const ResolvedPlan &plan, Dataset dataset) {
         // We will read nitrogen deposition data directly from the input file.
         std::vector<xtring> ndep_units = {"kgN/m2/day"};
         bounds bounds_ndep = {0, 1000};
-        open_file(plan, Variable::Nhx, options.cache_strategy, options.nc_check_inputs,
-                  bounds_ndep, ndep_units, nc_nhx, nhx);
-        open_file(plan, Variable::Noy, options.cache_strategy, options.nc_check_inputs,
-                  bounds_ndep, ndep_units, nc_noy, noy);
+        open_file(plan, Variable::Nhx, bounds_ndep, ndep_units, nhx);
+        open_file(plan, Variable::Noy, bounds_ndep, ndep_units, noy);
     }
 
     if (plan.ps_mode == PsMode::Direct) {
         std::vector<xtring> ps_units = {"Pa"};
         bounds bounds_ps = {50000, 150000};
-        open_file(plan, Variable::Ps, options.cache_strategy, options.nc_check_inputs,
-                  bounds_ps, ps_units, nc_ps, ps);
+        open_file(plan, Variable::Ps, bounds_ps, ps_units, ps);
     }
 
     if (plan.dtr_mode == DtrMode::Direct) {
-        open_file(plan, Variable::Tmax, options.cache_strategy, options.nc_check_inputs,
-                  temp_bounds, temp_units, nc_tmax, tmax);
-
-        open_file(plan, Variable::Tmin, options.cache_strategy, options.nc_check_inputs,
-                  temp_bounds, temp_units, nc_tmin, tmin);
+        open_file(plan, Variable::Tmax, temp_bounds, temp_units, tmax);
+        open_file(plan, Variable::Tmin, temp_bounds, temp_units, tmin);
     }
     open_dataset = dataset;
 }

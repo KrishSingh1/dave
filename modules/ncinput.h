@@ -3,6 +3,8 @@
 
 #ifdef HAVE_NETCDF
 
+#include <map>
+#include <memory>
 #include <string>
 
 #include "driver.h"
@@ -12,6 +14,7 @@
 #include "ncutil.h"
 #include "ncvariable.h"
 #include "variableresolver.h"
+#include "ncfile.h"
 
 /*
 Configuration options which control the behaviour of the NCInput module.
@@ -147,6 +150,30 @@ private:
     void close();
 
     /*
+    Open the specified file.
+
+    @param plan The input management plan specifying which variable to open and how to obtain it.
+    @param var The variable to open.
+    @param limits The valid data limits for this variable.
+    @param units The valid units for this variable.
+    @param variable The NCVariable object to store the opened variable in.
+    @return A shared pointer to the opened NCFile.
+    */
+    void open_file(const ResolvedPlan &plan,
+                                      Variable var,
+                                      bounds limits,
+                                      const std::vector<xtring> &units,
+                                      std::unique_ptr<NCVariable> &variable);
+
+    /*
+    Open the specified file for reading.
+
+    @param file The path to the file to open.
+    @return A shared pointer to the opened NCFile.
+    */
+    std::shared_ptr<NCFile> open_file(const std::string &file);
+
+    /*
     The different datasets that can be used in the simulation.
     */
     enum class Dataset {
@@ -156,9 +183,9 @@ private:
     };
 
     /*
-    Open all files required by the given input plan, store the file IDs in the
-    nc_* members, and store the variable objects in the corresponding NCVariable
-    members.
+    Open all files required by the given input plan, store the file handles in
+    the files map, and store the variable objects in the corresponding
+    NCVariable members.
 
     @param plan The input management plan specifying which variables are
                 required and how to obtain them.
@@ -273,72 +300,10 @@ private:
     */
     ResolvedPlan simulation_plan;
 
-	/*
-	The NetCDF file ID for the air temperature variable.
-	*/
-	int nc_tas;
-
-	/*
-	The NetCDF file ID for the shortwave radiation variable.
-	*/
-	int nc_rs;
-
-	/*
-	The NetCDF file ID for the precipitation variable.
-	*/
-	int nc_pr;
-
-	/*
-	The NetCDF file ID for the vpd variable. This will be -1 if vpd is being
-	calculated from specific humidity.
-	*/
-	int nc_vpd;
-
-	/*
-	The NetCDF file ID for the specific humidity variable. This will be -1 if
-	vpd is being read directly from the input file.
-	*/
-	int nc_sh;
-
-	/*
-	The NetCDF file ID for the relative humidity variable.
-	*/
-	int nc_rh;
-
-	/*
-	The NetCDF file ID for the air pressure variable.
-	*/
-	int nc_ps;
-
-	/*
-	The NetCDF file ID for the wind speed variable.
-	*/
-	int nc_ws;
-
-	/*
-	The NetCDF file ID for the co2 variable.
-	*/
-	int nc_co2;
-
-	/*
-	The NetCDF file ID for the tmax variable.
-	*/
-	int nc_tmax;
-
-	/*
-	The NetCDF file ID for the tmin variable.
-	*/
-	int nc_tmin;
-
-	/*
-	The NetCDF file ID for the nhx N deposition variable.
-	*/
-	int nc_nhx;
-
-	/*
-	The NetCDF file ID for the noy N deposition variable.
-	*/
-	int nc_noy;
+    /*
+    A map of file names to open files.
+    */
+    std::map<std::string, std::shared_ptr<NCFile>> files;
 
 	/*
 	Air temperature variable in the NetCDF file.

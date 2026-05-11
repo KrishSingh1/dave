@@ -29,6 +29,7 @@ void vcmax_from_parameters(Individual &indiv) {
 Calculate leaf N content at the top of the canopy (kgN m-2 per green leaf area).
 */
 double calc_nmass_leaf0(const Pft &pft, double lai, double nmass_leaf) {
+	// extkn cannot be 0 (but LAI can be).
 	if (lai == 0) {
 		return 0;
 	}
@@ -239,29 +240,6 @@ void water_stress_dave(Patch &patch) {
 }
 
 /*
-Get vegetation height (m) for a patch, calculated as the maximum height of
-individuals in the patch.
-
-TODO: move this to another file. Doesn't belong in photosynthesis code.
-*/
-double get_veg_height(Vegetation &vegetation) {
-	double height_veg = 0;
-	vegetation.firstobj();
-	while (vegetation.isobj) {
-		Individual& indiv=vegetation.getobj();
-
-		if (indiv.growingseason()) {
-			if (indiv.height>height_veg) {
-				height_veg=indiv.height;
-			}
-		}
-
-		vegetation.nextobj(); // ... on to next individual
-	}
-	return height_veg;
-}
-
-/*
 Acclimation of vcmax/jmax to temperature (Kumarathunge et al, 2018).
 */
 void temp_acclimation_kummarathunge(double tgrowth, double thome, double &ha_v,
@@ -384,9 +362,7 @@ Value of parameter a was calculated to give a value of 1 for Tl = 25degC.
 */
 double respiration_temp_response(double Tl) {
 	double kRl = exp(-2.2175 + 0.1012 * Tl - 0.0005 * pow(Tl,2));
-
 	return kRl; // value of leaf respiration relative to its value at 25 deg C
-
 }
 
 /*
@@ -398,7 +374,6 @@ light as in Huntingford et al. 2017, Nature Communications.
 double light_inhibition(double PAR) {
 	double inhib = PAR > 2.0 ? 0.7 : 1.0;
 	return inhib; // inhibition of leaf respiration by light (0-1)
-
 }
 
 /*
@@ -439,7 +414,7 @@ Scales Vcmax and Jmax under water stress based on Zhou (2014)
                    stresed value (Zhou 2014)
 @param predawn_lwp Pre-dawn leaf water potential (MPa)
 */
-double pslim_lwp_scalar(double s_f, double psi_f, double predawn_lwp){
+double pslim_lwp_scalar(double s_f, double psi_f, double predawn_lwp) {
 	return (1 + exp(s_f * psi_f)) / (1 + exp(s_f * (psi_f - predawn_lwp)));
 }
 
@@ -489,7 +464,7 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 		outputs.an = -rd;
 		outputs.gsc = inputs.gdark;
 
-		if (!inputs.stomata_open){
+		if (!inputs.stomata_open) {
 			outputs.gsc = 0.0;
 		}
 		return;
@@ -504,7 +479,7 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	double pslim = inputs.fphen_activity * inputs.ps_sink_lim * inputs.nscal;
 
 	// apply water stress scaling to vcmax / jmax
-	if(ifzhou){
+	if (ifzhou) {
 	// function to scale vcmax and jmax by pre-dawn water potential, see Zhou (2014)
 		double wp_vmax_scale = pslim_lwp_scalar(inputs.s_f, inputs.psi_f, inputs.predawn_lwp);
 		pslim = pslim * wp_vmax_scale;
@@ -828,7 +803,7 @@ C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
 	double pslim = inputs.fphen_activity * inputs.ps_sink_lim * inputs.nscal;
 
 	// apply water stress scaling to vcmax / jmax
-	if(ifzhou){
+	if (ifzhou) {
 		// function to scale vcmax and jmax by pre-dawn water potential, see Zhou (2014)
 		double wp_vmax_scale = pslim_lwp_scalar(inputs.s_f, inputs.psi_f, inputs.predawn_lwp);
 		pslim = pslim * wp_vmax_scale;
@@ -912,8 +887,6 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 Coupled model of photosynthesis and stomatal conductance for C3 and C4 plants.
 */
 void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
-
-	double height_veg = get_veg_height(vegetation);
 	PhotosynthesisInputs inputs;
 	PhotosynthesisOutputs outputs;
 
@@ -1530,7 +1503,6 @@ void forest_floor_dave(Patch &patch) {
 
 		// VPD in kPa.
 		inputs.vpd   = climate.vpds[day.period];
-		double par = climate.pars[day.period];
 
 		// No limitation from phenology or sink activity.
 		inputs.fphen_activity = 1;
@@ -1546,7 +1518,8 @@ void forest_floor_dave(Patch &patch) {
 		inputs.lai = LAI_HYPOTHETICAL;
 
 		// Incident PAR in the middle of the layer (W m-2).
-		inputs.par = patch.fpar_ff * par;
+		inputs.par = patch.fpar_ff * climate.pars[day.period];
+		inputs.par = max(0.0, inputs.par);
 
 		for (size_t i = 0; i < pftlist.nobj; i++) {
 			const Pft &pft = pftlist[i];

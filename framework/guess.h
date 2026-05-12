@@ -2331,8 +2331,6 @@ public:
     double g1;
 	/// Stomatal intercept parameter at leaf water potential = -0.3 Mpa (Zhou et al. 2014), (kPa^0.5)
     double g1x;
-    /// Parameter for Zhou et al. (2014) stomatal model (hydraulics version)
-    double b1z;
 	/// maximum evapotranspiration rate (mm/day)
 	double emax;
 	/// maintenance respiration coefficient (0-1)
@@ -2886,7 +2884,6 @@ public:
 		p88=0.0;
 		kmax=0.0;
 		g1x=0.0;
-		b1z=0.0;
 		tlp=0.0;
 		ifcalcvcmax = false;
 

@@ -9,6 +9,18 @@
 // Average leaf N:P ratio for C3 grasses from Thum et al. 2019 (SI Table 8).
 const double C3_LEAF_NTOP = 10.7;
 
+// Number of soil layers to use for calculating PFT-level water stress scalar.
+const int NLAYER_FOREST_FLOOR = 5;
+
+// Scaling parameter for gcutic (Cochard 2021 Eq 13 & 14).
+const double Q10A = 1.2;
+
+// Scaling parameter for gcutic (Cochard 2021 Eq 13 & 14).
+const double Q10B = 4.8;
+
+// Transition temperature degC (to discuss with Erick) (Cochard 2021 Eq 13 & 14)
+const double TP = 40;
+
 /*
 Get vcmax25, jmax25, and vpmax25 from PFT parameters and store them in
 indiv.ps_subdaily.
@@ -139,19 +151,23 @@ void store_vcmax_values(Vegetation &vegetation) {
 Calculate water stress factor [0-1] in the root zone. This is calculated as a
 weighted mean of wcont / wcont_crit (clamped to [0, 1]) across soil layers.
 */
-double calc_water_stress_dave(const Soil &soil, const double weight[NSOILLAYER]) {
+double calc_water_stress_dave(const Soil &soil, const double weight[NSOILLAYER], size_t max_layers = NSOILLAYER) {
+	if (max_layers > NSOILLAYER) {
+		fail("calc_water_stress_dave(): max_layers cannot be greater than NSOILLAYER");
+	}
+
 	double wstress = 0;
 	double total_weight = 0;
-	for (int j = 0; j<NSOILLAYER; j++) {
-		double stress_base = soil.get_layer_soil_water(j) / wcont_crit;
+	for (size_t i = 0; i < max_layers; i++) {
+		double stress_base = soil.get_layer_soil_water(i) / wcont_crit;
 
 		// Clamp to [0, 1].
 		stress_base = max(min(stress_base, 1.0), 0.0);
 
-		wstress += stress_base * weight[j];
+		wstress += stress_base * weight[i];
 
 		// Root distribution should add up to 1 but summed here just in case.
-		total_weight += weight[j];
+		total_weight += weight[i];
 	}
 
 	// Normalise by sum of weights.
@@ -162,80 +178,39 @@ double calc_water_stress_dave(const Soil &soil, const double weight[NSOILLAYER])
 }
 
 /*
-DAVE water stress scalar routine, used when ifzhou is enabled.
+DAVE water stress scalar routine.
+
+This calculates a water stress scalar for each individual and each PFT.
 */
-void water_stress_dave_zhou(Patch &patch) {
+void water_stress_dave(Patch &patch) {
 	const Soil &soil = patch.soil;
 
 	// Iterate over individuals in patch.
 	for (int i = 0; i < patch.vegetation.nobj; i++) {
 		Individual &indiv = patch.vegetation[i];
 
-		// Previously, we calculated water stress using water potential weighted
-		// by root resistance. We stopped using water potential because it's
-		// non-linear with water content, which meant that getting water
-		// stressed required extremely low water contents. We changed from root
-		// resistance to root distribution for much the same reason - it has a
-		// flatter relationship with water content.
-
 		// Water stress factor [0-1] in the root zone.
-		double wstress = calc_water_stress_dave(soil, indiv.rootdist);
+		// With zhou enabled, weight by inverse of root resistance.
+		// With zhou disabled, weight by root distribution.
+		double weight[NSOILLAYER];
+		for (size_t j = 0; j < NSOILLAYER; j++) {
+			weight[j] = ifzhou ? 1.0 / indiv.Rs_r[j] : indiv.rootdist[j];
+		}
+		double wstress = calc_water_stress_dave(soil, weight);
 
 		// Mean daily water stress value.
 		indiv.set_wscal(wstress);
 	}
 
-	// We also need to calculate a water stress for all PFTs, even if they're
-	// not currently established. We do this by weighting by layer thickness.
-	// Note that Dz is of length NLAYERS, not NSOILLAYERS, so it includes the 6
-	// snow layers and air layer before the soil layers, which is why we start
-	// at index 7 here.
-	double wstress_pft = calc_water_stress_dave(soil, soil.Dz + 7);
-
+	// Calculate a PFT-level water stress. This is only really used for the
+	// forest floor photosynthesis, which is used for establishment. Since
+	// seedlings don't really have access to deep soil layers, we only use the
+	// top few layers' soil moisture.
 	for (int i = 0; i < pftlist.nobj; i++) {
 		Patchpft &ppft = patch.pft[i];
-		ppft.set_wscal(wstress_pft);
-	}
-}
-
-/*
-DAVE water scalar routine (see water_scalar()). This is used when ifzhou is
-disabled.
-
-@param patch: The patch.
-*/
-void water_stress_dave(Patch &patch) {
-	// Must set:
-	// - ppft.wscal_mean (scalar, total annual water stress, convert to mean at end of year)
-	// - ppft.cropphen->growingdays_y -> increment once per day for true crops and cover-crop grass
-	// - ppft.wscal -> mean daily wscal value in range [0, day_len]
-	// - indiv.wscal_running (call .add() to add today's value in once at end of day)
-	// - ppft.wscal_5 and ppft.wscal_10 -> 5 and 10 day running mean of wscal
-
-	for (size_t i = 0; i < pftlist.nobj; i++) {
-		Patchpft &ppft = patch.pft[i];
-		Pft &pft = pftlist[i];
-
-		// Aggregate water stress factor [0-1] in the root zone.
-		double wstress = calc_water_stress_dave(patch.soil, pft.input_rootdist);
+		double wstress = calc_water_stress_dave(soil, ppft.pft.input_rootdist,
+												NLAYER_FOREST_FLOOR);
 		ppft.set_wscal(wstress);
-	}
-
-	// Update the corresponding indiv-level moving averages of water stress.
-	// These are handled internally by the individual.
-	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
-		Individual &indiv = patch.vegetation[i];
-		Patchpft &ppft = indiv.patchpft();
-
-		double wscal = ppft.wscal;
-
-		// Calculate individual-level wscal. This can be different for grasses
-		// if the adaptive root distribution is enabled.
-		if (indiv.pft.is_grass() && indiv.pft.dave_allocation() && ifadaptive_rootdist) {
-			wscal = calc_water_stress_dave(patch.soil, indiv.rootdist);
-		}
-
-		indiv.set_wscal(wscal);
 	}
 }
 
@@ -436,6 +411,29 @@ double resp_temp_acclimation_scalar(double tgrowth, double racclim) {
 }
 
 /*
+No photosynthesis (stomata closed - night time, water stress, etc).
+
+Sets gross assimilation to 0, net assimilation to -Rd, and Ci to Ca.
+*/
+void no_photosynthesis(const PhotosynthesisInputs &inputs, PhotosynthesisOutputs &outputs, double rd) {
+	// Gross assimilation = 0, net assimilation = -Rd, and Ci = Ca.
+
+	outputs.rd = rd;
+	outputs.an = -rd;
+	outputs.anc = -rd;
+	outputs.anj = -rd;
+	outputs.vcmax = 0;
+	outputs.jmax = 0;
+	outputs.anp = 0;
+
+	// Hydraulic stress can take gsc to zero.
+	outputs.gsc = inputs.stomata_open ? inputs.gdark : 0;
+
+	// Unused.
+	outputs.ci = inputs.ca;
+}
+
+/*
 C3 photosynthesis (largely Farquhar et al. 1980).
 
 Calculates photosynthesis for a single C3 indiv in a single layer at a given
@@ -459,14 +457,7 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 			respiration_temp_response(inputs.temp) * light_inhibition(inputs.par) * resp_scalar;
 
 	if (is_zero(inputs.par)) {
-		// Night.
-		outputs.rd = rd;
-		outputs.an = -rd;
-		outputs.gsc = inputs.gdark;
-
-		if (!inputs.stomata_open) {
-			outputs.gsc = 0.0;
-		}
+		no_photosynthesis(inputs, outputs, rd);
 		return;
 	}
 
@@ -841,25 +832,7 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	C4Biochemistry biochemistry = c4_biochemistry(inputs);
 
 	if (is_zero(inputs.par) || !inputs.stomata_open) {
-		// No photosynthesis (stomata closed - night time, water stress, etc).
-		// Gross assimilation = 0, net assimilation = -Rd, and Ci = Ca.
-		outputs.rd = biochemistry.rd;
-		outputs.an = -biochemistry.rd;
-		outputs.anc = -biochemistry.rd;
-		outputs.anj = -biochemistry.rd;
-		outputs.vcmax = biochemistry.vcmax;
-		outputs.jmax = biochemistry.jmax;
-		outputs.anp = 0; // Not used in C4 photosynthesis
-
-		// Hydraulic stress can take gsc to zero.
-		outputs.gsc = inputs.stomata_open ? inputs.gdark : 0;
-
-		if (is_zero(outputs.gsc)) {
-			outputs.ci = inputs.ca;
-		} else {
-			// Unsure if this is necessary.
-			outputs.ci = inputs.ca - divide(outputs.an, outputs.gsc);
-		}
+		no_photosynthesis(inputs, outputs, biochemistry.rd);
 		return;
 	}
 
@@ -985,15 +958,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			// Cochard 2021 Eq 13 & 14,
 			// https://peercommunityjournal.org/item/10.24072/pcjournal.45.pdf
 
-            // Scaling parameter
-			const double Q10A = 1.2;
-
-            // Transition temperature, degC - to discuss with Erick
-			const double TP = 40;
-
-            // Scaling parameter
-			const double Q10B = 4.8;
-
             // Calculate gcutic at phase change T for use in equation below.
 			double gcutic_Tp = pft.gcutic * pow(Q10A, (TP - 25) / 10);
 
@@ -1024,14 +988,16 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				// rescale similar to g1, but don't allow values bigger than assigned g0
 				double g0 = min(pft.g0, pft.g0 * rescale);
 
+				// Don't allow g0 to fall below cuticular conductance.
+				g0 = max(g0, gcutic_adj);
+
 				// X needs to represent gs for CO2, hence no 1.6 factor
 				inputs.X = divide(1.0 + divide(indiv.g1, sqrt(max(inputs.vpd, 0.1))), inputs.ca);
 
 				// Residual stomatal conductance term
 				// Note: g0 is for H20, here conversion to conductances to CO2
 				inputs.gdark = divide(max(0.0, g0), DWDC);  // TODO: do we need a different qs here?
-			}
-			else {
+			} else {
 				// Stomatal term (Medlyn et al. 2011)
 				// X needs to represent gs for CO2, hence no 1.6 factor
 				inputs.X = stomatal_conductance_term(inputs.wscal, pft.g1, inputs.vpd, inputs.ca);
@@ -1041,9 +1007,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
                 // TODO: do we need a different qs here?
 				inputs.gdark = stomatal_conductance_residual(pft.g0, inputs.wscal);
 			}
-
-			// Don't allow gdark to fall below gcutic.
-			inputs.gdark = max(inputs.gdark, gcutic_adj);
 
 			// Initialise cumulative LAI.
 			double lai_cum_bottom = 0.0;
@@ -1532,13 +1495,15 @@ void forest_floor_dave(Patch &patch) {
 
 			inputs.s_f = pft.s_f;
 			inputs.psi_f = pft.psi_f;
-			inputs.predawn_lwp = patch.soil.soil_psi;
 			inputs.racclim = pft.racclim;
+			inputs.wscal = ppft.wscal;
+
+			// Since the seedlings don't have access to deep layers, only look
+			// at the top few layers' SWP.
+			inputs.predawn_lwp = mean(patch.soil.psi_layer, NLAYER_FOREST_FLOOR);
 
 			// Atmospheric CO2 concentration in mol mol-1.
 			inputs.ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;
-
-			inputs.wscal = ppft.wscal;
 
 			// No soil water on first day of simulation - this results in wscal
 			// of 0, which results in a division by zero. We can just skip this
@@ -1547,12 +1512,40 @@ void forest_floor_dave(Patch &patch) {
 				continue;
 			}
 
-			// Stomatal term (Medlyn et al. 2011)
-			// TODO: should we use g1x here?
-			inputs.X = stomatal_conductance_term(inputs.wscal, pft.g1, inputs.vpd, inputs.ca);
+			if (ifzhou) {
 
-			// Residual stomatal conductance term.
-			inputs.gdark = stomatal_conductance_residual(pft.g0, inputs.wscal);
+				// Calculate gcutic at phase change T for use in equation below.
+				double gcutic_Tp = pft.gcutic * pow(Q10A, (TP - 25) / 10);
+
+				// This should all be based on leaf temperature, but using air
+				// temperature as an approximation.
+				double gcutic_adj = 0.0;
+				if (inputs.temp < TP) {
+					// Erick's measurements start at 25, so changed 20 to 25 in eqns
+					gcutic_adj = pft.gcutic * pow(Q10A, (inputs.temp - 25) / 10);
+				} else {
+					gcutic_adj = gcutic_Tp * pow(Q10B, (inputs.temp - TP) / 10);
+				}
+
+				// Stomatal term (Medlyn et al. 2011)
+				double b1z = log(0.1) / (pft.stom_clos + 0.3);
+				double g1 = pft.g1x * exp(b1z * (inputs.predawn_lwp + 0.3));
+				inputs.X = stomatal_conductance_term(inputs.wscal, g1, inputs.vpd, inputs.ca);
+
+				// Residual stomatal conductance term.
+				double g0 = pft.g0 * exp(b1z * (inputs.predawn_lwp + 0.3));
+				g0 = max(g0, gcutic_adj);
+				inputs.gdark = stomatal_conductance_residual(g0, inputs.wscal);
+			} else {
+				// Stomatal term (Medlyn et al. 2011)
+				// X needs to represent gs for CO2, hence no 1.6 factor
+				inputs.X = stomatal_conductance_term(inputs.wscal, pft.g1, inputs.vpd, inputs.ca);
+
+				// Residual stomatal conductance term
+				// Note: g0 is for H20, here conversion to conductances to CO2
+                // TODO: do we need a different qs here?
+				inputs.gdark = stomatal_conductance_residual(pft.g0, inputs.wscal);
+			}
 
 			double nmass_leaf0 = calc_nmass_leaf0(pft, LAI_HYPOTHETICAL, NMASS_LEAF_HYPOTHETICAL);
 			double pmass_leaf0 = nmass_leaf0 / C3_LEAF_NTOP;
@@ -1606,11 +1599,7 @@ void canopy_exchange_dave(Patch &patch, Climate &climate) {
     calc_soil_water_potenial_dave(patch.soil);
 
     // Calculate water stress factor
-    if (ifzhou) {
-        water_stress_dave_zhou(patch);
-    } else {
-        water_stress_dave(patch);
-    }
+	water_stress_dave(patch);
 
     // Calculate subdaily photosynthesis and stomatal conductance 
     photosynthesis_gs(patch, climate, patch.vegetation);

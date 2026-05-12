@@ -790,8 +790,6 @@ void plib_declarations(int id,xtring setname) {
 		// Subdaily photosynthesis parameters, Zhou model
 		declareitem("g1x",&ppft->g1x,0,20.0,1,CB_NONE,
 			"g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), units are (kPa^0.5)");
-		declareitem("b1z",&ppft->b1z,0,5.0,1,CB_NONE,
-			"Parameter for Zhou et al. (2014) stomatal model - not currently used");
 		// Hydraulic parameters
 		declareitem("stom_clos",&ppft->stom_clos,-1000.0,0.0,1,CB_NONE, 
 			"Water potential at which stomatal close and roots disconnect from soil (MPa)");
@@ -2273,8 +2271,12 @@ void plib_callback(int callback) {
 			if (ifdavephotosyn) {
 				// Mandatory parameters for dave photosynthesis.
 				if (!itemparsed("g0")) badins("g0");
-				if (!itemparsed("g1")) badins("g1");
 				if (!itemparsed("gcutic")) badins("gcutic");
+				if (ifzhou) {
+					if (!itemparsed("g1x")) badins("g1x");
+				} else {
+					if (!itemparsed("g1")) badins("g1");
+				}
 				if (!itemparsed("extkn")) badins("extkn");
 				if (ppft->extkn == 0) {
 					sendmessage("Error", "extkn cannot be 0 in dave photosynthesis model");
@@ -2311,7 +2313,6 @@ void plib_callback(int callback) {
 				if (!itemparsed("p88")) badins("p88");	
 				if (!itemparsed("kmax")) badins("kmax");	
 				if (!itemparsed("stom_clos")) badins("stom_clos");	
-				if (!itemparsed("g1x")) badins("g1x");
 				if (!itemparsed("gcutic")) badins("gcutic");
 				if (!itemparsed("s_f")) badins("s_f");
 				if (!itemparsed("psi_f")) badins("psi_f");

@@ -6008,6 +6008,13 @@ public:
 	}
 
 	void serialize(ArchiveStream& arch);
+
+	/// Reset daily variables.
+	void daily_accounting();
+private:
+	/// Reset annual variables. Called from daily_accounting() on the first day
+	/// of the year.
+	void annual_accounting();
 };
 
 

@@ -5248,6 +5248,10 @@ void update_pools_dave(Vegetation& vegetation) {
 		indiv.cmass_leaf_ygrowth += indiv.cgrow_leaf;
 		indiv.cmass_root_ygrowth += indiv.cgrow_root;
 
+		// Update stand-level cmass_repr used for annual establishment.
+		// This variable is zeroed in Standpft::annual_accounting().
+		patch.stand.pft[pft.id].cmass_repr += indiv.cgrow_repr;
+
 		// update indiv.cgrow (actual growth)
 		indiv.cgrow = indiv.cgrow_leaf + indiv.cgrow_root + indiv.cgrow_crown + indiv.cgrow_sap + indiv.cgrow_repr;
 		if (ifgrote) {

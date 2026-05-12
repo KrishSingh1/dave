@@ -933,6 +933,15 @@ void Standpft::serialize(ArchiveStream& arch) {
 		& irrigated;
 }
 
+void Standpft::daily_accounting() {
+	if (date.day == 0) {
+		annual_accounting();
+	}
+}
+
+void Standpft::annual_accounting() {
+	cmass_repr = 0;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Stand member functions

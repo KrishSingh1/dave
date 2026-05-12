@@ -911,6 +911,10 @@ void dailyaccounting_stand(Stand& stand) {
 	stand.cmass_wood = 0.0;
 	stand.cmass_wood_harv = 0.0;
 	stand.cmass_mort = 0.0;
+
+	for (size_t i = 0; i < stand.pft.nobj; i++) {
+		stand.pft[i].daily_accounting();
+	}
 }
 
 /// Manages C and N fluxes from slow harvest pools

@@ -21,6 +21,64 @@ const double Q10B = 4.8;
 // Transition temperature degC (to discuss with Erick) (Cochard 2021 Eq 13 & 14)
 const double TP = 40;
 
+class PhotosynthesisDiagnostics {
+public:
+	double g1;
+	double g0;
+	double gcutic_adj;
+};
+
+/*
+Describes the state of a cohort relevant for photosynthesis calculations.
+*/
+class CohortState {
+public:
+	CohortState(double lai, double wscal, double lwp,
+				double fipar, bool stomata_open, double fphen_activity,
+				double ps_sink_lim, double vcmax25, double jmax25,
+				double vpmax25) :
+		lai(lai), wscal(wscal), lwp(lwp),
+		fipar(fipar), stomata_open(stomata_open),
+		fphen_activity(fphen_activity), ps_sink_lim(ps_sink_lim),
+		vcmax25(vcmax25), jmax25(jmax25), vpmax25(vpmax25) {
+	}
+
+	CohortState(const Individual &indiv, size_t layer) {
+		lai = indiv.lai_layerwise[layer];
+	}
+	double get_lai() const { return lai; }
+	double get_wscal() const { return wscal; }
+	double get_lwp() const { return lwp; }
+	double get_fipar() const { return fipar; }
+	bool get_stomata_open() const { return stomata_open; }
+	double get_fphen_activity() const { return fphen_activity; }
+	double get_ps_sink_lim() const { return ps_sink_lim; }
+	double get_vcmax25() const { return vcmax25; }
+	double get_jmax25() const { return jmax25; }
+	double get_vpmax25() const { return vpmax25; }
+private:
+	// LAI (m2/m2).
+	double lai;
+	// Water stress (0-1) (0=max stress, 1=no stress).
+	double wscal;
+	// Leaf water potential (MPa).
+	double lwp;
+	// Fraction of PAR indicident to the leaf area (0-1).
+	double fipar;
+	// Are the stomata open?
+	bool stomata_open;
+	// fphen_activity (phenological state for grass. 0=dormant, 1=fully active).
+	double fphen_activity;
+	// Sink limitation scalar for photosynthesis (0-1).
+	double ps_sink_lim;
+	// Maximum carboxylation rate at 25 degC (μmol m-2 s-1).
+	double vcmax25;
+	// Maximum electron transport rate at 25 degC (μmol m-2 s-1).
+	double jmax25;
+	// Maximum PEP carboxylation rate at 25 degC (μmol m-2 s-1).
+	double vpmax25;
+};
+
 /*
 Get vcmax25, jmax25, and vpmax25 from PFT parameters and store them in
 indiv.ps_subdaily.
@@ -856,6 +914,129 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	outputs.jmax = biochemistry.jmax;
 }
 
+// Populate photosynthesis inputs struct and return the g1 value to be used.
+PhotosynthesisDiagnostics get_photosynthesis_inputs(const CohortState &cohort,
+		const Pft &pft, const Climate &climate, const Patch &patch,
+		const Day &day, double lai_cum,
+		PhotosynthesisInputs &inputs) {
+
+	// Atmospheric CO2 concentration (mol mol-1)
+	// TODO: check if annual global means would make more sense 
+	inputs.ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;  // mol mol-1
+	inputs.fphen_activity = cohort.get_fphen_activity();
+	inputs.ps_sink_lim = cohort.get_ps_sink_lim();
+
+	inputs.vcmax25 = cohort.get_vcmax25();
+	inputs.vpmax25 = cohort.get_vpmax25();
+	inputs.jmax25 = cohort.get_jmax25();
+	// wscal based on root resistance if using hydraulics, otherwise wcont.
+	inputs.wscal = cohort.get_wscal();
+	inputs.s_f = pft.s_f;
+	inputs.psi_f = pft.psi_f;
+	inputs.tgrowth = climate.get_tgrowth();
+	inputs.racclim = pft.racclim;
+
+	get_temp_acclimation_parameters(climate, pft, inputs.ha_v, inputs.ha_j,
+									inputs.ds_v, inputs.ds_j);
+
+	// Air temperature in °C.
+	inputs.temp  = climate.temps[day.period];
+
+	// VPD in kPa.
+	inputs.vpd   = climate.vpds[day.period];
+
+	inputs.stomata_open = cohort.get_stomata_open();
+
+	// Predawn LWP will hold yesterday's value for the first few time
+	// steps, until we hit the dawn-transition timestep. Therefore it's
+	// important to set this inside the subdaily loop.
+	inputs.predawn_lwp = cohort.get_lwp();
+
+	// CS, Testing adjustment to gcutic with temperature - based on
+	// Cochard 2021 Eq 13 & 14,
+	// https://peercommunityjournal.org/item/10.24072/pcjournal.45.pdf
+
+	// Calculate gcutic at phase change T for use in equation below.
+	double gcutic_Tp = pft.gcutic * pow(Q10A, (TP - 25) / 10);
+
+	// This should all be based on leaf temperature, but using air
+	// temperature as an approximation.
+	double gcutic_adj = 0.0;
+	if (inputs.temp < TP) {
+		// Erick's measurements start at 25, so changed 20 to 25 in eqns
+		gcutic_adj = pft.gcutic * pow(Q10A, (inputs.temp - 25) / 10);
+	} else {
+		gcutic_adj = gcutic_Tp * pow(Q10B, (inputs.temp - TP) / 10);
+	}
+
+	PhotosynthesisDiagnostics diagnostics;
+	diagnostics.gcutic_adj = gcutic_adj;
+	diagnostics.g0 = pft.g0;
+	diagnostics.g1 = pft.g1;
+
+	if (ifzhou) {
+		// Stomatal term (Medlyn et al. 2011), with g1 defined by
+		// pre-dawn soil water potential (Zhou et al. 2014).
+
+		// We set parameter b1z to the value that results in 90% reduction in g1
+		// at stom_clos (for compatibility with hydraulic module).
+		double b1z = log(0.1) / (pft.stom_clos + 0.3);
+
+		// for water
+		double rescale = exp(b1z * (inputs.predawn_lwp + 0.3));
+
+		double g1 = pft.g1x * rescale;
+
+		// for water
+		// rescale similar to g1, but don't allow values bigger than assigned g0
+		double g0 = min(pft.g0, pft.g0 * rescale);
+
+		// Don't allow g0 to fall below cuticular conductance.
+		g0 = max(g0, gcutic_adj);
+
+		// X needs to represent gs for CO2, hence no 1.6 factor
+		inputs.X = divide(1.0 + divide(g1, sqrt(max(inputs.vpd, 0.1))), inputs.ca);
+
+		// Residual stomatal conductance term
+		// Note: g0 is for H20, here conversion to conductances to CO2
+		// TODO: do we need a different qs here?
+		inputs.gdark = divide(max(0.0, g0), DWDC);
+
+		diagnostics.g1 = g1;
+		diagnostics.g0 = g0;
+	} else {
+		// Stomatal term (Medlyn et al. 2011)
+		// X needs to represent gs for CO2, hence no 1.6 factor
+		inputs.X = stomatal_conductance_term(inputs.wscal, pft.g1, inputs.vpd, inputs.ca);
+
+		// Residual stomatal conductance term
+		// Note: g0 is for H20, here conversion to conductances to CO2
+		// TODO: do we need a different qs here?
+		inputs.gdark = stomatal_conductance_residual(pft.g0, inputs.wscal);
+	}
+
+	// LAI of this individual in this layer.
+	// Note: this takes phen into account for indivs running trunk
+	// allocation, because fpar() looks at indiv.lai_today().
+	inputs.lai = cohort.get_lai();
+
+	// We can actually have a canopy layer with 0 indiv-level LAI
+	// but non-zero fipar. This is because fipar is not a truly
+	// indiv-level property, as it is calculated using canopy-level
+	// layered LAI.
+	//
+	// Question: can we skip this layer if lai_layer is 0?
+	assert(inputs.lai >= 0);
+
+	double par = max(0.0, climate.pars[day.period]);
+	inputs.par = cohort.get_fipar() * par;
+
+	// Account for the nitrogen gradient within the canopy.
+	inputs.nscal = max(1.0e-12, exp(-pft.extkn * lai_cum));
+
+	return diagnostics;
+}
+
 /*
 Coupled model of photosynthesis and stomatal conductance for C3 and C4 plants.
 */
@@ -875,30 +1056,13 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			continue;
 		}
 
+		// TODO: find another home for this check. It doesn't belong here.
 		double lai_layer_sum = sum(indiv.lai_layerwise);
 		if (!equal(lai_layer_sum, indiv.lai_today())) {
 			log_warning("Individual %d (%s): layerwise LAI sum (%g) does not equal total LAI (%g) (phen=%g)",
 						i, (const char *)pft.name, lai_layer_sum,
 						indiv.lai_today(), indiv.phen);
 		}
-
-		// Atmospheric CO2 concentration (mol mol-1)
-		// TODO: check if annual global means would make more sense 
-		inputs.ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;  // mol mol-1
-		inputs.fphen_activity = indiv.fphen_activity;
-		inputs.ps_sink_lim = indiv.ps_sink_lim;
-		inputs.vcmax25 = indiv.ps_subdaily.vcmax25;
-		inputs.vpmax25 = indiv.ps_subdaily.vpmax25;
-		inputs.jmax25 = indiv.ps_subdaily.jmax25;
-        // wscal based on root resistance if using hydraulics, otherwise wcont.
-		inputs.wscal = indiv.get_wscal();
-		inputs.s_f = pft.s_f;
-		inputs.psi_f = pft.psi_f;
-		inputs.tgrowth = climate.get_tgrowth();
-		inputs.racclim = pft.racclim;
-
-		get_temp_acclimation_parameters(climate, pft, inputs.ha_v, inputs.ha_j,
-                                        inputs.ds_v, inputs.ds_j);
 
 		indiv.photosynthesis.agd_g = 0.0;
 		indiv.photosynthesis.rd_g = 0.0;
@@ -918,7 +1082,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 		// Loop over time steps per day
         for (Day day; day.period != date.subdaily; day.next()) {
-
 			// Initialise timestep-level variables.
 			double Rd_canopy = 0.0;
 			double An_canopy = 0.0;
@@ -930,83 +1093,6 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 			double ci_canopy = 0.0;
 			double vcmax_canopy = 0.0;
 			double jmax_canopy = 0.0;
-
-			// Get subdiurnal climate variables.
-
-			// Photosynthetically-active radiation (W m-2); 0.5 * climate.insols
-			// Allow for slightly negative par - data can be negative at night.
-			// Note that the raw par is not used directly. Instead we multiply
-			// it by layer-wise LAI below.
-			double par   = max(0.0, climate.pars[day.period]);
-
-			// Air temperature in °C.
-			inputs.temp  = climate.temps[day.period];
-
-			// VPD in kPa.
-			inputs.vpd   = climate.vpds[day.period];
-
-			inputs.stomata_open = indiv.stomata_open;
-
-			// Predawn LWP will hold yesterday's value for the first few time
-			// steps, until we hit the dawn-transition timestep. Therefore it's
-			// important to set this inside the subdaily loop.
-			inputs.predawn_lwp = ifdavehydraulics
-				? indiv.predawn_lwp
-				: indiv.weighted_psi;
-
-			// CS, Testing adjustment to gcutic with temperature - based on
-			// Cochard 2021 Eq 13 & 14,
-			// https://peercommunityjournal.org/item/10.24072/pcjournal.45.pdf
-
-            // Calculate gcutic at phase change T for use in equation below.
-			double gcutic_Tp = pft.gcutic * pow(Q10A, (TP - 25) / 10);
-
-            // This should all be based on leaf temperature, but using air
-            // temperature as an approximation.
-			double gcutic_adj = 0.0;
-			if (inputs.temp < TP) {
-                // Erick's measurements start at 25, so changed 20 to 25 in eqns
-				gcutic_adj = pft.gcutic * pow(Q10A, (inputs.temp - 25) / 10);
-			} else {
-				gcutic_adj = gcutic_Tp * pow(Q10B, (inputs.temp - TP) / 10);
-			}
-
-			if (ifzhou) {
-				// Stomatal term (Medlyn et al. 2011), with g1 defined by
-				// pre-dawn soil water potential (Zhou et al. 2014).
-
-				// We set parameter b1z to the value that results in 90% reduction in g1
-				// at stom_clos (for compatibility with hydraulic module).
-				double b1z = log(0.1) / (pft.stom_clos + 0.3);
-
-				// for water
-				double rescale = exp(b1z * (inputs.predawn_lwp + 0.3));
-
-				indiv.g1 = pft.g1x * rescale;
-
-				// for water
-				// rescale similar to g1, but don't allow values bigger than assigned g0
-				double g0 = min(pft.g0, pft.g0 * rescale);
-
-				// Don't allow g0 to fall below cuticular conductance.
-				g0 = max(g0, gcutic_adj);
-
-				// X needs to represent gs for CO2, hence no 1.6 factor
-				inputs.X = divide(1.0 + divide(indiv.g1, sqrt(max(inputs.vpd, 0.1))), inputs.ca);
-
-				// Residual stomatal conductance term
-				// Note: g0 is for H20, here conversion to conductances to CO2
-				inputs.gdark = divide(max(0.0, g0), DWDC);  // TODO: do we need a different qs here?
-			} else {
-				// Stomatal term (Medlyn et al. 2011)
-				// X needs to represent gs for CO2, hence no 1.6 factor
-				inputs.X = stomatal_conductance_term(inputs.wscal, pft.g1, inputs.vpd, inputs.ca);
-
-				// Residual stomatal conductance term
-				// Note: g0 is for H20, here conversion to conductances to CO2
-                // TODO: do we need a different qs here?
-				inputs.gdark = stomatal_conductance_residual(pft.g0, inputs.wscal);
-			}
 
 			// Initialise cumulative LAI.
 			double lai_cum_bottom = 0.0;
@@ -1030,33 +1116,28 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					continue;
 				}
 
-				// LAI of this individual in this layer.
-				// Note: this takes phen into account for indivs running trunk
-				// allocation, because fpar() looks at indiv.lai_today().
-				inputs.lai = indiv.lai_layerwise[j];
-
-				// We can actually have a canopy layer with 0 indiv-level LAI
-				// but non-zero fipar. This is because fipar is not a truly
-				// indiv-level property, as it is calculated using canopy-level
-				// layered LAI.
-				//
-				// Question: can we skip this layer if lai_layer is 0?
-				assert(inputs.lai >= 0);
-
 				// Determine, for this indiv, LAI and cumulative LAI of the layer.
 
 				// Cumulative LAI at the bottom of current layer.
-				lai_cum_bottom += inputs.lai;
+				lai_cum_bottom += indiv.lai_layerwise[j];
 
 				// Cumulative LAI at the middle of current layer.
-				double lai_cum = lai_cum_bottom - 0.5 * inputs.lai;
+				double lai_cum = lai_cum_bottom - 0.5 * indiv.lai_layerwise[j];
 
-				// Incident PAR in the middle of the layer (W m-2).
-				assert(indiv.fipar_layerwise[j] > 0);
-				inputs.par = indiv.fipar_layerwise[j] * par;
+				CohortState cohort(indiv.lai_layerwise[j],
+								   indiv.get_wscal(),
+								   ifdavehydraulics ? indiv.predawn_lwp : indiv.weighted_psi,
+								   indiv.fipar_layerwise[j],
+								   indiv.stomata_open,
+								   indiv.fphen_activity,
+							       indiv.ps_sink_lim,
+							       indiv.ps_subdaily.vcmax25,
+							       indiv.ps_subdaily.jmax25,
+						           indiv.ps_subdaily.vpmax25);
 
-				// Account for the nitrogen gradient within the canopy.
-				inputs.nscal = max(1.0e-12, exp(-pft.extkn * lai_cum));
+				PhotosynthesisDiagnostics diagnostics = get_photosynthesis_inputs(
+					cohort, pft, climate, patch, day, lai_cum, inputs);
+				indiv.g1 = diagnostics.g1;
 
 				outputs.clear();
 				if (pft.pathway == C3) {
@@ -1081,9 +1162,9 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				Anc_canopy += outputs.anc * lai_layer;
 				Anj_canopy += outputs.anj * lai_layer;
 				Anp_canopy += outputs.anp * lai_layer;
-				if (ifdavehydraulics && outputs.gsc < gcutic_adj / DWDC) {
+				if (ifdavehydraulics && outputs.gsc < diagnostics.gcutic_adj / DWDC) {
                     // Don't allow gsw to fall below cuticular conductance.
-					gsw_canopy += gcutic_adj * lai_layer;
+					gsw_canopy += diagnostics.gcutic_adj * lai_layer;
 				} else {
 					gsw_canopy += (outputs.gsc * DWDC) * lai_layer;
 				}

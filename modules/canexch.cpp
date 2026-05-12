@@ -3512,6 +3512,8 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 			anc = (-b_c - sqrt(pow(b_c,2) - 4.0 * a_c * c_c)) / (2 * a_c);
 		}
 		// TODO: check value of alpha_PSII.
+		// TODO: check differences in implementation (especially sign of quadratic) between
+		//       von Caemmerer 2000 and von Caemmerer 2021.
 
 		// Light-limited net photosynthesis rate (mol m-2 s-1)
 		// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
@@ -3583,7 +3585,7 @@ Calculate stomatal term (Medlyn et al. 2011).
 X needs to represent gs for CO2, hence no 1.6 factor.
 */
 double stomatal_conductance_term(double wscal, double g1, double vpd, double ca) {
-	return divide(divide(1.0 + pow(wscal, qs) * g1, sqrt(max(vpd, 0.1))), ca);
+	return divide(1.0 + divide(pow(wscal, qs) * g1, sqrt(max(vpd, 0.1))), ca);
 }
 
 /*
@@ -3723,7 +3725,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				g0 = min(g0,g0 * exp(b1z * (water_potential + 0.3)));
 
 				// for co2
-				inputs.X = divide(divide(1.0 + g1, sqrt(max(inputs.vpd, 0.1))), inputs.ca);
+				inputs.X = divide(1.0 + divide(g1, sqrt(max(inputs.vpd, 0.1))), inputs.ca);
 
 				// Residual stomatal conductance term
 				// Note: g0 is for H20, here conversion to conductances to CO2

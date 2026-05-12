@@ -109,7 +109,8 @@ const double BC4 = 0.025;
 // find An, gs, and ci.
 const int NIT_MAX = 20;
 
-// Iteration ceases when ci changes by less than this amount.
+// Iteration to solve C4 photosynthesis ceases when ci changes by less than this
+// amount.
 const double CI_DIFF_MAX = 5e-7; // mol mol-1
 
 /// Radiation conversion from J m-2 s-1 (=W m-2) to mol (quanta) m-2 s-1

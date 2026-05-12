@@ -390,4 +390,27 @@ void ResolvedPlan::validate() const {
     }
 }
 
+const char *to_string(Variable var) {
+    switch (var) {
+        case Variable::Lon: return "Longitude";
+        case Variable::Lat: return "Latitude";
+        case Variable::Time: return "Time";
+        case Variable::Temp: return "Temperature";
+        case Variable::Pr: return "Precipitation";
+        case Variable::Rs: return "Insolation";
+        case Variable::Ws: return "Wind Speed";
+        case Variable::Vpd: return "VPD";
+        case Variable::RH: return "Relative Humidity";
+        case Variable::SH: return "Specific Humidity";
+        case Variable::Ps: return "Surface Pressure";
+        case Variable::CO2: return "CO2 Concentration";
+        case Variable::Nhx: return "NHX Nitrogen Deposition";
+        case Variable::Noy: return "NOY Nitrogen Deposition";
+        case Variable::Tmax: return "Maximum Temperature";
+        case Variable::Tmin: return "Minimum Temperature";
+        default:
+            throw std::runtime_error("Invalid variable enum value: " + std::to_string(static_cast<int>(var)));
+    }
+}
+
 #endif // HAVE_NETCDF

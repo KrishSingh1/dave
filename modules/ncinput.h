@@ -160,10 +160,9 @@ private:
     @return A shared pointer to the opened NCFile.
     */
     void open_file(const ResolvedPlan &plan,
-                                      Variable var,
-                                      bounds limits,
-                                      const std::vector<xtring> &units,
-                                      std::unique_ptr<NCVariable> &variable);
+                   Variable var,
+                   bounds limits,
+                   const std::vector<xtring> &units);
 
     /*
     Open the specified file for reading.
@@ -172,6 +171,15 @@ private:
     @return A shared pointer to the opened NCFile.
     */
     std::shared_ptr<NCFile> open_file(const std::string &file);
+
+    /*
+    Get the NCVariable object for the specified variable. This will throw if the
+    currently-open dataset does not contain the specified variable.
+
+    @param var The variable to get.
+    @return A reference to the NCVariable object for the specified variable.
+    */
+    NCVariable &get(Variable var) const;
 
     /*
     The different datasets that can be used in the simulation.
@@ -305,72 +313,12 @@ private:
     */
     std::map<std::string, std::shared_ptr<NCFile>> files;
 
-	/*
-	Air temperature variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> tas;
-
-	/*
-	Shortwave radiation variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> rs;
-
-	/*
-	Precipitation variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> pr;
-
-	/*
-	Wind speed variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> ws;
-
-	/*
-	CO2 variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> co2;
-
-	/*
-	Tmax variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> tmax;
-
-	/*
-	Tmin variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> tmin;
-
-	/*
-	VPD variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> vpd;
-
-	/*
-	Optional specific humidity variable in the NetCDF file. If not set,
-	vpd must be provided instead.
-	*/
-	std::unique_ptr<NCVariable> sh;
-
-	/*
-	Optional relative humidity variable in the NetCDF file. If not set,
-	vpd must be provided instead.
-	*/
-	std::unique_ptr<NCVariable> rh;
-
-	/*
-	Atmospheric pressure variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> ps;
-
-	/*
-	Optional nhx nitrogen deposition variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> nhx;
-
-	/*
-	Optional noy nitrogen deposition variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> noy;
+    /*
+    A map of variables to NCVariable objects. This may not contain an entry for
+    every variable, but will contain entries for all variables required by the
+    input plan corresponding to the currently-open dataset.
+    */
+    std::map<Variable, std::unique_ptr<NCVariable>> variables;
 
     /*
     Longitude of the current gridcell. This is set in begin_gridcell() and used

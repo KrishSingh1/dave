@@ -277,6 +277,12 @@ std::vector<double> NCVariable::read(double lon, double lat, int year, int day
 			}
 		}
 
+		// Check for missing values.
+		if (has_missval && contains(missing_value, result)) {
+			throw_xtring("Missing value found in variable %s data within %d day%s of year %d day %d",
+					     (const char *)var_name, nday, nday > 1 ? "s" : "", year, day);
+		}
+
 		return result;
 	} catch (...) {
 		throw_xtring_nested(

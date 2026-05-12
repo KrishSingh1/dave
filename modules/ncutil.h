@@ -252,7 +252,7 @@ Check if the vector contains the specified value.
 @param x: The needle.
 @param vec: The haystack.
 */
-bool contains(double x, std::vector<double> vec);
+bool contains(double x, const std::vector<double> &vec);
 
 /*
 Check if the file exists.

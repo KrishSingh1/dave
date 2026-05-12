@@ -170,6 +170,14 @@ public:
                          const ResolveOptions &options) const;
 };
 
+/*
+Get a human-readable string for the given variable.
+
+@param var The variable to get the string for.
+@return A human-readable string for the given variable.
+*/
+const char *to_string(Variable var);
+
 #endif // HAVE_NETCDF
 
 #endif // LPJ_GUESS_VARIABLE_RESOLVER_H

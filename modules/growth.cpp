@@ -1914,6 +1914,11 @@ const double INIT_STORAGE_FRACTION = 1;
 
 double solve_csap(double bminit, const Pft &pft, double ltor, double init_storfrac, double EPS = 1e-6, size_t NITER_MAX = 10000) {
 
+	// TODO: consider how to handle ltor=0.
+	if (ltor == 0) {
+		fail("solve_csap(): ltor cannot be zero.");
+	}
+
 	if (is_zero(bminit)) {
 		return 0;
 	}

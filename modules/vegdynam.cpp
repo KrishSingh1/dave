@@ -1081,7 +1081,21 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					else {
 						bminit = sapsize*patch.pft[pft.id].anetps_ff_est;
 					}
-					if (bminit == 0) {
+
+					// Initial leaf to fine root biomass ratio based on hypothetical
+					// value of water stress parameter
+					ltor=patch.pft[pft.id].wscal_mean_est*pft.ltor_max;
+
+					// If l:r ratio is zero, solve_csap() will fail to find a
+					// solution for initial biomass allocation. In this case,
+					// we just skip establishment. If wscal and ltor are really
+					// zero, any established saplings would quickly die anyway.
+					if (bminit == 0 || fabs(ltor) < 1e-4) {
+						log_diagnostic("%s: Establishment skipped; ltor=%f, wscal_mean_est=%f, bminit=%f",
+									   (const char *)pft.name,
+									   ltor,
+									   patch.pft[pft.id].wscal_mean_est,
+									   bminit);
 						patch.pft[pft.id].anetps_ff_est = 0;
 						patch.pft[pft.id].wscal_mean_est = 0;
 						patch.pft[pft.id].nsapling = 0;
@@ -1107,11 +1121,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// accessed in allocation_init(), so let's initialize it
 						// to 0 here rather than rely on uninitialized memory.
 						indiv.height = 0;
-
-						// Initial leaf to fine root biomass ratio based on hypothetical
-						// value of water stress parameter
-
-						ltor=patch.pft[pft.id].wscal_mean_est*pft.ltor_max;
 
 						// set the initial ltor to the indiv object
 						indiv.ltor = ltor;

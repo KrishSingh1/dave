@@ -843,7 +843,7 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("cstarv_inflect", &ppft->cstarv_inflect, 0.0, 1.0, 1, CB_NONE,
 			"Inflection point of sigmoidal carbon starvation as a function of storage fraction full. Higher values mean carbon starvation starts at higher storage levels.");
-		declareitem("cstarv_max", &ppft->cstarv_max, 0.0, 1.0, 1, CB_NONE,
+		declareitem("cstarv_max", &ppft->cstarv_max, 0.0, 100.0, 1, CB_NONE,
 			"Maximum carbon starvation rate (fraction of cohort killed per year) at low storage levels are low.");
 		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
 			"Temperature below which plants fall dormant (degC)");

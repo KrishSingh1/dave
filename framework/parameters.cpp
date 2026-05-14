@@ -845,6 +845,8 @@ void plib_declarations(int id,xtring setname) {
 			"Inflection point of sigmoidal carbon starvation as a function of storage fraction full. Higher values mean carbon starvation starts at higher storage levels.");
 		declareitem("cstarv_max", &ppft->cstarv_max, 0.0, 100.0, 1, CB_NONE,
 			"Maximum carbon starvation rate (fraction of cohort killed per year) at low storage levels are low.");
+		declareitem("cstarv_killdens", &ppft->cstarv_killdens, 0.0, 100.0, 1, CB_NONE,
+			"Tree density at which carbon starvation mortality kills the entire cohort (trees per m2).");
 		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
 			"Temperature below which plants fall dormant (degC)");
 		declareitem("RGR_pot",&ppft->RGR_pot,0.0,0.5,1,CB_NONE,
@@ -2274,6 +2276,7 @@ void plib_callback(int callback) {
 							plibabort();
 						}
 						if (!itemparsed("cstarv_max")) badins("cstarv_max");
+						if (!itemparsed("cstarv_killdens")) badins("cstarv_killdens");
 					}
 				}
 				if (!itemparsed("max_mobil_cstorage")) badins("max_mobil_cstorage");

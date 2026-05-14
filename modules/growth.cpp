@@ -3823,11 +3823,6 @@ void reduce_tree_biomass(Individual &indiv, double frac) {
 //    currently it ignores ifstochmort completely.
 bool carbon_starvation_mortality(Individual &indiv) {
 
-	// The cohort density (trees/m2) above which cohorts will lose MORT_FRAC
-	// biomass upon carbon starvation, and below which they will be killed
-	// outright (borrowed from Clare's code). ASSAF: equates to 10 trees per ha.
-	const double KILL_THRESHOLD = 0.001;
-
 	const Pft &pft = indiv.pft;
 	Patchpft &ppft = indiv.patchpft();
 
@@ -3880,7 +3875,7 @@ bool carbon_starvation_mortality(Individual &indiv) {
 	
     if (ifdailycstarvmort) {
 		// Start thinning.
-        if (indiv.densindiv > KILL_THRESHOLD) {
+        if (indiv.densindiv > pft.cstarv_killdens) {
 			// Accounting. Need to do this - particularly ntree-related
 			// accounting - before reducing biomass.
 			indiv.mort_dcstarve = pmort_cstarve;
@@ -3893,7 +3888,7 @@ bool carbon_starvation_mortality(Individual &indiv) {
         } else {
 			// kill individual
 			log_info("%s killed by carbon starvation: Cohort density (%g/m2) has fallen below kill threshold of %g/m2",
-				    (const char *)indiv.pft.name, indiv.densindiv, KILL_THRESHOLD);
+				    (const char *)indiv.pft.name, indiv.densindiv, pft.cstarv_killdens);
 			ppft.dmort_cstarve_ntree += indiv.densindiv * patcharea;
 			ppft.amort_cstarve_ntree += indiv.densindiv * patcharea;
 			ppft.amort_cstarve += 1.0;

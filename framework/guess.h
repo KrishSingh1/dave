@@ -2543,6 +2543,10 @@ public:
 	// storage is low.
 	double cstarv_max;
 
+	// Theshold for carbon starvation mortality killing the entire cohort,
+	// expressed in density terms (number of trees per m2).
+	double cstarv_killdens;
+
 	/// maximum sapling establishment rate (saplings/m2/year) (individual and cohort modes)
 	double est_max;
 	/** constant used in calculation of sapling establishment rate when spatial
@@ -2822,6 +2826,7 @@ public:
 		boleht_frac = 0;
 		cstarv_inflect = 0.0;
 		cstarv_max = 0.0;
+		cstarv_killdens = 0.0;
 		max_mobil_cstorage = 0;
 
 		isintercropgrass = false;

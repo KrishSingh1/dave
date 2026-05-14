@@ -3768,13 +3768,59 @@ double calculate_cgrow_tree(Individual &indiv) {
 	
 }
 
+void reduce_tree_biomass(Individual &indiv, double frac) {
+	// TODO DH: reconcile with Individual::reduce_biomass(). We don't want to
+	// remove cmass_storage here - that's the main difference. We just want to
+	// take leaves, roots, and sapwood.
+	Patchpft &ppft = indiv.patchpft();
+
+	double cmass_leaf_litter = frac * indiv.get_cmass_leaf();
+	double cmass_root_litter = frac * indiv.cmass_root;
+	double cmass_sap_litter = frac * indiv.cmass_sap;
+	double cmass_repr_litter = frac * indiv.cmass_repr;
+
+	double nmass_leaf_litter = frac * indiv.get_nmass_leaf();
+	double nmass_root_litter = frac * indiv.nmass_root;
+	double nmass_sap_litter = frac * indiv.nmass_sap;
+	double nmass_repr_litter = frac * indiv.nmass_repr;
+
+	Soil &soil = indiv.vegetation.patch.soil;
+	Pft &pft = indiv.pft;
+
+	leaf_to_litter(soil, pft, cmass_leaf_litter, nmass_leaf_litter);
+	root_to_litter(soil, pft, cmass_root_litter, nmass_root_litter);
+
+	// Sapwood turnover to heartwood.
+	indiv.cmass_heart += cmass_sap_litter;
+	indiv.nmass_heart += nmass_sap_litter;
+
+	// See comment in turnover_dave_tree(). How should repr be handled? For now,
+	// treat it the same as root litter.
+	root_to_litter(soil, pft, cmass_repr_litter, nmass_repr_litter);
+
+	// Used by DAVE mass balance checks; not an actual litter pool.
+	indiv.ctolitter += cmass_leaf_litter + cmass_root_litter + cmass_repr_litter;
+	indiv.ntolitter += nmass_leaf_litter + nmass_root_litter + nmass_repr_litter;
+
+	double frac_remain = 1.0 - frac;
+
+	indiv.cmass_leaf *= frac_remain;
+	indiv.cmass_root *= frac_remain;
+	indiv.cmass_sap *= frac_remain;
+	indiv.cmass_repr *= frac_remain;
+
+	indiv.nmass_leaf *= frac_remain;
+	indiv.nmass_root *= frac_remain;
+	indiv.nmass_sap *= frac_remain;
+	indiv.nmass_repr *= frac_remain;
+
+	indiv.densindiv *= frac_remain;
+}
+
 // Reduce density of indoviduals *daily* when carbon storage reduces below a threshold.
 // To consider doing:
-// 1. DONE. Use a flag for debugging (ifdailycstarvmort) which will enable this 
-//    function and disable the growth efficiency mnortality
-// 2. Do we want mortality to be storchastic or deterministic (depending on ifstochmort)?
+// 1. Do we want mortality to be storchastic or deterministic (depending on ifstochmort)?
 //    currently it ignores ifstochmort completely.
-// 3. Set the inflection point (cmass_storage_min) be a pft parameter
 bool carbon_starvation_mortality(Individual &indiv) {
 
 	// The cohort density (trees/m2) above which cohorts will lose MORT_FRAC
@@ -3837,22 +3883,17 @@ bool carbon_starvation_mortality(Individual &indiv) {
 	double pmort_cstarve = max_mort_frac / (1.0 + pow(storage_state / pft.cstarv_inflect, 5.0));
 	
     if (ifdailycstarvmort && (storage_state < THIN_THRESHOLD)) {
-	// start thinning
+		// Start thinning.
         if (indiv.densindiv > KILL_THRESHOLD) {
-            // printf("%04d-%2d-%02d indiv %d (%s): densindiv and biomass loss due to carbon starvation\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, indiv.id, (const char *)indiv.pft.name);
-			indiv.ctolitter += pmort_cstarve * (indiv.get_cmass_leaf() + indiv.cmass_sap + indiv.cmass_root + indiv.cmass_storage + indiv.cmass_heart + indiv.cmass_repr);
-			indiv.ntolitter += pmort_cstarve * (indiv.get_nmass_leaf() + indiv.nmass_sap + indiv.nmass_root + indiv.nmass_storage + indiv.nmass_heart + indiv.nmass_repr);
-			// report carbon starvation mortality
+			// Accounting. Need to do this - particularly ntree-related
+			// accounting - before reducing biomass.
 			indiv.mort_dcstarve = pmort_cstarve;
 			indiv.mort_cstarve += pmort_cstarve;
 			ppft.amort_cstarve += pmort_cstarve;
 			ppft.amort_cstarve_ntree += pmort_cstarve * indiv.densindiv * patcharea;
 			ppft.dmort_cstarve_ntree += pmort_cstarve * indiv.densindiv * patcharea;
-			// cmass_before = indiv.cmass_leaf + indiv.cmass_sap + indiv.cmass_root + indiv.cmass_heart + indiv.cmass_storage;
-            indiv.reduce_biomass(pmort_cstarve, 0);
-			// cmass_after = indiv.cmass_leaf + indiv.cmass_sap + indiv.cmass_root + indiv.cmass_heart + indiv.cmass_storage;
 
-			// indiv.cstarvmort = cmass_before - cmass_after;4 4
+			reduce_tree_biomass(indiv, pmort_cstarve);
         } else {
 			// kill individual
 			log_info("%s killed by carbon starvation: Cohort density (%g/m2) has fallen below kill threshold of %g/m2",

@@ -2269,6 +2269,10 @@ void plib_callback(int callback) {
 					if (!itemparsed("boleht_frac")) badins("boleht_frac");
 					if (ifdailytree) {
 						if (!itemparsed("cstarv_inflect")) badins("cstarv_inflect");
+						if (ppft->cstarv_inflect <= 0) {
+							sendmessage("Error", "cstarv_inflect must be greater than 0");
+							plibabort();
+						}
 						if (!itemparsed("cstarv_max")) badins("cstarv_max");
 					}
 				}

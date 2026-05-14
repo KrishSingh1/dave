@@ -3847,7 +3847,7 @@ bool carbon_starvation_mortality(Individual &indiv) {
 			indiv.mort_cstarve += pmort_cstarve;
 			ppft.amort_cstarve += pmort_cstarve;
 			ppft.amort_cstarve_ntree += pmort_cstarve * indiv.densindiv * patcharea;
-			ppft.dmort_cstarve_ntree = pmort_cstarve * indiv.densindiv * patcharea;
+			ppft.dmort_cstarve_ntree += pmort_cstarve * indiv.densindiv * patcharea;
 			// cmass_before = indiv.cmass_leaf + indiv.cmass_sap + indiv.cmass_root + indiv.cmass_heart + indiv.cmass_storage;
             indiv.reduce_biomass(pmort_cstarve, 0);
 			// cmass_after = indiv.cmass_leaf + indiv.cmass_sap + indiv.cmass_root + indiv.cmass_heart + indiv.cmass_storage;
@@ -3857,6 +3857,10 @@ bool carbon_starvation_mortality(Individual &indiv) {
 			// kill individual
 			log_info("%s killed by carbon starvation: Cohort density (%g/m2) has fallen below kill threshold of %g/m2",
 				    (const char *)indiv.pft.name, indiv.densindiv, KILL_THRESHOLD);
+			ppft.dmort_cstarve_ntree += indiv.densindiv * patcharea;
+			ppft.amort_cstarve_ntree += indiv.densindiv * patcharea;
+			ppft.amort_cstarve += 1.0;
+			// No need to update indiv-level properties because it has died.
             indiv.kill();
             indiv.vegetation.killobj();
 			return false;

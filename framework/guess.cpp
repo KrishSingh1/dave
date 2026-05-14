@@ -506,6 +506,7 @@ void Patchpft::annual_accounting(const Patch &patch) {
 	if (pft.phenology==CROPGREEN || pft.isintercropgrass) {
 		cropphen->growingdays_y = 0;
 	}
+	amort_cstarve = 0.0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

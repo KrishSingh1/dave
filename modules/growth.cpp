@@ -3803,6 +3803,8 @@ bool carbon_starvation_mortality(Individual &indiv) {
 	double cmass_before = 0.0;
 	double cmass_after = 0.0;
 
+	Patchpft &ppft = indiv.patchpft();
+
 	// Negative NPP has already been subtracted from storage at this point.
 	if (indiv.cmass_storage > 0) {
 		storage_state = min(indiv.cmass_storage / indiv.cstorage_max, 1.0);
@@ -3827,7 +3829,7 @@ bool carbon_starvation_mortality(Individual &indiv) {
 		// report carbon starvation mortality 
 		indiv.mort_cstarve += 1.0; // annual
 		indiv.mort_dcstarve = 1.0; // 100% mortality of this cohort (daily)
-
+		ppft.amort_cstarve += 1.0;
 		indiv.kill();  // flushes all pools to litter
 		indiv.vegetation.killobj();  // removes individual object
 							
@@ -3851,6 +3853,7 @@ bool carbon_starvation_mortality(Individual &indiv) {
 			// report carbon starvation mortality
 			indiv.mort_dcstarve = pmort_cstarve;
 			indiv.mort_cstarve += pmort_cstarve;
+			ppft.amort_cstarve += pmort_cstarve;
 			// cmass_before = indiv.cmass_leaf + indiv.cmass_sap + indiv.cmass_root + indiv.cmass_heart + indiv.cmass_storage;
             indiv.reduce_biomass(pmort_cstarve, 0);
 			// cmass_after = indiv.cmass_leaf + indiv.cmass_sap + indiv.cmass_root + indiv.cmass_heart + indiv.cmass_storage;

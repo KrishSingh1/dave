@@ -5592,7 +5592,12 @@ public:
 	// Mean above-ground biomass over the year (kg/m2). Note: this is a rolling
 	// sum, divided by year length only on last day of year.
 	double agb_ymean;
-	
+
+	// Total fraction of cohort that was killed this year by carbon starvation
+	// mortality, summed over all days of the year and cohorts of this PFT in
+	// this patch.
+	double amort_cstarve;
+
 	// MEMBER FUNCTIONS:
 
 	/// Constructor: initialises id, pft and data members
@@ -5668,6 +5673,7 @@ public:
 		lai_ymean = 0;
 		agb_ymean = 0;
 		wscal_set_today = false;
+		amort_cstarve = 0.0;
 	}
 
 	~Patchpft() {

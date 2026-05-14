@@ -3830,6 +3830,8 @@ bool carbon_starvation_mortality(Individual &indiv) {
 		indiv.mort_cstarve += 1.0; // annual
 		indiv.mort_dcstarve = 1.0; // 100% mortality of this cohort (daily)
 		ppft.amort_cstarve += 1.0;
+		ppft.amort_cstarve_ntree += indiv.densindiv * patcharea;
+		ppft.dmort_cstarve_ntree += indiv.densindiv * patcharea;
 		indiv.kill();  // flushes all pools to litter
 		indiv.vegetation.killobj();  // removes individual object
 							
@@ -3854,6 +3856,8 @@ bool carbon_starvation_mortality(Individual &indiv) {
 			indiv.mort_dcstarve = pmort_cstarve;
 			indiv.mort_cstarve += pmort_cstarve;
 			ppft.amort_cstarve += pmort_cstarve;
+			ppft.amort_cstarve_ntree += pmort_cstarve * indiv.densindiv * patcharea;
+			ppft.dmort_cstarve_ntree = pmort_cstarve * indiv.densindiv * patcharea;
 			// cmass_before = indiv.cmass_leaf + indiv.cmass_sap + indiv.cmass_root + indiv.cmass_heart + indiv.cmass_storage;
             indiv.reduce_biomass(pmort_cstarve, 0);
 			// cmass_after = indiv.cmass_leaf + indiv.cmass_sap + indiv.cmass_root + indiv.cmass_heart + indiv.cmass_storage;

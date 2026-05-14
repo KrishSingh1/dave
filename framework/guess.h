@@ -5598,6 +5598,15 @@ public:
 	// this patch.
 	double amort_cstarve;
 
+	// Total number of trees that were killed this year by carbon starvation
+	// mortality, summed over all days of the year and cohorts of this PFT in
+	// this patch.
+	double amort_cstarve_ntree;
+
+	// Daily number of trees that were killed by carbon starvation mortality,
+	// summed over all cohorts of this PFT in this patch.
+	double dmort_cstarve_ntree;
+
 	// MEMBER FUNCTIONS:
 
 	/// Constructor: initialises id, pft and data members
@@ -5674,6 +5683,8 @@ public:
 		agb_ymean = 0;
 		wscal_set_today = false;
 		amort_cstarve = 0.0;
+		amort_cstarve_ntree = 0.0;
+		dmort_cstarve_ntree = 0.0;
 	}
 
 	~Patchpft() {

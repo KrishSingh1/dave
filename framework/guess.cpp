@@ -495,6 +495,7 @@ void Patchpft::daily_accounting(const Patch &patch) {
 
 	airtemp_10.add(patch.get_climate().temp);
 	wscal_set_today = false;
+	dmort_cstarve_ntree = 0.0;
 }
 
 void Patchpft::annual_accounting(const Patch &patch) {
@@ -507,6 +508,7 @@ void Patchpft::annual_accounting(const Patch &patch) {
 		cropphen->growingdays_y = 0;
 	}
 	amort_cstarve = 0.0;
+	amort_cstarve_ntree = 0.0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

@@ -3828,10 +3828,6 @@ bool carbon_starvation_mortality(Individual &indiv) {
 	// outright (borrowed from Clare's code). ASSAF: equates to 10 trees per ha.
 	const double KILL_THRESHOLD = 0.001;
 
-	// Threshold of storage below which thinning due to carbon starvation will
-	// start.
-	const double THIN_THRESHOLD = 0.4;
-
 	const Pft &pft = indiv.pft;
 	Patchpft &ppft = indiv.patchpft();
 
@@ -3882,7 +3878,7 @@ bool carbon_starvation_mortality(Individual &indiv) {
 	// calculate probability of mortality due to carbon starvation (unitless)
 	double pmort_cstarve = max_mort_frac / (1.0 + pow(storage_state / pft.cstarv_inflect, 5.0));
 	
-    if (ifdailycstarvmort && (storage_state < THIN_THRESHOLD)) {
+    if (ifdailycstarvmort) {
 		// Start thinning.
         if (indiv.densindiv > KILL_THRESHOLD) {
 			// Accounting. Need to do this - particularly ntree-related

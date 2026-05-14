@@ -841,6 +841,10 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("boleht_frac", &ppft->boleht_frac, 0.0, 1.0, 1, CB_NONE,
 			"Bole height as a fraction of tree height (0-1)");
 
+		declareitem("cstarv_inflect", &ppft->cstarv_inflect, 0.0, 1.0, 1, CB_NONE,
+			"Inflection point of sigmoidal carbon starvation as a function of storage fraction full. Higher values mean carbon starvation starts at higher storage levels.");
+		declareitem("cstarv_max", &ppft->cstarv_max, 0.0, 1.0, 1, CB_NONE,
+			"Maximum carbon starvation rate (fraction of cohort killed per year) at low storage levels are low.");
 		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
 			"Temperature below which plants fall dormant (degC)");
 		declareitem("RGR_pot",&ppft->RGR_pot,0.0,0.5,1,CB_NONE,
@@ -2261,10 +2265,13 @@ void plib_callback(int callback) {
 					if (!itemparsed("temp_senesc1")) badins("temp_senesc1");
 					if (!itemparsed("temp_senesc2")) badins("temp_senesc2");
 				}
-				if (ppft->lifeform == TREE && !itemparsed("boleht_frac")) {
-					badins("boleht_frac");
+				if (ppft->lifeform == TREE) {
+					if (!itemparsed("boleht_frac")) badins("boleht_frac");
+					if (ifdailytree) {
+						if (!itemparsed("cstarv_inflect")) badins("cstarv_inflect");
+						if (!itemparsed("cstarv_max")) badins("cstarv_max");
+					}
 				}
-
 				if (!itemparsed("max_mobil_cstorage")) badins("max_mobil_cstorage");
 			}
 

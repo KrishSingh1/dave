@@ -2534,6 +2534,15 @@ public:
 	// Bole height as a fraction of tree height (0-1).
 	double boleht_frac;
 
+	// Inflection point of sigmoidal carbon starvation as a function of storage
+	// fraction full. Higher values mean carbon starvation starts at higher
+	// storage levels.
+	double cstarv_inflect;
+
+	// Maximum carbon starvation rate (fraction of cohort killed per year) when
+	// storage is low.
+	double cstarv_max;
+
 	/// maximum sapling establishment rate (saplings/m2/year) (individual and cohort modes)
 	double est_max;
 	/** constant used in calculation of sapling establishment rate when spatial
@@ -2811,6 +2820,8 @@ public:
 		formfactor = 1.0;
 		sapsize = 0.1;
 		boleht_frac = 0;
+		cstarv_inflect = 0.0;
+		cstarv_max = 0.0;
 		max_mobil_cstorage = 0;
 
 		isintercropgrass = false;

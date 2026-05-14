@@ -3777,37 +3777,27 @@ double calculate_cgrow_tree(Individual &indiv) {
 // 3. Set the inflection point (cmass_storage_min) be a pft parameter
 bool carbon_starvation_mortality(Individual &indiv) {
 
-	// Maximum proportion of trees within one cohort that will experience mortality
-	// due to carbon starvation each DAY. The poroportion 0.3 was taken from the ANNAUL mortality
-	// from growth deficciency (greff_mort).
-	// TODO: Check if this makes sense by comparing total mortality from c starvation and greff.
-	const double MAX_MORT_FRAC = 0.3 / 365.0;
-	// PFT-specific threshold (TO DO: make PFT-parameters when ready) for the 
-	// carbon starvation mortality curve. Can be similar to greff_min (ie higher 
-	// with shade intolerance)
-	// The cohort density (trees/m2) above which cohorts will lose MORT_FRAC biomass
-	// upon carbon starvation, and below which they will be killed outright 
-	// (borrowed from Clare's code). ASSAF: equates for 10 trees per ha
+	// The cohort density (trees/m2) above which cohorts will lose MORT_FRAC
+	// biomass upon carbon starvation, and below which they will be killed
+	// outright (borrowed from Clare's code). ASSAF: equates to 10 trees per ha.
 	const double KILL_THRESHOLD = 0.001;
-	// threshold of storage below which thinning due to carbon starvation will start
-	const double THIN_THRESHOLD = 0.4;
-	// inflection point in the sigmoidal graph (when x = cmass_storage_min).
-	// suggest to change into a PFT parameter, which depend on shade tollerance
-	// (in which shade tolerant trees will have a lower value)
-	const double cmass_storage_min = 0.1;
-	// prob of mortality due to carbon starvation
-	double storage_state = 0.0;
-	// probablity of mortality (ie reduction in densindiv)
-	double pmort_cstarve = 0.0;
-	
-	double cmass_before = 0.0;
-	double cmass_after = 0.0;
 
+	// Threshold of storage below which thinning due to carbon starvation will
+	// start.
+	const double THIN_THRESHOLD = 0.4;
+
+	const Pft &pft = indiv.pft;
 	Patchpft &ppft = indiv.patchpft();
 
+	// Maximum fraction of cohort that can die per day.
+	double max_mort_frac = pft.cstarv_max / Date::MAX_YEAR_LENGTH;
+
 	// Negative NPP has already been subtracted from storage at this point.
+	double storage_state = 0.0;
 	if (indiv.cmass_storage > 0) {
-		storage_state = min(indiv.cmass_storage / indiv.cstorage_max, 1.0);
+		if (indiv.cstorage_max > 0) {
+			storage_state = min(indiv.cmass_storage / indiv.cstorage_max, 1.0);
+		}
 	} else {
 		log_info("%s killed by carbon starvation: negative NPP cannot be fulfilled by storage. NPP: %.9g kgC/m2, cmass_storage: %.9g kgC/m2",
 				(const char *)indiv.pft.name, indiv.dnpp, indiv.cmass_storage);
@@ -3844,7 +3834,7 @@ bool carbon_starvation_mortality(Individual &indiv) {
 	}
 		
 	// calculate probability of mortality due to carbon starvation (unitless)
-	pmort_cstarve = MAX_MORT_FRAC / (1.0 + pow(storage_state / cmass_storage_min, 5.0));
+	double pmort_cstarve = max_mort_frac / (1.0 + pow(storage_state / pft.cstarv_inflect, 5.0));
 	
     if (ifdailycstarvmort && (storage_state < THIN_THRESHOLD)) {
 	// start thinning

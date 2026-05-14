@@ -215,6 +215,17 @@ group "tree" (
 	! relationship between the difference in tree mass between the cylindrical
 	! stem hypothesis and measured mass of tree log with its branches.
 	formfactor 1.0
+
+	! Inflection point of sigmoidal carbon starvation as a function of storage
+	! fraction full. Higher values mean carbon starvation starts at higher
+	! storage levels.
+	cstarv_inflect 0.1
+
+	! Maximum fraction of cohort killed per year by carbon starvation mortality
+	! when storage levels are low.
+	! TODO: Check if this makes sense by comparing total mortality from C
+	! starvation and greff.
+	cstarv_max 0.3
 )
 
 group "shrub" (

@@ -404,10 +404,10 @@ Eq. 2 in Heskel et al. 2016, PNAS.
 
 Value of parameter a was calculated to give a value of 1 for Tl = 25degC.
 
-@param Tl leaf temperature (deg C)
+@param tl leaf temperature (deg C)
 */
-double respiration_temp_response(double Tl) {
-	double kRl = exp(-2.2175 + 0.1012 * Tl - 0.0005 * pow(Tl,2));
+double respiration_temp_response(double tl) {
+	double kRl = exp(-2.2175 + 0.1012 * tl - 0.0005 * pow(tl, 2));
 	return kRl; // value of leaf respiration relative to its value at 25 deg C
 }
 
@@ -431,16 +431,20 @@ von Caemmerer 2013 (Plant, Cell and Environment)
 @param jmax = max. electron transport rate (mol m-2 s-1)
 */
 double electron_transport_rate(double apar,double jmax) {
-	double ppfd = apar * JTOMOL;  // photosynthetic photon flux density (mol (photons) m-2 s-1)
-    double discriminant = pow(ppfd + jmax,2) - 4.0 * THETA * ppfd * jmax;
-	if (discriminant < 0) {
-		log_warning("Negative discriminant (%g) in electron transport rate calculation. A 0 value will be used instead, but this will invalidate the solution.", discriminant);
-		discriminant = 0;
+	// Photosynthetic photon flux density (mol (photons) m-2 s-1).
+	double ppfd = apar * JTOMOL;
+
+	double a = THETA;
+	double b = -(ppfd + jmax);
+	double c = ppfd * jmax;
+
+	double j;
+	if (!solve_quadratic(a, b, c, j, true)) {
+		log_error("electron_transport_rate: No solution for quadratic J. Returning J=0 to avoid crash. apar=%g, jmax=%g", apar, jmax);
+		return 0;
 	}
 
-	double J = (ppfd + jmax - sqrt(discriminant)) / (2.0 * THETA);
-
-	return J;   // electron transport rate in mol (electrons) m-2 s-1
+	return j;   // electron transport rate in mol (electrons) m-2 s-1
 }
 
 /*

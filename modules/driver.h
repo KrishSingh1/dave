@@ -43,7 +43,8 @@ Different algorithms which may be used to estimate saturation vapor pressure.
 typedef enum {
 	SONNTAG_1990,
 	ALDUCHOV_1996,
-	ALLEN_1998
+	ALLEN_1998,
+	BUCK_1981
 } esat_method_t;
 
 /*

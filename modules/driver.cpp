@@ -1552,6 +1552,12 @@ void get_esat_params(esat_method_t esat_method, esat_params_t *params) {
 		params->a = 610.8;
 		params->b = 17.27;
 		params->c = 237.3;
+	} else if (esat_method == BUCK_1981) {
+		// a = 1.0007 + (3.46 * 10^-6) * P, where P is air pressure in mb
+		// With P = 1000 mb, a = 613.75;
+		params-> a = 613.75;
+		params->b = 17.502;
+		params->c = 240.97;
 	}
 }
 

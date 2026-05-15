@@ -125,6 +125,27 @@ const double MOL2G_C = 12.011;
 /// Molecular mass of Water (g mol-1)
 const double MOL2G_H2O = 18.01528;
 
+// Stefan-Boltzmann constant (W m-2 K-4).
+const double BOLTZ = 5.67e-8;
+
+// Specific heat capacity of air (J kg-1 K-1).
+const double CP_AIR = 1010;
+
+// Emissivity of leaves (dimensionless).
+const double EMISSIVITY = 0.95;
+
+// TODO: umols of what??? (umol J-1).
+const double UMOL_PER_J = 4.57;
+
+// J kg-1
+const double H2OLV0 = 2501000;
+
+// kg mol-1
+const double AIRMA = 0.029;
+
+// TODO: get description.
+const double DHEAT = 2.15e-05;
+
 // von Caemmerer 2013, PCE: 0.36125
 // Medlyn et al. 2002, PCE: 0.3
 // Yang et al. 2019: 0.24

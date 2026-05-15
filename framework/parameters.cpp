@@ -2288,6 +2288,10 @@ void plib_callback(int callback) {
 						if (!itemparsed("absorptance")) badins("absorptance");
 						if (!itemparsed("alpha")) badins("alpha");
 						if (!itemparsed("leaf_width")) badins("leaf_width");
+						if (ppft->leaf_width <= 0) {
+							sendmessage("Error", "leaf_width must be greater than 0");
+							plibabort();
+						}
 					}
 				}
 				if (!itemparsed("max_mobil_cstorage")) badins("max_mobil_cstorage");

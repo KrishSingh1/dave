@@ -48,7 +48,7 @@ typedef enum {
 } esat_method_t;
 
 /*
-Estimate saturation vapor pressure (esat) from air temperature (tair).
+Estimate saturation vapor pressure (kPa) from air temperature (tair).
 
 @param tair Air temperature (℃)
 @param esat_method Method to use for estimating saturation vapor pressure.

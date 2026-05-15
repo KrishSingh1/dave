@@ -5,6 +5,7 @@
 #include "canexch.h" // Many constants defined here
 #include "logging.h"
 #include "guessmath.h"
+#include "driver.h"
 
 // Average leaf N:P ratio for C3 grasses from Thum et al. 2019 (SI Table 8).
 const double C3_LEAF_NTOP = 10.7;
@@ -1581,6 +1582,84 @@ void forest_floor_dave(Patch &patch) {
 			}
 		}
 	}
+}
+
+// Saturation vapour pressure in Pa.
+double satur(double temp) {
+	return esat(temp, BUCK_1981) * 1000; // kPa -> Pa
+}
+
+/*
+Calculate leaf temperature based on energy balance.
+
+@param tleaf     Leaf temperature (°C).
+@param tair      Air temperature (°C).
+@param gs		 Stomatal conductance to water vapour (mol m-2 s-1).
+@param ppfd		 Photosynthetic photon flux density (aka incident PAR) (umol m-2 s-1).
+@param vpd		 Vapour pressure deficit (kPa).
+@param patm		 Atmospheric pressure (kPa) - default 101.5.
+@param wind		 Windspeed (m s-1) - default 2.5.
+@param wleaf	 Leaf width (m) - PFT specific.
+@param stomatal_ratio ???
+@param leaf_abs	 Leaf absorptance (fraction).
+@return Leaf temperature (°C).
+*/
+double energy_balance(double tleaf, double tair, double gs, double ppfd,
+				    double vpd, double patm, double wind, double wleaf,
+					double stomatal_ratio, double leaf_abs) {
+	if (gs == 0) {
+		fail("energy_balance(): gs=0");
+	}
+
+	// TODO: consolidate with daveinput into a single global parameter?
+	const esat_method_t m = BUCK_1981;
+
+	double tair_k = tair + K2degC;
+
+	// Short calculations.
+	double air_density = patm * 1000.0 / (287.058 * tair_k); // kg m-3 ? 
+	double lhv = (H2OLV0 - 2365.0 * tair) * MOL2G_H2O * KG_PER_G; // J mol-1
+	double slope = (esat(tair + 0.1, m) - esat(tair, m)) / 0.1; // Pa K-1
+
+	// Units: 1 J/m3 = 1 Pa. So Pa / (J mol-1 K-1) / K = Pa mol / J = J m-3 mol /J = mol m-3
+	double cmolar = patm * 1000.0 / (R_gas * tair_k); // mol m-3
+
+	// Conductances - all in mol m-2 s-1.
+	double gradiation = 4.0 * BOLTZ * pow(tair_k, 3.0) * EMISSIVITY / (CP_AIR * AIRMA);
+	double gbhforced = 0.003 * sqrt(wind / wleaf) * cmolar ;
+	double grashof = 1.6e+08 * fabs(tleaf - tair) * pow(wleaf, 3.0);
+	double gbhfree = 0.5 * DHEAT * pow(grashof, 0.25) / wleaf * cmolar;
+	double gbh = 2.0 * (gbhfree + gbhforced);
+	double gbhr = gbh + 2.0 * gradiation;
+	double gbw = stomatal_ratio * 1.075 * gbh;
+	double gw = gs * gbw / (gs + gbw);
+
+	// Radiation.
+	// double Rlongup = EMISSIVITY * BOLTZ * pow(Tk(tleaf), 4);
+	double rsol = 2.0 * leaf_abs * ppfd / UMOL_PER_J; // J m-2 s-1 - absorbed SW radiation = 2 * APAR
+	// double Rnet = rsol - Rlongup;
+	double ea = esat(tair, m) - 1000.0 * vpd; // If this is negative we have a problem
+	if (ea < 0) {
+		fail("energy_balance(): ea < 0, this means saturation vapour pressure is less than actual vapour pressure, which shouldn't happen. east=%f, vpd=%f, tair=%f",
+			 esat(tair, m), vpd, tair);
+	}
+	double ema = 0.642 * pow(ea / tair_k, 1.0 / 7.0);
+	double rnetiso = rsol - (1.0 - ema) * BOLTZ * pow(tair_k, 4.0);
+
+	// # Penman-Monteith equation
+	double gamma = CP_AIR * AIRMA * patm * 1000.0 / lhv;
+
+	// Transpiration rate (mol H2O m-2 s-1) : in place of gs * VPD
+	double et = (1.0 / lhv) * (slope * rnetiso + 1000.0 * vpd * gbh * CP_AIR *
+					AIRMA) / (slope + gamma * gbhr / gw);
+
+	// Calculate leaf temperature.
+	double lambda_et = lhv * et;
+	double y = 1.0 / (1.0 + gradiation / gbh);
+	double h2 = y * (rnetiso - lambda_et);
+	// double H = -CP_AIR * air_density * (gbh / cmolar) * (tair - tleaf);
+	double tleaf2 = tair + h2 / (CP_AIR * air_density * (gbh / cmolar));
+	return tleaf2;
 }
 
 void canopy_exchange_dave(Patch &patch, Climate &climate) {

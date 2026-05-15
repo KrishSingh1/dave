@@ -91,8 +91,8 @@ spinup_met_cycle_length      0
 
 ! Algorithm used to estimate saturation vapour pressure (esat) from air
 ! temperature. Required iff variable_rh is set. Valid options are:
-! sonntag_1990, alduchov_1996, allen_1998
-esat_method                  "sonntag_1990"
+! sonntag_1990, alduchov_1996, allen_1998, buck_1981
+esat_method                  "buck_1981"
 
 ! Input file containing atmospheric co2 concentration by year. This is optional
 ! if co2 data is being read from the NetCDF file (ie if variable_co2 is set).

@@ -586,6 +586,8 @@ esat_method_t DaveInput::parse_esat_method(xtring name) const {
 		return ALDUCHOV_1996;
 	} else if (name == "allen_1998") {
 		return ALLEN_1998;
+	} else if (name == "buck_1981") {
+		return BUCK_1981;
 	} else {
 		fail("Invalid esat_method: %s", (const char *)name);
 	}

@@ -103,6 +103,17 @@ group "common" (
 
 	! Water potential at 88% loss of xylem conductance (MPa).
 	p88 -4
+
+	! Quantum yield of electron transport (mol (electrons) mol-1 (photon)).
+	! Medlyn et al. 2002 (Plant, Cell and Environment).
+	alpha 0.3
+
+	! Fraction of PAR absorbed by the leaf area (0-1).
+	! absorptance 0.8125 ! Updated value from Yang et al (2020)
+	absorptance 0.715
+
+	! Leaf width (m).
+	leaf_width 0.02
 )
 
 group "tree" (

@@ -746,8 +746,11 @@ public:
 	// Entropy terms (deltaS) for jmax (J mol-1 K-1)
 	double ds_j;
 
-	// Incident PAR in the middle of the layer (W m-2) (0.5 * climate.insols).
-	double par;
+	// Absorbed PAR in the middle of the layer (W m-2) (0.5 * climate.insols).
+	double apar;
+
+	// Incident ratiation in the middle of the layer (W m-2).
+	double ipar;
 
 	// VPD in kPa.
 	double vpd;
@@ -2534,6 +2537,15 @@ public:
 	// Bole height as a fraction of tree height (0-1).
 	double boleht_frac;
 
+	// Fraction of PAR absorbed by the leaf area (0-1).
+	double absorptance;
+
+	// Quantum yield of electron transport (mol (electrons) mol-1 (photon)).
+	double alpha;
+
+	// Leaf width (m).
+	double leaf_width;
+
 	// Inflection point of sigmoidal carbon starvation as a function of storage
 	// fraction full. Higher values mean carbon starvation starts at higher
 	// storage levels.
@@ -2824,6 +2836,9 @@ public:
 		formfactor = 1.0;
 		sapsize = 0.1;
 		boleht_frac = 0;
+		absorptance = 0.0;
+		alpha = 0.0;
+		leaf_width = 0.0;
 		cstarv_inflect = 0.0;
 		cstarv_max = 0.0;
 		cstarv_killdens = 0.0;

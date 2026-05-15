@@ -3843,6 +3843,8 @@ void Individual::daily_accounting() {
 		ps_inputs_layerwise[i].clear();
 		ps_outputs_layerwise[i].clear();
 	}
+	lai_layerwise.clear();
+	fipar_layerwise.clear();
 }
 
 void Individual::annual_accounting() {

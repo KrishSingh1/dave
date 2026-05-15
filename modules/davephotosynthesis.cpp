@@ -34,21 +34,32 @@ Describes the state of a cohort relevant for photosynthesis calculations.
 class CohortState {
 public:
 	CohortState(double lai, double wscal, double lwp,
-				double fipar, bool stomata_open, double fphen_activity,
-				double ps_sink_lim, double vcmax25, double jmax25,
-				double vpmax25) :
+				double fapar, double fipar, bool stomata_open,
+				double fphen_activity, double ps_sink_lim, double vcmax25,
+				double jmax25, double vpmax25) :
 		lai(lai), wscal(wscal), lwp(lwp),
-		fipar(fipar), stomata_open(stomata_open),
+		fapar(fapar), fipar(fipar), stomata_open(stomata_open),
 		fphen_activity(fphen_activity), ps_sink_lim(ps_sink_lim),
 		vcmax25(vcmax25), jmax25(jmax25), vpmax25(vpmax25) {
 	}
 
-	CohortState(const Individual &indiv, size_t layer) {
-		lai = indiv.lai_layerwise[layer];
-	}
+	CohortState(const Individual &indiv, size_t layer) : CohortState(
+		indiv.lai_layerwise[layer],
+		indiv.get_wscal(),
+		ifdavehydraulics ? indiv.predawn_lwp : indiv.weighted_psi,
+		indiv.fipar_layerwise[layer] * indiv.pft.absorptance * indiv.pft.alpha,
+		indiv.fipar_layerwise[layer],
+		indiv.stomata_open,
+		indiv.fphen_activity,
+		indiv.ps_sink_lim,
+		indiv.ps_subdaily.vcmax25,
+		indiv.ps_subdaily.jmax25,
+		indiv.ps_subdaily.vpmax25
+	) { }
 	double get_lai() const { return lai; }
 	double get_wscal() const { return wscal; }
 	double get_lwp() const { return lwp; }
+	double get_fapar() const { return fapar; }
 	double get_fipar() const { return fipar; }
 	bool get_stomata_open() const { return stomata_open; }
 	double get_fphen_activity() const { return fphen_activity; }
@@ -63,8 +74,10 @@ private:
 	double wscal;
 	// Leaf water potential (MPa).
 	double lwp;
-	// Fraction of PAR indicident to the leaf area (0-1).
+	// Fraction of PAR incident to the leaf area (0-1).
 	double fipar;
+	// Fraction of PAR absorbed by the leaf area (0-1).
+	double fapar;
 	// Are the stomata open?
 	bool stomata_open;
 	// fphen_activity (phenological state for grass. 0=dormant, 1=fully active).
@@ -402,38 +415,30 @@ double respiration_temp_response(double Tl) {
 Light inhibition of leaf mitochondrial respiration. Assumes 30% reduction under
 light as in Huntingford et al. 2017, Nature Communications.
 
-@param PAR incident photosynthetically active radiation (W m-2)
+@param par incident photosynthetically active radiation (W m-2)
 */
-double light_inhibition(double PAR) {
-	double inhib = PAR > 2.0 ? 0.7 : 1.0;
+double light_inhibition(double par) {
+	double inhib = par > 2.0 ? 0.7 : 1.0;
 	return inhib; // inhibition of leaf respiration by light (0-1)
 }
 
 /*
-Calculate electron transport rate from PAR
-e.g. von Caemmerer 2013 (Plant, Cell and Environment)
+Calculate electron transport rate from PAR.
 
-@param PAR  = incident photosynthetically active radiation (W m-2)
-@param Jmax = max. electron transport rate (mol m-2 s-1)
+von Caemmerer 2013 (Plant, Cell and Environment)
+
+@param apar  = Absorbed photosynthetically active radiation (W m-2)
+@param jmax = max. electron transport rate (mol m-2 s-1)
 */
-double electron_transport_rate(double PAR,double Jmax) {
-	double PPFD = PAR * JTOMOL;  // photosynthetic photon flux density (mol (photons) m-2 s-1) 
-	double alpha = 0.2145;  // quantum yield of electron transport (mol (electrons) mol-1 (photon))
-						    // value from von Caemmerer 2013 (Plant, Cell and Environment) 
-						    // Medlyn et al. 2002 (Plant, Cell and Environment): 0.3
-							// Note that alpha accounts for leaf light absorptance.
-
-	/// alpha = 0.3 * 0.825;// quantum yield of electron transport (mol (electrons) mol-1 (photon))
-							// updated value from Yang et al (2020), alternative parameterisation
-
-
-    double discriminant = pow(alpha * PPFD + Jmax,2) - 4.0 * THETA * alpha * PPFD * Jmax;
+double electron_transport_rate(double apar,double jmax) {
+	double ppfd = apar * JTOMOL;  // photosynthetic photon flux density (mol (photons) m-2 s-1)
+    double discriminant = pow(ppfd + jmax,2) - 4.0 * THETA * ppfd * jmax;
 	if (discriminant < 0) {
 		log_warning("Negative discriminant (%g) in electron transport rate calculation. A 0 value will be used instead, but this will invalidate the solution.", discriminant);
 		discriminant = 0;
 	}
 
-	double J = (alpha * PPFD + Jmax - sqrt(discriminant)) / (2.0 * THETA);
+	double J = (ppfd + jmax - sqrt(discriminant)) / (2.0 * THETA);
 
 	return J;   // electron transport rate in mol (electrons) m-2 s-1
 }
@@ -512,9 +517,9 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	double resp_scalar = resp_temp_acclimation_scalar(inputs.tgrowth, inputs.racclim);
 
 	double rd = inputs.fphen_activity * pow(inputs.wscal, qb) * BC3 * vcmax25_mol * inputs.nscal *
-			respiration_temp_response(inputs.temp) * light_inhibition(inputs.par) * resp_scalar;
+			respiration_temp_response(inputs.temp) * light_inhibition(inputs.ipar) * resp_scalar;
 
-	if (is_zero(inputs.par)) {
+	if (is_zero(inputs.ipar)) {
 		no_photosynthesis(inputs, outputs, rd);
 		return;
 	}
@@ -554,7 +559,7 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	}
 
 	// 2) RuBP regeneration-limited gross photosynthesis
-	double je = electron_transport_rate(inputs.par, jmax);
+	double je = electron_transport_rate(inputs.apar, jmax);
 
 	// assuming demand of 4 electrons per CO2 molecule
 	gamma = 0.25 * je;
@@ -681,7 +686,7 @@ double calc_c4_aj_approx(const C4Biochemistry &biochemistry,
 						 const PhotosynthesisInputs &inputs,
 						 const C4IterationState &state) {
 	// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
-	double je = electron_transport_rate(inputs.par, biochemistry.jmax);
+	double je = electron_transport_rate(inputs.apar, biochemistry.jmax);
 
 	double rm = biochemistry.rm;
 	double ci = state.ci;
@@ -701,7 +706,7 @@ double calc_c4_aj_full(const C4Biochemistry &biochemistry,
 					   const C4IterationState &state) {
 
 	// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
-	double je = electron_transport_rate(inputs.par, biochemistry.jmax);
+	double je = electron_transport_rate(inputs.apar, biochemistry.jmax);
 
 	double rm = biochemistry.rm;
 	double ci = state.ci;
@@ -840,7 +845,7 @@ C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
 
 	// Daytime (mitochondrial) leaf respiration (mol m-2 s-1).
 	result.rd = inputs.fphen_activity * pow(inputs.wscal, qb) * BC4 * vcmax25_c4 * inputs.nscal *
-			respiration_temp_response(inputs.temp) * light_inhibition(inputs.par) * resp_scalar;
+			respiration_temp_response(inputs.temp) * light_inhibition(inputs.ipar) * resp_scalar;
 
 	// Rd in the mesophyll cells.
 	result.rm = 0.5 * result.rd;
@@ -889,7 +894,7 @@ timestep.
 void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOutputs &outputs) {
 	C4Biochemistry biochemistry = c4_biochemistry(inputs);
 
-	if (is_zero(inputs.par) || !inputs.stomata_open) {
+	if (is_zero(inputs.ipar) || !inputs.stomata_open) {
 		no_photosynthesis(inputs, outputs, biochemistry.rd);
 		return;
 	}
@@ -1029,7 +1034,8 @@ PhotosynthesisDiagnostics get_photosynthesis_inputs(const CohortState &cohort,
 	assert(inputs.lai >= 0);
 
 	double par = max(0.0, climate.pars[day.period]);
-	inputs.par = cohort.get_fipar() * par;
+	inputs.apar = cohort.get_fapar() * par;
+	inputs.ipar = cohort.get_fipar() * par;
 
 	// Account for the nitrogen gradient within the canopy.
 	inputs.nscal = max(1.0e-12, exp(-pft.extkn * lai_cum));
@@ -1124,16 +1130,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				// Cumulative LAI at the middle of current layer.
 				double lai_cum = lai_cum_bottom - 0.5 * indiv.lai_layerwise[j];
 
-				CohortState cohort(indiv.lai_layerwise[j],
-								   indiv.get_wscal(),
-								   ifdavehydraulics ? indiv.predawn_lwp : indiv.weighted_psi,
-								   indiv.fipar_layerwise[j],
-								   indiv.stomata_open,
-								   indiv.fphen_activity,
-							       indiv.ps_sink_lim,
-							       indiv.ps_subdaily.vcmax25,
-							       indiv.ps_subdaily.jmax25,
-						           indiv.ps_subdaily.vpmax25);
+				CohortState cohort(indiv, j);
 
 				PhotosynthesisDiagnostics diagnostics = get_photosynthesis_inputs(
 					cohort, pft, climate, patch, day, lai_cum, inputs);
@@ -1561,10 +1558,6 @@ void forest_floor_dave(Patch &patch) {
 		// LAI of this individual in this layer.
 		inputs.lai = LAI_HYPOTHETICAL;
 
-		// Incident PAR in the middle of the layer (W m-2).
-		inputs.par = patch.fpar_ff * climate.pars[day.period];
-		inputs.par = max(0.0, inputs.par);
-
 		for (size_t i = 0; i < pftlist.nobj; i++) {
 			const Pft &pft = pftlist[i];
 			Patchpft &ppft = patch.pft[i];
@@ -1573,6 +1566,11 @@ void forest_floor_dave(Patch &patch) {
 			if (pft.daily_establishment()) {
 				continue;
 			}
+
+			// Incident PAR in the middle of the layer (W m-2).
+			inputs.ipar = patch.fpar_ff * climate.pars[day.period];
+			inputs.ipar = max(0.0, inputs.ipar);
+			inputs.apar = inputs.ipar * pft.absorptance * pft.alpha;
 
 			inputs.s_f = pft.s_f;
 			inputs.psi_f = pft.psi_f;

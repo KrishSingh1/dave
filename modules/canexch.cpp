@@ -449,7 +449,7 @@ void fpar(Patch& patch) {
 						if (ifdavephotosyn) {
 							// see e.g. Sands 1995, Australian Journal of Plant Physiology
 							double fipar_layer = k_beer_grass / (1.0 - m_trans) * lambertbeer(plai - plai_layer/2,k_beer_grass);
-							
+
 							// Store layer-wise fpar in the individual.
 							indiv.fipar_layerwise.push_back(fipar_layer);  // incident radiation in that layer (W m-2 ground)
 							indiv.lai_layerwise.push_back(indiv.lai_leafon_layer);

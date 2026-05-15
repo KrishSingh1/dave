@@ -34,20 +34,19 @@ Describes the state of a cohort relevant for photosynthesis calculations.
 class CohortState {
 public:
 	CohortState(double lai, double wscal, double lwp,
-				double fapar, double fipar, bool stomata_open,
-				double fphen_activity, double ps_sink_lim, double vcmax25,
-				double jmax25, double vpmax25) :
-		lai(lai), wscal(wscal), lwp(lwp),
-		fapar(fapar), fipar(fipar), stomata_open(stomata_open),
-		fphen_activity(fphen_activity), ps_sink_lim(ps_sink_lim),
-		vcmax25(vcmax25), jmax25(jmax25), vpmax25(vpmax25) {
+				double fipar, bool stomata_open, double fphen_activity,
+				double ps_sink_lim, double vcmax25, double jmax25,
+				double vpmax25) :
+		lai(lai), wscal(wscal), lwp(lwp), fipar(fipar),
+		stomata_open(stomata_open), fphen_activity(fphen_activity),
+		ps_sink_lim(ps_sink_lim), vcmax25(vcmax25), jmax25(jmax25),
+		vpmax25(vpmax25) {
 	}
 
 	CohortState(const Individual &indiv, size_t layer) : CohortState(
 		indiv.lai_layerwise[layer],
 		indiv.get_wscal(),
 		ifdavehydraulics ? indiv.predawn_lwp : indiv.weighted_psi,
-		indiv.fipar_layerwise[layer] * indiv.pft.absorptance * indiv.pft.alpha,
 		indiv.fipar_layerwise[layer],
 		indiv.stomata_open,
 		indiv.fphen_activity,
@@ -59,7 +58,6 @@ public:
 	double get_lai() const { return lai; }
 	double get_wscal() const { return wscal; }
 	double get_lwp() const { return lwp; }
-	double get_fapar() const { return fapar; }
 	double get_fipar() const { return fipar; }
 	bool get_stomata_open() const { return stomata_open; }
 	double get_fphen_activity() const { return fphen_activity; }
@@ -76,8 +74,6 @@ private:
 	double lwp;
 	// Fraction of PAR incident to the leaf area (0-1).
 	double fipar;
-	// Fraction of PAR absorbed by the leaf area (0-1).
-	double fapar;
 	// Are the stomata open?
 	bool stomata_open;
 	// fphen_activity (phenological state for grass. 0=dormant, 1=fully active).
@@ -926,8 +922,7 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 // Populate photosynthesis inputs struct and return the g1 value to be used.
 PhotosynthesisDiagnostics get_photosynthesis_inputs(const CohortState &cohort,
 		const Pft &pft, const Climate &climate, const Patch &patch,
-		const Day &day, double lai_cum,
-		PhotosynthesisInputs &inputs) {
+		const Day &day, double lai_cum, PhotosynthesisInputs &inputs) {
 
 	// Atmospheric CO2 concentration (mol mol-1)
 	// TODO: check if annual global means would make more sense 
@@ -1038,8 +1033,8 @@ PhotosynthesisDiagnostics get_photosynthesis_inputs(const CohortState &cohort,
 	assert(inputs.lai >= 0);
 
 	double par = max(0.0, climate.pars[day.period]);
-	inputs.apar = cohort.get_fapar() * par;
 	inputs.ipar = cohort.get_fipar() * par;
+	inputs.apar = cohort.get_fipar() * par * pft.alpha * pft.absorptance;
 
 	// Account for the nitrogen gradient within the canopy.
 	inputs.nscal = max(1.0e-12, exp(-pft.extkn * lai_cum));
@@ -1537,30 +1532,8 @@ void forest_floor_dave(Patch &patch) {
 	const Climate &climate = patch.get_climate();
 
 	for (Day day; day.period < date.subdaily; day.next()) {
-
-		PhotosynthesisInputs inputs;
-
-		// Air temperature in °C.
-		inputs.temp  = climate.temps[day.period];
-		inputs.tgrowth = climate.get_tgrowth();
-
-		inputs.stomata_open = true;
-
-		// VPD in kPa.
-		inputs.vpd   = climate.vpds[day.period];
-
-		// No limitation from phenology or sink activity.
-		inputs.fphen_activity = 1;
-		inputs.ps_sink_lim = 1;
-
 		// Assume LAI of 1 m2 m-2.
 		const double LAI_HYPOTHETICAL = 1.0;
-
-		// Assume leaf N content of 0.01 kgN m-2.
-		const double NMASS_LEAF_HYPOTHETICAL = 0.01;
-
-		// LAI of this individual in this layer.
-		inputs.lai = LAI_HYPOTHETICAL;
 
 		for (size_t i = 0; i < pftlist.nobj; i++) {
 			const Pft &pft = pftlist[i];
@@ -1571,92 +1544,29 @@ void forest_floor_dave(Patch &patch) {
 				continue;
 			}
 
-			// Incident PAR in the middle of the layer (W m-2).
-			inputs.ipar = patch.fpar_ff * climate.pars[day.period];
-			inputs.ipar = max(0.0, inputs.ipar);
-			inputs.apar = inputs.ipar * pft.absorptance * pft.alpha;
-
-			inputs.s_f = pft.s_f;
-			inputs.psi_f = pft.psi_f;
-			inputs.racclim = pft.racclim;
-			inputs.wscal = ppft.wscal;
-
 			// Since the seedlings don't have access to deep layers, only look
 			// at the top few layers' SWP.
-			inputs.predawn_lwp = mean(patch.soil.psi_layer, NLAYER_FOREST_FLOOR);
-
-			// Atmospheric CO2 concentration in mol mol-1.
-			inputs.ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;
+			double lwp = mean(patch.soil.psi_layer, NLAYER_FOREST_FLOOR);
 
 			// No soil water on first day of simulation - this results in wscal
 			// of 0, which results in a division by zero. We can just skip this
 			// calculation on the first day of the simulation.
-			if (is_zero(inputs.wscal)) {
+			if (is_zero(ppft.wscal)) {
 				continue;
 			}
 
-			if (ifzhou) {
-
-				// Calculate gcutic at phase change T for use in equation below.
-				double gcutic_Tp = pft.gcutic * pow(Q10A, (TP - 25) / 10);
-
-				// This should all be based on leaf temperature, but using air
-				// temperature as an approximation.
-				double gcutic_adj = 0.0;
-				if (inputs.temp < TP) {
-					// Erick's measurements start at 25, so changed 20 to 25 in eqns
-					gcutic_adj = pft.gcutic * pow(Q10A, (inputs.temp - 25) / 10);
-				} else {
-					gcutic_adj = gcutic_Tp * pow(Q10B, (inputs.temp - TP) / 10);
-				}
-
-				// Stomatal term (Medlyn et al. 2011)
-				double b1z = log(0.1) / (pft.stom_clos + 0.3);
-				double g1 = pft.g1x * exp(b1z * (inputs.predawn_lwp + 0.3));
-				inputs.X = stomatal_conductance_term(inputs.wscal, g1, inputs.vpd, inputs.ca);
-
-				// Residual stomatal conductance term.
-				double g0 = pft.g0 * exp(b1z * (inputs.predawn_lwp + 0.3));
-				g0 = max(g0, gcutic_adj);
-				inputs.gdark = stomatal_conductance_residual(g0, inputs.wscal);
-			} else {
-				// Stomatal term (Medlyn et al. 2011)
-				// X needs to represent gs for CO2, hence no 1.6 factor
-				inputs.X = stomatal_conductance_term(inputs.wscal, pft.g1, inputs.vpd, inputs.ca);
-
-				// Residual stomatal conductance term
-				// Note: g0 is for H20, here conversion to conductances to CO2
-                // TODO: do we need a different qs here?
-				inputs.gdark = stomatal_conductance_residual(pft.g0, inputs.wscal);
-			}
-
-			double nmass_leaf0 = calc_nmass_leaf0(pft, LAI_HYPOTHETICAL, NMASS_LEAF_HYPOTHETICAL);
-			double pmass_leaf0 = nmass_leaf0 / C3_LEAF_NTOP;
-
-			// Account for the nitrogen gradient within the canopy.
-			// TODO: should this be patch-level or PFT-level LAI?
-			inputs.nscal = max(1.0e-12, exp(-pft.extkn * LAI_HYPOTHETICAL));
-
-			get_temp_acclimation_parameters(climate, pft, inputs.ha_v, inputs.ha_j, inputs.ds_v, inputs.ds_j);
+			CohortState cohort(LAI_HYPOTHETICAL, ppft.wscal, lwp, patch.fpar_ff,
+							   true, 1.0, 1.0, pft.vcmax_25, pft.jmax_25,
+							   pft.vpmax_25);
+			PhotosynthesisInputs inputs;
+			get_photosynthesis_inputs(cohort, pft, climate, patch, day,
+									  LAI_HYPOTHETICAL / 2.0, inputs);
 
 			// Assume a leaf N content of 0.01 kgN/m2.
 			PhotosynthesisOutputs outputs;
 			if (pft.pathway == C3) {
-				if (pft.ifcalcvcmax) {
-					inputs.vcmax25 = calc_vcmax25(nmass_leaf0, pmass_leaf0);
-					inputs.jmax25 = calc_jmax25(nmass_leaf0, pmass_leaf0);
-				} else {
-					inputs.vcmax25 = pft.vcmax_25;
-					inputs.jmax25 = pft.jmax_25;
-				}
-				inputs.vpmax25 = 0;
-
 				photosynthesis_dave_c3(inputs, outputs);
 			} else {
-				inputs.vcmax25 = 0;
-				inputs.jmax25 = 0;
-				inputs.vpmax25 = pft.ifcalcvcmax ? calc_vpmax25(nmass_leaf0) : pft.vpmax_25;
-
 				photosynthesis_dave_c4(inputs, outputs);
 			}
 

@@ -2317,15 +2317,9 @@ void plib_callback(int callback) {
 					log_warning("Using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 0");
 				}
 
-				if (!ppft->ifcalcvcmax) {
-					if (!itemparsed("vcmax_25")) badins("vcmax_25");
-					if (!itemparsed("vpmax_25")) badins("vpmax_25");
-					if (!itemparsed("jmax_25")) badins("jmax_25");
-				} else {
-					if (itemparsed("vcmax_25")) log_warning("%s vcmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
-					if (itemparsed("vpmax_25")) log_warning("%s vpmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
-					if (itemparsed("jmax_25")) log_warning("%s jmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
-				}
+				if (!itemparsed("vcmax_25")) badins("vcmax_25");
+				if (!itemparsed("vpmax_25")) badins("vpmax_25");
+				if (!itemparsed("jmax_25")) badins("jmax_25");
 			}
 
 			if (ifzhou && !ifdavehydrology) {

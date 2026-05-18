@@ -382,6 +382,8 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
 	if (plan.ws_mode == WsMode::Direct) {
 		std::vector<double> winds = get(Variable::Ws).read(lon, lat, year, day, 1);
 		climate.u10 = mean(winds);
+        winds = aggregate(winds, options.nsteps_day, mean);
+        climate.winds = winds;
 	}
 
 	for (size_t i = 0; i < vpds.size(); i++) {

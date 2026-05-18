@@ -105,6 +105,9 @@ bool ifforcedlai;
 double fixed_lai;
 int nlayer_canopy = 0;
 double layer_thickness_canopy = 0;
+int energy_balance_maxiter;
+double energy_balance_eps;
+
 
 // Arctic and wetland options
 bool iftwolayersoil;			// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below. 
@@ -320,6 +323,8 @@ void initsettings() {
 	ifadaptive_rootdist = false;
 	grazing_duration = 1;
 	epsiresolution = 100;
+	energy_balance_maxiter = 1;
+	energy_balance_eps = 1;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -681,6 +686,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("spinup_output", &spinup_output, 1, CB_NONE, "True to write DAVE outputs during the spinup, false otherwise.");
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
 		declareitem("epsiresolution", &epsiresolution, 1, 1e6, 1, CB_NONE, "Resolution for splines used to calculate psi from transpiration. This is the number of control points used for the integration. Default: 100.");
+		declareitem("energy_balance_maxiter", &energy_balance_maxiter, 1, 1000, 1, CB_NONE, "Maximum number of iterations for energy balance convergence in DAVE photosynthesis (default: 1, i.e. single iteration).");
+		declareitem("energy_balance_eps", &energy_balance_eps, 1, 20, 1, CB_NONE, "Convergence criterion for DAVE energy balance (K). Iteration for tleaf will cease when the change in tleaf between iterations is less than this value.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
 		declareitem("ifstoreuptake", &ifstoreuptake, 1, CB_NONE, "Whether N uptake should go into long-term storage pool");
 		declareitem("ifusegdd", &ifusegdd, 1, CB_NONE, "Use growing degree days to infer growth stage");
@@ -2321,9 +2328,16 @@ void plib_callback(int callback) {
 					log_warning("Using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 0");
 				}
 
-				if (!itemparsed("vcmax_25")) badins("vcmax_25");
-				if (!itemparsed("vpmax_25")) badins("vpmax_25");
-				if (!itemparsed("jmax_25")) badins("jmax_25");
+				// If vcmax is calculated and PFT uses daily establishment, then
+				// vcmax25/jmax25/vpmax25 are not required. In all other cases,
+				// they are required.
+				if (!(ppft->ifcalcvcmax && ppft->daily_establishment())) {
+					if (!itemparsed("vcmax_25")) badins("vcmax_25");
+					if (!itemparsed("jmax_25")) badins("jmax_25");
+					if (ppft->is_grass() && ppft->pathway == C4) {
+						if (!itemparsed("vpmax_25")) badins("vpmax_25");
+					}
+				}
 			}
 
 			if (ifzhou && !ifdavehydrology) {

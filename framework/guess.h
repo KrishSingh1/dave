@@ -731,8 +731,8 @@ public:
 	// Water stress parameter (0-1 range; 1=minimum stress).
 	double wscal;
 
-	// Air temperature in °C.
-	double temp;
+	// Leaf temperature in °C.
+	double tleaf;
 
 	// activation energy for vcmax (kJ mol-1)
 	double ha_v;
@@ -797,6 +797,7 @@ public:
 		ci = 0;
 		vcmax = 0;
 		jmax = 0;
+		tleaf = 0;
 	}
 
 	// Respiration (mol m-2 s-1).
@@ -819,6 +820,9 @@ public:
 
 	// Intercellular CO2 concentration (mol mol-1).
 	double ci;
+
+	// Leaf temperature (degC).
+	double tleaf;
 
 	// Maximum carboxylation rate (mol m-2 s-1).
 	double vcmax;
@@ -1242,7 +1246,7 @@ public:
 	/// precipitation today (mm)
 	double prec;
 
-	/// 10 m wind (km/h)
+	/// 10 m wind (m/s)
 	double u10;
 
 	/// rel. humidity (fract.)
@@ -1413,6 +1417,9 @@ public:
 
 	/// Sub-daily atmospheric pressure values (Pa).
 	std::vector<double> pressure;
+
+	/// Sub-daily 10 m wind speed (m s-1) (\see u10)
+	std::vector<double> winds;
 
 	/// Variables used for crop sowing date or seasonality calculation
 

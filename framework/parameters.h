@@ -460,6 +460,13 @@ extern bool gzip_output;
 /// Maximum number of cohorts (individuals) allowed per pft (0 = unlimited).
 extern int nindiv_max;
 
+/// Maximum number of iterations to use in DAVE energy balance.
+extern int energy_balance_maxiter;
+
+/// Convergence criterion for DAVE energy balance (K). Iteration for tleaf will
+/// cease when the change in tleaf between iterations is less than this value.
+extern double energy_balance_eps;
+
 /// Number of days that animals are allowed to graze a particular set of
 /// patches (default: 1).
 extern int grazing_duration;

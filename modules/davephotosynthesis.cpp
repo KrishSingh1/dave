@@ -22,6 +22,30 @@ const double Q10B = 4.8;
 // Transition temperature degC (to discuss with Erick) (Cochard 2021 Eq 13 & 14)
 const double TP = 40;
 
+class ClimateInputs {
+public:
+	ClimateInputs(const Climate &climate, const Day &day) :
+		tair(climate.temps[day.period]),
+		// May not have subdaily wind speed. In not, fall back to daily mean.
+		wind(climate.winds.size() > day.period ? climate.winds[day.period] : climate.u10), // convert from km/h to m/s
+		patm(climate.pressure[day.period] / 1000.0), // convert from Pa to kPa
+		vpd(climate.vpds[day.period]) {
+	}
+	double get_tair() const { return tair; }
+	double get_wind() const { return wind; }
+	double get_patm() const { return patm; }
+	double get_vpd() const { return vpd; }
+private:
+	// Air temperature (degC).
+	double tair;
+	// Wind speed (m/s).
+	double wind;
+	// Air pressure (kPa).
+	double patm;
+	// Vapour pressure deficit (kPa).
+	double vpd;
+};
+
 class PhotosynthesisDiagnostics {
 public:
 	double g1;
@@ -87,6 +111,28 @@ private:
 	double jmax25;
 	// Maximum PEP carboxylation rate at 25 degC (μmol m-2 s-1).
 	double vpmax25;
+};
+
+class EnergyBalanceResult {
+public:
+	EnergyBalanceResult(double tleaf, size_t niter, double delta_tleaf,
+						bool converged) :
+		tleaf(tleaf), niter(niter), delta_tleaf(delta_tleaf),
+		converged(converged) {
+	}
+	double get_tleaf() const { return tleaf; }
+	size_t get_niter() const { return niter; }
+	double get_delta_tleaf() const { return delta_tleaf; }
+	bool get_converged() const { return converged; }
+private:
+	// Leaf temperature (degC).
+	double tleaf;
+	// Number of iterations taken to converge.
+	size_t niter;
+	// Difference in leaf temperature between last two iterations (degC).
+	double delta_tleaf;
+	// Did the solver converge within the maximum number of iterations?
+	bool converged;
 };
 
 /*
@@ -518,7 +564,7 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	double resp_scalar = resp_temp_acclimation_scalar(inputs.tgrowth, inputs.racclim);
 
 	double rd = inputs.fphen_activity * pow(inputs.wscal, qb) * BC3 * vcmax25_mol * inputs.nscal *
-			respiration_temp_response(inputs.temp) * light_inhibition(inputs.ipar) * resp_scalar;
+			respiration_temp_response(inputs.tleaf) * light_inhibition(inputs.ipar) * resp_scalar;
 
 	if (is_zero(inputs.ipar)) {
 		no_photosynthesis(inputs, outputs, rd);
@@ -526,9 +572,9 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	}
 
 	// Michaelis-Menten parameters and photorespiratory CO2 compensation point (mol mol-1).
-	double ko = Arrhenius_temp_response(KO25, inputs.temp, HA_KO, 0.0, 0.0);
-	double kc = Arrhenius_temp_response(KC25, inputs.temp, HA_KC, 0.0, 0.0);
-	double gamstar = Arrhenius_temp_response(GAMSTAR25, inputs.temp, HA_GS, 0.0, 0.0);
+	double ko = Arrhenius_temp_response(KO25, inputs.tleaf, HA_KO, 0.0, 0.0);
+	double kc = Arrhenius_temp_response(KC25, inputs.tleaf, HA_KC, 0.0, 0.0);
+	double gamstar = Arrhenius_temp_response(GAMSTAR25, inputs.tleaf, HA_GS, 0.0, 0.0);
 
 	// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax.
 	double pslim = inputs.fphen_activity * inputs.ps_sink_lim * inputs.nscal;
@@ -542,8 +588,8 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 		pslim = pslim * pow(inputs.wscal, qb);
 	}
 
-	double vcmax = pslim * Arrhenius_temp_response(vcmax25_mol, inputs.temp, inputs.ha_v, HD, inputs.ds_v);
-	double jmax  = pslim * Arrhenius_temp_response(jmax25_mol, inputs.temp, inputs.ha_j, HD, inputs.ds_j);
+	double vcmax = pslim * Arrhenius_temp_response(vcmax25_mol, inputs.tleaf, inputs.ha_v, HD, inputs.ds_v);
+	double jmax  = pslim * Arrhenius_temp_response(jmax25_mol, inputs.tleaf, inputs.ha_j, HD, inputs.ds_j);
 
 	// 1) Rubisco-limited gross photosynthesis
 	double gamma = vcmax;
@@ -846,7 +892,7 @@ C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
 
 	// Daytime (mitochondrial) leaf respiration (mol m-2 s-1).
 	result.rd = inputs.fphen_activity * pow(inputs.wscal, qb) * BC4 * vcmax25_c4 * inputs.nscal *
-			respiration_temp_response(inputs.temp) * light_inhibition(inputs.ipar) * resp_scalar;
+			respiration_temp_response(inputs.tleaf) * light_inhibition(inputs.ipar) * resp_scalar;
 
 	// Rd in the mesophyll cells.
 	result.rm = 0.5 * result.rd;
@@ -866,18 +912,18 @@ C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
 		pslim = pslim * pow(inputs.wscal, qb);
 	}
 
-	result.vcmax = pslim * Arrhenius_temp_response(vcmax25_c4, inputs.temp, HA_V4, HD, DS_V4);
+	result.vcmax = pslim * Arrhenius_temp_response(vcmax25_c4, inputs.tleaf, HA_V4, HD, DS_V4);
 
 	// Note: Jmax temperature response has been refitted to an Arrhenius equation
 	// Jmax  = pslim * (Jmax25_C4 * exp(-(pow((temp - 43.0)/26.0,2))));
-	result.jmax  = pslim * Arrhenius_temp_response(jmax25_c4, inputs.temp, HA_J4, HD, DS_J4);
+	result.jmax  = pslim * Arrhenius_temp_response(jmax25_c4, inputs.tleaf, HA_J4, HD, DS_J4);
 
 	// Temperature dependency of Vpmax and Michaelis-Menten constants
-	result.vpmax = pslim * Arrhenius_temp_response(vpmax25_mol, inputs.temp, HA_VP, HD, DS_VP);
+	result.vpmax = pslim * Arrhenius_temp_response(vpmax25_mol, inputs.tleaf, HA_VP, HD, DS_VP);
 
-	result.kp = Arrhenius_temp_response(KP25, inputs.temp, HA_KP, 0.0, 0.0);
-	result.kc = Arrhenius_temp_response(KC25_C4, inputs.temp, HA_KC_C4, 0.0, 0.0);
-	result.ko = Arrhenius_temp_response(KO25_C4, inputs.temp, HA_KO_C4, 0.0, 0.0);
+	result.kp = Arrhenius_temp_response(KP25, inputs.tleaf, HA_KP, 0.0, 0.0);
+	result.kc = Arrhenius_temp_response(KC25_C4, inputs.tleaf, HA_KC_C4, 0.0, 0.0);
+	result.ko = Arrhenius_temp_response(KO25_C4, inputs.tleaf, HA_KO_C4, 0.0, 0.0);
 	result.km = result.kc * (1.0 + divide(O2atm, result.ko));
 
 	return result;
@@ -945,7 +991,7 @@ PhotosynthesisDiagnostics get_photosynthesis_inputs(const CohortState &cohort,
 									inputs.ds_v, inputs.ds_j);
 
 	// Air temperature in °C.
-	inputs.temp  = climate.temps[day.period];
+	inputs.tleaf  = climate.temps[day.period];
 
 	// VPD in kPa.
 	inputs.vpd   = climate.vpds[day.period];
@@ -967,11 +1013,11 @@ PhotosynthesisDiagnostics get_photosynthesis_inputs(const CohortState &cohort,
 	// This should all be based on leaf temperature, but using air
 	// temperature as an approximation.
 	double gcutic_adj = 0.0;
-	if (inputs.temp < TP) {
+	if (climate.temps[day.period] < TP) {
 		// Erick's measurements start at 25, so changed 20 to 25 in eqns
-		gcutic_adj = pft.gcutic * pow(Q10A, (inputs.temp - 25) / 10);
+		gcutic_adj = pft.gcutic * pow(Q10A, (climate.temps[day.period] - 25) / 10);
 	} else {
-		gcutic_adj = gcutic_Tp * pow(Q10B, (inputs.temp - TP) / 10);
+		gcutic_adj = gcutic_Tp * pow(Q10B, (climate.temps[day.period] - TP) / 10);
 	}
 
 	PhotosynthesisDiagnostics diagnostics;
@@ -1041,6 +1087,151 @@ PhotosynthesisDiagnostics get_photosynthesis_inputs(const CohortState &cohort,
 	inputs.nscal = max(1.0e-12, exp(-pft.extkn * lai_cum));
 
 	return diagnostics;
+}
+
+/*
+Calculate leaf temperature based on energy balance.
+
+@param tleaf     Leaf temperature (°C).
+@param tair      Air temperature (°C).
+@param gs		 Stomatal conductance to water vapour (mol m-2 s-1).
+@param ppfd		 Photosynthetic photon flux density (aka incident PAR) (umol m-2 s-1).
+@param vpd		 Vapour pressure deficit (kPa).
+@param patm		 Atmospheric pressure (kPa) - default 101.5.
+@param wind		 Windspeed (m s-1) - default 2.5.
+@param wleaf	 Leaf width (m) - PFT specific.
+@param stomatal_ratio ???
+@param leaf_abs	 Leaf absorptance (fraction).
+@return Leaf temperature (°C).
+*/
+double energy_balance_dave(double tleaf, double tair, double gs, double ppfd,
+				           double vpd, double patm, double wind, double wleaf,
+					       double stomatal_ratio, double leaf_abs) {
+	if (gs == 0) {
+		fail("energy_balance_dave(): gs=0");
+	}
+
+	// TODO: consolidate with daveinput into a single global parameter?
+	const esat_method_t m = BUCK_1981;
+
+	double tair_k = tair + K2degC;
+
+	// Short calculations.
+	double air_density = patm * 1000.0 / (287.058 * tair_k); // kg m-3 ? 
+	double lhv = (H2OLV0 - 2365.0 * tair) * MOL2G_H2O * KG_PER_G; // J mol-1
+	double slope = 1000.0 * (esat(tair + 0.1, m) - esat(tair, m)) / 0.1; // Pa K-1
+
+	// Units: 1 J/m3 = 1 Pa. So Pa / (J mol-1 K-1) / K = Pa mol / J = J m-3 mol /J = mol m-3
+	double cmolar = patm * 1000.0 / (R_gas * tair_k); // mol m-3
+
+	// Conductances - all in mol m-2 s-1.
+	double gradiation = 4.0 * BOLTZ * pow(tair_k, 3.0) * EMISSIVITY / (CP_AIR * AIRMA);
+	double gbhforced = 0.003 * sqrt(wind / wleaf) * cmolar ;
+	double grashof = 1.6e+08 * fabs(tleaf - tair) * pow(wleaf, 3.0);
+	double gbhfree = 0.5 * DHEAT * pow(grashof, 0.25) / wleaf * cmolar;
+	double gbh = 2.0 * (gbhfree + gbhforced);
+	double gbhr = gbh + 2.0 * gradiation;
+	double gbw = stomatal_ratio * 1.075 * gbh;
+	double gw = gs * gbw / (gs + gbw);
+
+	// Radiation.
+	// double Rlongup = EMISSIVITY * BOLTZ * pow(Tk(tleaf), 4);
+	double rsol = 2.0 * leaf_abs * ppfd / UMOL_PER_J; // J m-2 s-1 - absorbed SW radiation = 2 * APAR
+	// double Rnet = rsol - Rlongup;
+	double ea = 1000.0 * (esat(tair, m) - vpd); // In Pa. If this is negative we have a problem
+	if (ea < 0) {
+		fail("energy_balance_dave(): ea < 0, this means saturation vapour pressure is less than actual vapour pressure, which shouldn't happen. east=%f kPa, vpd=%f kPa, tair=%f °C",
+			 esat(tair, m), vpd, tair);
+	}
+
+	double ema = 0.642 * pow(ea / tair_k, 1.0 / 7.0);
+	double rnetiso = rsol - (1.0 - ema) * BOLTZ * pow(tair_k, 4.0);
+
+	// # Penman-Monteith equation
+	double gamma = CP_AIR * AIRMA * patm * 1000.0 / lhv;
+
+	// Transpiration rate (mol H2O m-2 s-1) : in place of gs * VPD
+	double et = (1.0 / lhv) * (slope * rnetiso + 1000.0 * vpd * gbh * CP_AIR *
+					AIRMA) / (slope + gamma * gbhr / gw);
+
+	// Calculate leaf temperature.
+	double lambda_et = lhv * et;
+	double y = 1.0 / (1.0 + gradiation / gbh);
+	double h2 = y * (rnetiso - lambda_et);
+	// double H = -CP_AIR * air_density * (gbh / cmolar) * (tair - tleaf);
+	double tleaf2 = tair + h2 / (CP_AIR * air_density * (gbh / cmolar));
+	return tleaf2;
+}
+
+void photosynthesis_dave(const PhotosynthesisInputs &inputs,
+						 PhotosynthesisOutputs &outputs,
+						 pathwaytype pathway) {
+	if (pathway == C3) {
+		photosynthesis_dave_c3(inputs, outputs);
+	} else {
+		photosynthesis_dave_c4(inputs, outputs);
+	}
+}
+
+double get_gsw(double gsc, double gcutic) {
+	double gsw = gsc * DWDC; // convert from gs for CO2 to gs for H2O
+	if (ifdavehydraulics && gsw < gcutic) {
+		// Don't allow stomatal conductance to water vapour to fall below
+		// cuticular conductance.
+		gsw = gcutic;
+	}
+	return gsw;
+}
+
+EnergyBalanceResult solve_energy_balance_dave(PhotosynthesisInputs &inputs,
+							   const ClimateInputs &climate_inputs,
+							   const Pft &pft,
+						       PhotosynthesisOutputs &outputs,
+							   const PhotosynthesisDiagnostics &diagnostics,
+						       pathwaytype pathway,
+							   size_t niter_max,
+							   double epsilon) {
+    if (niter_max == 0) {
+		fail("solve_energy_balance_dave(): niter_max must be greater than 0.");
+	}
+
+    // TODO: figure out what this is.
+    const double stomatal_ratio = 1.0;
+
+	// Initialise guess: leaf temperature = air temperature.
+	inputs.tleaf = climate_inputs.get_tair();
+
+	bool converged = false;
+
+	// Guaranteed to be set.
+	size_t i;
+	double tleaf_diff;
+
+    for (i = 0; i < niter_max && !converged; i++) {
+		outputs.clear();
+		photosynthesis_dave(inputs, outputs, pathway);
+
+		double tleaf_old = inputs.tleaf;
+		double gsw = get_gsw(outputs.gsc, diagnostics.gcutic_adj);
+
+		inputs.tleaf = energy_balance_dave(inputs.tleaf,
+										   climate_inputs.get_tair(),
+									       gsw,
+										   inputs.ipar,
+									       climate_inputs.get_vpd(),
+									       climate_inputs.get_patm(),
+									       climate_inputs.get_wind(),
+									       pft.leaf_width,
+										   stomatal_ratio,
+									       pft.absorptance);
+
+        tleaf_diff = fabs(inputs.tleaf - tleaf_old);
+		converged = tleaf_diff <= epsilon;
+	}
+
+	outputs.tleaf = inputs.tleaf;
+	EnergyBalanceResult result(inputs.tleaf, i, tleaf_diff, converged);
+	return result;
 }
 
 /*
@@ -1136,11 +1327,19 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 					cohort, pft, climate, patch, day, lai_cum, inputs);
 				indiv.g1 = diagnostics.g1;
 
-				outputs.clear();
-				if (pft.pathway == C3) {
-					photosynthesis_dave_c3(inputs, outputs);
+				ClimateInputs clim(climate, day);
+
+				EnergyBalanceResult balance = solve_energy_balance_dave(inputs,
+					clim, pft, outputs, diagnostics, pft.pathway,
+					energy_balance_maxiter, energy_balance_eps);
+
+				if (balance.get_converged()) {
+					log_diagnostic("Energy balance solver converged for individual %d (%s) in layer %d at day period %d in %d iterations.",
+								   indiv.id, (const char *)pft.name, j, day.period, balance.get_niter());
 				} else {
-					photosynthesis_dave_c4(inputs, outputs);
+					log_warning("Energy balance solver did not converge for individual %d (%s) in layer %d at day period %d after %d iterations (tleaf_diff = %g).",
+								indiv.id, (const char *)pft.name, j, day.period,
+								balance.get_niter(), balance.get_delta_tleaf());
 				}
 
 				indiv.ps_inputs_layerwise[day.period][j] = inputs;
@@ -1159,12 +1358,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				Anc_canopy += outputs.anc * lai_layer;
 				Anj_canopy += outputs.anj * lai_layer;
 				Anp_canopy += outputs.anp * lai_layer;
-				if (ifdavehydraulics && outputs.gsc < diagnostics.gcutic_adj / DWDC) {
-                    // Don't allow gsw to fall below cuticular conductance.
-					gsw_canopy += diagnostics.gcutic_adj * lai_layer;
-				} else {
-					gsw_canopy += (outputs.gsc * DWDC) * lai_layer;
-				}
+				double gsw = get_gsw(outputs.gsc, diagnostics.gcutic_adj);
+				gsw_canopy += gsw * lai_layer;
 				ci_canopy  += outputs.ci * lai_layer;
 				vcmax_canopy += outputs.vcmax * lai_layer;
 				jmax_canopy  += outputs.jmax * lai_layer;
@@ -1582,84 +1777,6 @@ void forest_floor_dave(Patch &patch) {
 			}
 		}
 	}
-}
-
-// Saturation vapour pressure in Pa.
-double satur(double temp) {
-	return esat(temp, BUCK_1981) * 1000; // kPa -> Pa
-}
-
-/*
-Calculate leaf temperature based on energy balance.
-
-@param tleaf     Leaf temperature (°C).
-@param tair      Air temperature (°C).
-@param gs		 Stomatal conductance to water vapour (mol m-2 s-1).
-@param ppfd		 Photosynthetic photon flux density (aka incident PAR) (umol m-2 s-1).
-@param vpd		 Vapour pressure deficit (kPa).
-@param patm		 Atmospheric pressure (kPa) - default 101.5.
-@param wind		 Windspeed (m s-1) - default 2.5.
-@param wleaf	 Leaf width (m) - PFT specific.
-@param stomatal_ratio ???
-@param leaf_abs	 Leaf absorptance (fraction).
-@return Leaf temperature (°C).
-*/
-double energy_balance(double tleaf, double tair, double gs, double ppfd,
-				    double vpd, double patm, double wind, double wleaf,
-					double stomatal_ratio, double leaf_abs) {
-	if (gs == 0) {
-		fail("energy_balance(): gs=0");
-	}
-
-	// TODO: consolidate with daveinput into a single global parameter?
-	const esat_method_t m = BUCK_1981;
-
-	double tair_k = tair + K2degC;
-
-	// Short calculations.
-	double air_density = patm * 1000.0 / (287.058 * tair_k); // kg m-3 ? 
-	double lhv = (H2OLV0 - 2365.0 * tair) * MOL2G_H2O * KG_PER_G; // J mol-1
-	double slope = (esat(tair + 0.1, m) - esat(tair, m)) / 0.1; // Pa K-1
-
-	// Units: 1 J/m3 = 1 Pa. So Pa / (J mol-1 K-1) / K = Pa mol / J = J m-3 mol /J = mol m-3
-	double cmolar = patm * 1000.0 / (R_gas * tair_k); // mol m-3
-
-	// Conductances - all in mol m-2 s-1.
-	double gradiation = 4.0 * BOLTZ * pow(tair_k, 3.0) * EMISSIVITY / (CP_AIR * AIRMA);
-	double gbhforced = 0.003 * sqrt(wind / wleaf) * cmolar ;
-	double grashof = 1.6e+08 * fabs(tleaf - tair) * pow(wleaf, 3.0);
-	double gbhfree = 0.5 * DHEAT * pow(grashof, 0.25) / wleaf * cmolar;
-	double gbh = 2.0 * (gbhfree + gbhforced);
-	double gbhr = gbh + 2.0 * gradiation;
-	double gbw = stomatal_ratio * 1.075 * gbh;
-	double gw = gs * gbw / (gs + gbw);
-
-	// Radiation.
-	// double Rlongup = EMISSIVITY * BOLTZ * pow(Tk(tleaf), 4);
-	double rsol = 2.0 * leaf_abs * ppfd / UMOL_PER_J; // J m-2 s-1 - absorbed SW radiation = 2 * APAR
-	// double Rnet = rsol - Rlongup;
-	double ea = esat(tair, m) - 1000.0 * vpd; // If this is negative we have a problem
-	if (ea < 0) {
-		fail("energy_balance(): ea < 0, this means saturation vapour pressure is less than actual vapour pressure, which shouldn't happen. east=%f, vpd=%f, tair=%f",
-			 esat(tair, m), vpd, tair);
-	}
-	double ema = 0.642 * pow(ea / tair_k, 1.0 / 7.0);
-	double rnetiso = rsol - (1.0 - ema) * BOLTZ * pow(tair_k, 4.0);
-
-	// # Penman-Monteith equation
-	double gamma = CP_AIR * AIRMA * patm * 1000.0 / lhv;
-
-	// Transpiration rate (mol H2O m-2 s-1) : in place of gs * VPD
-	double et = (1.0 / lhv) * (slope * rnetiso + 1000.0 * vpd * gbh * CP_AIR *
-					AIRMA) / (slope + gamma * gbhr / gw);
-
-	// Calculate leaf temperature.
-	double lambda_et = lhv * et;
-	double y = 1.0 / (1.0 + gradiation / gbh);
-	double h2 = y * (rnetiso - lambda_et);
-	// double H = -CP_AIR * air_density * (gbh / cmolar) * (tair - tleaf);
-	double tleaf2 = tair + h2 / (CP_AIR * air_density * (gbh / cmolar));
-	return tleaf2;
 }
 
 void canopy_exchange_dave(Patch &patch, Climate &climate) {

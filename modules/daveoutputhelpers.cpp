@@ -1342,7 +1342,7 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_
 		{"jmax25",       [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].jmax25; }},
 		{"nscal",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].nscal; }},
 		{"wscal",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].wscal; }},
-		{"temp",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].temp; }},
+		{"tleaf",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].tleaf; }},
 		{"ha_v",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ha_v; }},
 		{"ha_j",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ha_j; }},
 		{"ds_v",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ds_v; }},
@@ -1369,6 +1369,7 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_
 		{"anp",   [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].anp; }},
 		{"gsc",   [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].gsc; }},
 		{"ci",    [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].ci; }},
+		{"tleaf", [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].tleaf; }},
 		{"vcmax", [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].vcmax; }},
 		{"jmax",  [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].jmax; }},
 	};

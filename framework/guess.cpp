@@ -3846,7 +3846,7 @@ void Individual::daily_accounting() {
 	for (size_t i = 0; i < date.subdaily; i++) {
 		ps_inputs_layerwise[i].clear();
 		ps_outputs_layerwise[i].clear();
-		energy_balance_layerwise.clear();
+		energy_balance_layerwise[i].clear();
 	}
 	lai_layerwise.clear();
 	fipar_layerwise.clear();

@@ -687,7 +687,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
 		declareitem("epsiresolution", &epsiresolution, 1, 1e6, 1, CB_NONE, "Resolution for splines used to calculate psi from transpiration. This is the number of control points used for the integration. Default: 100.");
 		declareitem("energy_balance_maxiter", &energy_balance_maxiter, 1, 1000, 1, CB_NONE, "Maximum number of iterations for energy balance convergence in DAVE photosynthesis (default: 1, i.e. single iteration).");
-		declareitem("energy_balance_eps", &energy_balance_eps, 1, 20, 1, CB_NONE, "Convergence criterion for DAVE energy balance (K). Iteration for tleaf will cease when the change in tleaf between iterations is less than this value.");
+		declareitem("energy_balance_eps", &energy_balance_eps, 0, 20, 1, CB_NONE, "Convergence criterion for DAVE energy balance (K). Iteration for tleaf will cease when the change in tleaf between iterations is less than this value.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
 		declareitem("ifstoreuptake", &ifstoreuptake, 1, CB_NONE, "Whether N uptake should go into long-term storage pool");
 		declareitem("ifusegdd", &ifusegdd, 1, CB_NONE, "Use growing degree days to infer growth stage");

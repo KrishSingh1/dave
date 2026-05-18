@@ -1138,6 +1138,7 @@ double energy_balance_dave(double tleaf, double tair, double gs, double ppfd,
 	double h2 = y * (rnetiso - lambda_et);
 	// double H = -CP_AIR * air_density * (gbh / cmolar) * (tair - tleaf);
 	double tleaf2 = tair + h2 / (CP_AIR * air_density * (gbh / cmolar));
+	assert(tleaf2 == tleaf2); // check for NaNs
 	return tleaf2;
 }
 
@@ -1191,6 +1192,7 @@ EnergyBalance solve_energy_balance_dave(PhotosynthesisInputs &inputs,
 
 		double tleaf_old = inputs.tleaf;
 		double gsw = get_gsw(outputs.gsc, diagnostics.gcutic_adj);
+		double wind = max(climate_inputs.get_wind(), 0.01);
 
 		inputs.tleaf = energy_balance_dave(inputs.tleaf,
 										   climate_inputs.get_tair(),
@@ -1198,7 +1200,7 @@ EnergyBalance solve_energy_balance_dave(PhotosynthesisInputs &inputs,
 										   inputs.ipar,
 									       climate_inputs.get_vpd(),
 									       climate_inputs.get_patm(),
-									       climate_inputs.get_wind(),
+									       wind,
 									       pft.leaf_width,
 										   stomatal_ratio,
 									       pft.absorptance);

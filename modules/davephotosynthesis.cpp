@@ -113,28 +113,6 @@ private:
 	double vpmax25;
 };
 
-class EnergyBalanceResult {
-public:
-	EnergyBalanceResult(double tleaf, size_t niter, double delta_tleaf,
-						bool converged) :
-		tleaf(tleaf), niter(niter), delta_tleaf(delta_tleaf),
-		converged(converged) {
-	}
-	double get_tleaf() const { return tleaf; }
-	size_t get_niter() const { return niter; }
-	double get_delta_tleaf() const { return delta_tleaf; }
-	bool get_converged() const { return converged; }
-private:
-	// Leaf temperature (degC).
-	double tleaf;
-	// Number of iterations taken to converge.
-	size_t niter;
-	// Difference in leaf temperature between last two iterations (degC).
-	double delta_tleaf;
-	// Did the solver converge within the maximum number of iterations?
-	bool converged;
-};
-
 /*
 Get vcmax25, jmax25, and vpmax25 from PFT parameters and store them in
 indiv.ps_subdaily.
@@ -1183,7 +1161,7 @@ double get_gsw(double gsc, double gcutic) {
 	return gsw;
 }
 
-EnergyBalanceResult solve_energy_balance_dave(PhotosynthesisInputs &inputs,
+EnergyBalance solve_energy_balance_dave(PhotosynthesisInputs &inputs,
 							   const ClimateInputs &climate_inputs,
 							   const Pft &pft,
 						       PhotosynthesisOutputs &outputs,
@@ -1229,8 +1207,11 @@ EnergyBalanceResult solve_energy_balance_dave(PhotosynthesisInputs &inputs,
 		converged = tleaf_diff <= epsilon;
 	}
 
+	// This is not the same as the inputs.tleaf used to generate these
+	// photosynthesis outputs, but rather it's the tleaf that results from them.
+	// This reproduces old no-energy-balance code when niter_max = 1.
 	outputs.tleaf = inputs.tleaf;
-	EnergyBalanceResult result(inputs.tleaf, i, tleaf_diff, converged);
+	EnergyBalance result(inputs.tleaf, i, tleaf_diff, converged);
 	return result;
 }
 
@@ -1302,6 +1283,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
             // layers, which isn't known until we call fpar().
 			indiv.ps_inputs_layerwise[day.period].assign(nlayer, PhotosynthesisInputs{});
 			indiv.ps_outputs_layerwise[day.period].assign(nlayer, PhotosynthesisOutputs{});
+			indiv.energy_balance_layerwise[day.period].assign(nlayer, EnergyBalance(0, 0, 0, false));
 
 		    for (size_t j = 0; j < nlayer; j++) {
 
@@ -1329,7 +1311,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 				ClimateInputs clim(climate, day);
 
-				EnergyBalanceResult balance = solve_energy_balance_dave(inputs,
+				EnergyBalance balance = solve_energy_balance_dave(inputs,
 					clim, pft, outputs, diagnostics, pft.pathway,
 					energy_balance_maxiter, energy_balance_eps);
 
@@ -1344,6 +1326,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 				indiv.ps_inputs_layerwise[day.period][j] = inputs;
 				indiv.ps_outputs_layerwise[day.period][j] = outputs;
+				indiv.energy_balance_layerwise[day.period][j] = balance;
 
 				// TODO drew: multiply by LAI only once, after canopy loop.
 

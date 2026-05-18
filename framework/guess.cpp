@@ -2166,8 +2166,12 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	man_strength = 0.0;
 	nscal_5.add(1.0);
 	nscal_30.add(1.0);
-	ps_inputs_layerwise.resize(date.subdaily);
-	ps_outputs_layerwise.resize(date.subdaily);
+
+	if (ifdavephotosyn) {
+		ps_inputs_layerwise.resize(date.subdaily);
+		ps_outputs_layerwise.resize(date.subdaily);
+		energy_balance_layerwise.resize(date.subdaily);
+	}
 }
 
 void Individual::serialize(ArchiveStream& arch) {
@@ -3842,6 +3846,7 @@ void Individual::daily_accounting() {
 	for (size_t i = 0; i < date.subdaily; i++) {
 		ps_inputs_layerwise[i].clear();
 		ps_outputs_layerwise[i].clear();
+		energy_balance_layerwise.clear();
 	}
 	lai_layerwise.clear();
 	fipar_layerwise.clear();

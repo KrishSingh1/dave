@@ -831,6 +831,28 @@ public:
 	double jmax;
 };
 
+class EnergyBalance {
+public:
+	EnergyBalance(double tleaf, size_t niter, double delta_tleaf,
+						bool converged) :
+		tleaf(tleaf), niter(niter), delta_tleaf(delta_tleaf),
+		converged(converged) {
+	}
+	double get_tleaf() const { return tleaf; }
+	size_t get_niter() const { return niter; }
+	double get_delta_tleaf() const { return delta_tleaf; }
+	bool get_converged() const { return converged; }
+private:
+	// Leaf temperature (degC).
+	double tleaf;
+	// Number of iterations taken to converge.
+	size_t niter;
+	// Difference in leaf temperature between last two iterations (degC).
+	double delta_tleaf;
+	// Did the solver converge within the maximum number of iterations?
+	bool converged;
+};
+
 /*
 Inputs to the C4 photosynthesis solver function for a single layer/timestep.
 */
@@ -3737,6 +3759,10 @@ public:
 	/// Per-subdaily-timestep, per-canopy-layer photosynthesis outputs.
 	/// Indexed as [timestep][layer]. Reinitialised each day in photosynthesis_gs().
 	std::vector<std::vector<PhotosynthesisOutputs>> ps_outputs_layerwise;
+
+	/// Per-subdaily-timestep, per-canopy-layer energy balance outputs.
+	/// Indexed as [timestep][layer]. Reinitialised each day in photosynthesis_gs().
+	std::vector<std::vector<EnergyBalance>> energy_balance_layerwise;
 
 	/// Photosynthesis values for this individual under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;

@@ -1375,4 +1375,13 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_
 	};
 }
 
+std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> energy_balance_cols() {
+	return {
+		{"converged",    [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_converged() ? 1.0 : 0.0; }},
+		{"delta_tleaf",  [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_delta_tleaf(); }},
+		{"niter",        [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_niter() * 1.0; }},
+		{"tleaf",        [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_tleaf(); }},
+	};
+}
+
 } // namespace GuessOutput

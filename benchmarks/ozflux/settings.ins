@@ -156,11 +156,11 @@ patch_output_stats           0
 verbosity                    3
 
 ! Maximum number of iterations to use in DAVE energy balance.
-energy_balance_maxiter
+energy_balance_maxiter       1
 
 ! Convergence criterion for DAVE energy balance (K). Iteration for tleaf will
 ! cease when the change in tleaf between iterations is less than this value.
-energy_balance_eps
+energy_balance_eps           0.1
 
 ! The first year after the spinup period. During spinup, all met data before
 ! this year is cycled. If not set, all available data will be cycled during the

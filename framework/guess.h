@@ -749,17 +749,33 @@ public:
 	// Entropy terms (deltaS) for jmax (J mol-1 K-1)
 	double ds_j;
 
-	// Absorbed PAR in the middle of the layer (W m-2) (0.5 * climate.insols).
-	double apar;
-
 	// Quantum yield of electron transport (mol e- mol-1 photon).
 	double alpha;
 
-	// Incident ratiation in the middle of the layer (W m-2).
-	double ipar;
+	// Above-canopy radiation this timestep (W m-2).
+	double par;
 
 	// Fraction of PAR incident to this layer (0-1).
 	double fipar;
+
+	// Fraction of PAR absorbed by leaf area (0-1).
+	double absorptance_par;
+
+	// Fraction of NIR absorbed by leaf area (0-1).
+	double absorptance_nir;
+
+	// Leaf width (m).
+	double leaf_width;
+
+	// PAR incident to this layer (W m-2).
+	double ipar() const {
+		return par * fipar;
+	}
+
+	// Absorbed PAR in the middle of the layer (W m-2).
+	double apar() const {
+		return ipar() * absorptance_par;
+	}
 
 	// VPD in kPa.
 	double vpd;

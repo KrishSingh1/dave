@@ -549,9 +549,9 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	double resp_scalar = resp_temp_acclimation_scalar(inputs.tgrowth, inputs.racclim);
 
 	double rd = inputs.fphen_activity * pow(inputs.wscal, qb) * BC3 * vcmax25_mol * inputs.nscal *
-			respiration_temp_response(inputs.tleaf) * light_inhibition(inputs.ipar) * resp_scalar;
+			respiration_temp_response(inputs.tleaf) * light_inhibition(inputs.ipar()) * resp_scalar;
 
-	if (is_zero(inputs.ipar)) {
+	if (is_zero(inputs.ipar())) {
 		no_photosynthesis(inputs, outputs, rd);
 		return;
 	}
@@ -591,7 +591,7 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	}
 
 	// 2) RuBP regeneration-limited gross photosynthesis
-	double je = electron_transport_rate(inputs.apar, inputs.alpha, jmax);
+	double je = electron_transport_rate(inputs.apar(), inputs.alpha, jmax);
 
 	// assuming demand of 4 electrons per CO2 molecule
 	gamma = 0.25 * je;
@@ -718,7 +718,7 @@ double calc_c4_aj_approx(const C4Biochemistry &biochemistry,
 						 const PhotosynthesisInputs &inputs,
 						 const C4IterationState &state) {
 	// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
-	double je = electron_transport_rate(inputs.apar, inputs.alpha, biochemistry.jmax);
+	double je = electron_transport_rate(inputs.apar(), inputs.alpha, biochemistry.jmax);
 
 	double rm = biochemistry.rm;
 	double ci = state.ci;
@@ -738,7 +738,7 @@ double calc_c4_aj_full(const C4Biochemistry &biochemistry,
 					   const C4IterationState &state) {
 
 	// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
-	double je = electron_transport_rate(inputs.apar, inputs.alpha, biochemistry.jmax);
+	double je = electron_transport_rate(inputs.apar(), inputs.alpha, biochemistry.jmax);
 
 	double rm = biochemistry.rm;
 	double ci = state.ci;
@@ -877,7 +877,7 @@ C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
 
 	// Daytime (mitochondrial) leaf respiration (mol m-2 s-1).
 	result.rd = inputs.fphen_activity * pow(inputs.wscal, qb) * BC4 * vcmax25_c4 * inputs.nscal *
-			respiration_temp_response(inputs.tleaf) * light_inhibition(inputs.ipar) * resp_scalar;
+			respiration_temp_response(inputs.tleaf) * light_inhibition(inputs.ipar()) * resp_scalar;
 
 	// Rd in the mesophyll cells.
 	result.rm = 0.5 * result.rd;
@@ -926,7 +926,7 @@ timestep.
 void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOutputs &outputs) {
 	C4Biochemistry biochemistry = c4_biochemistry(inputs);
 
-	if (is_zero(inputs.ipar) || !inputs.stomata_open) {
+	if (is_zero(inputs.ipar()) || !inputs.stomata_open) {
 		no_photosynthesis(inputs, outputs, biochemistry.rd);
 		return;
 	}
@@ -1065,12 +1065,13 @@ PhotosynthesisDiagnostics get_photosynthesis_inputs(const CohortState &cohort,
 	// Question: can we skip this layer if lai_layer is 0?
 	assert(inputs.lai >= 0);
 
-	double par = max(0.0, climate.pars[day.period]);
+	inputs.par = max(0.0, climate.pars[day.period]);
 	inputs.fipar = cohort.get_fipar();
-	inputs.ipar = cohort.get_fipar() * par;
 	// TODO: alpha only used in photosynthesis
-	inputs.apar = cohort.get_fipar() * par * pft.absorptance_par;
 	inputs.alpha = pft.alpha;
+	inputs.absorptance_nir = pft.absorptance_nir;
+	inputs.absorptance_par = pft.absorptance_par;
+	inputs.leaf_width = pft.leaf_width;
 
 	// Account for the nitrogen gradient within the canopy.
 	inputs.nscal = max(1.0e-12, exp(-pft.extkn * lai_cum));
@@ -1187,7 +1188,6 @@ double get_gsw(double gsc, double gcutic) {
 
 EnergyBalance solve_energy_balance_dave(PhotosynthesisInputs &inputs,
 							   const ClimateInputs &climate_inputs,
-							   const Pft &pft,
 						       PhotosynthesisOutputs &outputs,
 							   const PhotosynthesisDiagnostics &diagnostics,
 						       pathwaytype pathway,
@@ -1218,7 +1218,7 @@ EnergyBalance solve_energy_balance_dave(PhotosynthesisInputs &inputs,
 		double gsw = get_gsw(outputs.gsc, diagnostics.gcutic_adj);
 		double wind = max(climate_inputs.get_wind(), 0.01);
 		wind *= lambertbeer(inputs.lai_cum);
-		double ppfd = inputs.ipar * JTOMOL * UMOL_PER_MOL;
+		double ppfd = inputs.ipar() * JTOMOL * UMOL_PER_MOL;
 
 		EnergyBalanceResult ebal = energy_balance_dave(inputs.tleaf,
 										   climate_inputs.get_tair(),
@@ -1227,10 +1227,10 @@ EnergyBalance solve_energy_balance_dave(PhotosynthesisInputs &inputs,
 									       climate_inputs.get_vpd(),
 									       climate_inputs.get_patm(),
 									       wind,
-									       pft.leaf_width,
+									       inputs.leaf_width,
 										   stomatal_ratio,
-									       pft.absorptance_par,
-										   pft.absorptance_nir,
+									       inputs.absorptance_par,
+										   inputs.absorptance_nir,
 										   inputs.fipar);
 		inputs.tleaf = ebal.tleaf;
 		transp = ebal.transp;
@@ -1346,7 +1346,7 @@ void photosynthesis_gs(Patch& patch) {
 				ClimateInputs clim(climate, day);
 
 				EnergyBalance balance = solve_energy_balance_dave(inputs,
-					clim, pft, outputs, diagnostics, pft.pathway,
+					clim, outputs, diagnostics, pft.pathway,
 					energy_balance_maxiter, energy_balance_eps);
 
 				if (balance.get_converged()) {
@@ -1522,7 +1522,8 @@ double transpiration_dave(const Individual &indiv) {
 	double transp = 0;
 	for (Day day; day.period != date.subdaily; day.next()) {	
 		// Iterate through canopy layers for this timestep.
-		std::vector<EnergyBalance> ebal = indiv.energy_balance_layerwise[day.period];
+		// const& to avoid copy - important!
+		const std::vector<EnergyBalance> &ebal = indiv.energy_balance_layerwise[day.period];
 		for (size_t j = 0; j < ebal.size(); j++) {
 			// Transpiration in mol H2O m-2 s-1.
 			// TODO: should transpiration in each layer/timestep be clamped to

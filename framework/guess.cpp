@@ -3860,6 +3860,7 @@ void Individual::annual_accounting() {
 	mort_cstarve = 0;
 	antoavail = 0;
 	mort_cstarve = 0.0;
+	aaet = 0.0;
 }
 
 size_t Individual::get_wscal_dynamic_capacity() const {

@@ -1249,7 +1249,10 @@ EnergyBalance solve_energy_balance_dave(PhotosynthesisInputs &inputs,
 /*
 Coupled model of photosynthesis and stomatal conductance for C3 and C4 plants.
 */
-void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
+void photosynthesis_gs(Patch& patch) {
+	const Vegetation &vegetation = patch.vegetation;
+	const Climate &climate = patch.get_climate();
+
 	PhotosynthesisInputs inputs;
 	PhotosynthesisOutputs outputs;
 
@@ -1511,57 +1514,53 @@ double calc_water_uptake_dave(Individual &indiv) {
 }
 
 /*
-Calculate canopy water supply.
+Aggregate transpiration across canopy layers and timesteps to get a total daily
+transpiration in mm day-1 for this cohort.
 */
-void water_supply_dave(Patch &patch, Climate& climate, Vegetation& vegetation) {
-
-	// this formulation assumes infinite Ga
-	// TODO: include Ga --> Penman-Monteith (?)
-
-	double wsupply = 0;
-
-	// Available water, by layer, in mm.
-	double wcont[NSOILLAYER];
-	for (int i = 0; i < NSOILLAYER; i++) {
-		wcont[i] = patch.soil.get_layer_soil_water(i) * patch.soil.soiltype.awc[i];
-		wsupply += wcont[i];
+double transpiration_dave(const Individual &indiv) {
+	// Loop over time steps per day
+	double transp = 0;
+	for (Day day; day.period != date.subdaily; day.next()) {	
+		// Iterate through canopy layers for this timestep.
+		std::vector<EnergyBalance> ebal = indiv.energy_balance_layerwise[day.period];
+		for (size_t j = 0; j < ebal.size(); j++) {
+			// Transpiration in mol H2O m-2 s-1.
+			// TODO: should transpiration in each layer/timestep be clamped to
+			// zero if it's negative? Or should we do this once per day?
+			transp += ebal[j].get_transp() * indiv.lai_layerwise[j];
+		}
 	}
+
+	// Daily transpiration rate in mol m-2 s-1.
+	transp /= date.subdaily;
+
+	// Daily transpiration rate in mm d-1.
+	// Limiting transpiration to the actual supply is handled later.
+	// assuming 1kg m-2 = 1l m-2 == 1mm
+	transp = transp * MOL2G_H2O * KG_PER_G * SECS_PER_DAY;
+
+	// Don't allow negative daily transpiration.
+	return max(0.0, transp);
+}
+
+/*
+Calculate daily water uptake by layer (but don't take it out of the soil).
+*/
+void water_uptake_dave(Patch &patch) {
+	const Vegetation &vegetation = patch.vegetation;
 
 	// Loop through cohorts (=individuals)
 	for (int i = 0; i < vegetation.nobj; i++) {
+		Individual &indiv = vegetation[i];
 
-		// Retrieve information about cohort
-		Individual& indiv = vegetation[i];
-		Pft& pft = indiv.pft;
-		Patchpft &ppft = patch.pft[indiv.pft.id];
-
-		if (date.day == 0)
-			indiv.aaet = 0.0;
-
-		// Loop over time steps per day
-		double transp = 0;
-		for (Day day; day.period != date.subdaily; day.next()) {	
-			// Iterate through canopy layers for this timestep.
-			std::vector<EnergyBalance> ebal = indiv.energy_balance_layerwise[day.period];
-			for (size_t j = 0; j < ebal.size(); j++) {
-				// Transpiration in mol H2O m-2 s-1.
-				transp += ebal[j].get_transp() * indiv.lai_layerwise[j];
-			}
-		}
-
-		// Daily transpiration rate in mol m-2 s-1.
-		transp /= date.subdaily;
-
-		// Daily transpiration rate in mm d-1.
-		// Limiting transpiration to the actual supply is handled later.
-		indiv.aet = transp * MOL2G_H2O * KG_PER_G * SECS_PER_DAY; // assuming 1kg m-2 = 1l m-2 == 1mm
-		indiv.aet = max(0.0, indiv.aet);
+		indiv.aet = transpiration_dave(indiv);
 
 		// Note: aet may be further limited by the water supply (see below).
 		// This also means that we can't update aaet here (also see below).
 
-		// Note that in standard LPJ-GUESS transpiration is described as evapotranspiration (AET),
-		// which is incorrect as soil evaporation is calculated separately.
+		// Note that in standard LPJ-GUESS transpiration is described as
+		// evapotranspiration (AET), which is incorrect as soil evaporation is
+		// calculated separately.
 
 		// Limit water uptake.
 		double wr = calc_water_uptake_dave(indiv);
@@ -1580,16 +1579,20 @@ void water_supply_dave(Patch &patch, Climate& climate, Vegetation& vegetation) {
 		double uptake = 0;
 		for (int j = 0; j < vegetation.nobj; j++) {
 			const Individual &indiv = vegetation[j];
-			const Patchpft &ppft = indiv.patchpft();
 			uptake += indiv.aet * indiv.fwuptake[i]; 
 		}
-		if (uptake > wcont[i]) {
+
+		double wcont = patch.soil.get_layer_soil_water(i);
+		double awc = patch.soil.soiltype.awc[i];
+		double wsupply = wcont * awc;
+
+		if (uptake > wsupply) {
 			if (ifdavehydraulics) {
 				log_error("Transpiration exceeds soil water content, this shouldn't happen\n");
 			}
 
 			// Demand in this layer exceeds supply.
-			double fwavail = 0.999 * wcont[i] / uptake;
+			double fwavail = 0.999 * wsupply / uptake;
 			for (int j = 0; j < vegetation.nobj; j++) {
 				Individual &indiv = vegetation[j];
 				indiv.aet *= fwavail;
@@ -1654,13 +1657,13 @@ Modifications include:
 - no more calculation of photosynthesis
 - bvoc function not implemented (could be added later)
 */
-void npp_dave(Patch& patch, Climate& climate, Vegetation& vegetation) {
+void npp_dave(Patch& patch) {
 
 	// Response of respiration rate to temperature
-	double gtemp = climate.get_gtemp_mean();
+	double gtemp = patch.get_climate().get_gtemp_mean();
 
-	for (size_t i = 0; i < vegetation.nobj; i++) {
-		Individual& indiv = vegetation[i];
+	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
+		Individual& indiv = patch.vegetation[i];
 		Pft& pft = indiv.pft;
 		Patchpft& ppft = patch.pft[pft.id];
 
@@ -1799,22 +1802,19 @@ void canopy_exchange_dave(Patch &patch, Climate &climate) {
     // Calculate water stress factor
 	water_stress_dave(patch);
 
-    // Calculate subdaily photosynthesis and stomatal conductance 
-    photosynthesis_gs(patch, climate, patch.vegetation);
+    // Calculate subdaily photosynthesis and stomatal conductance.
+    photosynthesis_gs(patch);
 
-    // Transpiration from VPD and canopy conductance
-    water_supply_dave(patch, climate, patch.vegetation);
+    // Calculation daily transpiration and fractional uptake by layer.
+    water_uptake_dave(patch);
 
-    // Calculate respiration and NPP on a daily basis
-    npp_dave(patch, climate, patch.vegetation);
+    // Calculate respiration and NPP on a daily basis.
+    npp_dave(patch);
 
-    // needed here?
+    // Leaf senescence for crops.
     leaf_senescence(patch.vegetation);
 
-    // Nitrogen demand
-    // This will only affect PFTs:
-    // - Grasses if using trunk allocation
-    // - Trees always
+    // Nitrogen demand for cohorts NOT using DAVE allocation.
     ndemand(patch, patch.vegetation);
 
     if (!ifdavegrowth) {

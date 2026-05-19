@@ -194,7 +194,7 @@ void DaveInput::init(void) {
 		if (options.calculate_thome) {
 			log_diagnostic("Thome values will be calculated from the input climate data");
 		} else if (ifvcmaxtempacclimation) {
-			log_diagnostic("Thome values will be read from file %s", file_thome);
+			log_diagnostic("Thome values will be read from file %s", (const char *)file_thome);
 		} else {
 			log_warning("Thome input file was provided, but ifvcmaxtempacclimation is disabled, so thome values will not be used.");
 		}

@@ -847,8 +847,10 @@ void plib_declarations(int id,xtring setname) {
 			"Entropy terms (deltaS) for jmax (J mol-1 K-1).");
 		declareitem("boleht_frac", &ppft->boleht_frac, 0.0, 1.0, 1, CB_NONE,
 			"Bole height as a fraction of tree height (0-1)");
-		declareitem("absorptance", &ppft->absorptance, 0.0, 1.0, 1, CB_NONE,
+		declareitem("absorptance_par", &ppft->absorptance_par, 0.0, 1.0, 1, CB_NONE,
 			"Leaf absorptance of photosynthetically active radiation (0-1)");
+		declareitem("absorptance_nir", &ppft->absorptance_nir, 0.0, 1.0, 1, CB_NONE,
+			"Leaf absorptance of near-infrared radiation (0-1)");
 		declareitem("alpha", &ppft->alpha, 0.0, 1.0, 1, CB_NONE,
 			"Quantum yield of electron transport (mol (electrons) mol-1 (photon)).");
 		declareitem("leaf_width", &ppft->leaf_width, 0.0, 1.0, 1, CB_NONE,
@@ -2292,7 +2294,8 @@ void plib_callback(int callback) {
 						if (!itemparsed("cstarv_killdens")) badins("cstarv_killdens");
 					}
 					if (ifdavephotosyn) {
-						if (!itemparsed("absorptance")) badins("absorptance");
+						if (!itemparsed("absorptance_par")) badins("absorptance_par");
+						if (!itemparsed("absorptance_nir")) badins("absorptance_nir");
 						if (!itemparsed("alpha")) badins("alpha");
 						if (!itemparsed("leaf_width")) badins("leaf_width");
 						if (ppft->leaf_width <= 0) {

@@ -710,6 +710,9 @@ public:
 	// LAI of this individual in this layer.
 	double lai;
 
+	// Cumulative LAI above this layer.
+	double lai_cum;
+
 	// Physiological downregulation due to dormancy.
 	double fphen_activity;
 
@@ -749,8 +752,14 @@ public:
 	// Absorbed PAR in the middle of the layer (W m-2) (0.5 * climate.insols).
 	double apar;
 
+	// Quantum yield of electron transport (mol e- mol-1 photon).
+	double alpha;
+
 	// Incident ratiation in the middle of the layer (W m-2).
 	double ipar;
+
+	// Fraction of PAR incident to this layer (0-1).
+	double fipar;
 
 	// VPD in kPa.
 	double vpd;
@@ -834,14 +843,15 @@ public:
 class EnergyBalance {
 public:
 	EnergyBalance(double tleaf, size_t niter, double delta_tleaf,
-						bool converged) :
+						bool converged, double transp) :
 		tleaf(tleaf), niter(niter), delta_tleaf(delta_tleaf),
-		converged(converged) {
+		converged(converged), transp(transp) {
 	}
 	double get_tleaf() const { return tleaf; }
 	size_t get_niter() const { return niter; }
 	double get_delta_tleaf() const { return delta_tleaf; }
 	bool get_converged() const { return converged; }
+	double get_transp() const { return transp; }
 private:
 	// Leaf temperature (degC).
 	double tleaf;
@@ -851,6 +861,8 @@ private:
 	double delta_tleaf;
 	// Did the solver converge within the maximum number of iterations?
 	bool converged;
+	// Transpiration rate (mol H2O m-2 s-1).
+	double transp;
 };
 
 /*
@@ -2567,7 +2579,10 @@ public:
 	double boleht_frac;
 
 	// Fraction of PAR absorbed by the leaf area (0-1).
-	double absorptance;
+	double absorptance_par;
+
+	// Fraction of NIR absorbed by the leaf area (0-1).
+	double absorptance_nir;
 
 	// Quantum yield of electron transport (mol (electrons) mol-1 (photon)).
 	double alpha;
@@ -2865,7 +2880,8 @@ public:
 		formfactor = 1.0;
 		sapsize = 0.1;
 		boleht_frac = 0;
-		absorptance = 0.0;
+		absorptance_par = 0.0;
+		absorptance_nir = 0.0;
 		alpha = 0.0;
 		leaf_width = 0.0;
 		cstarv_inflect = 0.0;

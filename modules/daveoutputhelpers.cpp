@@ -1381,6 +1381,7 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ene
 		{"delta_tleaf",  [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_delta_tleaf(); }},
 		{"niter",        [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_niter() * 1.0; }},
 		{"tleaf",        [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_tleaf(); }},
+		{"tair",         [](const Individual &i, int t, int l) { return i.vegetation.patch.get_climate().temps[t]; }},
 	};
 }
 

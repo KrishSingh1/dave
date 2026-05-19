@@ -22,6 +22,13 @@ const double Q10B = 4.8;
 // Transition temperature degC (to discuss with Erick) (Cochard 2021 Eq 13 & 14)
 const double TP = 40;
 
+struct EnergyBalanceResult {
+	// Leaf temperature (degC).
+	double tleaf;
+	// Transpiration (mol H2O m-2 s-1).
+	double transp;
+};
+
 class ClimateInputs {
 public:
 	ClimateInputs(const Climate &climate, const Day &day) :
@@ -451,9 +458,9 @@ von Caemmerer 2013 (Plant, Cell and Environment)
 @param apar  = Absorbed photosynthetically active radiation (W m-2)
 @param jmax = max. electron transport rate (mol m-2 s-1)
 */
-double electron_transport_rate(double apar,double jmax) {
+double electron_transport_rate(double apar, double alpha, double jmax) {
 	// Photosynthetic photon flux density (mol (photons) m-2 s-1).
-	double ppfd = apar * JTOMOL;
+	double ppfd = apar * alpha * JTOMOL;
 
 	double a = THETA;
 	double b = -(ppfd + jmax);
@@ -461,7 +468,7 @@ double electron_transport_rate(double apar,double jmax) {
 
 	double j;
 	if (!solve_quadratic(a, b, c, j, true)) {
-		log_error("electron_transport_rate: No solution for quadratic J. Returning J=0 to avoid crash. apar=%g, jmax=%g", apar, jmax);
+		log_error("electron_transport_rate: No solution for quadratic J. Returning J=0 to avoid crash. apar=%g, alpha=%g, jmax=%g", apar, alpha, jmax);
 		return 0;
 	}
 
@@ -584,7 +591,7 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	}
 
 	// 2) RuBP regeneration-limited gross photosynthesis
-	double je = electron_transport_rate(inputs.apar, jmax);
+	double je = electron_transport_rate(inputs.apar, inputs.alpha, jmax);
 
 	// assuming demand of 4 electrons per CO2 molecule
 	gamma = 0.25 * je;
@@ -711,7 +718,7 @@ double calc_c4_aj_approx(const C4Biochemistry &biochemistry,
 						 const PhotosynthesisInputs &inputs,
 						 const C4IterationState &state) {
 	// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
-	double je = electron_transport_rate(inputs.apar, biochemistry.jmax);
+	double je = electron_transport_rate(inputs.apar, inputs.alpha, biochemistry.jmax);
 
 	double rm = biochemistry.rm;
 	double ci = state.ci;
@@ -731,7 +738,7 @@ double calc_c4_aj_full(const C4Biochemistry &biochemistry,
 					   const C4IterationState &state) {
 
 	// electron transport rate (same as C3) (mol (electrons) m-2 s-1)
-	double je = electron_transport_rate(inputs.apar, biochemistry.jmax);
+	double je = electron_transport_rate(inputs.apar, inputs.alpha, biochemistry.jmax);
 
 	double rm = biochemistry.rm;
 	double ci = state.ci;
@@ -1048,6 +1055,7 @@ PhotosynthesisDiagnostics get_photosynthesis_inputs(const CohortState &cohort,
 	// Note: this takes phen into account for indivs running trunk
 	// allocation, because fpar() looks at indiv.lai_today().
 	inputs.lai = cohort.get_lai();
+	inputs.lai_cum = lai_cum;
 
 	// We can actually have a canopy layer with 0 indiv-level LAI
 	// but non-zero fipar. This is because fipar is not a truly
@@ -1058,8 +1066,11 @@ PhotosynthesisDiagnostics get_photosynthesis_inputs(const CohortState &cohort,
 	assert(inputs.lai >= 0);
 
 	double par = max(0.0, climate.pars[day.period]);
+	inputs.fipar = cohort.get_fipar();
 	inputs.ipar = cohort.get_fipar() * par;
-	inputs.apar = cohort.get_fipar() * par * pft.alpha * pft.absorptance;
+	// TODO: alpha only used in photosynthesis
+	inputs.apar = cohort.get_fipar() * par * pft.absorptance_par;
+	inputs.alpha = pft.alpha;
 
 	// Account for the nitrogen gradient within the canopy.
 	inputs.nscal = max(1.0e-12, exp(-pft.extkn * lai_cum));
@@ -1075,16 +1086,21 @@ Calculate leaf temperature based on energy balance.
 @param gs		 Stomatal conductance to water vapour (mol m-2 s-1).
 @param ppfd		 Photosynthetic photon flux density (aka incident PAR) (umol m-2 s-1).
 @param vpd		 Vapour pressure deficit (kPa).
-@param patm		 Atmospheric pressure (kPa) - default 101.5.
-@param wind		 Windspeed (m s-1) - default 2.5.
+@param patm		 Atmospheric pressure (kPa).
+@param wind		 Wind speed in this layer (m s-1)
 @param wleaf	 Leaf width (m) - PFT specific.
-@param stomatal_ratio ???
-@param leaf_abs	 Leaf absorptance (fraction).
+@param stomatal_ratio Captures the effect of leaves having stomata on one vs both sides.
+@param abs_par	 Fraction of PAR absorbed by leaf area (0-1).
+@param abs_nir	 Fraction of near-infrared radiation absorbed by leaf area (0-1).
+@param fipar     Fraction of PAR incident on the leaf (0-1).
+
 @return Leaf temperature (°C).
 */
-double energy_balance_dave(double tleaf, double tair, double gs, double ppfd,
-				           double vpd, double patm, double wind, double wleaf,
-					       double stomatal_ratio, double leaf_abs) {
+EnergyBalanceResult energy_balance_dave(double tleaf, double tair, double gs,
+	                                    double ppfd, double vpd, double patm,
+										double wind, double wleaf,
+					                    double stomatal_ratio, double abs_par,
+										double abs_nir, double fipar) {
 	if (gs == 0) {
 		fail("energy_balance_dave(): gs=0");
 	}
@@ -1103,43 +1119,50 @@ double energy_balance_dave(double tleaf, double tair, double gs, double ppfd,
 	double cmolar = patm * 1000.0 / (R_gas * tair_k); // mol m-3
 
 	// Conductances - all in mol m-2 s-1.
-	double gradiation = 4.0 * BOLTZ * pow(tair_k, 3.0) * EMISSIVITY / (CP_AIR * AIRMA);
+	double gradiation = 4.0 * BOLTZ * pow(tair_k, 3.0) * EMISSIVITY / (CP_AIR * AIRMA) * fipar;
 	double gbhforced = 0.003 * sqrt(wind / wleaf) * cmolar ;
 	double grashof = 1.6e+08 * fabs(tleaf - tair) * pow(wleaf, 3.0);
 	double gbhfree = 0.5 * DHEAT * pow(grashof, 0.25) / wleaf * cmolar;
 	double gbh = 2.0 * (gbhfree + gbhforced);
-	double gbhr = gbh + 2.0 * gradiation;
+	// double gbhr = gbh + 2.0 * gradiation;
 	double gbw = stomatal_ratio * 1.075 * gbh;
 	double gw = gs * gbw / (gs + gbw);
 
 	// Radiation.
 	// double Rlongup = EMISSIVITY * BOLTZ * pow(Tk(tleaf), 4);
-	double rsol = 2.0 * leaf_abs * ppfd / UMOL_PER_J; // J m-2 s-1 - absorbed SW radiation = 2 * APAR
+	double rsol = (abs_par + abs_nir) * ppfd / UMOL_PER_J; // J m-2 s-1 - absorbed SW radiation = 2 * APAR
 	// double Rnet = rsol - Rlongup;
 	double ea = 1000.0 * (esat(tair, m) - vpd); // In Pa. If this is negative we have a problem
-	if (ea < 0) {
+	if (ea < 0 && ea > -100.0) {
+		ea = 0.0;
+	} else if (ea < 0) {
 		fail("energy_balance_dave(): ea < 0, this means saturation vapour pressure is less than actual vapour pressure, which shouldn't happen. east=%f kPa, vpd=%f kPa, tair=%f °C",
 			 esat(tair, m), vpd, tair);
 	}
 
 	double ema = 0.642 * pow(ea / tair_k, 1.0 / 7.0);
-	double rnetiso = rsol - (1.0 - ema) * BOLTZ * pow(tair_k, 4.0);
+	double rnetiso = rsol - (EMISSIVITY - ema) * BOLTZ * pow(tair_k, 4.0) * fipar;
 
-	// # Penman-Monteith equation
+	// Penman-Monteith equation
 	double gamma = CP_AIR * AIRMA * patm * 1000.0 / lhv;
 
+	double y = 1.0 / (1.0 + gradiation / gbh);
+
 	// Transpiration rate (mol H2O m-2 s-1) : in place of gs * VPD
-	double et = (1.0 / lhv) * (slope * rnetiso + 1000.0 * vpd * gbh * CP_AIR *
-					AIRMA) / (slope + gamma * gbhr / gw);
+	double et = (1.0 / lhv) * (slope * y * rnetiso + 1000.0 * vpd * gbh *
+							   CP_AIR * AIRMA) / (slope * y + gamma * gbh / gw);
 
 	// Calculate leaf temperature.
 	double lambda_et = lhv * et;
-	double y = 1.0 / (1.0 + gradiation / gbh);
 	double h2 = y * (rnetiso - lambda_et);
 	// double H = -CP_AIR * air_density * (gbh / cmolar) * (tair - tleaf);
 	double tleaf2 = tair + h2 / (CP_AIR * air_density * (gbh / cmolar));
 	assert(tleaf2 == tleaf2); // check for NaNs
-	return tleaf2;
+
+	EnergyBalanceResult result;
+	result.tleaf = tleaf2;
+	result.transp = et;
+	return result;
 }
 
 void photosynthesis_dave(const PhotosynthesisInputs &inputs,
@@ -1174,7 +1197,7 @@ EnergyBalance solve_energy_balance_dave(PhotosynthesisInputs &inputs,
 		fail("solve_energy_balance_dave(): niter_max must be greater than 0.");
 	}
 
-    // TODO: figure out what this is.
+    // TODO: might experiment with changing this at some point.
     const double stomatal_ratio = 1.0;
 
 	// Initialise guess: leaf temperature = air temperature.
@@ -1185,6 +1208,7 @@ EnergyBalance solve_energy_balance_dave(PhotosynthesisInputs &inputs,
 	// Guaranteed to be set.
 	size_t i;
 	double tleaf_diff;
+	double transp;
 
     for (i = 0; i < niter_max && !converged; i++) {
 		outputs.clear();
@@ -1193,18 +1217,23 @@ EnergyBalance solve_energy_balance_dave(PhotosynthesisInputs &inputs,
 		double tleaf_old = inputs.tleaf;
 		double gsw = get_gsw(outputs.gsc, diagnostics.gcutic_adj);
 		double wind = max(climate_inputs.get_wind(), 0.01);
+		wind *= lambertbeer(inputs.lai_cum);
+		double ppfd = inputs.ipar * JTOMOL * UMOL_PER_MOL;
 
-		inputs.tleaf = energy_balance_dave(inputs.tleaf,
+		EnergyBalanceResult ebal = energy_balance_dave(inputs.tleaf,
 										   climate_inputs.get_tair(),
 									       gsw,
-										   inputs.ipar,
+										   ppfd,
 									       climate_inputs.get_vpd(),
 									       climate_inputs.get_patm(),
 									       wind,
 									       pft.leaf_width,
 										   stomatal_ratio,
-									       pft.absorptance);
-
+									       pft.absorptance_par,
+										   pft.absorptance_nir,
+										   inputs.fipar);
+		inputs.tleaf = ebal.tleaf;
+		transp = ebal.transp;
         tleaf_diff = fabs(inputs.tleaf - tleaf_old);
 		converged = tleaf_diff <= epsilon;
 	}
@@ -1213,7 +1242,7 @@ EnergyBalance solve_energy_balance_dave(PhotosynthesisInputs &inputs,
 	// photosynthesis outputs, but rather it's the tleaf that results from them.
 	// This reproduces old no-energy-balance code when niter_max = 1.
 	outputs.tleaf = inputs.tleaf;
-	EnergyBalance result(inputs.tleaf, i, tleaf_diff, converged);
+	EnergyBalance result(inputs.tleaf, i, tleaf_diff, converged, transp);
 	return result;
 }
 
@@ -1285,7 +1314,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
             // layers, which isn't known until we call fpar().
 			indiv.ps_inputs_layerwise[day.period].assign(nlayer, PhotosynthesisInputs{});
 			indiv.ps_outputs_layerwise[day.period].assign(nlayer, PhotosynthesisOutputs{});
-			indiv.energy_balance_layerwise[day.period].assign(nlayer, EnergyBalance(0, 0, 0, false));
+			indiv.energy_balance_layerwise[day.period].assign(nlayer, EnergyBalance(0, 0, 0, false, 0));
 
 		    for (size_t j = 0; j < nlayer; j++) {
 
@@ -1482,9 +1511,9 @@ double calc_water_uptake_dave(Individual &indiv) {
 }
 
 /*
-Calculate canopy transpiration.
+Calculate canopy water supply.
 */
-void transpiration_dave(Patch &patch, Climate& climate, Vegetation& vegetation) {
+void water_supply_dave(Patch &patch, Climate& climate, Vegetation& vegetation) {
 
 	// this formulation assumes infinite Ga
 	// TODO: include Ga --> Penman-Monteith (?)
@@ -1509,29 +1538,24 @@ void transpiration_dave(Patch &patch, Climate& climate, Vegetation& vegetation) 
 		if (date.day == 0)
 			indiv.aaet = 0.0;
 
-		double transp = 0;
-
 		// Loop over time steps per day
+		double transp = 0;
 		for (Day day; day.period != date.subdaily; day.next()) {	
-
-			// T = Gc / (pressure/VPD) 
-			// Gc in mol m-2 s-1
-			// VPD and pressure in Pa
-			double patmos = climate.pressure[day.period];
-			double vpd = climate.vpds[day.period];
-			double gsw = indiv.ps_subdaily.gsw[day.period];
-			if (vpd > 0 && patmos > 0) {
-				transp += gsw / (patmos / (vpd * 1000.0));
+			// Iterate through canopy layers for this timestep.
+			std::vector<EnergyBalance> ebal = indiv.energy_balance_layerwise[day.period];
+			for (size_t j = 0; j < ebal.size(); j++) {
+				// Transpiration in mol H2O m-2 s-1.
+				transp += ebal[j].get_transp() * indiv.lai_layerwise[j];
 			}
+		}
 
-		} // end sub-daily loop
-		
-		// daily transpiration rate in mol m-2 s-1 
+		// Daily transpiration rate in mol m-2 s-1.
 		transp /= date.subdaily;
 
-		// daily transpiration rate in mm d-1
+		// Daily transpiration rate in mm d-1.
 		// Limiting transpiration to the actual supply is handled later.
 		indiv.aet = transp * MOL2G_H2O * KG_PER_G * SECS_PER_DAY; // assuming 1kg m-2 = 1l m-2 == 1mm
+		indiv.aet = max(0.0, indiv.aet);
 
 		// Note: aet may be further limited by the water supply (see below).
 		// This also means that we can't update aaet here (also see below).
@@ -1779,7 +1803,7 @@ void canopy_exchange_dave(Patch &patch, Climate &climate) {
     photosynthesis_gs(patch, climate, patch.vegetation);
 
     // Transpiration from VPD and canopy conductance
-    transpiration_dave(patch, climate, patch.vegetation);
+    water_supply_dave(patch, climate, patch.vegetation);
 
     // Calculate respiration and NPP on a daily basis
     npp_dave(patch, climate, patch.vegetation);

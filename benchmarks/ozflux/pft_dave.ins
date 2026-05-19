@@ -109,8 +109,10 @@ group "common" (
 	alpha 0.3
 
 	! Fraction of PAR absorbed by the leaf area (0-1).
-	! absorptance 0.8125 ! Updated value from Yang et al (2020)
-	absorptance 0.715
+	absorptance_par 0.85
+
+	! Fraction of NIR absorbed by the leaf area (0-1). Placeholder value.
+	absorptance_nir 0.3
 
 	! Leaf width (m).
 	leaf_width 0.02

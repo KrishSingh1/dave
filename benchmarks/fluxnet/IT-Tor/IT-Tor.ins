@@ -1,0 +1,18 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! IT-Tor master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: IT-Tor"
+
+file_met_forcing        "../forcing/met/IT-Tor.nc"
+file_met_spinup         "../forcing/met/IT-Tor.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"

@@ -333,7 +333,7 @@ double calc_relative_humidity(double temp, double specific_humidity, double pres
 
 }
 
-std::vector<std::pair<double, double> > CFInput::translate_gridlist_to_coord(std::vector<Coord>& gridlist) { // DW_COMMENT IS THIS NEEDED???
+std::vector<std::pair<double, double> > CFInput::translate_gridlist_to_coord(std::vector<Coord>& gridlist) { // DW_COMMENT not needed in trunk
 
 	std::vector<std::pair<double, double> > output;
 	for (int i = 0; i < gridlist.size(); i++) {

@@ -1846,7 +1846,7 @@ void Individual::report_flux(Fluxes::PerPatchFluxType flux_type, double value) {
 /**
  *  Help function for reduce_biomass(). Stored N is partioned out to make sure 
  *  tissue C:N ratios are within limits
- */ // DW_COMMENT don't I need & before variables?
+ */
 void nstore_adjust(double cmass_leaf_litter, double cmass_root_litter, double cmass_sap_litter, double cmass_heart_litter,
 	double& nmass_leaf_litter, double& nmass_root_litter, double& nmass_sap_litter, double& nmass_heart_litter,
 	double cton_leaf_min, double cton_root_min, double cton_sap_min, double cton_heart_min,
@@ -2761,74 +2761,59 @@ void Individual::kill(bool harvest /* = false */) {
 		}
 	}
 
-	// Nitrogen always needs to be returned.
-	// Alive and crop to litter/harvest
-	if (alive || istruecrop_or_intercropgrass()) { // DW_COMMENT this if statement is not needed after r11208
-		if (pft.lifeform == TREE) {
+	// Nitrogen always return to soil litter
+	if (pft.lifeform == TREE) {
 
-			double nlitter_sap, nlitter_heart, nwood_harvest;
+		double nlitter_sap, nlitter_heart, nwood_harvest;
 
-			// Transfer nitrogen storage to sapwood nitrogen litter/harvest
-			partition_wood_biomass(nmass_sap, nmass_heart,
-				harv_eff, harvest_slow_frac, res_outtake,
-				nlitter_sap, nlitter_heart,
-				nwood_harvest, nharvested_products_slow);
+		// Transfer nitrogen storage to sapwood nitrogen litter/harvest
+		partition_wood_biomass(nmass_sap, nmass_heart,
+			harv_eff, harvest_slow_frac, res_outtake,
+			nlitter_sap, nlitter_heart,
+			nwood_harvest, nharvested_products_slow);
 
-			// Don't allow litter C:N below minimum level (needed due to cdebt)
-			double nmass_NH4_sap = max(0.0, nlitter_sap - clitter_sap / pft.cton_sap_min);
-			ppft.nmass_litter_NH4 += nmass_NH4_sap;
-			ppft.nmass_litter_sap += nlitter_sap - nmass_NH4_sap;
+		// Don't allow litter C:N below minimum level (needed due to cdebt)
+		double nmass_NH4_sap = max(0.0, nlitter_sap - clitter_sap / pft.cton_sap_min);
+		ppft.nmass_litter_NH4 += nmass_NH4_sap;
+		ppft.nmass_litter_sap += nlitter_sap - nmass_NH4_sap;
 
-			double nmass_NH4_heart = max(0.0, nlitter_heart - clitter_heart / pft.cton_heart_min);
-			ppft.nmass_litter_NH4 += nmass_NH4_heart;
-			ppft.nmass_litter_heart += nlitter_heart - nmass_NH4_heart;
+		double nmass_NH4_heart = max(0.0, nlitter_heart - clitter_heart / pft.cton_heart_min);
+		ppft.nmass_litter_NH4 += nmass_NH4_heart;
+		ppft.nmass_litter_heart += nlitter_heart - nmass_NH4_heart;
 
-			nharvest_flux += nwood_harvest;
-		}
-
-		// Leaf: remove residue outtake and send the rest to litter
-		if (cmass_leaf > 0.0) {
-			ppft.nmass_litter_leaf += nmass_leaf * (1.0 - res_outtake);
-		}
-		else {
-			ppft.nmass_litter_NH4 += nmass_leaf * (1.0 - res_outtake);
-		}
-		nharvest_flux += nmass_leaf * res_outtake;
-
-		// Root: all goes to litter
-		if (cmass_root > 0.0) {
-			ppft.nmass_litter_root += nmass_root;
-		}
-		else {
-			ppft.nmass_litter_NH4 += nmass_root;
-		}
-
-		if (pft.landcover == CROPLAND) {
-			if (pft.aboveground_ho) {
-				ppft.nmass_litter_leaf += cropindiv->nmass_ho * (1.0 - res_outtake);
-				nharvest_flux += cropindiv->nmass_ho * res_outtake;
-			}
-			else {
-				ppft.nmass_litter_root += cropindiv->nmass_ho;
-			}
-
-			ppft.nmass_litter_leaf += cropindiv->nmass_agpool * (1.0 - res_outtake);
-			nharvest_flux += cropindiv->nmass_agpool * res_outtake;
-			ppft.nmass_litter_leaf += cropindiv->nmass_dead_leaf * (1.0 - res_outtake);
-			nharvest_flux += cropindiv->nmass_dead_leaf * res_outtake;
-		}
+		nharvest_flux += nwood_harvest;
+	}
+	
+	// Leaf: remove residue outtake and send the rest to litter
+	if (cmass_leaf > 0.0) {
+		ppft.nmass_litter_leaf += nmass_leaf * (1.0 - res_outtake);
 	}
 	else {
-		// Else to NH4 pool
-		if (pft.lifeform == TREE) {
-			ppft.nmass_litter_NH4 += nmass_sap + nmass_heart;
-		}
-		
-		ppft.nmass_litter_NH4 += nmass_leaf + nmass_root + nstore();
+		ppft.nmass_litter_NH4 += nmass_leaf * (1.0 - res_outtake);
+	}
+	nharvest_flux += nmass_leaf * res_outtake;
 
-		if (pft.landcover == CROPLAND) {
-			ppft.nmass_litter_NH4 += cropindiv->nmass_ho + cropindiv->nmass_agpool + cropindiv->nmass_dead_leaf;
+	// Root: all goes to litter
+	if (cmass_root > 0.0) {
+		ppft.nmass_litter_root += nmass_root;
+	}
+	else {
+		ppft.nmass_litter_NH4 += nmass_root;
+	}
+
+	if (pft.landcover == CROPLAND) {
+		if (pft.aboveground_ho) {
+			ppft.nmass_litter_leaf += cropindiv->nmass_ho * (1 - res_outtake);
+			nharvest_flux += cropindiv->nmass_ho * res_outtake;
 		}
+		else {
+			ppft.nmass_litter_root += cropindiv->nmass_ho;
+		}
+
+		ppft.nmass_litter_leaf += cropindiv->nmass_agpool * (1 - res_outtake);
+		nharvest_flux += cropindiv->nmass_agpool * res_outtake;
+		ppft.nmass_litter_leaf += cropindiv->nmass_dead_leaf * (1 - res_outtake);
+		nharvest_flux += cropindiv->nmass_dead_leaf * res_outtake;
 	}
 
 	// Report harvest fluxes
@@ -3007,16 +2992,16 @@ void Gridcell::set_coordinates(double longitude, double latitude) {
 	lat = latitude;
 }
 
-void Gridcell::set_soil_depth() {
+void Gridcell::set_soillayer_properties() {
 
-	double soil_lyr_depth[NSOILLAYERS_MAX];
+	double soil_lyr_thick[NSOILLAYERS_MAX];
 	int nsoillayers = 0;
 	
-	soil_layer_depths(soil_lyr_depth, nsoillayers);
+	soillayer_thickness(soil_lyr_thick, nsoillayers);
 
 	// Set fixed rootdist per PFT depending on soil depth and layer thickness
 	for (unsigned int p = 0; p<pftlist.nobj; p++) {
-		pft[p].pft.init_rootdist(soil_lyr_depth, soil_depth, nsoillayers);
+		pft[p].pft.init_rootdist(soil_lyr_thick, soil_depth, nsoillayers);
 	}
 
 	// Create soil layers for each patch
@@ -3050,16 +3035,101 @@ void Gridcell::set_soil_depth() {
 			soilcolumn.nsoillayers = nsoillayers;
 
 			// Create soil layers and initalise them
-			soilcolumn.create_soillayers(soil_lyr_depth);
+			soilcolumn.create_soillayers(soil_lyr_thick);
 
 			// Set padding layers depth
-			soilcolumn.pad.set_depths(soilcolumn.soillayers[nsoillayers - 1].depth);
+			soilcolumn.pad.set_depths(soilcolumn.soillayers[nsoillayers - 1].thickness);
 			
 			stand.nextobj();
 		}// End of loop through patches
 
 		++gc_itr;
 	}	// End of loop through stands
+}
+
+void Gridcell::soillayer_thickness(double lyr_thickness[NSOILLAYERS_MAX], int& nsoillayers) {
+
+	if (soil_depth < SOILDEPTH_EVAP) {
+		fail("Soil depth (%g) needs to be thicker than evaporation depth (%g)\n", soil_depth, SOILDEPTH_EVAP);
+	}
+
+	if (hydrology == RICHARDS) {
+
+		// Standard soil layer thickness (mm)
+		double std_thick[NSOILLAYERS_MAX] = { 100.0, 100.0, 100.0, 200.0, 200.0, 300.0, 500.0, 500.0, 1000.0, 1000.0, 1500.0, 3000.0, 4000.0, 6000.0, 8000.0 };
+		
+		double std_tot_thick = 0.0;
+		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) std_tot_thick += std_thick[lyr];
+
+		// Calculate number of soil layers and their individual depths
+		if (soil_depth > std_tot_thick) {
+
+			// Deeper soil than total standard soil layer depths
+
+			// Number of layers that will be adjusted
+			int nadj_lyr = 6;
+		
+			double tot_thick = 0.0;
+			// Bottom three soil layers will adjust for
+			// deeper soil than standard depth
+			for (int lyr = 0; lyr < NSOILLAYERS_MAX - nadj_lyr; lyr++) {
+				lyr_thickness[lyr] = std_thick[lyr];
+				tot_thick += std_thick[lyr];
+			}
+
+			// Upscaling fraction to remaining soil layers
+			double scalar = (soil_depth - tot_thick) / (std_tot_thick - tot_thick);
+		
+			// Adjust soil layer thickness to be off 100 mm increments
+			for (int lyr = NSOILLAYERS_MAX - nadj_lyr; lyr < NSOILLAYERS_MAX; lyr++) {
+				lyr_thickness[lyr] = floor(std_thick[lyr] * scalar / 100.0) * 100.0;
+				tot_thick += lyr_thickness[lyr];
+			}
+
+			lyr_thickness[NSOILLAYERS_MAX - 1] += soil_depth - tot_thick;
+
+			nsoillayers = NSOILLAYERS_MAX;
+		}
+		else {
+
+			// Shallower soil than total standard soil layer depths
+			// Adjust soil layer thickness to be off 100 mm increments
+
+			int lyr = 0;
+			double tot_thick = 0.0;
+			double remain_depth = soil_depth;
+
+			while (!negligible(remain_depth)) {
+				double ref_depth = lyr == 0 ? std_thick[lyr] : std_thick[lyr - 1];
+				if (remain_depth >= ref_depth * 2.0 && lyr < NSOILLAYERS_MAX - 1) {
+					double lyr_depth = remain_depth < std_thick[lyr] * 2.0 ? remain_depth / 2.0 : std_thick[lyr];
+					lyr_thickness[lyr] = floor(lyr_depth / 100.0) * 100.0;
+					tot_thick += lyr_thickness[lyr];
+					remain_depth = soil_depth - tot_thick;
+				}
+				else {
+					lyr_thickness[lyr] = remain_depth;
+					remain_depth = 0.0;
+				}
+				lyr++;
+			}
+			nsoillayers = lyr;
+		}
+	}
+	else if (hydrology == MILLER) {
+		// 100mm thick layers
+		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
+			lyr_thickness[lyr] = soil_depth / NSOILLAYERS_MAX;
+		}
+		nsoillayers = NSOILLAYERS_MAX;
+	}
+	else if (hydrology == GERTEN) {
+		// Upper layer 500mm thick and lower layer 1000mm
+		lyr_thickness[0] = SOILDEPTH_UPPER;
+		lyr_thickness[1] = soil_depth - lyr_thickness[0];
+
+		nsoillayers = 2;
+	}
 }
 
 Stand& Gridcell::create_stand_lu(StandType& st, double fraction, int no_patch, bool suppress_disturbance) {
@@ -3150,92 +3220,6 @@ double Gridcell::water_flux() {
 	}
 
 	return water_flux;
-}
-
-void Gridcell::soil_layer_depths(double lyr_depths[NSOILLAYERS_MAX], int& nsoillayers) {
-
-	if (soil_depth < SOILDEPTH_EVAP) {
-		fail("Soil depth (%g) needs to be thicker than evaporation depth (%g)\n", soil_depth, SOILDEPTH_EVAP);
-	}
-
-	if (hydrology == RICHARDS) {
-
-		// Standard soil layer thickness (mm)
-		double std_depths[NSOILLAYERS_MAX] = { 100.0, 100.0, 100.0, 200.0, 200.0, 300.0, 500.0, 500.0, 1000.0, 1000.0, 1500.0, 3000.0, 4000.0, 6000.0, 8000.0 };
-		
-		double std_tot_depth = 0.0;
-		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) std_tot_depth += std_depths[lyr];
-
-		// Calculate number of soil layers and their individual depths
-		if (soil_depth > std_tot_depth) {
-
-			// Deeper soil than total standard soil layer depths
-
-			// Number of layers that will be adjusted
-			int nadj_lyr = 6;
-		
-			double tot_depth = 0.0;
-			// Bottom three soil layers will adjust for
-			// deeper soil than standard depth
-			for (int lyr = 0; lyr < NSOILLAYERS_MAX - nadj_lyr; lyr++) {
-				lyr_depths[lyr] = std_depths[lyr];
-				tot_depth += std_depths[lyr];
-			}
-
-			// Upscaling fraction to remaining soil layers
-			double scalar = (soil_depth - tot_depth) / (std_tot_depth - tot_depth);
-		
-			// Adjust soil layer thickness to be off 100 mm increments
-			for (int lyr = NSOILLAYERS_MAX - nadj_lyr; lyr < NSOILLAYERS_MAX; lyr++) {
-				lyr_depths[lyr] = floor(std_depths[lyr] * scalar / 100.0) * 100.0;
-				tot_depth += lyr_depths[lyr];
-			}
-
-			lyr_depths[NSOILLAYERS_MAX - 1] += soil_depth - tot_depth;
-
-			nsoillayers = NSOILLAYERS_MAX;
-		}
-		else {
-
-			// Shallower soil than total standard soil layer depths
-			// Adjust soil layer thickness to be off 100 mm increments
-
-			int lyr = 0;
-			double depth = soil_depth;
-			double tot_depth = 0.0;
-			double remain_depth = depth - tot_depth;
-
-			while (!negligible(remain_depth)) {
-				double ref_depth = lyr == 0 ? std_depths[lyr] : std_depths[lyr - 1];
-				if (remain_depth >= ref_depth * 2.0 && lyr < NSOILLAYERS_MAX - 1) {
-					double lyr_depth = remain_depth < std_depths[lyr] * 2.0 ? remain_depth / 2.0 : std_depths[lyr];
-					lyr_depths[lyr] = floor(lyr_depth / 100.0) * 100.0;
-					tot_depth += lyr_depths[lyr];
-					remain_depth = depth - tot_depth;
-				}
-				else {
-					lyr_depths[lyr] = remain_depth;
-					remain_depth = 0.0;
-				}
-				lyr++;
-			}
-			nsoillayers = lyr;
-		}
-	}
-	else if (hydrology == MILLER) {
-		// 100mm thick layers
-		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
-			lyr_depths[lyr] = soil_depth / NSOILLAYERS_MAX;
-		}
-		nsoillayers = NSOILLAYERS_MAX;
-	}
-	else if (hydrology == GERTEN) {
-		// Upper layer 500mm thick and lower layer 1000mm
-		lyr_depths[0] = SOILDEPTH_UPPER;
-		lyr_depths[1] = soil_depth - lyr_depths[0];
-
-		nsoillayers = 2;
-	}
 }
 
 void Gridcell::serialize(ArchiveStream& arch) {

@@ -1953,20 +1953,20 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 						if (lyr >= soilcolumn.nsoillayers) {
 
 							// Add a new soil layer
-							soilcolumn.add_soillayer(from.transfer_soil_depth[lyr], from.transfer_soil_depth_profile[lyr], false, false);
+							soilcolumn.add_soillayer(from.transfer_soil_thickness[lyr], from.transfer_soil_depth_mid[lyr], false, false);
 
 							// update number of soil layers
 							soilcolumn.nsoillayers++;
 						}
 
-						soilcolumn.soillayerdepths[lyr] = (soilcolumn.soillayerdepths[lyr] * old_frac + from.transfer_soil_soillayerdepths[lyr] * added_frac) / new_frac;
 						soilcolumn.soillayerthicks[lyr] = (soilcolumn.soillayerthicks[lyr] * old_frac + from.transfer_soil_soillayerthicks[lyr] * added_frac) / new_frac;
 						
 						// Soil object for this layer
 						Soillayer& soillayer = soilcolumn.soillayers[lyr];
 
-						soillayer.depth = (soillayer.depth * old_frac + from.transfer_soil_depth[lyr] * added_frac) / new_frac;
-						soillayer.depth_profile = (soillayer.depth_profile * old_frac + from.transfer_soil_depth_profile[lyr] * added_frac) / new_frac;
+						soillayer.thickness = (soillayer.thickness * old_frac + from.transfer_soil_thickness[lyr] * added_frac) / new_frac;
+						soillayer.depth_mid = (soillayer.depth_mid * old_frac + from.transfer_soil_depth_mid[lyr] * added_frac) / new_frac;
+						soillayer.depth_bot = (soillayer.depth_bot * old_frac + from.transfer_soil_depth_bot[lyr] * added_frac) / new_frac;
 						soillayer.wmass = (soillayer.wmass * old_frac + from.transfer_soil_wmass[lyr] * added_frac) / new_frac;
 						soillayer.imass = (soillayer.imass * old_frac + from.transfer_soil_imass[lyr] * added_frac) / new_frac;
 						soillayer.clay_frac = (soillayer.clay_frac * old_frac + from.transfer_soil_clay_frac[lyr] * added_frac) / new_frac;
@@ -2018,7 +2018,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					// Soil padding
 					for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
 						Padlayer& pad_lyr = soilcolumn.pad.padlayers[lyr];
-						pad_lyr.depth = (pad_lyr.depth * old_frac + from.transfer_soilpad_depth[lyr] * added_frac) / new_frac;
+						pad_lyr.thickness = (pad_lyr.thickness * old_frac + from.transfer_soilpad_thickness[lyr] * added_frac) / new_frac;
 						pad_lyr.temp = (pad_lyr.temp * old_frac + from.transfer_soilpad_temp[lyr] * added_frac) / new_frac;
 					}
 
@@ -2044,9 +2044,9 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 
 						snowlayer.imass = (snowlayer.imass * old_frac + from.transfer_snow_imass[lyr] * added_frac) / new_frac;
 						snowlayer.wmass = (snowlayer.wmass * old_frac + from.transfer_snow_wmass[lyr] * added_frac) / new_frac;
-						snowlayer.depth = (snowlayer.depth * old_frac + from.transfer_snow_depth[lyr] * added_frac) / new_frac;
+						snowlayer.thickness = (snowlayer.thickness * old_frac + from.transfer_snow_thickness[lyr] * added_frac) / new_frac;
 						snowlayer.temp = (snowlayer.temp * old_frac + from.transfer_snow_temp[lyr] * added_frac) / new_frac;
-						snowlayer.dens = snowlayer.depth > 0.0 ? snowlayer.imass * rho_H2O / snowlayer.depth : 0.0;
+						snowlayer.dens = snowlayer.thickness > 0.0 ? snowlayer.imass * rho_H2O / snowlayer.thickness : 0.0;
 					}
 
 					// save individual C and N content for use in scale_indiv()
@@ -3493,7 +3493,7 @@ landcover_change_transfer::landcover_change_transfer() {
 	// Sum soil layers
 	transfer_soil_nsoillayers = 0;
 	for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
-		transfer_soil_soillayerdepths[lyr] = transfer_soil_soillayerthicks[lyr] = transfer_soil_depth[lyr] = transfer_soil_depth_profile[lyr] = 0.0;
+		transfer_soil_soillayerthicks[lyr] = transfer_soil_thickness[lyr] = transfer_soil_depth_mid[lyr] = transfer_soil_depth_bot[lyr] = 0.0;
 		transfer_soil_wmass[lyr] = transfer_soil_imass[lyr] = 0.0;
 		transfer_soil_clay_frac[lyr] = transfer_soil_sand_frac[lyr] = transfer_soil_silt_frac[lyr] = transfer_soil_coarse_frac[lyr] = 0.0;
 		transfer_soil_mineral_volume[lyr] = transfer_soil_organic_volume[lyr] = transfer_soil_coarse_volume[lyr] = transfer_soil_root_volume[lyr] = 0.0;
@@ -3514,7 +3514,7 @@ landcover_change_transfer::landcover_change_transfer() {
 
 	// Soil padding
 	for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
-		transfer_soilpad_depth[lyr] = transfer_soilpad_temp[lyr] = 0.0;
+		transfer_soilpad_thickness[lyr] = transfer_soilpad_temp[lyr] = 0.0;
 	}
 
 	// Sum snow
@@ -3522,7 +3522,7 @@ landcover_change_transfer::landcover_change_transfer() {
 	transfer_snow_NH4_mass = transfer_snow_NO3_mass = 0.0;
 	for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
 		transfer_snow_wmass[lyr] = transfer_snow_imass[lyr] = 0.0;
-		transfer_snow_depth[lyr] = 0.0;
+		transfer_snow_thickness[lyr] = 0.0;
 		transfer_snow_temp[lyr] = 0.0;
 	}
 

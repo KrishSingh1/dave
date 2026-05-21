@@ -186,8 +186,8 @@ ifcalccton 1			! Whether to calculate leaf C:N min from leaf longevity
 				! (PFT-specific value can be specified in this file instead)
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
-hydrology "RICHARDS"	! GERTEN, MILLER, RICHARDS
-energy "CNSTEP_FULL"	! CNSTEP_FULL, CNSTEP, BELDA
+hydrology "RICHARDS"		! GERTEN, MILLER, RICHARDS
+energy "CNSTEP_FULL"		! CNSTEP_FULL, CNSTEP, BELDA
 npatch 15			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
@@ -232,7 +232,7 @@ depth_soil 0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil d
 textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype (1), or not (0)
 slope -1			! Whether to use fixed slope value (>=0 degree) or input data (<0)
 b_infilt 0.2			! Variable infiltration capacity parameter (Global value 0.2 (Schaperow et al. 2021), higher value gives lower infiltration and more surface runoff)
-C_dw 0.01			! Calibration parameter for lateral drainage
+C_dw 1.0			! Calibration parameter for lateral drainage
 ifbedrock 1			! Whether to consider bedrock as lower boundary condition (1), or not (0) for multilayer soil hydrology
 ifsupercooled 1			! Whether to consider supercooled soil water. 0 - not, 1 - Niu et al. 2006 (CLM, default), 2 - Jin et al. 2020
 homrootdistfrac 0.2		! Fraction of fine roots to be homogenously distributed in soil column. 0 - none, 0.5 - 50%, 1 - all 
@@ -240,12 +240,13 @@ rootfrac_of_deep_soil 0.5	! Fraction of deep soil, beyond 1500 mm, that roots ha
 receiver_frac 0.1 		! Fraction of organic matter to move from receiver layer
 ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
 ifsoaksnow 1			! Whether to soak snowpack with melted water (1), or not (0)
-top_depth 100.0			! Additional depth ontop of snowpack to account for radiation energy
+top_thickness 100.0		! Additional thickness ontop of snowpack to account for radiation energy
 iforganicsoilproperties 1	! Whether to update physical soil properties using soil carbon content (1), or not (0)
 ifeffvolume 1			! Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)
 ifdepthdecaymod 1               ! Whether to use depth soil organic matter decay rate modifier
 ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
 ifthawaffectrootdist 1          ! Whether thaw depth affects root distribution (1 by default), or not (0)
+moistdecay "YAN"		! FRIEND (standard), YAN
 
 surf_li_scalar 1.0 !0.4
 soil_om_scalar 2.0!2.05 !2.5
@@ -714,8 +715,8 @@ group "tallshrub" (
 	crownarea_max 4.0
 	k_allom2 6
 	k_latosa 500
-	root_dist 0.75 0.25
-	root_beta 0.975 ! DW_COMMENT need to calculate from root_dist
+	root_dist 0.7 0.3
+	root_beta 0.976
 
 	! Longevity
 	longevity 100 		! Wolf et al have 40. Juniper can live for > 100 years
@@ -747,7 +748,7 @@ group "lowshrub" (
 	k_allom1 10
 	k_allom2 4
 	k_latosa 125
-	root_dist 0.85 0.15
+	root_dist 0.8 0.2
 	root_beta 0.938		! Somewhat closer to tundra vegetation in Jackson et al.
 
 	! Longevity

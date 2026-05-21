@@ -116,7 +116,7 @@ void SoilInput::init(const char* fname, const std::vector<coord>& gridlist) {
 	xtring soilSand = param["file_soilsand"].str;
 
 	// Have soil depth varying properties
-	if (!soilClay.len() && !soilSand.len()) {
+	if (soilClay.len() && soilSand.len()) {
 
 		soil_varying = true;
 
@@ -526,12 +526,22 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 		// Homogeneous soil profile when it comes to minerals and pH
 		soiltype.soil_input = soil_code ? LPJ : MINERAL;
 
+		int nr_lyr = 1;
+
+		soiltype.sand_frac.resize(nr_lyr);
+		soiltype.clay_frac.resize(nr_lyr);
+		soiltype.coarse_frac.resize(nr_lyr);
+		soiltype.organic_frac.resize(nr_lyr);
+		soiltype.soilC.resize(nr_lyr);
+		soiltype.pH.resize(nr_lyr);
+		soiltype.text_depths.resize(nr_lyr);
+
 		// Mineral fractions
-		soiltype.sand_frac = soilprop.sand;
-		soiltype.clay_frac = soilprop.clay;
+		soiltype.sand_frac[0] = soilprop.sand;
+		soiltype.clay_frac[0] = soilprop.clay;
 
 		// Organic fraction
-		soiltype.organic_frac = soilprop.soil_OC;
+		soiltype.organic_frac[0] = soilprop.soil_OC;
 
 		if (soiltype.soil_input == LPJ) {
 
@@ -550,10 +560,13 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 		}
 
 		// Soil pH
-		soiltype.pH = soilprop.pH;
+		soiltype.pH[0] = soilprop.pH;
 
 		// Soil carbon content
-		soiltype.soilC = soilprop.soilC;
+		soiltype.soilC[0] = soilprop.soilC;
+
+		// Texture depth set to 100 mm
+		soiltype.text_depths[0] = 100.0;
 	}
 	else {
 		// Inhomogeneous soil profile when it comes to minerals and pH
@@ -563,31 +576,33 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 
 		int nr_lyr = (int)soil.depth_lyr.size();
 
-		soiltype.sand_frac_lyr.resize(nr_lyr);
-		soiltype.clay_frac_lyr.resize(nr_lyr);
-		soiltype.coarse_frac_lyr.resize(nr_lyr);
-		soiltype.pH_lyr.resize(nr_lyr);
-		soiltype.depth_lyr.resize(nr_lyr);
+		soiltype.sand_frac.resize(nr_lyr);
+		soiltype.clay_frac.resize(nr_lyr);
+		soiltype.coarse_frac.resize(nr_lyr);
+		soiltype.organic_frac.resize(nr_lyr);
+		soiltype.soilC.resize(nr_lyr);
+		soiltype.pH.resize(nr_lyr);
+		soiltype.text_depths.resize(nr_lyr);
 
 		for (int lyr = 0; lyr < nr_lyr; lyr++) {
 
 			// Mineral fractions
-			soiltype.sand_frac_lyr[lyr] = soil.sand_lyr[lyr] * PERCENT_TO_FRACT;
-			soiltype.clay_frac_lyr[lyr] = soil.clay_lyr[lyr] * PERCENT_TO_FRACT;
+			soiltype.sand_frac[lyr] = soil.sand_lyr[lyr] * PERCENT_TO_FRACT;
+			soiltype.clay_frac[lyr] = soil.clay_lyr[lyr] * PERCENT_TO_FRACT;
 
 			// Coarse fragmnets
-			soiltype.coarse_frac_lyr[lyr] = soil.coarse_lyr[lyr] * PERCENT_TO_FRACT;
+			soiltype.coarse_frac[lyr] = soil.coarse_lyr[lyr] * PERCENT_TO_FRACT;
 
 			// pH
 			if (!negligible(soil.pH_lyr[lyr])) {
-				soiltype.pH_lyr[lyr] = soil.pH_lyr[lyr];
+				soiltype.pH[lyr] = soil.pH_lyr[lyr];
 			}
 			else {
-				soiltype.pH_lyr[lyr] = 6.5;
+				soiltype.pH[lyr] = 6.5;
 			}
 
 			// Depths to bottom (mm)
-			soiltype.depth_lyr[lyr] = soil.depth_lyr[lyr] * MM_PER_CM;
+			soiltype.text_depths[lyr] = soil.depth_lyr[lyr] * MM_PER_CM;
 		}
 	}
 
@@ -644,6 +659,14 @@ void soil_parameters(Soiltype& soiltype, int soilcode) {
 	// INPUT AND OUTPUT PARAMETER
 	// soil = patch soil
 
+	int nr_lyr = 1;
+
+	soiltype.sand_frac.resize(nr_lyr);
+	soiltype.clay_frac.resize(nr_lyr);
+	soiltype.coarse_frac.resize(nr_lyr);
+	soiltype.pH.resize(nr_lyr);
+	soiltype.text_depths.resize(nr_lyr);
+
 	// exponent in percolation equation [k2; LPJF]
 	// (Eqn 31, Haxeltine & Prentice 1996)
 	// Changed from 4 to 2 (Sitch, Thonicke, pers comm 26/11/01)
@@ -656,13 +679,13 @@ void soil_parameters(Soiltype& soiltype, int soilcode) {
 	}
 
 	if (textured_soil) {
-		soiltype.sand_frac = data[soilcode][7];
-		soiltype.clay_frac = data[soilcode][8];
+		soiltype.sand_frac[0] = data[soilcode][7];
+		soiltype.clay_frac[0] = data[soilcode][8];
 	}
 	else {
 		// Using fixed values from Parton et al. (2010)
-		soiltype.sand_frac = 0.28;
-		soiltype.clay_frac = 0.12;
+		soiltype.sand_frac[0] = 0.28;
+		soiltype.clay_frac[0] = 0.12;
 	}
 
 	soiltype.perc_base = data[soilcode][0];
@@ -683,7 +706,7 @@ void soil_parameters(Soiltype& soiltype, int soilcode) {
 
 	// Store the soilcode and new soil properties
 	soiltype.soilcode = soilcode;
-	soiltype.organic_frac = data[soilcode][9];
+	soiltype.organic_frac[0] = data[soilcode][9];
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

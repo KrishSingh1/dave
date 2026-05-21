@@ -32,9 +32,6 @@ const int NSOILLAYERS_UPPER = 5;
 /// Number of padding layers in the soil
 const int NPADLAYERS = 5;
 
-/// MAximum acrotelm layers
-const int NACROTELMLAYERS_MAX = 3;
-
 /// Depth of the acrotelm (mm), catotelm rest of soil column
 const double ACROTELM_DEPTH = 300.0;
 

@@ -2845,7 +2845,7 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 	outlimit_misc(out, out_daily_climate, gridcell.climate.prec);
 	outlimit_misc(out, out_daily_climate, gridcell.climate.rad);
 
-	double snow_depth[NSNOWLAYERS_MAX] = { 0.0 };
+	double snow_thick[NSNOWLAYERS_MAX] = { 0.0 };
 	double snow_temp[NSNOWLAYERS_MAX] = { 0.0 };
 	double snow_density[NSNOWLAYERS_MAX] = { 0.0 };
 	double snow_k[NSNOWLAYERS_MAX] = { 0.0 };
@@ -2876,7 +2876,7 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 
 				if (lyr < snow.nsnowlayers) {
 					Snowlayer& snowlayer = snow.snowlayers[lyr];
-					snow_depth[lyr] += snowlayer.depth * to_gridcell_average;
+					snow_thick[lyr] += snowlayer.thickness * to_gridcell_average;
 					snow_temp[lyr] += snowlayer.temp * to_gridcell_average;
 					snow_density[lyr] += snowlayer.dens * to_gridcell_average;
 					snow_k[lyr] += snowlayer.Kh * to_gridcell_average;
@@ -2925,7 +2925,7 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 	} // stand loop
 
 	for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
-		outlimit_misc(out, out_daily_snow_depth, snow_depth[lyr]);
+		outlimit_misc(out, out_daily_snow_depth, snow_thick[lyr]);
 		if (!negligible(snow_frac[lyr])) {
 			outlimit_misc(out, out_daily_snow_density, snow_density[lyr] / snow_frac[lyr]);
 			outlimit_misc(out, out_daily_snow_k, snow_k[lyr] / snow_frac[lyr]);

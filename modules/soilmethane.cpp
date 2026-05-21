@@ -281,7 +281,7 @@ void Soilcolumn::calculate_ch4_and_co2_production() {
 		double anoxic = 1.0 - soillayer.fracair() - Fgas;
 
 		// CH4 production in the layer (gC/m2)
-		if (soillayer.wmass / soillayer.depth < Fwmass_min)
+		if (soillayer.wmass / soillayer.thickness < Fwmass_min)
 			CH4_prod = 0.0;
 		else
 			CH4_prod = anoxic * CH4toCO2_peat * drh;
@@ -418,7 +418,7 @@ void Soilcolumn::diffuse_gas(double D[NSOILLAYERS_MAX], gastype thisgastype, dou
 
 		Soillayer& soillayer = soillayers[lyr];
 
-		Dz_m[lyr] = soillayer.depth * M_PER_MM;
+		Dz_m[lyr] = soillayer.thickness * M_PER_MM;
 
 		total_volume_water[lyr] = (soillayer.wmass + soillayer.imass) * M_PER_MM;
 		if (total_volume_water[lyr] > 1.0e-6) {
@@ -454,7 +454,7 @@ void Soilcolumn::diffuse_gas(double D[NSOILLAYERS_MAX], gastype thisgastype, dou
 
 		// No diffusion if there's too little liquid water in the top layer
 		// Could add a snow restriction
-		if ((soillayer_surf.wmass / soillayer_surf.depth) < Fwmass_min) {
+		if ((soillayer_surf.wmass / soillayer_surf.thickness) < Fwmass_min) {
 			// Unchanged surface concentration
 			Cnew = C[0]; 
 			dailyDiff = 0.0;
@@ -496,7 +496,7 @@ void Soilcolumn::diffuse_gas(double D[NSOILLAYERS_MAX], gastype thisgastype, dou
 		// Assume a tiny diffusivity if there is very little liquid water in the layer
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
 			Soillayer& soillayer = soillayers[lyr];
-			if ((soillayer.wmass / soillayer.depth) < Fwmass_min) {
+			if ((soillayer.wmass / soillayer.thickness) < Fwmass_min) {
 				D[lyr] = 1e-9; // [m2 d-1]
 			}
 		}
@@ -690,7 +690,7 @@ void Soilcolumn::plant_gas_transport(double Ceq, double kgas, gastype thisgastyp
 		}
 
 		// No plant transport to/from this layer
-		if (soillayer.wmass / soillayer.depth < Fwmass_min || negligible(soillayer.tiller_area) || volume_liquid_water < 0.0001) {
+		if (soillayer.wmass / soillayer.thickness < Fwmass_min || negligible(soillayer.tiller_area) || volume_liquid_water < 0.0001) {
 			Cnew = Cgas;
 		} 
 		else {
@@ -809,20 +809,20 @@ void Soilcolumn::calculate_gas_ebullition(double& ebull_today) {
 		soillayer.CH4_ebull_ind = 0.0;
 
 		// Restrict ebullition to cases when there is enough liquid water and when soil T > 0. 
-		if (soillayer.wmass / soillayer.depth > Fwmass_min && soillayer.temp > 0.0) {
+		if (soillayer.wmass / soillayer.thickness > Fwmass_min && soillayer.temp > 0.0) {
 
 			// Gaseous CH4 volume in each layer [m3]
 			double CH4_gas_vol = soillayer.CH4_gas / atomiccmass * R_gas * TsoilK / (hydro_press + atm_press);
 
 			/// volumetric CH4 content [unitless]
-			double CH4_vgc = CH4_gas_vol / (soillayer.depth / MM_PER_M * SQ_M); // m3/m3
+			double CH4_vgc = CH4_gas_vol / (soillayer.thickness / MM_PER_M * SQ_M); // m3/m3
 
 			// Ebullition/bubble formation if the volumetric gas content (VGC) exceeds vgc_high * bubble_CH4_frac, 
 			// where bubble_CH4_frac id the CH4 fraction of gas bubbles
 			if (CH4_vgc > vgc_high * bubble_CH4_frac) {
 
 				/// Volume of CH4 which bubbles out [m3]
-				double CH4_ebull_vol = (CH4_vgc - vgc_low * bubble_CH4_frac) * soillayer.depth / MM_PER_M * SQ_M; // m3/m3
+				double CH4_ebull_vol = (CH4_vgc - vgc_low * bubble_CH4_frac) * soillayer.thickness / MM_PER_M * SQ_M; // m3/m3
 
 				// CH4 volumetric content after ebullition has occured
 				CH4_vgc = vgc_low * bubble_CH4_frac;
@@ -831,7 +831,7 @@ void Soilcolumn::calculate_gas_ebullition(double& ebull_today) {
 				soillayer.CH4_ebull_ind = CH4_ebull_vol * (hydro_press + atm_press) / (R_gas * TsoilK) * atomiccmass;
 
 				// Gaseous CH4 concentration in each layer [g CH4-C layer-1 d-1]
-				soillayer.CH4_gas = CH4_vgc * soillayer.depth / MM_PER_M * SQ_M * (hydro_press + atm_press) / (R_gas * TsoilK) * atomiccmass;
+				soillayer.CH4_gas = CH4_vgc * soillayer.thickness / MM_PER_M * SQ_M * (hydro_press + atm_press) / (R_gas * TsoilK) * atomiccmass;
 
 				// Update the amount of CH4 to emit today [g m-2 d-1], from this layer
 				ebull_today += soillayer.CH4_ebull_ind;

@@ -1072,17 +1072,12 @@ void dailyaccounting_patch(Patch& patch) {
 				pad_lyr.temp = patch.get_climate().temp_iaavr;
 			}
 		}
-	}
-
-	// Update soil mineral and organic volumes influence of soil properties
-	// Done first day of each month and not daily to reduce computational cost
-	if (date.dayofmonth == 0) {
 
 		// Calculate soil layers root volume
 		soilcolumn.calc_root_volume();
 
 		// Vertical movement if matter in soil layer exceed maximum volume
-		soilcolumn.vertical_movement(); // DW_COMMENT check if we do it mth or annual
+		soilcolumn.vertical_movement();
 
 		// Water to be moved due to changes in the soil layers capability to hold water
 		double wmass_move = 0.0;
@@ -1115,7 +1110,7 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 	}
 
-	// Initiate slope properties of the soil // DW_COMMENT wrong to use patch.age, but works
+	// Initiate slope properties of the soil
 	if (patch.age == 0 && date.day == 0) {
 		soilcolumn.set_slope_properties();
 	}
@@ -1147,11 +1142,19 @@ void dailyaccounting_patch(Patch& patch) {
 	patch.isharvestday = false;
 }
 
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // RESPIRATION TEMPERATURE RESPONSE
 // Called by dailyaccounting_patch and dailyaccounting_gridcell to calculate
 // response of respiration to temperature
+
+double calc_gtemp(double temp) {
+	if (temp >= -40.0) {
+		return exp(308.56 * (1.0 / 56.02 - 1.0 / (temp + 46.02)));
+	}
+	else {
+		return 0.0;
+	}
+}
 
 void respiration_temperature_response(double temp, double& gtemp, bool ifsoil) {
 
@@ -1170,18 +1173,13 @@ void respiration_temperature_response(double temp, double& gtemp, bool ifsoil) {
 	// OUTPUT PARAMETER
 	// gtemp = respiration temperature response
 
-	if (temp >= -40.0) {
-		gtemp = exp(308.56 * (1.0 / 56.02 - 1.0 / (temp + 46.02)));
-	} 
-	else {
-		gtemp = 0.0;
-	}
+	gtemp = calc_gtemp(temp);
 
 	// Possible updates to gtemp used if temp < 0degC
-	// Needed for root respiration // DW_COMMENT Same code as at another place???
+	// Needed for root respiration
 	if (ifsoil && ifcarbonfreeze && temp <= 0.0 && hydrology != GERTEN) {
 
-		double decomp_at_freezing_point = exp(308.56 * (1.0 / 56.02 - 1.0 / (0.0 + 46.02)));
+		double decomp_at_freezing_point = calc_gtemp(0.0);
 
 		// Linear approach (Koven et al. 2011)
 		double decrease = decomp_at_freezing_point / fabs(MIN_DECOMP_TEMP);

@@ -241,7 +241,7 @@ int framework(const CommandLineArguments& args) {
 		landcover_init(gridcell, input_module.get());
 
 		// Set soil depth dependent properties
-		gridcell.set_soil_depth();
+		gridcell.set_soillayer_properties();
 
 		if (restart) {
 			// Get the whole grid cell from file...

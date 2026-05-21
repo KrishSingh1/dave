@@ -92,6 +92,13 @@ typedef enum { GERTEN, MILLER, RICHARDS } hydrologytype;
  */
 typedef enum { CNSTEP_FULL, CNSTEP, BELDA} energytype;
 
+/// Type of water modifier for decomposition of soil organic matter used 
+/**     One of:
+ *      FRIEND          Standard soil moisture decomposition function based on Friend et al (1997)
+ *      YAN             A moisture function of soil heterotrophic respiration that incorporates 
+ *                      microscale processes based on Yan et al (2018)
+ */
+typedef enum { FRIEND, YAN } moistdecaytype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Global instruction file parameters
@@ -145,6 +152,9 @@ extern hydrologytype hydrology;
 
 /// Energy calculation switch
 extern energytype energy;
+
+/// Mater modifier for decomposition of soil organic matter switch
+extern moistdecaytype moistdecay;
 
 /// Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 extern bool ifdisturb;
@@ -410,8 +420,8 @@ extern bool ifmultilayersnow;
 /// Whether to soak snowpack with melted water (1), or not (0)
 extern bool ifsoaksnow;
 
-/// Additional depth ontop of snowpack to account for radiation energy
-extern double top_depth;
+/// Additional thickness ontop of snowpack to account for radiation energy
+extern double top_thickness;
 
 /// whether to reduce GPP if there's inundation (1), or not (0)
 extern bool ifinundationstress;

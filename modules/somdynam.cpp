@@ -508,6 +508,22 @@ double temperature_modifier(double temp) {
 	return temp_mod;
 }
 
+/// Water Modifier for Decomposition
+/** Calculate decomposition moisture modifier (in range 0-1)
+ *  Friend et al 1997, Eqn 53 (Parton et al 1993, Fig 2)
+ *
+ *  \param wfps  Water-filled pore space
+ */
+double Soillayer::moisture_modifier() {
+
+	double wfps_perc = wfps() * 100.0;
+
+	double moist_mod = wfps_perc < 60.0 ? exp((wfps_perc - 60.0) * (wfps_perc - 60.0) / -800.0) :
+		0.000371 * wfps_perc * wfps_perc - 0.0748 * wfps_perc + 4.13;
+
+	return moist_mod;
+}
+
 
 /// Water Modifier for Decomposition
 /** Calculate decomposition moisture modifier (in range 0-1)
@@ -516,7 +532,7 @@ double temperature_modifier(double temp) {
  *
  *  \param theta  Total water mass
  */
-double Soillayer::moisture_modifier() {
+double Soillayer::moisture_modifier_yan() {
 
 	// Minimum moist modifier for dry soils
 	double moist_mod_dry = 0.064;
@@ -524,11 +540,11 @@ double Soillayer::moisture_modifier() {
 	// (Frolking et al (2001, 2010), Ise et al. (2008))
 	//double moist_mod_anaerobic = 0.075;
 	// Water fraction of soil layer volume
-	double theta = (imass + wmass) / depth;
+	double theta = (imass + wmass) / thickness;
 	// Saturation fraction of soil layer volume
-	double theta_sat = wsats / depth;
+	double theta_sat = wsats / thickness;
 	// Field capacity of soil layer volume
-	double theta_fc = fc() / depth;
+	double theta_fc = fc() / thickness;
 	// Moist modifier [0-1]
 	double moist_mod;
 
@@ -573,14 +589,14 @@ void Soillayer::decayrates_century(double tillage_fact, bool savesomcent, double
 	// Modifier for effect of soil texture
 	// Eqn 5, Parton et al 1993:
 
-	double texture_mod = 1.0 - 0.75 * (fclay(MINEFF) + fsilt(MINEFF));
+	double texture_mod = 1.0 - 0.75 * (fclay() + fsilt());
 
 	// Calculate decomposition temperature modifier (in range 0-1)
 	double temp_surf_mod = temperature_modifier(temp_surf);
-	double temp_mod = temperature_modifier(temp); // DW_COMMENT slow
+	double temp_mod = temperature_modifier(temp);
 
 	// Calculate decomposition moisture modifier
-	double moist_mod = moisture_modifier(); // DW_COMMENT slow
+	double moist_mod = moistdecay == FRIEND ? moisture_modifier() : moisture_modifier_yan();
 
 	atemp_mod += temp_mod / date.year_length();
 	amoist_mod += moist_mod / date.year_length();
@@ -882,7 +898,7 @@ void somfluxes(Patch& patch, bool ifequilsom, double tillage_fact) {
 
 			// Calculate partitioning coefficients (Fig 1, Parton et al 1993)
 			double respfrac = 0.55;
-			double csp = max(0.0, 0.003 - 0.009 * soillayer.fclay(MINEFF));
+			double csp = max(0.0, 0.003 - 0.009 * soillayer.fclay());
 			double csa = 1.0 - csp - respfrac;
 			double frac_csp = csp / (csp + csa);
 			double frac_csa = 1.0 - frac_csp;
@@ -897,10 +913,10 @@ void somfluxes(Patch& patch, bool ifequilsom, double tillage_fact) {
 
 			// Calculate partitioning coefficients (Fig 1, Parton et al 1993)
 			// Fraction lost to microbial respiration (F_t, Parton et al 1993 Eqn 7)
-			respfrac = max(0.0, 0.85 - 0.68 * (soillayer.fclay(MINEFF) + soillayer.fsilt(MINEFF)));
+			respfrac = max(0.0, 0.85 - 0.68 * (soillayer.fclay() + soillayer.fsilt()));
 
 			// Fraction entering passive SOM pool (Parton et al 1993, Eqn 9)
-			double cap = 0.003 + 0.032 * soillayer.fclay(MINEFF);
+			double cap = 0.003 + 0.032 * soillayer.fclay();
 
 			// Fraction entering slow SOM pool
 			double cas = 1.0 - respfrac - soillayer.orgleachfrac - cap;
@@ -1638,7 +1654,7 @@ void leaching(Patch& patch) {
 			double OMLECH_3 = 1.9;	// saturation point in leaching equation (cm H20/month)
 			double cmpermonth_to_mmperday = MM_PER_CM * MONTH_PER_YEAR / date.year_length();
 
-			soillayer.orgleachfrac = min(1.0, runoff / (OMLECH_3 * cmpermonth_to_mmperday)) * (OMLECH_1 + OMLECH_2 * soillayer.fsand(MINEFF));
+			soillayer.orgleachfrac = min(1.0, runoff / (OMLECH_3 * cmpermonth_to_mmperday)) * (OMLECH_1 + OMLECH_2 * soillayer.fsand());
 		}
 		else {
 			minleachfrac = 0.0;
@@ -2069,7 +2085,7 @@ void equilsom(Patch& patch) {
 								max_neg_change = -max_change;
 							}
 							else {
-								max_change = 0.5 * soillayer.depth * M_PER_MM;
+								max_change = 0.5 * soillayer.thickness * M_PER_MM;
 								max_neg_change = -sompool.cmass * 0.5;
 							}
 

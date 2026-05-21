@@ -66,10 +66,10 @@ struct landcover_change_transfer {
 	int transfer_soil_nsoillayers;
 
 	// Soil layers
-	double transfer_soil_soillayerdepths[NSOILLAYERS_MAX];
 	double transfer_soil_soillayerthicks[NSOILLAYERS_MAX];
-	double transfer_soil_depth[NSOILLAYERS_MAX];
-	double transfer_soil_depth_profile[NSOILLAYERS_MAX];
+	double transfer_soil_thickness[NSOILLAYERS_MAX];
+	double transfer_soil_depth_mid[NSOILLAYERS_MAX];
+	double transfer_soil_depth_bot[NSOILLAYERS_MAX];
 	double transfer_soil_wmass[NSOILLAYERS_MAX];
 	double transfer_soil_imass[NSOILLAYERS_MAX];
 	double transfer_soil_clay_frac[NSOILLAYERS_MAX];
@@ -103,7 +103,7 @@ struct landcover_change_transfer {
 	double transfer_soil_sompool_litterme[NSOILLAYERS_MAX][NSOMPOOL];
 
 	// Soil padding
-	double transfer_soilpad_depth[NPADLAYERS];
+	double transfer_soilpad_thickness[NPADLAYERS];
 	double transfer_soilpad_temp[NPADLAYERS];
 
 	// Snow
@@ -112,7 +112,7 @@ struct landcover_change_transfer {
 	double transfer_snow_NO3_mass;
 	double transfer_snow_wmass[NSNOWLAYERS_MAX];
 	double transfer_snow_imass[NSNOWLAYERS_MAX];
-	double transfer_snow_depth[NSNOWLAYERS_MAX];
+	double transfer_snow_thickness[NSNOWLAYERS_MAX];
 	double transfer_snow_temp[NSNOWLAYERS_MAX];
 
 	landcover_change_transfer();
@@ -233,10 +233,10 @@ struct landcover_change_transfer {
 			// Sum soil layers
 			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
 				Soillayer& soillayer = soilcolumn.soillayers[lyr];
-				transfer_soil_soillayerdepths[lyr] += soilcolumn.soillayerdepths[lyr] * scale;
 				transfer_soil_soillayerthicks[lyr] += soilcolumn.soillayerthicks[lyr] * scale;
-				transfer_soil_depth[lyr] += soillayer.depth * scale;
-				transfer_soil_depth_profile[lyr] += soillayer.depth_profile * scale;
+				transfer_soil_thickness[lyr] += soillayer.thickness * scale;
+				transfer_soil_depth_mid[lyr] += soillayer.depth_mid * scale;
+				transfer_soil_depth_bot[lyr] += soillayer.depth_bot * scale;
 				transfer_soil_wmass[lyr] += soillayer.wmass * scale;
 				transfer_soil_imass[lyr] += soillayer.imass * scale;
 				transfer_soil_clay_frac[lyr] += soillayer.clay_frac * scale;
@@ -276,7 +276,7 @@ struct landcover_change_transfer {
 			// Soil padding
 			for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
 				Padlayer& pad = soilcolumn.pad.padlayers[lyr];
-				transfer_soilpad_depth[lyr] += pad.depth * scale;
+				transfer_soilpad_thickness[lyr] += pad.thickness * scale;
 				transfer_soilpad_temp[lyr] += pad.temp * scale;
 			}
 
@@ -289,7 +289,7 @@ struct landcover_change_transfer {
 				Snowlayer& snowlayer = snow.snowlayers[lyr];
 				transfer_snow_wmass[lyr] += snowlayer.wmass * scale;
 				transfer_snow_imass[lyr] += snowlayer.imass * scale;
-				transfer_snow_depth[lyr] += snowlayer.depth * scale;
+				transfer_snow_thickness[lyr] += snowlayer.thickness * scale;
 				transfer_snow_temp[lyr] += snowlayer.temp * scale;
 			}
 
@@ -346,10 +346,10 @@ struct landcover_change_transfer {
 
 		// Sum soil layers
 		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
-			transfer_soil_soillayerdepths[lyr] = from.transfer_soil_soillayerdepths[lyr];
 			transfer_soil_soillayerthicks[lyr] = from.transfer_soil_soillayerthicks[lyr];
-			transfer_soil_depth[lyr] = from.transfer_soil_depth[lyr];
-			transfer_soil_depth_profile[lyr] = from.transfer_soil_depth_profile[lyr];
+			transfer_soil_thickness[lyr] = from.transfer_soil_thickness[lyr];
+			transfer_soil_depth_mid[lyr] = from.transfer_soil_depth_mid[lyr];
+			transfer_soil_depth_bot[lyr] = from.transfer_soil_depth_bot[lyr];
 			transfer_soil_wmass[lyr] = from.transfer_soil_wmass[lyr];
 			transfer_soil_imass[lyr] = from.transfer_soil_imass[lyr];
 			transfer_soil_clay_frac[lyr] = from.transfer_soil_clay_frac[lyr];
@@ -387,7 +387,7 @@ struct landcover_change_transfer {
 
 		// Soil padding
 		for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
-			transfer_soilpad_depth[lyr] = from.transfer_soilpad_depth[lyr];
+			transfer_soilpad_thickness[lyr] = from.transfer_soilpad_thickness[lyr];
 			transfer_soilpad_temp[lyr] = from.transfer_soilpad_temp[lyr];
 		}
 
@@ -398,7 +398,7 @@ struct landcover_change_transfer {
 		for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
 			transfer_snow_wmass[lyr] = from.transfer_snow_wmass[lyr];
 			transfer_snow_imass[lyr] = from.transfer_snow_imass[lyr];
-			transfer_snow_depth[lyr] = from.transfer_snow_depth[lyr];
+			transfer_snow_thickness[lyr] = from.transfer_snow_thickness[lyr];
 			transfer_snow_temp[lyr] = from.transfer_snow_temp[lyr];
 		}
 	}
@@ -455,10 +455,10 @@ struct landcover_change_transfer {
 
 		// Soil layers
 		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
-			transfer_soil_soillayerdepths[lyr] += from.transfer_soil_soillayerdepths[lyr] * multiplier;
 			transfer_soil_soillayerthicks[lyr] += from.transfer_soil_soillayerthicks[lyr] * multiplier;
-			transfer_soil_depth[lyr] += from.transfer_soil_depth[lyr] * multiplier;
-			transfer_soil_depth_profile[lyr] += from.transfer_soil_depth_profile[lyr] * multiplier;
+			transfer_soil_thickness[lyr] += from.transfer_soil_thickness[lyr] * multiplier;
+			transfer_soil_depth_mid[lyr] += from.transfer_soil_depth_mid[lyr] * multiplier;
+			transfer_soil_depth_bot[lyr] += from.transfer_soil_depth_bot[lyr] * multiplier;
 			transfer_soil_wmass[lyr] += from.transfer_soil_wmass[lyr] * multiplier;
 			transfer_soil_imass[lyr] += from.transfer_soil_imass[lyr] * multiplier;
 			transfer_soil_clay_frac[lyr] += from.transfer_soil_clay_frac[lyr] * multiplier;
@@ -496,7 +496,7 @@ struct landcover_change_transfer {
 
 		// Soil padding
 		for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
-			transfer_soilpad_depth[lyr] = from.transfer_soilpad_depth[lyr] * multiplier;
+			transfer_soilpad_thickness[lyr] = from.transfer_soilpad_thickness[lyr] * multiplier;
 			transfer_soilpad_temp[lyr] = from.transfer_soilpad_temp[lyr] * multiplier;
 		}
 
@@ -507,7 +507,7 @@ struct landcover_change_transfer {
 		for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
 			transfer_snow_wmass[lyr] += from.transfer_snow_wmass[lyr] * multiplier;
 			transfer_snow_imass[lyr] += from.transfer_snow_imass[lyr] * multiplier;
-			transfer_snow_depth[lyr] += from.transfer_snow_depth[lyr] * multiplier;
+			transfer_snow_thickness[lyr] += from.transfer_snow_thickness[lyr] * multiplier;
 			transfer_snow_temp[lyr] += from.transfer_snow_temp[lyr] * multiplier;
 		}		
 	}

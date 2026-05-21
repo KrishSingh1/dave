@@ -3520,36 +3520,30 @@ public:
 
 	// Sand, silt and clay fractions, should always add up to 1.
 	/// fraction of soil that is sand
-	double sand_frac;
+	std::vector<double> sand_frac;
 	/// fraction of soil that is clay
-	double clay_frac;
+	std::vector<double> clay_frac;
+	/// fraction of soil that is coarse fragmnets
+	std::vector<double> coarse_frac;
 	/// pH
-	double pH;
+	std::vector<double> pH;
 	/// carbon content (kg C m-2)
-	double soilC;
+	std::vector<double> soilC;
 
 	/// Soilcode, 0 to 8
 	int soilcode;
 	/// Volumetric fraction of organic material (m3 m-3) (Hillel, 1998)
-	double organic_frac;
+	std::vector<double> organic_frac;
 
-	// Inhomogeneous soil types
-	std::vector<double> sand_frac_lyr;
-	std::vector<double> clay_frac_lyr;
-	std::vector<double> coarse_frac_lyr;
-	std::vector<double> pH_lyr;
-	std::vector<double> depth_lyr;
+	/// Bottom depth of texture data
+	std::vector<double> text_depths;
 	
 	// MEMBER FUNCTIONS
 
 public:
 
 	/// Constructor: initialises certain member variables
-	Soiltype() {
-
-		organic_frac = 0.02;
-		pH = -1.0;
-	}
+	Soiltype() {}
 };
 
 /// CENTURY SOIL POOL
@@ -3703,10 +3697,12 @@ public:
 	Soilcolumn* soilcolumn;
 
 	/// Depth
+	/// Soil layer thickness (mm)
+	double thickness;
 	/// Soil layer middle depth (mm)
-	double depth_profile;
-	/// soil layer depth (mm)
-	double depth;
+	double depth_mid;
+	/// Soil layer bottom depth (mm)
+	double depth_bot;
 
 	// Sand, silt and clay fractions, should always add up to 1.
 	/// fraction of mineral soil that is sand
@@ -4021,11 +4017,11 @@ public:
 	/// Calculate organic matter density
 	double calc_organic_density(grouppooltype pools = GALL);
 	/// Calculate clay fraction of this layer
-	double fclay(mincalctype type);
+	double fclay(mincalctype type = MINEFF);
 	/// Calculate sand fraction of this layer
-	double fsand(mincalctype type);
+	double fsand(mincalctype type = MINEFF);
 	/// Calculate silt fraction of this layer
-	double fsilt(mincalctype type);
+	double fsilt(mincalctype type = MINEFF);
 	/// Freeze full layer
 	void freeze_lyr();
 	/// Phase change
@@ -4052,8 +4048,10 @@ public:
 	void setntoc(double fac, double& ntoc, double cton_max, double cton_min, double fmin, double fmax);
 	/// Calculates CENTURY instantaneous decay rates
 	void decayrates_century(double tillage_fact, bool savesomcent, double temp_surf);
-
+	/// Water modifier for decomposition (Friend et al 1997)
 	double moisture_modifier();
+	/// Water modifier for decomposition (Yan et al 20189
+	double moisture_modifier_yan();
 
 	void update_temp(double add_temp, double add_mass, double add_Ch);
 
@@ -4073,7 +4071,7 @@ struct Padlayer : public Serializable {
 
 	Padlayer() {
 		temp = 0.0;
-		depth = 0.0;
+		thickness = 0.0;
 		// Bedrock parameters from Chadburn et al. (2015)
 		// Thermal conductivity [W m-1 K-1 s-1]
 		Kh = 8.6;
@@ -4089,8 +4087,8 @@ struct Padlayer : public Serializable {
 	double temp;
 	/// Record the monthly average padding temperature [deg C]
 	double mtemp[12];
-	/// Soil padding layer depth
-	double depth;
+	/// Soil padding layer thickness
+	double thickness;
 	/// Soil padding layer thermal conductivities (J m-1 K-1 s-1)
 	double Kh;
 	/// Soil padding layer heat capacities (J m-3 K-1)
@@ -4153,8 +4151,8 @@ struct Snowlayer : public Serializable {
 	/// Snow water holding capacity per layer
 	double whc;
 
-	/// Snow depth [mm]
-	double depth;
+	/// Snow layer thickness [mm]
+	double thickness;
 
 	/// Snow temperature [C]
 	double temp;
@@ -4359,8 +4357,6 @@ public:
 	double depth;
 	/// vector with soil layers
 	std::vector<Soillayer> soillayers;
-	/// array with soil layer bottom depths
-	double soillayerdepths[NSOILLAYERS_MAX]; // DW_COMMENT not used for anything
 	/// array with soil layer thicknesses
 	double soillayerthicks[NSOILLAYERS_MAX];
 	/// number of soil layers
@@ -4502,7 +4498,7 @@ public:
 	/// document for calculation of Century equilibrium
 	bool savesomcent;
 	/// Slope gradient [m m-1]
-	double slope_grade_sin;
+	double slope_grade_tan;
 	double slope_grade_cos;
 
 private:
@@ -4532,7 +4528,7 @@ public:
 	/// Create soillayers
 	void create_soillayers(double soil_layer_depths[NSOILLAYERS_MAX]);
 	/// Add a soil layer
-	void add_soillayer(double soil_layer_depth, double soil_layer_depth_profile, bool acrotelm, bool catotelm);
+	void add_soillayer(double soil_layer_thick, double soil_layer_depth_mid, bool acrotelm, bool catotelm);
 	/// Returns the Climate for this Patch
 	/** This function returns a const reference to prevent code which operates
 	 *  on a patch basis to modify the climate and thereby affect other
@@ -6022,11 +6018,11 @@ public:
 	/// Set longitude and latitude for this grid cell
 	void set_coordinates(double longitude, double latitude);
 
-	/// Set initial soil depth
-	void set_soil_depth();
+	/// Set initial soil layer properties
+	void set_soillayer_properties();
 	
 	/// Calculates soil layer depths and number of soil layers
-	void soil_layer_depths(double soil_lyr_depth[NSOILLAYERS_MAX], int& nsoillayers);
+	void soillayer_thickness(double lyr_thickness[NSOILLAYERS_MAX], int& nsoillayers);
 
 	void serialize(ArchiveStream& arch);
 

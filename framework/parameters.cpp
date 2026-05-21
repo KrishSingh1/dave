@@ -29,6 +29,7 @@ firemodeltype firemodel;
 weathergeneratortype weathergenerator;
 hydrologytype hydrology;
 energytype energy;
+moistdecaytype moistdecay;
 
 int npatch;
 int npatch_secondarystand;
@@ -87,7 +88,7 @@ double rootfrac_of_deep_soil;		// Fraction of deep soil, beyond 1500mm, that roo
 double receiver_frac;				// Fraction of organic matter to move from receiver layer
 bool ifmultilayersnow;				// Whether to use the simple multilayer snow scheme (1), or not (0)
 bool ifsoaksnow;					// Whether to soak snowpack with melted water (1), or not (0)
-double top_depth;					// Additional depth ontop of snowpack to account for radiation energy
+double top_thickness;				// Additional thickness ontop of snowpack to account for radiation energy
 bool ifinundationstress;			// Whether to reduce GPP if there's inundation (1), or not (0)
 bool ifcarbonfreeze;				// Whether to limit soilC decomposition below 0degC in upland soils (1), or not (0)	
 double wetland_runon;				// Extra daily water input or output, in mm, to wetlands. Positive values are run ON, negative run OFF.
@@ -218,7 +219,7 @@ enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB
 	CB_MTSELECTION, CB_MTPLANTDENSITY, CB_MTTARGETFRAC, CB_MTTARGETFRACFILENAME, CB_MTWATERUSE, CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, 
 	CB_PFT, CB_STSELECTION, CB_STPLANTDENSITY, CB_STTARGETFRAC, CB_STTARGETFRACFILENAME, CB_STWATERUSE, CB_MANAGEMENT1, 
 	CB_MANAGEMENT2, CB_MANAGEMENT3, CB_PATHWAY, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, 
-	CB_WATERUPTAKE, CB_MTCOMPOUND, CB_FIREMODEL, CB_WEATHERGENERATOR, CB_HYDROLOGY, CB_ENERGY};
+	CB_WATERUPTAKE, CB_MTCOMPOUND, CB_FIREMODEL, CB_WEATHERGENERATOR, CB_HYDROLOGY, CB_ENERGY, CB_MOISTDECAY};
 
 // File local variables
 namespace {
@@ -263,6 +264,7 @@ void initsettings() {
 	weathergenerator=GWGEN;
 	hydrology=GERTEN;
 	energy=CNSTEP_FULL;
+	moistdecay=FRIEND;
 	ifcalcsla=true;
 	ifdisturb=false;
 	ifcalcsla=false;
@@ -515,6 +517,8 @@ void plib_declarations(int id,xtring setname) {
 			"Hydrology schemes (\"GERTEN\", \"MILLER\", \"RICHARDS\")");
 		declareitem("energy", &strparam, 20, CB_ENERGY,
 			"Energy calculation schemes (\"CNSTEP_FULL\", \"CNSTEP\", \"BELDA\")");
+		declareitem("moistdecay", &strparam, 20, CB_MOISTDECAY,
+			"Moisture SOM decay function (\"FRIEND\", \"YAN\")");
 
 		declareitem("nrelocfrac",&nrelocfrac,0.0,0.99,1,CB_NONE,
 			"Fractional nitrogen relocation from shed leaves & roots");
@@ -575,8 +579,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether or not multilayer snow calculations are performed (0,1)");
 		declareitem("ifsoaksnow", &ifsoaksnow, 1, CB_NONE,
 			"Whether or not snowpack is soaked by melting water (0,1)");
-		declareitem("top_depth", &top_depth, 0.0, 1000.0, 1, CB_NONE,
-			"Additional depth ontop of snowpack to account for radiation energy");
+		declareitem("top_thickness", &top_thickness, 0.0, 1000.0, 1, CB_NONE,
+			"Additional thickness ontop of snowpack to account for radiation energy");
 		declareitem("ifinundationstress",&ifinundationstress,1,CB_NONE,
 			"Whether to reduce NPP if there's inundation (1), or not (0)");
 		declareitem("ifcarbonfreeze",&ifcarbonfreeze,1,CB_NONE,
@@ -1351,6 +1355,15 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
+	case CB_MOISTDECAY:
+		if (strparam.upper() == "FRIEND") moistdecay = FRIEND;
+		else if (strparam.upper() == "YAN") moistdecay = YAN;
+		else {
+			sendmessage("Error",
+				"Unknown moistdecay function (valid types: \"FRIEND\", \"YAN\")");
+			plibabort();
+		}
+		break;
 	case CB_FIREMODEL:
 		if (strparam.upper()=="BLAZE") firemodel=BLAZE;
 		else if (strparam.upper()=="GLOBFIRM") firemodel=GLOBFIRM;
@@ -1535,6 +1548,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("weathergenerator")) badins("weathergenerator");
 		if (!itemparsed("hydrology")) badins("hydrology");
 		if (!itemparsed("energy")) badins("energy");
+		if (!itemparsed("moistdecay")) badins("moistdecay");
 		if (!itemparsed("firemodel")) badins("firemodel");
 		if (firemodel==BLAZE){
 			if (weathergenerator!=GWGEN) {
@@ -1605,7 +1619,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("receiver_frac")) badins("receiver_frac");
 		if (!itemparsed("ifmultilayersnow")) badins("ifmultilayersnow");
 		if (!itemparsed("ifsoaksnow")) badins("ifsoaksnow");
-		if (!itemparsed("top_depth")) badins("top_depth");
+		if (!itemparsed("top_thickness")) badins("top_thickness");
 		if (!itemparsed("ifinundationstress")) badins("ifinundationstress");
 		if (!itemparsed("ifcarbonfreeze")) badins("ifcarbonfreeze");
 		if (!itemparsed("peat_age")) badins("peat_age");
@@ -1676,6 +1690,10 @@ void plib_callback(int callback) {
 				dprintf("Roots in deep soil: Can't have deep roots together with GERTEN hydrology! rootfrac_of_deep_soil set to 0\n");
 				rootfrac_of_deep_soil = 0.0;
 			}
+			if (moistdecay == YAN) {
+				dprintf("Moistdecay: GERTEN hydrology uses the standard moisture SOM decay function! Moistdecay set to FRIEND\n");
+				moistdecay = FRIEND;
+			}
 		}
 
 		if (hydrology == MILLER) {
@@ -1698,6 +1716,10 @@ void plib_callback(int callback) {
 			if (rootfrac_of_deep_soil) {
 				dprintf("Roots in deep soil: Can't have deep roots together with MILLER hydrology! rootfrac_of_deep_soil set to 0\n");
 				rootfrac_of_deep_soil = 0.0;
+			}
+			if (moistdecay == YAN) {
+				dprintf("Moistdecay: MILLER hydrology uses the standard moisture SOM decay function! Moistdecay set to FRIEND\n");
+				moistdecay = FRIEND;
 			}
 		}
 

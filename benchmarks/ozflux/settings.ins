@@ -20,7 +20,7 @@ ifdavephotosyn 		     1   ! DAVE photosynthesis scheme (in need of a better name
 ifdavegrowth             1   ! DAVE growth scheme
 ifdavehydrology          1   ! DAVE hydrology updates
 ifdavehydraulics         0   ! DAVE hydraulics scheme (requires davephotosyn and davehydrology)
-ifzhou                   1   ! Zhou response of photosynthesis to water stress (via water potential). Requires ifdavehydrology
+ifzhou                   0   ! Zhou response of photosynthesis to water stress (via water potential). Requires ifdavehydrology
 ifdavediagnostics        0   ! DAVE mass balance diagnostics
 ifapproximate_C4         1   ! Use approximation of von Caemmerer 2000 C4 photosynthesis model?
 use_mean_annual_co2      1   ! If true, each day's CO2 value will be the mean annual co2 for the current year. Otherwise, a mean of that day's subdaily data will be used.
@@ -31,7 +31,7 @@ epsiresolution           100 ! Resolution for splines used to calculate psi from
 iftreephen               0   ! Turn on/off tree phenology (Dave)
 ifgrote                  1   ! Turn on/off grote tree allocation (Requires ifdailytree 1)
 iftempacclimation        0   ! DAVE temperature acclimation of photosynthesis.
-soildepth_evap           500 ! Depth of sublayer at top of upper soil layer, from which evaporation is possible Must be a multiple of 100. Trunk default is 200, Clare had 500
+soildepth_evap           200 ! Depth of sublayer at top of upper soil layer, from which evaporation is possible Must be a multiple of 100. Trunk default is 200, Clare had 500
 ifstoreuptake            1   ! Whether tree N uptake goes into long-term storage pool.
 
 ! Soil Data
@@ -212,13 +212,13 @@ ifcalccton 0            ! Whether to calculate leaf C:N min from leaf longevity
                 ! (PFT-specific value can be specified in this file instead)
 firemodel "NOFIRE"        ! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"    ! GWGEN, INTERP
-npatch       5          ! Number of replicate patches to simulate
+npatch       1          ! Number of replicate patches to simulate
 patcharea    1000       ! Patch area (m2)
 
 ifcdebt 1            ! Whether to allow vegetation C storage (1) or not (0)
-wateruptake "root_resistance"      ! "wcont", "rootdist", "smart" or "speciesspecific", "root_resistance"
+wateruptake "wcont"      ! "wcont", "rootdist", "smart" or "speciesspecific", "root_resistance"
                          ! see documentation for water_uptake()
-rootdistribution "fixed"    ! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
+rootdistribution "jackson"    ! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1                 ! Whether to use silt/sand fractions specific to soiltype
 ifsmoothgreffmort 1        ! Whether to vary mort_greff smoothly with growth efficiency (1)
                 ! or to use the standard step-function (0)
@@ -234,7 +234,7 @@ ifbvoc 0                         ! Whether to include BVOC calculations (1) or n
 ifdisturb    0          ! Whether generic patch-destroying disturbances enabled
 disttype     "NONE"     ! Disturbance regime ("NONE", "STOCHASTIC" (requires distinterval), "DETERMINISTIC" (requires file_disturb))
 
-distinterval 30        ! Average return time for generic patch-destroying disturbances
+distinterval 50        ! Average return time for generic patch-destroying disturbances
                         ! Only used if disttype = "STOCHASTIC"
                         ! Hickler et al. (2011) used 200
 
@@ -343,7 +343,8 @@ import "landcover.ins"
 !import "c3g.ins"
 !import "c4g.ins"
 
-import "pft_dave.ins"
+!import "pft_dave.ins"
+import "pft_grasses.ins"
 
 ! Uncomment this (and comment out all other pft .ins files) to use the standard
 ! (global) pfts. This should always be done when using trunk allocation.

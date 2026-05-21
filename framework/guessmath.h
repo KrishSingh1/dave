@@ -57,6 +57,9 @@ const double FRACT_TO_PERCENT   = 100.;
 const double PERCENT_TO_FRACT   = 0.01;
 const double R_EARTH            = 6371.2213; // mean earth-radius[km]
 
+class Vegetation;
+class Individual;
+
 inline bool negligible(double dval, int limit = 0) {
 	// If limit is nonzero, returns true if |dval| < 10^limit.
 	// Otherwise, returns true if |dval| < EPSILON, otherwise false
@@ -234,6 +237,9 @@ inline double mean(double* array, int nitem) {
 	for (int i=0; i<nitem; sum += array[i++]);
 	return sum / (double)nitem;
 }
+
+double sum(const Vegetation &vegetation, double (*func)(const Individual &indiv));
+double max(const Vegetation &vegetation, double (*func)(const Individual &indiv));
 
 /// Gives the mean of just two values
 inline double mean(double x, double y) {

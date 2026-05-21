@@ -76,10 +76,10 @@ public:
 	}
 
 	CohortState(const Individual &indiv, size_t layer) : CohortState(
-		indiv.lai_layerwise[layer],
+		indiv.canopy[layer].lai,
 		indiv.get_wscal(),
 		ifdavehydraulics ? indiv.predawn_lwp : indiv.weighted_psi,
-		indiv.fipar_layerwise[layer],
+		indiv.canopy[layer].fipar,
 		indiv.stomata_open,
 		indiv.fphen_activity,
 		indiv.ps_sink_lim,
@@ -1269,7 +1269,10 @@ void photosynthesis_gs(Patch& patch) {
 		}
 
 		// TODO: find another home for this check. It doesn't belong here.
-		double lai_layer_sum = sum(indiv.lai_layerwise);
+		double lai_layer_sum = 0;
+		for (size_t j = 0; j < indiv.canopy.size(); j++) {
+			lai_layer_sum += indiv.canopy[j].lai;
+		}
 		if (!equal(lai_layer_sum, indiv.lai_today())) {
 			log_warning("Individual %d (%s): layerwise LAI sum (%g) does not equal total LAI (%g) (phen=%g)",
 						i, (const char *)pft.name, lai_layer_sum,
@@ -1284,13 +1287,6 @@ void photosynthesis_gs(Patch& patch) {
 		indiv.anc_frac = 0;
 		indiv.anj_frac = 0;
 		indiv.anp_frac = 0;
-
-		indiv.an_layerwise.clear();
-		indiv.an_layerwise.resize(indiv.lai_layerwise.size());
-
-		for (int j = 0; j < indiv.lai_layerwise.size(); j++) {
-			indiv.an_layerwise[j] = 0;
-		}
 
 		// Loop over time steps per day
         for (Day day; day.period != date.subdaily; day.next()) {
@@ -1310,7 +1306,7 @@ void photosynthesis_gs(Patch& patch) {
 			double lai_cum_bottom = 0.0;
 
 			// Loop over canopy layers (from top layer to bottom layer)
-			size_t nlayer = indiv.fipar_layerwise.size();
+			size_t nlayer = indiv.canopy.size();
 
             // Initialise the layerwise inputs and outputs for this timestep.
             // This can't happen earlier because we need to know the number of
@@ -1325,17 +1321,17 @@ void photosynthesis_gs(Patch& patch) {
 				// can happen because the number of layers is the total number
 				// of canopy layers. So if this tree is shorter than the tallest
 				// tree in the patch, it may not have any LAI in this layer.
-				if (is_zero(indiv.lai_layerwise[j])) {
+				if (is_zero(indiv.canopy[j].lai)) {
 					continue;
 				}
 
 				// Determine, for this indiv, LAI and cumulative LAI of the layer.
 
 				// Cumulative LAI at the bottom of current layer.
-				lai_cum_bottom += indiv.lai_layerwise[j];
+				lai_cum_bottom += indiv.canopy[j].lai;
 
 				// Cumulative LAI at the middle of current layer.
-				double lai_cum = lai_cum_bottom - 0.5 * indiv.lai_layerwise[j];
+				double lai_cum = lai_cum_bottom - 0.5 * indiv.canopy[j].lai;
 
 				CohortState cohort(indiv, j);
 
@@ -1366,8 +1362,6 @@ void photosynthesis_gs(Patch& patch) {
 
 				// sum variables over canopy layers
 				double lai_layer = inputs.lai;
-
-				indiv.an_layerwise[j] += outputs.an;
 
 				Rd_canopy  += outputs.rd * lai_layer;
 				An_canopy  += outputs.an * lai_layer;
@@ -1409,20 +1403,19 @@ void photosynthesis_gs(Patch& patch) {
 			// lai_layerwise should sum to lai_today(), which is lai * phen. For
 			// deciduous trees not using the DAVE allocation pathway, this may
 			// not be the same as indiv.lai.
-			double lai_tot = sum(indiv.lai_layerwise);
 
 			// Calculate mean for some variables.
-			if (lai_tot == 0) {
+			if (lai_layer_sum == 0) {
 				log_warning("Individual %d (%s): Total layerwise LAI is zero (%g) (indiv.lai = %g)",
-					        indiv.id, (const char *)pft.name, lai_tot,
-							indiv.lai);
+					        indiv.id, (const char *)pft.name, lai_layer_sum,
+							indiv.lai_today());
 			} else {
-				ci_canopy /= lai_tot;
-				vcmax_canopy /= lai_tot;
-				jmax_canopy /= lai_tot;
+				ci_canopy /= lai_layer_sum;
+				vcmax_canopy /= lai_layer_sum;
+				jmax_canopy /= lai_layer_sum;
 			}
 
-			assert(indiv.lai < 20);
+			assert(indiv.lai_today() < 20);
 
 			// Save key variables to PhotosynthesisSubdaily Structure.
 			indiv.ps_subdaily.Rd[day.period]    = Rd_canopy;
@@ -1528,7 +1521,7 @@ double transpiration_dave(const Individual &indiv) {
 			// Transpiration in mol H2O m-2 s-1.
 			// TODO: should transpiration in each layer/timestep be clamped to
 			// zero if it's negative? Or should we do this once per day?
-			transp += ebal[j].get_transp() * indiv.lai_layerwise[j];
+			transp += ebal[j].get_transp() * indiv.canopy[j].lai;
 		}
 	}
 
@@ -1792,7 +1785,268 @@ void forest_floor_dave(Patch &patch) {
 	}
 }
 
-void canopy_exchange_dave(Patch &patch, Climate &climate) {
+double calc_lai_layer(const Individual &indiv, double lowbound,
+					  double highbound, double vstep) {
+	if (!(indiv.pft.lifeform == TREE &&
+		  indiv.height > lowbound &&
+		  indiv.boleht < highbound &&
+		  !negligible(indiv.height - indiv.boleht))) {
+		return 0;
+	}
+
+	// Calculate vertical fraction of current layer occupied by
+	// crown cylinders of this cohort
+
+	double frac = 1.0;
+	if (indiv.height < highbound)
+		frac -= (highbound - indiv.height) / vstep;
+	if (indiv.boleht > lowbound)
+		frac -= (indiv.boleht - lowbound) / vstep;
+
+	// Calculate summed LAI of this cohort in this layer
+
+	double atoh = indiv.lai_today() / (indiv.height - indiv.boleht);
+	return atoh * frac * vstep;
+}
+
+double calc_lai_layer(const Vegetation &vegetation, double lowbound,
+					  double upbound, double vstep) {
+	double lai = 0;
+	for (size_t i = 0; i < vegetation.nobj; i++) {
+		lai += calc_lai_layer(vegetation[i], lowbound, upbound, vstep);
+	}
+	return lai;
+}
+
+/*
+Calculate the fraction of incoming PAR incident to a layer (0-1).
+
+@param lai Cumulative LAI from top of canopy to middle of layer (m2 m-2).
+@param k Extinction coefficient for PAR.
+*/
+double calc_fipar(double lai, double k = K_BEER_GRASS) {
+	return k / (1.0 - M_TRANS) * lambertbeer(lai, k);
+}
+
+void partition_tree_canopy_dave(Patch &patch) {
+	const Vegetation &vegetation = patch.vegetation;
+
+	// Canopy height in meters.
+	double height_veg = max(vegetation, [](const Individual &indiv) { return indiv.height; });
+
+	// Width of vertical layers for canopy-area integration (m).
+	double vstep = nlayer_canopy ? height_veg / nlayer_canopy : layer_thickness_canopy;
+
+	// Calculate number of layers (minus 1) from ground surface to top of canopy
+	size_t toplayer = (size_t)(height_veg / vstep);
+
+	if (toplayer > 0 && height_veg <= toplayer * vstep) {
+		// Top layer results in an empty layer. This can happen if the
+		// vegetation height falls exactly on a layer boundary. In this case
+		// we simply reduce the layer count by one.
+		toplayer--;
+	}
+
+	size_t nlayer = toplayer + 1;
+
+	double lai_cum = 0;
+	for (size_t i = 0; i < nlayer; i++) {
+		// i = 0 is top layer.
+		size_t layer = toplayer - i;
+		double lowbound = (double)layer * vstep;
+		double upbound = (double)(layer + 1) * vstep;
+
+		// Total LAI of all cohorts in this layer.
+		double lai_layer = calc_lai_layer(vegetation, lowbound, upbound, vstep);
+		lai_cum += lai_layer;
+
+		if (negligible(lai_layer)) {
+			continue;
+		}
+
+		// see e.g. Sands 1995, Australian Journal of Plant Physiology
+		double fipar_layer = calc_fipar(lai_cum - lai_layer / 2, K_BEER_TREE);
+
+		// Store layer-wise fpar and LAI in tree cohorts.
+		for (size_t j = 0; j < vegetation.nobj; j++) {
+			Individual &indiv = vegetation[j];
+			if (indiv.pft.lifeform != TREE) {
+				continue;
+			}
+			double lai = calc_lai_layer(indiv, lowbound, upbound, vstep);
+			indiv.canopy.set(i, lai, fipar_layer);
+		}
+	}
+}
+
+// LAI per layer for each grass individual.
+const double LAI_PER_LAYER = 0.5;
+
+void partition_grass_canopy_even_dave(const Patch &patch) {
+	const Vegetation &vegetation = patch.vegetation;
+
+	// Get total grass LAI (m2 m-2).
+	double lai_grass = sum(vegetation, [](const Individual &indiv) {
+			return indiv.pft.is_grass() ? indiv.lai_today() : 0; });
+
+	// Total number of canopy layers for grasses.
+	size_t nlayer = ceil(lai_grass / LAI_PER_LAYER);
+
+	// Iterate through canopy layers top to bottom. Top layer is i=0.
+	double lai_cum = 0;
+	for (size_t i = 0; i < nlayer; i++) {
+		// In bottom layer we allocate all remaining LAI. All other layers get
+		// LAI_PER_LAYER.
+		double lai_layer = LAI_PER_LAYER;
+		if (i == nlayer - 1) {
+			lai_layer = lai_grass - lai_cum;
+		}
+		lai_cum += lai_layer;
+
+		// Calculate fipar in middle of layer.
+		double fipar_layer = calc_fipar(lai_cum - lai_layer / 2, K_BEER_GRASS);
+
+		// All grasses get the same fraction of LAI in this layer.
+		double lai_frac = lai_layer / lai_grass;
+
+		for (size_t j = 0; j < vegetation.nobj; j++) {
+			Individual &indiv = vegetation[j];
+			if (!indiv.pft.is_grass()) {
+				continue;
+			}
+
+			// Evenly distribute LAI across layers.
+			double lai = indiv.lai_today() * lai_frac;
+
+			// Add LAI in to lai_layerwise vector.
+			indiv.canopy.set(i, lai, fipar_layer);
+		}
+	}
+}
+
+std::vector<int> get_sorted_grass_indices(const Vegetation &vegetation) {
+	std::vector<int> indices;
+	indices.reserve(vegetation.nobj);
+
+	// Collect in vegetation order.
+	for (size_t i = 0; i < vegetation.nobj; i++) {
+		const Individual &indiv = vegetation[i];
+		bool is_grass = indiv.pft.is_grass() || indiv.pft.lifeform == MOSS;
+		if (is_grass && indiv.lai_today() > 0) {
+			indices.push_back(i);
+		}
+	}
+
+	// Sort ascending by LAI.
+	std::stable_sort(indices.begin(), indices.end(),
+		[&vegetation](int a, int b) {
+			return vegetation[a].lai_today() < vegetation[b].lai_today();
+		});
+	return indices;
+}
+
+void partition_grass_canopy_uneven_dave(const Patch &patch) {
+	const Vegetation &vegetation = patch.vegetation;
+
+	// Get indices of grasses in ascending order of LAI.
+	std::vector<int> grass_indices = get_sorted_grass_indices(vegetation);
+
+	// Total grass LAI (m2 m-2).
+	double lai_grass = sum(vegetation, [](const Individual &indiv) {
+		return indiv.pft.is_grass() ? indiv.lai_today() : 0; });
+
+	size_t nlayer = static_cast<size_t>(ceil(lai_grass / LAI_PER_LAYER));
+
+	// The total LAI allocated so far for each grass.
+	std::vector<double> allocated(grass_indices.size(), 0);
+
+	// Iterate over grass canopy layers, starting at bottom of canopy.
+	// Note: i=0 is top layer, which is the indexing used by indiv.canopy.
+	for (int i = nlayer - 1; i >= 0; i--) {
+		// Total lai in this layer across all grass PFTs.
+		double lai_layer = LAI_PER_LAYER;
+
+		// Bottom LAI gets remaining LAI which is <= LAI_PER_LAYER.
+		if (i == nlayer - 1) {
+			lai_layer = lai_grass - (nlayer - 1) * LAI_PER_LAYER;
+		}
+
+		// i is the number of layers above this one. Every layer except the
+		// bottom one is guaranteed to have exactly LAI_PER_LAYER.
+		double lai_above = i * LAI_PER_LAYER;
+		double fipar = calc_fipar(lai_above + 0.5 * lai_layer, K_BEER_GRASS);
+
+		// Each individual's entitlement in this layer. All grasses have this
+		// much LAI in this layer. If some shortfall (ie remaining LAI is less
+		// than their entitlement), entitlement for remaining grasses is
+		// increased. Because grasses are ordered by LAI ascending, we ensure
+		// that lai_layer_total is allocated to the maximum extent possible.
+		double entitlement = lai_layer / grass_indices.size();
+
+		// The LAI not yet allocated in this layer.
+		double remaining = lai_layer;
+
+		// Loop through grasses, smallest to largest.
+		for (size_t j = 0; j < grass_indices.size(); j++) {
+			Individual &indiv = vegetation[grass_indices[j]];
+
+			// Calculate LAI contributed by this grass in this layer.
+			double lai = min(indiv.lai_today() - allocated[j], entitlement);
+			indiv.canopy.set(i, lai, fipar);
+			allocated[j] += lai;
+
+			// Subtract this grass's LAI contribution from the remaining LAI
+			// required in this layer.
+			remaining -= lai;
+
+			if (lai < entitlement) {
+				// This grass is too small to use its full entitlement.
+				// Increase entitlement for remaining grasses.
+				int nindiv_remaining = grass_indices.size() - j - 1;
+				if (nindiv_remaining > 0) {
+					entitlement = remaining / nindiv_remaining;
+				}
+			}
+		} // grasses loop
+	} // layer loop
+}
+
+void partition_grass_canopy_dave(Patch &patch) {
+	// Short circuit if no grasses are established.
+	double ngrass = sum(patch.vegetation, [](const Individual &indiv) { return indiv.pft.is_grass() ? 1.0 : 0.0; });
+	if (ngrass == 0) {
+		return;
+	}
+
+	if (ifevenlaidist) {
+		partition_grass_canopy_even_dave(patch);
+	} else {
+		partition_grass_canopy_uneven_dave(patch);
+	}
+}
+
+/*
+Partition canopy into discrete layers, and calculate LAI and fipar in each layer
+for each cohort.
+*/
+void partition_canopy_dave(Patch &patch) {
+	// Short-circuit empty patches.
+	if (patch.vegetation.nobj == 0) {
+		return;
+	}
+
+	partition_tree_canopy_dave(patch);
+	partition_grass_canopy_dave(patch);
+
+	// Verify canopy vs canopy2.
+	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
+		patch.vegetation[i].validate_canopy();
+	}
+}
+
+void canopy_exchange_dave(Patch &patch) {
+
+	partition_canopy_dave(patch);
 
     // Get vcmax25/jmax25/vpmax25 values.
     store_vcmax_values(patch.vegetation);

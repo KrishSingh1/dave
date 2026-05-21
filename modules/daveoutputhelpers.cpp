@@ -164,38 +164,13 @@ std::vector<std::string> get_pft_flux_names() {
 	return fluxes;
 }
 
-Individual *get_first_indiv(const Patch &patch) {
-	const Vegetation &vegetation = patch.vegetation;
-	if (vegetation.nobj > 0) {
-		return &(vegetation[0]);
+size_t get_nlayer_canopy(const Patch &patch) {
+	size_t nlayer = 0;
+	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
+		const Individual &indiv = patch.vegetation[i];
+		nlayer = max(nlayer, indiv.canopy.size());
 	}
-	return NULL;
-}
-
-int get_nlayer_fpar(const Patch &patch) {
-	Individual *indiv = get_first_indiv(patch);
-	if (indiv) {
-		return indiv->fipar_layerwise.size();
-	}
-	// No individuals are established in this patch.
-	return 0;
-}
-
-
-int get_nlayer_lai(const Patch &patch) {
-	Individual *indiv = get_first_indiv(patch);
-	if (indiv) {
-		return indiv->lai_layerwise.size();
-	}
-	return 0;
-}
-
-int get_nlayer_an(const Patch &patch) {
-	Individual *indiv = get_first_indiv(patch);
-	if (indiv) {
-		return indiv->an_layerwise.size();
-	}
-	return 0;
+	return nlayer;
 }
 
 std::vector<ColumnDefinition<Individual>> get_pft_litter_pools() {

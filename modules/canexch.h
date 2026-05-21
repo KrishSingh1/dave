@@ -258,12 +258,6 @@ inline double lambertbeer(double lai, double k=0.5) {
 	return exp(-k * lai);
 }
 
-// Leaf transmission coefficient (Sands, 1995)
-const double m_trans = 0.0;
-
-// Light extinction coefficient used for grasses in ifdavephotosyn
-const double k_beer_grass = 0.5;
-
 /// Alternative parameterisations of the convective boundary layer
 /**
  *	AET_MONTEITH_HYPERBOLIC = hyperbolic parameterisation (Huntington & Monteith 1998)

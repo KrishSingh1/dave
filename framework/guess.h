@@ -695,6 +695,60 @@ struct Wood_harvest_struct {
 	}
 };
 
+struct CanopyLayer {
+	double lai;
+	double fipar;
+};
+
+class Canopy {
+public:
+	/*
+	Called once per day to invalidate/clear yesterday's values without altering
+	layer structure.
+	*/
+	void clear();
+
+	/*
+	Set LAI and fipar in the given layer.
+
+	@param layer zero-based index of layer to set (0=top layer).
+	@param lai leaf area index of this layer (m2 m-2 ground).
+	@param fipar fraction of PAR incident to this layer (0-1).
+	*/
+	void set(size_t layer, double lai, double fipar);
+
+	/*
+	Access the i-th canopy layer.
+
+	@param i zero-based index of layer to access (0=top layer).
+	*/
+	CanopyLayer & operator[] (size_t i);
+
+	/*
+	Read-only access to the i-th canopy layer.
+
+	@param i zero-based index of layer to access (0=top layer).
+	*/
+	const CanopyLayer & operator[] (size_t i) const;
+
+	/*
+	Get the number of layers in the canopy.
+	*/
+	size_t size() const;
+private:
+	/*
+	Ensure that layer i exists, and if not, add layers up to and including i.
+
+	@param layer index (0=top).
+	*/
+	void verify_size(size_t i);
+
+	/*
+	The vector of canopy layers. First layer is top, last is bottom.
+	*/
+	std::vector<CanopyLayer> layers;
+};
+
 /// Inputs required to calculate photosynthesis for a single individual in a
 /// single canopy layer at a single subdaily timestep (DAVE photosynthesis).
 class PhotosynthesisInputs {
@@ -3740,18 +3794,9 @@ public:
 	double rpc;
 	/// fraction of PAR absorbed by foliage over projective area today, taking account of leaf phenological state
 	double fpar;
-	/// layer-wise fpar (see fpar description)
-	/// Does this need to be serialised? It's reinitialised each day, so I'm going to say no.
-	/// incident radiation per layer as fraction of above-canopy PAR (0-1)
-	std::vector<double> fipar_layerwise;
 
-	/// layer-wise lai (see lai description).
-	/// I've opted not to serialise this, as it's reinitialised each day.
-	std::vector<double> lai_layerwise;
-
-	/// layer-wise net photosynthesis 
-	/// I've opted not to serialise this, as it's reinitialised each day.
-	std::vector<double> an_layerwise;
+	// Canopy layers.
+	Canopy canopy;
 
 	/// average density of individuals over patch (indiv/m2)
 	double densindiv;
@@ -4437,6 +4482,9 @@ public:
 
 	/// Get the moving average of water stress.
 	double get_wscal_moving_average() const;
+
+	/// Ensure that canopy layers are internally consistent.
+	void validate_canopy() const;
 private:
 	// Reset annual variables. Called from daily_accounting() on the first day
 	// of the year.

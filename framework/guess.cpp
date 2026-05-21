@@ -2140,11 +2140,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	resp_crown        = 0.0;
 	cropindiv         = NULL;
 	last_turnover_day = -1;
-
-	fipar_layerwise.clear();
-	lai_layerwise.clear();
-	an_layerwise.clear();
-
 	andemand_leaf     = 0.0;
 	andemand_root     = 0.0;
 	andemand_sap      = 0.0;
@@ -3848,8 +3843,12 @@ void Individual::daily_accounting() {
 		ps_outputs_layerwise[i].clear();
 		energy_balance_layerwise[i].clear();
 	}
-	lai_layerwise.clear();
-	fipar_layerwise.clear();
+	canopy.clear();
+
+	if (ifdavephotosyn) {
+		ps_subdaily.clear();
+		photosynthesis.clear();
+	}
 }
 
 void Individual::annual_accounting() {
@@ -3947,6 +3946,27 @@ const Historic<double,30> &Individual::get_wscal_30() const {
 		return wscal_30;
 	} else {
 		return patchpft().wscal_30;
+	}
+}
+
+void Individual::validate_canopy() const {
+	double lai_sum = 0;
+	for (size_t j = 0; j < canopy.size(); j++) {
+		lai_sum += canopy[j].lai;
+		if (j > 0) {
+			// fipar should decrease as we go down the canopy.
+			if (canopy[j].fipar > canopy[j - 1].fipar) {
+				log_fatal("Invalid canopy for individual %d (%s): fipar should decrease as we go down the canopy, but fipar in layer %d is %g and in layer %d is %g.",
+						  id, (const char *)pft.name, j, canopy[j].fipar,
+						  j - 1, canopy[j - 1].fipar);
+			}
+		}
+	}
+
+	// Ensure that entire LAI is allocated across layers.
+	if (!equal(lai_sum, lai_today())) {
+		log_fatal("Invalid canopy for individual %d (%s): total LAI across layers (%g) does not match today's LAI (%g).",
+				  id, (const char *)pft.name, lai_sum, lai_today());
 	}
 }
 
@@ -4897,6 +4917,47 @@ double calc_a_growth(const Pft *pft) {
 		fail("Failed to optimise temp_growth curve - check pft parameters Ha_growth, T0_growth, temp_dormancy!!!");
 	}
 	return 1.0 / y;
+}
+
+void Canopy::clear() {
+	// Reset all daily values.
+	for (size_t i = 0; i < size(); i++) {
+		layers[i].lai = 0.0;
+		layers[i].fipar = 0.0;
+	}
+}
+
+void Canopy::set(size_t layer, double lai, double fipar) {
+	verify_size(layer);
+	layers[layer].lai = lai;
+	layers[layer].fipar = fipar;
+}
+
+CanopyLayer &Canopy::operator[] (size_t i) {
+	verify_size(i);
+	return layers[i];
+}
+
+const CanopyLayer &Canopy::operator[] (size_t i) const {
+	// FIXME: only necessary until daveoutput refactor to improve handling of
+	// cohort-level outputs.
+	if (i >= size()) {
+		// Accessing a layer that doesn't exist - return an empty layer.
+		static CanopyLayer empty_layer;
+		return empty_layer;
+	}
+	return layers[i];
+}
+
+void Canopy::verify_size(size_t size) {
+	// Ensure that layer `size` exists.
+	while (this->size() < size + 1) {
+		layers.push_back(CanopyLayer{});
+	}
+}
+
+size_t Canopy::size() const {
+	return layers.size();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

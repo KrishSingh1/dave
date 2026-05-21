@@ -1,4 +1,5 @@
 #include "guessmath.h"
+#include "guess.h"
 
 bool solve_quadratic(double a, double b, double c, double &root, bool lower) {
 
@@ -33,4 +34,21 @@ bool solve_quadratic(double a, double b, double c, double &root, bool lower) {
 	int sign = lower ? -1 : 1;
 	root = (-b + sign * sqrt(discriminant)) / (2 * a);
 	return true;
+}
+
+double sum(const Vegetation &vegetation, double (*func)(const Individual &indiv)) {
+	double result = 0.0;
+	for (int i = 0; i < vegetation.nobj; i++) {
+		result += func(vegetation[i]);
+	}
+	return result;
+}
+
+double max(const Vegetation &vegetation, double (*func)(const Individual &indiv)) {
+	double result = 0;
+	for (int i = 0; i < vegetation.nobj; i++) {
+		double value = func(vegetation[i]);
+		result = std::max(result, value);
+	}
+	return result;
 }

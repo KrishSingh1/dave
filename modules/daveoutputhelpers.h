@@ -294,29 +294,12 @@ Get the total standing dead biomass for the given PFT.
 double get_pft_standing_dead_cmass(const Patch &patch, const Pft &pft);
 
 /*
-Get the first individual in the patch, if any are established.
-
-@param patch: A patch object.
-*/
-Individual *get_first_indiv(Patch &patch);
-
-/*
-Get the number of canopy layers used for fpar calculations today in the
-specified patch.
-
-@param patch: A patch object.
-*/
-int get_nlayer_fpar(const Patch &patch);
-
-/*
 Get the number of canopy layers used for light interception today in the
 specified patch.
 
 @param patch: A patch object.
 */
-int get_nlayer_lai(const Patch &patch);
-
-int get_nlayer_an(const Patch &patch);
+size_t get_nlayer_canopy(const Patch &patch);
 
 /*
 Get the litter cmass for the specified pft in the specified patch (kgC/m2).

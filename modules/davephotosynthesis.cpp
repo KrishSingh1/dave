@@ -6,6 +6,7 @@
 #include "logging.h"
 #include "guessmath.h"
 #include "driver.h"
+#include "somdynam.h"
 
 // Average leaf N:P ratio for C3 grasses from Thum et al. 2019 (SI Table 8).
 const double C3_LEAF_NTOP = 10.7;
@@ -1785,6 +1786,14 @@ void forest_floor_dave(Patch &patch) {
 	}
 }
 
+/*
+Calculate the LAI in a given layer for an individual.
+
+@param indiv Individual for which to calculate LAI.
+@param lowbound Lower height of layer (m).
+@param highbound Upper height of layer (m).
+@param vstep Width of layer (m).
+*/
 double calc_lai_layer(const Individual &indiv, double lowbound,
 					  double highbound, double vstep) {
 	if (!(indiv.pft.lifeform == TREE &&
@@ -1809,6 +1818,13 @@ double calc_lai_layer(const Individual &indiv, double lowbound,
 	return atoh * frac * vstep;
 }
 
+/*
+Calculate total tree LAI in a layer.
+
+@param lowbound Lower height of layer (m).
+@param upbound Upper height of layer (m).
+@param vstep Width of layer (m).
+*/
 double calc_lai_layer(const Vegetation &vegetation, double lowbound,
 					  double upbound, double vstep) {
 	double lai = 0;
@@ -2044,6 +2060,97 @@ void partition_canopy_dave(Patch &patch) {
 	}
 }
 
+/*
+Damage caused by sitting at temprature tleaf for mins minutes.
+
+@param tleaf   Leaf temperature (℃).
+@param t50_par Reference temperature (°C) at which 50% damage occurs
+               after 1 minute of exposure.
+@param z       Temperature sensitivity coefficient (°C). Controls how
+               rapidly damage changes with temperature; smaller values
+               produce a steeper damage response curve.
+@param mins    Length of exposure (minutes).
+
+@return Fraction of LAI lost (0-1).
+*/
+double calc_leaf_damage(double tleaf, double t50_par, double z, double mins) {
+	double dam = 0.5 * mins * pow(10.0, -1.0 / z * (t50_par - tleaf));
+	dam = std::min(1.0, dam);
+	return dam;
+}
+
+void leaf_damage_dave(Patch &patch) {
+	Soil &soil = patch.soil;
+
+	// Timestep length in minutes.
+	double timestep = SECS_PER_DAY / date.subdaily / SECONDS_PER_MINUTE;
+
+	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
+		Individual &indiv = patch.vegetation[i];
+		const Pft &pft = indiv.pft;
+
+		if (is_zero(indiv.lai_today())) {
+			continue;
+		}
+
+		double lai_loss = 0;
+		for (size_t j = 0; j < indiv.energy_balance_layerwise.size(); j++) {
+			for (size_t k = 0; k < indiv.energy_balance_layerwise[j].size(); k++) {
+				double tleaf = indiv.energy_balance_layerwise[j][k].get_tleaf();
+				double dam = calc_leaf_damage(tleaf, pft.t50, pft.z, timestep);
+				lai_loss += dam * indiv.canopy[k].lai;
+			}
+		}
+
+		if (lai_loss == 0) {
+			continue;
+		}
+
+		double frac_loss = lai_loss / indiv.lai_today();
+		assert(frac_loss >= 0);
+
+		// Sum of indiv.canopy[k].lai across layers can't exceed
+		// indiv.lai_today(), but over the course of the day it could in theory,
+		// so we need to guard against that.
+		if (frac_loss >= 1.0) {
+			log_warning("Individual %d (%s): LAI loss (%g) exceeds total LAI (%g), setting LAI loss to total LAI. This isn't mathematically impossible, and probably indicates sustained high temperatures over the course of the day.",
+						indiv.id, (const char *)pft.name, lai_loss, indiv.lai_today());
+			frac_loss = 1.0;
+		}
+
+		double frac_remain = 1.0 - frac_loss;
+
+		double closs = frac_loss * indiv.cmass_leaf_today();
+		double nloss = frac_loss * indiv.get_nmass_leaf();
+
+		// Move biomass from leaf to litter.
+		if (pft.is_grass() && pft.dave_allocation()) {
+			// get_cmass_leaf() and get_nmass_leaf() only include green leaf
+			// mass, so that's what we reduce. Should we also reduce brown leaf
+			// mass? And should green leaf mass be moved to litter or to brown
+			// leaf mass?
+			indiv.cmass_leafs[green] *= frac_remain;
+			indiv.nmass_leafs[green] *= frac_remain;
+		} else {
+			indiv.cmass_leaf *= frac_remain;
+			indiv.nmass_leaf *= frac_remain;
+		}
+		leaf_to_litter(soil, pft, closs, nloss);
+
+		// TODO: rationalise this. We don't really want to calculate LAI in lots
+		// of different places.
+		indiv.lai *= frac_remain;
+
+		// Accounting.
+		indiv.closs_temp = closs;
+		indiv.nloss_temp = nloss;
+		indiv.loss_temp = frac_loss;
+		indiv.acloss_temp += closs;
+		indiv.anloss_temp += nloss;
+		indiv.aloss_temp += frac_loss;
+	}
+}
+
 void canopy_exchange_dave(Patch &patch) {
 
 	partition_canopy_dave(patch);
@@ -2065,6 +2172,9 @@ void canopy_exchange_dave(Patch &patch) {
 
     // Calculate respiration and NPP on a daily basis.
     npp_dave(patch);
+
+	// Calculate leaf damage due to high temperature.
+	leaf_damage_dave(patch);
 
     // Leaf senescence for crops.
     leaf_senescence(patch.vegetation);

@@ -124,8 +124,11 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_acalloc_repr"	    , ANNUAL, [](const Individual &i) { return i.acalloc_repr; }, "Total annual C allocation to repr (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_acalloc_sap"		    , ANNUAL, [](const Individual &i) { return i.acalloc_sap; }, "Total annual C allocation to sap (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_acalloc_storage"	    , ANNUAL, [](const Individual &i) { return i.acalloc_storage; }, "Total annual C allocation to storage (kgC/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_acalloc_crown"	    , ANNUAL, [](const Individual &i) { return i.acalloc_crown; }, "Total annuabl C allocation to crown (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_acalloc_crown"	    , ANNUAL, [](const Individual &i) { return i.acalloc_crown; }, "Total annual C allocation to crown (kgC/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_anstorage_drawdown"  , ANNUAL, [](const Individual &i) { return i.anstorage_drawdown; }, "Total annual amount of N withdrawn from storage for growth (kgN/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_acloss_temp"         , ANNUAL, [](const Individual &i) { return i.acloss_temp; }, "Total annual amount of C lost to high temperature (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_anloss_temp"         , ANNUAL, [](const Individual &i) { return i.anloss_temp; }, "Total annual amount of N lost to high temperature (kgN/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_aloss_temp"          , ANNUAL, [](const Individual &i) { return i.aloss_temp; }, "Total annual fraction of leaves lost to high temperature (unitless)", mean, true);
 
 	// Annual indiv-level outputs.
 	add_indiv_output("file_dave_indiv_mort"                     , ANNUAL, mortality_cols, "Annual indiv-level mortality divided by component/cause, expressed as fraction of individuals within the cohort which died this year.", true);
@@ -310,6 +313,9 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_belowground_nmass"   , DAILY, [](const Individual &i) { return i.nmass_root + i.nmass_crown; }, "Daily below-ground N biomass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_aboveground_tree_biomass", DAILY, [](const Individual &i) { return i.pft.is_grass() ? 0 : 2.0 * (i.cmass_leaf + i.cmass_sap + i.cmass_heart/* + i.cmass_storage*/); }, "Daily total above-ground tree biomass (kg/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_csenesc"             , DAILY, [](const Individual &i) { return G_PER_KG * i.csenesc; }, "Daily total C senesced by grasses (gC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_closs_temp"          , DAILY, [](const Individual &i) { return i.closs_temp; }, "Daily C lost to high temperature (kgC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_nloss_temp"          , DAILY, [](const Individual &i) { return i.nloss_temp; }, "Daily N lost to high temperature (kgN/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_loss_temp"           , DAILY, [](const Individual &i) { return i.loss_temp; }, "Daily fraction of leaves lost to high temperature (unitless)", mean, true);
 
 	add_aggregated_indiv_output("file_dave_cgrazed_repr"        , DAILY, [](const Individual &i) { return i.charvest_repr; }, "Daily reproductive cmass grazed (kgC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_cgrazed_green_leaf"  , DAILY, [](const Individual &i) { return i.charvest_green; }, "Daily green leaf cmass grazed (kgC/m2/day)", sum, true);

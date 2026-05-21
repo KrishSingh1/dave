@@ -3838,6 +3838,9 @@ void Individual::daily_accounting() {
 	}
 	cmass_germ = 0;
 	mort_dcstarve = 0.0;
+	closs_temp = 0;
+	nloss_temp = 0;
+	loss_temp = 0;
 	for (size_t i = 0; i < date.subdaily; i++) {
 		ps_inputs_layerwise[i].clear();
 		ps_outputs_layerwise[i].clear();
@@ -3860,6 +3863,9 @@ void Individual::annual_accounting() {
 	antoavail = 0;
 	mort_cstarve = 0.0;
 	aaet = 0.0;
+	acloss_temp = 0;
+	anloss_temp = 0;
+	aloss_temp = 0;
 }
 
 size_t Individual::get_wscal_dynamic_capacity() const {

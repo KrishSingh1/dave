@@ -2469,6 +2469,16 @@ public:
     /// the effect determined by racclim. A value of zero means no acclimation
     /// effect.
 	double racclim;
+
+	// Temperature sensitivity coefficient (°C). Controls how rapidly damage
+	// changes with temperature; smaller values produce a steeper damage
+	// response curve.
+	double z;
+
+	// Reference temperature (°C) at which 50% leaf damage occurs after 1 minute
+	// of exposure.
+	double t50;
+
 	/// Turgor loss point (MPa) - used for grasses only, where this often comes long before stomatal closure
 	double tlp;
 	// Sensitivity parameter indicating steepness of decline in Vcmax with water stress (Zhou 2014)
@@ -3770,6 +3780,18 @@ public:
 	double ctolitter;
 	/// Daily N sent to litter (kgN/m2). This is used for accounting purposes.
 	double ntolitter;
+	/// Daily C lost to high temperature (kgC/m2). This is used for accounting purposes.
+	double closs_temp;
+	/// Daily N lost to high temperature (kgN/m2). This is used for accounting purposes.
+	double nloss_temp;
+	/// Daily fraction of leaves lost to high temperature (unitless). This is used for accounting purposes.
+	double loss_temp;
+	/// Cumulative annual C sent to litter (kgC/m2).
+	double acloss_temp;
+	/// Cumulative annual N sent to litter (kgN/m2).
+	double anloss_temp;
+	/// Cumulative annual fraction of leaves lost to high temperature (unitless).
+	double aloss_temp;
 	/// Daily N taken up but then sent back to available N pool (kgN/m2).
 	double ntoavail;
 	/// Cumulative annual N taken up but then sent back to available N pool (kgN/m2).

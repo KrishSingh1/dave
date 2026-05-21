@@ -116,6 +116,15 @@ group "common" (
 
 	! Leaf width (m).
 	leaf_width 0.02
+
+	! Reference temperature (°C) at which 50% damage occurs after 1 minute of
+	! exposure.
+	t50 55
+
+	! Temperature sensitivity coefficient (°C). Controls how rapidly damage
+	! changes with temperature; smaller values produce a steeper damage response
+	! curve.
+	z 5
 )
 
 group "tree" (

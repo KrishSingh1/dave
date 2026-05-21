@@ -830,6 +830,10 @@ void plib_declarations(int id,xtring setname) {
 			"Canopy nitrogen extinction coefficient (Hikosaka et al. 2016)");
 		declareitem("racclim",&ppft->racclim,-5000,5000,1,CB_NONE,
 			"Acclimation sensitivity coefficient for respiration (1/degC)");
+		declareitem("t50",&ppft->t50,-5000,5000,1,CB_NONE,
+			"Reference temperature (°C) at which 50% leaf damage occurs after 1 minute of exposure.");
+		declareitem("z",&ppft->z,-5000,5000,1,CB_NONE,
+			"Temperature sensitivity coefficient (°C). Controls how rapidly damage changes with temperature; smaller values produce a steeper damage response curve.");
 
 		declareitem("vcmax_25",&ppft->vcmax_25,-5000,5000,1,CB_NONE,
 			"Maximum carboxylation rate at 25 degC (μmol m-2 s-1).");
@@ -2330,6 +2334,8 @@ void plib_callback(int callback) {
 				if (!ifdavegrowth && ppft->ifcalcvcmax) {
 					log_warning("Using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 0");
 				}
+				if (!itemparsed("t50")) badins("t50");
+				if (!itemparsed("z")) badins("z");
 
 				// If vcmax is calculated and PFT uses daily establishment, then
 				// vcmax25/jmax25/vpmax25 are not required. In all other cases,

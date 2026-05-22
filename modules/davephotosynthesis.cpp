@@ -354,7 +354,7 @@ Calculate stomatal term (Medlyn et al. 2011).
 X needs to represent gs for CO2, hence no 1.6 factor.
 */
 double stomatal_conductance_term(double wscal, double g1, double vpd, double ca) {
-	return divide(divide(1.0 + pow(wscal, qs) * g1, sqrt(max(vpd, 0.1))), ca);
+	return divide(1.0 + divide(pow(wscal, qs) * g1, sqrt(max(vpd, 0.1))), ca);
 }
 
 /*

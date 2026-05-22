@@ -202,7 +202,7 @@ group "grass" (
 
 	
 	crelocfrac 0        ! Fraction of senesced carbon retranslocated back to storage.
-	senesc_base 0.0002  ! Baseline senescence rate (d-1).
+	senesc_base 0.00015  ! Baseline senescence rate (d-1).
 
 	! Senescence coefficient for dormancy in dave grasses. Senescence rate is
 	! increased by this factor when phenology is changing at the maximum rate.
@@ -265,7 +265,7 @@ group "perennial" (
 
 	! Senescence coefficient for water stress in dave grasses. Senescence rate
 	! is increased by this factor under max water stress.
-	!senesc_scal_water 50
+	senesc_scal_water 50
 
 	! Senescence coefficient for reproductive phase in dave grasses.
 	! Senescence rate is increased by this factor during reproductive phase.

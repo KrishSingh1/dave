@@ -735,7 +735,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			stand.firstobj();
 			while (stand.isobj) {
 				Patch& patch = stand.getobj();
-				Soilcolumn& soilcolumn = patch.soilcolumn;
+				Soil& soil = patch.soil;
 
 				for(unsigned int i=0;i<pftlist.nobj;i++) {
 					Patchpft& ppft = patch.pft[i];
@@ -746,7 +746,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 				}
 
 				patch.fluxes.reset();
-				soilcolumn.anfix = 0.0;
+				soil.anfix = 0.0;
 				patch.anfert = 0.0;
 				patch.man_strength = 0.0;
 				patch.harvest_to_litter = false;
@@ -932,9 +932,9 @@ void dailyaccounting_patch(Patch& patch) {
 	// soil variables. Initialises flux sums at start of simulation year.
 
 	// INPUT AND OUTPUT PARAMETER
-	// soilcolumn   = patch soilcolumn
+	// soil   = patch soil
 
-	Soilcolumn& soilcolumn = patch.soilcolumn;
+	Soil& soil = patch.soil;
 
 	if (date.day == 0) {
 
@@ -978,48 +978,48 @@ void dailyaccounting_patch(Patch& patch) {
 			}
 
 			// Update root distribution if you have permafrost
-			if ((ifthawaffectrootdist && soilcolumn.maxthaw_10.max() < soilcolumn.depth)) {
-				ppft.update_rootdist(soilcolumn.maxthaw_10.max(), soilcolumn.depth, soilcolumn.soillayerthicks, soilcolumn.nsoillayers);
+			if ((ifthawaffectrootdist && soil.maxthaw_10.max() < soil.depth)) {
+				ppft.update_rootdist(soil.maxthaw_10.max(), soil.depth, soil.soillayerthicks, soil.nsoillayers);
 			}
 		}
 
-		if (date.year >= soilcolumn.solvesomcent_beginyr && date.year <= soilcolumn.solvesomcent_endyr) {
-			soilcolumn.savesomcent = true;
+		if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
+			soil.savesomcent = true;
 		}
 		else {
-			soilcolumn.savesomcent = false;
+			soil.savesomcent = false;
 		}
 
-		soilcolumn.asurfflitterinput = 0.0;
-		soilcolumn.asurfclitterinput = 0.0;
-		soilcolumn.asurflitterresp = 0.0;
+		soil.asurfflitterinput = 0.0;
+		soil.asurfclitterinput = 0.0;
+		soil.asurflitterresp = 0.0;
 
 		for (int p = 0; p < NSOMPOOL; p++) {
-			soilcolumn.csom_litter_input[p] = 0.0;
+			soil.csom_litter_input[p] = 0.0;
 		}
 
 		for (int mth = 0; mth < 12; mth++) {
-			soilcolumn.ssw.mwimass[mth] = 0.0;
+			soil.ssw.mwimass[mth] = 0.0;
 		}
 
 		// Snow
-		Snow& snow = soilcolumn.snow;
+		Snow& snow = soil.snow;
 
 		snow.snowdays = 0;
 
 		for (int mth = 0; mth < 12; mth++) {
 			snow.mdepth[mth] = 0.0;
 			snow.mcover[mth] = 0.0;
-			soilcolumn.mthaw[mth] = 0.0;
+			soil.mthaw[mth] = 0.0;
 			for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
 				snow.mtemp[lyr][mth] = 0.0;
 			}
 		}
 
 		// Soil layers
-		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+		for (int lyr = 0; lyr < soil.nsoillayers; lyr++) {
 
-			Soillayer& soillayer = soilcolumn.soillayers[lyr];
+			Soillayer& soillayer = soil.soillayers[lyr];
 
 			// If soil layer temperature is negative throughout the year 
 			// at FIRST_FREEZE_YEAR year then move all water to ice
@@ -1061,7 +1061,7 @@ void dailyaccounting_patch(Patch& patch) {
 		// Padding layers
 		for (int plyr = 0; plyr < NPADLAYERS; plyr++) {
 
-			Padlayer& pad_lyr = soilcolumn.pad.padlayers[plyr];
+			Padlayer& pad_lyr = soil.pad.padlayers[plyr];
 
 			for (int mth = 0; mth < 12; mth++) {
 				pad_lyr.mtemp[mth] = 0.0;
@@ -1074,19 +1074,19 @@ void dailyaccounting_patch(Patch& patch) {
 		}
 
 		// Calculate soil layers root volume
-		soilcolumn.calc_root_volume();
+		soil.calc_root_volume();
 
 		// Vertical movement if matter in soil layer exceed maximum volume
-		soilcolumn.vertical_movement();
+		soil.vertical_movement();
 
 		// Water to be moved due to changes in the soil layers capability to hold water
 		double wmass_move = 0.0;
 		double imass_move = 0.0;
 
-		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+		for (int lyr = 0; lyr < soil.nsoillayers; lyr++) {
 
 			// Set soil layer properties
-			soilcolumn.soillayers[lyr].update_properties(wmass_move, imass_move);
+			soil.soillayers[lyr].update_properties(wmass_move, imass_move);
 		}
 
 		// If water and ice exceed the capability of the soil to hold water, 
@@ -1098,45 +1098,45 @@ void dailyaccounting_patch(Patch& patch) {
 
 	// Soil organic matter age
 	if (date.islastday && date.islastmonth) {
-		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+		for (int lyr = 0; lyr < soil.nsoillayers; lyr++) {
 
 			// Increase organic matter age
-			if (!negligible(soilcolumn.soillayers[lyr].ccont())) {
-				soilcolumn.soillayers[lyr].socage++;
+			if (!negligible(soil.soillayers[lyr].ccont())) {
+				soil.soillayers[lyr].socage++;
 			}
 			else {
-				soilcolumn.soillayers[lyr].socage = 0.0;
+				soil.soillayers[lyr].socage = 0.0;
 			}
 		}
 	}
 
 	// Initiate slope properties of the soil
 	if (patch.age == 0 && date.day == 0) {
-		soilcolumn.set_slope_properties();
+		soil.set_slope_properties();
 	}
 
 	// Initiate soil water content
 	if (date.year == 0 && date.day == 0) {
-		soilcolumn.init_water();
+		soil.init_water();
 	}
 
 	if(run_landcover)
 		dailyaccounting_patch_lc(patch);
 
 	// Calculate snow, soil, and padding temperatures
-	soilcolumn.temp();
+	soil.temp();
 
 	// Calculate mean monthly temperatures
-	soilcolumn.calc_mtemp();
+	soil.calc_mtemp();
 
 	// Calculate mean monthly snow values
-	soilcolumn.calc_msnow();
+	soil.calc_msnow();
 
 	// Calculate mean monthly water content of all soil layers
-	soilcolumn.calc_mwcont();
+	soil.calc_mwcont();
 
 	// Calculate respiration temperature response
-	respiration_temperature_response(soilcolumn);
+	respiration_temperature_response(soil);
 
 	patch.is_litter_day = false;
 	patch.isharvestday = false;
@@ -1191,11 +1191,11 @@ void respiration_temperature_response(double temp, double& gtemp, bool ifsoil) {
 	}
 }
 
-void respiration_temperature_response(Soilcolumn& soilcolumn) {
+void respiration_temperature_response(Soil& soil) {
 
-	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+	for (int lyr = 0; lyr < soil.nsoillayers; lyr++) {
 
-		Soillayer& soillayer = soilcolumn.soillayers[lyr];
+		Soillayer& soillayer = soil.soillayers[lyr];
 
 		// Calculate gtemp for this soil layer
 		respiration_temperature_response(soillayer.temp, soillayer.gtemp, true);

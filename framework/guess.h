@@ -283,7 +283,7 @@ class Vegetation;
 class Individual;
 class Gridcell;
 class Patchpft;
-class Soilcolumn;
+class Soil;
 class Soillayer;
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -3693,8 +3693,8 @@ class Soillayer : public Serializable {
 
 public:
 
-	/// reference to parent Soilcolumn object
-	Soilcolumn* soilcolumn;
+	/// reference to parent soil object
+	Soil* soil;
 
 	/// Depth
 	/// Soil layer thickness (mm)
@@ -3991,9 +3991,9 @@ public:
 	/// Constructs a Soillayer
 	/**  \param d         The soil layer depth
 	*/
-	Soillayer() : soilcolumn(NULL) {};
+	Soillayer() : soil(NULL) {};
 
-	Soillayer(Soilcolumn* soilcol, double d, double dp, bool acrotelm, bool catotelm);
+	Soillayer(Soil* soilcol, double d, double dp, bool acrotelm, bool catotelm);
 
 	// Destructor
 	~Soillayer() {
@@ -4335,15 +4335,15 @@ struct SSW : public Serializable {
 	void serialize(ArchiveStream& arch);
 };
 
-/// Soilcolumn stores state variables for soillayers and the snow pack.
-/** Initialised by a call to initdrivers. One Soilcolumn object is defined for each patch.
+/// Soil stores state variables for soillayers and the snow pack.
+/** Initialised by a call to initdrivers. One Soil object is defined for each patch.
 *  A reference to the parent Patch object (defined below) is included as a member
-*  variable. Soilcolumn static parameters are stored as objects of class Soiltype, of which
+*  variable. Soil static parameters are stored as objects of class Soiltype, of which
 *  there is one for each grid cell. A reference to the Soiltype object holding the
-*  static parameters for this soil is included as a member variable. Soilcolumn holds the
+*  static parameters for this soil is included as a member variable. Soil holds the
 *  object array of soil layers
 */
-class Soilcolumn : public Serializable {
+class Soil : public Serializable {
 
 	// MEMBER VARIABLES
 
@@ -4353,7 +4353,7 @@ public:
 	Patch& patch;
 	/// reference to Soiltype object holding static parameters for this soil
 	Soiltype& soiltype;
-	/// Soilcolumn depth
+	/// Soil depth
 	double depth;
 	/// vector with soil layers
 	std::vector<Soillayer> soillayers;
@@ -4513,12 +4513,12 @@ private:
 public:
 
 	/// constructor (initialises member variable patch)
-	Soilcolumn(Patch& p, Soiltype& s) : patch(p), soiltype(s) {
+	Soil(Patch& p, Soiltype& s) : patch(p), soiltype(s) {
 		initdrivers();
 	}
 	
 	// Destructor
-	~Soilcolumn() {
+	~Soil() {
 
 		// Performs memory deallocation, closing of files or other "cleanup" functions.
 	}
@@ -4543,9 +4543,9 @@ public:
 	double get_surflittercmass();
 	/// Returns surface litter N content
 	double get_surflitternmass();
-	/// C content of soil column
+	/// C content of soil 
 	double ccont(grouppooltype group = GALL);
-	/// N content of soil column
+	/// N content of soil 
 	double ncont(grouppooltype group = GALL);
 	/// Water and ice content of the soil
 	double water_and_ice_content();
@@ -5102,8 +5102,8 @@ public:
 	ListArray_idin1<Patchpft,Pft> pft;
 	/// vegetation for this patch
 	Vegetation vegetation;
-	/// soil column for this patch
-	Soilcolumn soilcolumn;
+	/// soil  for this patch
+	Soil soil;
 	/// fluxes for this patch
 	Fluxes fluxes;
 	/// FPAR at top of grass canopy today

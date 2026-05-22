@@ -481,7 +481,7 @@ void Patchpft::update_rootdist(double maxthaw, double soildepth, double soillyrd
 
 
 Patch::Patch(int i,Stand& s,Soiltype& st):
-	id(i),stand(s),vegetation(*this),soilcolumn(*this, st),fluxes(*this) {
+	id(i),stand(s),vegetation(*this),soil(*this, st),fluxes(*this) {
 
 	for (unsigned int p = 0; p < pftlist.nobj; p++) {
 		pft.createobj(pftlist[p]);
@@ -544,7 +544,7 @@ void Patch::serialize(ArchiveStream& arch) {
 	}
 
 	arch & vegetation
-		& soilcolumn
+		& soil
 		& fluxes
 		& fpar_grass
 		& fpar_ff
@@ -619,11 +619,11 @@ bool Patch::has_disturbances() const {
  */
 double Patch::ccont(double scale_indiv, bool luc) {
 
-	double ccont = soilcolumn.ccont();
+	double ccont = soil.ccont();
 
-	ccont += soilcolumn.get_sum(&Soillayer::CH4) * KG_PER_G;
+	ccont += soil.get_sum(&Soillayer::CH4) * KG_PER_G;
 
-	ccont += soilcolumn.snow.ccont();
+	ccont += soil.snow.ccont();
 
 	for (int i=0; i<npft; i++) {
 		Patchpft& ppft = pft[i];
@@ -651,9 +651,9 @@ double Patch::ccont(double scale_indiv, bool luc) {
  */
 double Patch::ncont(double scale_indiv, bool luc) {
 
-	double ncont = soilcolumn.ncont();
+	double ncont = soil.ncont();
 
-	ncont += soilcolumn.snow.ncont();
+	ncont += soil.snow.ncont();
 
 	for (int i = 0; i<npft; i++) {
 		Patchpft& ppft = pft[i];
@@ -677,11 +677,11 @@ double Patch::ncont(double scale_indiv, bool luc) {
 /// Water content of patch
 double Patch::water_content() {
 
-	double water_content = soilcolumn.water_and_ice_content();
+	double water_content = soil.water_and_ice_content();
 
-	water_content += soilcolumn.snow.water_and_ice_content();
+	water_content += soil.snow.water_and_ice_content();
 
-	water_content += soilcolumn.ssw.water_and_ice_content();
+	water_content += soil.ssw.water_and_ice_content();
 
 	return water_content;
 }
@@ -3027,20 +3027,20 @@ void Gridcell::set_soillayer_properties() {
 				}
 			}
 
-			// Get reference to this soil column
-			Soilcolumn& soilcolumn = patch.soilcolumn;
+			// Get reference to this soil 
+			Soil& soil = patch.soil;
 
-			// Set soilcolumn depth
-			soilcolumn.depth = soil_depth;
+			// Set soil depth
+			soil.depth = soil_depth;
 
-			// Set number of soil layer in soilcolumn
-			soilcolumn.nsoillayers = nsoillayers;
+			// Set number of soil layer in soil
+			soil.nsoillayers = nsoillayers;
 
 			// Create soil layers and initalise them
-			soilcolumn.create_soillayers(soil_lyr_thick);
+			soil.create_soillayers(soil_lyr_thick);
 
 			// Set padding layers depth
-			soilcolumn.pad.set_depths(soilcolumn.soillayers[nsoillayers - 1].thickness);
+			soil.pad.set_depths(soil.soillayers[nsoillayers - 1].thickness);
 			
 			stand.nextobj();
 		}// End of loop through patches

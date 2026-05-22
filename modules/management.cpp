@@ -2742,7 +2742,7 @@ void nfert_crop(Patch& patch) {
 				fluxes.report_flux(Fluxes::NFERT, nfert * mineral * (1.0 - pft.fertrate[0] - pft.fertrate[1]));
 				ppftcrop.fertilised[0] = true;
 				if (mineral < 1.0) {
-					Soillayer& surflayer = patch.soilcolumn.soillayers[0];
+					Soillayer& surflayer = patch.soil.soillayers[0];
 					surflayer.sompool[SOILMETA].nmass += nfert * (1.0 - mineral) * 0.5;
 					surflayer.sompool[SOILMETA].cmass += nfert * (1.0 - mineral) * 30.0 * 0.25;
 					surflayer.sompool[SOILSTRUCT].nmass += nfert * (1.0 - mineral) * 0.5;

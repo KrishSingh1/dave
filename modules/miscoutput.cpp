@@ -294,7 +294,7 @@ MiscOutput::~MiscOutput() {
 	}
 }
 
-/// Help function to print forest structure header columns
+/// Help function to print forest structure header s
 std::vector<std::string> get_structure_string(const char* type) {
 
 	char buffer2[300]={'\0'};
@@ -1810,7 +1810,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		//Loop through Patches
 		while (stand.isobj) {
 			Patch& patch = stand.getobj();
-			Soilcolumn& soilcolumn = patch.soilcolumn;
+			Soil& soil = patch.soil;
 			Fluxes& fluxes = patch.fluxes;
 
 			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
@@ -1884,14 +1884,14 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 			andep_lc[stand.landcover] += (gridcell.aNH4dep + gridcell.aNO3dep) * to_gridcell_average;
 			anfert_lc[stand.landcover] += patch.anfert * to_gridcell_average;
-			anmin_lc[stand.landcover] += soilcolumn.get_sum(&Soillayer::anmin) * to_gridcell_average;
-			animm_lc[stand.landcover] += soilcolumn.get_sum(&Soillayer::animmob) * to_gridcell_average;
-			anfix_lc[stand.landcover] += soilcolumn.anfix * to_gridcell_average;
+			anmin_lc[stand.landcover] += soil.get_sum(&Soillayer::anmin) * to_gridcell_average;
+			animm_lc[stand.landcover] += soil.get_sum(&Soillayer::animmob) * to_gridcell_average;
+			anfix_lc[stand.landcover] += soil.anfix * to_gridcell_average;
 			n_min_leach_lc[stand.landcover] += fluxes.get_annual_flux(Fluxes::LEACHMINN) * to_gridcell_average;
 			n_org_leach_lc[stand.landcover] += fluxes.get_annual_flux(Fluxes::LEACHORGN) * to_gridcell_average;
 			c_org_leach_lc[stand.landcover] += fluxes.get_annual_flux(Fluxes::LEACHORGC) * to_gridcell_average;
 
-			availn_lc[stand.landcover] += (soilcolumn.get_sum(&Soillayer::NH4_mass) + soilcolumn.get_sum(&Soillayer::NO3_mass)) * to_gridcell_average;
+			availn_lc[stand.landcover] += (soil.get_sum(&Soillayer::NH4_mass) + soil.get_sum(&Soillayer::NO3_mass)) * to_gridcell_average;
 
 			//N-transform
 			flux_NH3_soil[stand.landcover] += fluxes.get_annual_flux(Fluxes::NH3_SOIL)*to_gridcell_average;
@@ -1901,10 +1901,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			
 			flux_N2O_soil_total +=patch.fluxes.get_annual_flux(Fluxes::N2O_SOIL)*to_gridcell_average;
 
-			availn_lc[stand.landcover] += (soilcolumn.snow.NH4_mass + soilcolumn.snow.NO3_mass) * to_gridcell_average;
+			availn_lc[stand.landcover] += (soil.snow.NH4_mass + soil.snow.NO3_mass) * to_gridcell_average;
 
-			for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
-				Soillayer& soillayer = soilcolumn.soillayers[lyr];
+			for (int lyr = 0; lyr < soil.nsoillayers; lyr++) {
+				Soillayer& soillayer = soil.soillayers[lyr];
 
 				availn_lc[stand.landcover] += (soillayer.NH4_mass + soillayer.NO3_mass) * to_gridcell_average;
 
@@ -2006,7 +2006,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			}
 
 			// Soil depths total C mass excluding surface litter C mass and heteorotrophic respiration down to depth
-			double surflitc = soilcolumn.get_surflittercmass();
+			double surflitc = soil.get_surflittercmass();
 
 			soilc_depth_lc[0][stand.landcover] += surflitc * to_gridcell_average;
 
@@ -2015,18 +2015,18 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			double soilc_prev = surflitc;
 
 			for (int lyr = 0; lyr < sslyr; lyr++) {
-				double depth_this = min(soilcolumn.depth, soil_sections[lyr]);
+				double depth_this = min(soil.depth, soil_sections[lyr]);
 				double depth_lyr = depth_this - depth_prev;
 
 				if (depth_lyr > 1.0e-12) {
 
-					soilc_depth_lc[lyr + 1][stand.landcover] += (soilcolumn.var_depth_ccont(depth_prev, depth_this) - soilc_prev) * to_gridcell_average;
+					soilc_depth_lc[lyr + 1][stand.landcover] += (soil.var_depth_ccont(depth_prev, depth_this) - soilc_prev) * to_gridcell_average;
 					soilc_prev = 0.0;
 				}
 				depth_prev = depth_this;
 			}
 
-			soilc_depth_lc[sslyr + 1][stand.landcover] += soilcolumn.ccont() * to_gridcell_average;
+			soilc_depth_lc[sslyr + 1][stand.landcover] += soil.ccont() * to_gridcell_average;
 
 
 			st.csink -= (-fluxes.get_annual_flux(Fluxes::NPP) + fluxes.get_annual_flux(Fluxes::REPRC) 
@@ -2867,8 +2867,8 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 
 		//Loop through Patches
 		while (stand.isobj) {
-			Soilcolumn& soilcolumn = stand.getobj().soilcolumn;
-			Snow& snow = soilcolumn.snow;
+			Soil& soil = stand.getobj().soil;
+			Snow& snow = soil.snow;
 
 			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
 
@@ -2888,10 +2888,10 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 			for (int lyr = 0; lyr < NSOILLAYERS_MAX + NPADLAYERS; lyr++) {
 
 				if (lyr >= NSOILLAYERS_MAX) {
-					soil_temp[lyr] += soilcolumn.pad.padlayers[lyr - NSOILLAYERS_MAX].temp * to_gridcell_average;
+					soil_temp[lyr] += soil.pad.padlayers[lyr - NSOILLAYERS_MAX].temp * to_gridcell_average;
 				}
-				else if (lyr < soilcolumn.nsoillayers) {
-					soil_temp[lyr] += soilcolumn.soillayers[lyr].temp * to_gridcell_average;
+				else if (lyr < soil.nsoillayers) {
+					soil_temp[lyr] += soil.soillayers[lyr].temp * to_gridcell_average;
 				}
 				else {
 					soil_temp[lyr] = -999.9;
@@ -2900,9 +2900,9 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 
 			for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
 
-				if (lyr < soilcolumn.nsoillayers) {
-					wmass[lyr] += soilcolumn.soillayers[lyr].wmass * to_gridcell_average;
-					wsats[lyr] += soilcolumn.soillayers[lyr].wsats * to_gridcell_average;
+				if (lyr < soil.nsoillayers) {
+					wmass[lyr] += soil.soillayers[lyr].wmass * to_gridcell_average;
+					wsats[lyr] += soil.soillayers[lyr].wsats * to_gridcell_average;
 				}
 				else {
 					wmass[lyr] = -999.9 * to_gridcell_average;
@@ -2911,13 +2911,13 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 			}
 
 			// Russian soil depths
-			tsoil_depth[0] += soilcolumn.temp_at_depth(200.0) * to_gridcell_average;
-			tsoil_depth[1] += soilcolumn.temp_at_depth(400.0) * to_gridcell_average;
-			tsoil_depth[2] += soilcolumn.temp_at_depth(800.0) * to_gridcell_average;
-			tsoil_depth[3] += soilcolumn.temp_at_depth(1200.0) * to_gridcell_average;
-			tsoil_depth[4] += soilcolumn.temp_at_depth(1600.0) * to_gridcell_average;
-			tsoil_depth[5] += soilcolumn.temp_at_depth(2400.0) * to_gridcell_average;
-			tsoil_depth[6] += soilcolumn.temp_at_depth(3200.0) * to_gridcell_average;
+			tsoil_depth[0] += soil.temp_at_depth(200.0) * to_gridcell_average;
+			tsoil_depth[1] += soil.temp_at_depth(400.0) * to_gridcell_average;
+			tsoil_depth[2] += soil.temp_at_depth(800.0) * to_gridcell_average;
+			tsoil_depth[3] += soil.temp_at_depth(1200.0) * to_gridcell_average;
+			tsoil_depth[4] += soil.temp_at_depth(1600.0) * to_gridcell_average;
+			tsoil_depth[5] += soil.temp_at_depth(2400.0) * to_gridcell_average;
+			tsoil_depth[6] += soil.temp_at_depth(3200.0) * to_gridcell_average;
 
 			stand.nextobj();
 		} // patch loop

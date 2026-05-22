@@ -200,7 +200,7 @@ double available_fuel(Patch& patch, int fli_index, double k_tun_litter) {
 		patch.pft.nextobj();
 	}
 
-	Soillayer& surflayer = patch.soilcolumn.soillayers[0];
+	Soillayer& surflayer = patch.soil.soillayers[0];
 
 	// compute readily available fuel load for given FLI-index in PATCH
 	double available_fuel = patch.litf_to_atm * (surflayer.sompool[SURFSTRUCT].cmass +
@@ -408,7 +408,7 @@ double survival_probability(Patch& patch, Individual& indiv) {
 
 	int biome = gridcell.simfire_biome;
 
-	double cmass_cwd = patch.soilcolumn.soillayers[0].sompool[SURFCWD].cmass;
+	double cmass_cwd = patch.soil.soillayers[0].sompool[SURFCWD].cmass;
 
 	if (vegmode == POPULATION) {
 
@@ -541,7 +541,7 @@ bool blaze(Patch& patch, Climate& climate) {
 	// Compute fluxes from soil litter pools to atmosphere first
 	// as they are patch-specific. The fluxes to 
 	// soil litter will be added in loop over individuals below.
-	Soillayer& surflayer = patch.soilcolumn.soillayers[0];
+	Soillayer& surflayer = patch.soil.soillayers[0];
 	double cmtb2atm = fab * patch.litf_to_atm * surflayer.sompool[SURFMETA].cmass;
 	double cstr2atm = fab * patch.litf_to_atm * surflayer.sompool[SURFSTRUCT].cmass;
 	double cfwd2atm = fab * patch.lfwd_to_atm * surflayer.sompool[SURFFWD].cmass;
@@ -983,11 +983,11 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	report_fire_flux_n(fluxes, nleaf2atm + nsapw2atm + nhrtw2atm + d_nstore);
  
 	// Transfer litter
-	Soilcolumn& soilcolumn = patch.soilcolumn;
+	Soil& soil = patch.soil;
 
-	for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+	for (int lyr = 0; lyr < soil.nsoillayers; lyr++) {
 
-		Soillayer& soillayer = soilcolumn.soillayers[lyr];
+		Soillayer& soillayer = soil.soillayers[lyr];
 
 		// Surface litter
 		if (lyr == 0) {
@@ -1198,7 +1198,7 @@ void blaze_driver(Patch& patch, Climate& climate) {
 	}
 
 	// Do not burn before century soil has been spinned up
-	if (date.year < patch.soilcolumn.solvesomcent_beginyr) {
+	if (date.year < patch.soil.solvesomcent_beginyr) {
 		return;
 	}
 	// If fires are excluded from patch: Return

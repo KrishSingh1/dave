@@ -130,7 +130,7 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 
 	if (!relaxed_establishment) {
 		// Wolf et al. (2008) bioclimatic limits related to snow depth and GDD0
-		if (patch.soilcolumn.snow.snowpack_avrmax3mth() < pft.min_snow ||
+		if (patch.soil.snow.snowpack_avrmax3mth() < pft.min_snow ||
 			climate.agdd0_20.mean() <= pft.gdd0_min || climate.agdd0_20.mean() >= pft.gdd0_max) {
 			return false;
 		}
@@ -151,7 +151,7 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 		// Compare this PFT's/species' drought_tolerance with the average wcont over the
 		// growing season, in this patch. Higher drought_tolerance values (set in the .ins file)
 		// lead to greater restrictions on establishment.
-		double awcontupper = patch.soilcolumn.var_depth(0.0, SOILDEPTH_UPPER, &Soillayer::awcont, &Soillayer::awc);
+		double awcontupper = patch.soil.var_depth(0.0, SOILDEPTH_UPPER, &Soillayer::awcont, &Soillayer::awc);
         if (pft.drought_tolerance > awcontupper) {
            return false;
         }
@@ -1422,11 +1422,11 @@ void fire(Patch& patch, double& fireprob) {
 
 	litter_ag = 0.0;
 
-	// Soilcolumn
-	Soilcolumn& soilcolumn = patch.soilcolumn;
+	// Soil
+	Soil& soil = patch.soil;
 
 	// Top soil layer
-	Soillayer& surflayer = soilcolumn.soillayers[0];
+	Soillayer& surflayer = soil.soillayers[0];
 
 	// Loop through PFTs
 
@@ -1473,7 +1473,7 @@ void fire(Patch& patch, double& fireprob) {
 	for (int mth = 0; mth < 12; mth++) {
 
 		// No fires unless there is some soil melt.
-		if (hydrology == GERTEN || (soilcolumn.mthaw[mth] > 0.0 && date.year > FIRST_FREEZE_YEAR + 10)) {
+		if (hydrology == GERTEN || (soil.mthaw[mth] > 0.0 && date.year > FIRST_FREEZE_YEAR + 10)) {
 			pm = exp(-PI * surflayer.mwcont[mth] / me_mean * surflayer.mwcont[mth] / me_mean) * date.ndaymonth[mth];		// Eqn 2
 		}
 		else {
@@ -1691,7 +1691,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		// Patch-destroying disturbance
 
 		// Disturbance when N limitation is switched on to get right pft composition under N limitation faster
-		if (ifcentury && ifnlim && (date.year == patch.soilcolumn.solvesomcent_beginyr - 2 || date.year == patch.soilcolumn.solvesomcent_endyr - 2)){
+		if (ifcentury && ifnlim && (date.year == patch.soil.solvesomcent_beginyr - 2 || date.year == patch.soil.solvesomcent_endyr - 2)){
 			disturbance(patch, 1.0);
 			if (patch.disturbed) {
 				return; // no mortality or establishment this year
@@ -1703,8 +1703,8 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 
 			// We don't allow disturbance while documenting for calculation of Century equilibrium
 			bool during_century_solvesom = ifcentury &&
-										   date.year >= patch.soilcolumn.solvesomcent_beginyr &&
-										   date.year <= patch.soilcolumn.solvesomcent_endyr;
+										   date.year >= patch.soil.solvesomcent_beginyr &&
+										   date.year <= patch.soil.solvesomcent_endyr;
 
 			double distinterval_ = stand.get_distinterval();	
 			if (patch.age && !during_century_solvesom) {

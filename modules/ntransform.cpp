@@ -362,14 +362,14 @@ void ntransform(Patch& patch, Climate& climate) {
 		double n_budget_check;
 
 		// Obtain reference to Soil object
-		Soilcolumn& soilcolumn = patch.soilcolumn;
+		Soil& soil = patch.soil;
 
 		// Obtain referenc to flux object
 		Fluxes& fluxes = patch.fluxes;
 
-		for (int lyr = 0; lyr < soilcolumn.nsoillayers; lyr++) {
+		for (int lyr = 0; lyr < soil.nsoillayers; lyr++) {
 
-			Soillayer& soillayer = soilcolumn.soillayers[lyr];
+			Soillayer& soillayer = soil.soillayers[lyr];
 
 			// NH3 volatilization
 			nh3_volatilization(soillayer, fluxes, climate.aprec_lastyear, n_budget_check);

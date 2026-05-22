@@ -1925,44 +1925,44 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					}
 
 					// Soil
-					Soilcolumn& soilcolumn = patch.soilcolumn;
+					Soil& soil = patch.soil;
 
-					soilcolumn.depth = (soilcolumn.depth * old_frac + from.transfer_depth * added_frac) / new_frac;
-					soilcolumn.wcont_evap = (soilcolumn.wcont_evap * old_frac + from.transfer_wcont_evap * added_frac) / new_frac;
+					soil.depth = (soil.depth * old_frac + from.transfer_depth * added_frac) / new_frac;
+					soil.wcont_evap = (soil.wcont_evap * old_frac + from.transfer_wcont_evap * added_frac) / new_frac;
 					double aaet_5_cp[NYEARAAET] = { 0.0 };
 					patch.aaet_5.to_array(aaet_5_cp);
 					for (unsigned int i = 0; i < from.transfer_aaet_5.size(); i++)
 						patch.aaet_5.add((aaet_5_cp[i] * old_frac + from.transfer_aaet_5[i] * added_frac) / new_frac);
 					double maxthaw_10_cp[10] = { 0.0 };
-					soilcolumn.maxthaw_10.to_array(maxthaw_10_cp);
+					soil.maxthaw_10.to_array(maxthaw_10_cp);
 					for (unsigned int i = 0; i < from.transfer_maxthaw_10.size(); i++)
-						soilcolumn.maxthaw_10.add((maxthaw_10_cp[i] * old_frac + from.transfer_maxthaw_10[i] * added_frac) / new_frac);
+						soil.maxthaw_10.add((maxthaw_10_cp[i] * old_frac + from.transfer_maxthaw_10[i] * added_frac) / new_frac);
 
-					soilcolumn.anfix_calc = (soilcolumn.anfix_calc * old_frac + from.transfer_anfix_calc * added_frac) / new_frac;
-					soilcolumn.ssw.wmass = (soilcolumn.ssw.wmass * old_frac + from.transfer_wmass_ssw * added_frac) / new_frac;
-					soilcolumn.ssw.imass = (soilcolumn.ssw.imass * old_frac + from.transfer_imass_ssw * added_frac) / new_frac;
-					soilcolumn.ssw.temp = (soilcolumn.ssw.temp * old_frac + from.transfer_temp_ssw * added_frac) / new_frac;
+					soil.anfix_calc = (soil.anfix_calc * old_frac + from.transfer_anfix_calc * added_frac) / new_frac;
+					soil.ssw.wmass = (soil.ssw.wmass * old_frac + from.transfer_wmass_ssw * added_frac) / new_frac;
+					soil.ssw.imass = (soil.ssw.imass * old_frac + from.transfer_imass_ssw * added_frac) / new_frac;
+					soil.ssw.temp = (soil.ssw.temp * old_frac + from.transfer_temp_ssw * added_frac) / new_frac;
 					// SSW parameter for SLOPE???
 
-					int nsoillayers = min(NSOILLAYERS_MAX, max(soilcolumn.nsoillayers, from.transfer_soil_nsoillayers));
+					int nsoillayers = min(NSOILLAYERS_MAX, max(soil.nsoillayers, from.transfer_soil_nsoillayers));
 
 					// Soil layers
 					for (int lyr = 0; lyr < nsoillayers; lyr++) {
 
 						// Create soil layer if it doesn't exist in patch
-						if (lyr >= soilcolumn.nsoillayers) {
+						if (lyr >= soil.nsoillayers) {
 
 							// Add a new soil layer
-							soilcolumn.add_soillayer(from.transfer_soil_thickness[lyr], from.transfer_soil_depth_mid[lyr], false, false);
+							soil.add_soillayer(from.transfer_soil_thickness[lyr], from.transfer_soil_depth_mid[lyr], false, false);
 
 							// update number of soil layers
-							soilcolumn.nsoillayers++;
+							soil.nsoillayers++;
 						}
 
-						soilcolumn.soillayerthicks[lyr] = (soilcolumn.soillayerthicks[lyr] * old_frac + from.transfer_soil_soillayerthicks[lyr] * added_frac) / new_frac;
+						soil.soillayerthicks[lyr] = (soil.soillayerthicks[lyr] * old_frac + from.transfer_soil_soillayerthicks[lyr] * added_frac) / new_frac;
 						
 						// Soil object for this layer
-						Soillayer& soillayer = soilcolumn.soillayers[lyr];
+						Soillayer& soillayer = soil.soillayers[lyr];
 
 						soillayer.thickness = (soillayer.thickness * old_frac + from.transfer_soil_thickness[lyr] * added_frac) / new_frac;
 						soillayer.depth_mid = (soillayer.depth_mid * old_frac + from.transfer_soil_depth_mid[lyr] * added_frac) / new_frac;
@@ -2005,25 +2005,25 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					}
 
 					// Calculate new root volume
-					soilcolumn.calc_root_volume();
+					soil.calc_root_volume();
 					
 					// Vertical movement of organic and mineral matter if different than effective volume of a soil layer
-					soilcolumn.vertical_movement();
+					soil.vertical_movement();
 
 					// Set soil properties
 					for (int lyr = 0; lyr < nsoillayers; lyr++) {
-						soilcolumn.soillayers[lyr].set_properties();;
+						soil.soillayers[lyr].set_properties();;
 					}
 
 					// Soil padding
 					for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
-						Padlayer& pad_lyr = soilcolumn.pad.padlayers[lyr];
+						Padlayer& pad_lyr = soil.pad.padlayers[lyr];
 						pad_lyr.thickness = (pad_lyr.thickness * old_frac + from.transfer_soilpad_thickness[lyr] * added_frac) / new_frac;
 						pad_lyr.temp = (pad_lyr.temp * old_frac + from.transfer_soilpad_temp[lyr] * added_frac) / new_frac;
 					}
 
 					// Snow
-					Snow& snow = soilcolumn.snow;
+					Snow& snow = soil.snow;
 					snow.NH4_mass = (snow.NH4_mass * old_frac + from.transfer_snow_NH4_mass * added_frac) / new_frac;
 					snow.NO3_mass = (snow.NO3_mass * old_frac + from.transfer_snow_NO3_mass * added_frac) / new_frac;
 
@@ -2060,7 +2060,7 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 					// Update patch pft root distribution // DW_COMMENT Only needed when a new stand is created
 					for (int i = 0; i < npft; i++) {
 						Patchpft& ppft = patch.pft[i];
-						ppft.update_rootdist(soilcolumn.maxthaw_10.max(), soilcolumn.depth, soilcolumn.soillayerthicks, soilcolumn.nsoillayers);
+						ppft.update_rootdist(soil.maxthaw_10.max(), soil.depth, soil.soillayerthicks, soil.nsoillayers);
 					}
 
 					stand.nextobj();

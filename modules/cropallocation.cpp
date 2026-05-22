@@ -285,16 +285,16 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 	cropindiv.dcmass_root = (indiv.dnpp + cmass_extra) * ppft.cropphen->f_alloc_root - indiv.daily_cmass_rootloss;
 
 	// The lost root C is directly put into the litter.
-	for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++)
-		patch.soilcolumn.soillayers[lyr].sompool[SOILMETA].cmass += indiv.daily_cmass_rootloss * ppft.rootdist[lyr];
+	for (int lyr = 0; lyr < patch.soil.nsoillayers; lyr++)
+		patch.soil.soillayers[lyr].sompool[SOILMETA].cmass += indiv.daily_cmass_rootloss * ppft.rootdist[lyr];
 
 	if (indiv.daily_nmass_rootloss < indiv.nmass_root) {
 		indiv.nmass_root -= indiv.daily_nmass_rootloss;
 
 		// 50% of the N in the lost root is retranslocated, the rest is going to litter.
 		cropindiv.nmass_agpool += indiv.daily_nmass_rootloss * 0.5;
-		for (int lyr = 0; lyr < patch.soilcolumn.nsoillayers; lyr++)
-			patch.soilcolumn.soillayers[lyr].sompool[SOILMETA].nmass += indiv.daily_nmass_rootloss * 0.5 * ppft.rootdist[lyr];
+		for (int lyr = 0; lyr < patch.soil.nsoillayers; lyr++)
+			patch.soil.soillayers[lyr].sompool[SOILMETA].nmass += indiv.daily_nmass_rootloss * 0.5 * ppft.rootdist[lyr];
 	}
 	if (indiv.daily_cmass_rootloss > 0.0){
 		patch.is_litter_day = true;

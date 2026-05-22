@@ -36,10 +36,10 @@
 void methane_dynamics(Patch& patch) {
 
 	if (ifmethane && patch.stand.landcover == PEATLAND && date.year > nyear_spinup-100) {
-		patch.soilcolumn.methane(true);
+		patch.soil.methane(true);
 	} 
 	else {
-		patch.soilcolumn.methane(false);
+		patch.soil.methane(false);
 	}
 }
 
@@ -206,7 +206,7 @@ void cnstepgas(double Di[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX], double su
  *	Called each day
  *	See Wania et al. (2010) - Sec 2.5
  */
-void Soilcolumn::calculate_gas_diffusivities(double dCH4[NSOILLAYERS_MAX], double dCO2[NSOILLAYERS_MAX], 
+void Soil::calculate_gas_diffusivities(double dCH4[NSOILLAYERS_MAX], double dCO2[NSOILLAYERS_MAX], 
 	double dO2[NSOILLAYERS_MAX]) {
 
 	double D_CH4_air, D_CO2_air, D_O2_air;
@@ -261,7 +261,7 @@ void Soilcolumn::calculate_gas_diffusivities(double dCH4[NSOILLAYERS_MAX], doubl
 	}
 }
 
-void Soilcolumn::calculate_ch4_and_co2_production() {
+void Soil::calculate_ch4_and_co2_production() {
 
 	// Conservation check - C in methane produced
 	double c_input = 0.0;
@@ -312,7 +312,7 @@ void Soilcolumn::calculate_ch4_and_co2_production() {
  * Called daily by Soil::methane()
  * See Wania et al. (2010) - Sec 2.5
  */
-void Soilcolumn::update_daily_gas_parameters() {
+void Soil::update_daily_gas_parameters() {
 
 	double surfT = soillayers[0].temp;
 	double U10 = 0.0; // patch.get_climate().u10
@@ -381,7 +381,7 @@ void Soilcolumn::update_daily_gas_parameters() {
 }
 
 
-void Soilcolumn::diffuse_gas(double D[NSOILLAYERS_MAX], gastype thisgastype, double Ceq,
+void Soil::diffuse_gas(double D[NSOILLAYERS_MAX], gastype thisgastype, double Ceq,
 					  double kgas, double &dailyDiff) {
 
 	// Generic gas diffusion method that works with CO2, CH4 and O2 (as specified with gastype) 
@@ -572,7 +572,7 @@ void Soilcolumn::diffuse_gas(double D[NSOILLAYERS_MAX], gastype thisgastype, dou
  * Loop through the individuals present and sum the leaf carbon mass for C3-graminoids [m-2] 
  * See Wania et al. (2010) - Sec 2.6
 */
-void Soilcolumn::calculate_tiller_areas(double& tiller_density) {
+void Soil::calculate_tiller_areas(double& tiller_density) {
 
 	// Tiller density [number m-2]
 	tiller_density = 0.0; 
@@ -649,7 +649,7 @@ void Soilcolumn::calculate_tiller_areas(double& tiller_density) {
  * corresponds to 0.22 g C per tiller
  * See Wania et al. (2010) - Sec 2.6
  */
-void Soilcolumn::plant_gas_transport(double Ceq, double kgas, gastype thisgastype, 
+void Soil::plant_gas_transport(double Ceq, double kgas, gastype thisgastype, 
 							 double tillers, double& plantTransportToday) {
 
 	// Only allow plant transport if there are graminoid tillers present
@@ -727,7 +727,7 @@ void Soilcolumn::plant_gas_transport(double Ceq, double kgas, gastype thisgastyp
  * acceptors and 2 moles of O2 is needed to oxidise 1 mole of CH4.
  * O2 is in [mol layer-1]
  */
-void Soilcolumn::oxidation_ch4() {
+void Soil::oxidation_ch4() {
 
 	double CH4_mole = 0.0;
 	double CH4_oxid = 0.0;
@@ -759,7 +759,7 @@ void Soilcolumn::oxidation_ch4() {
  * CH4 directly emitted to the atmosphere
  * See Wania et al. (2010) - Sec 2.7
 */
-void Soilcolumn::calculate_gas_ebullition(double& ebull_today) {
+void Soil::calculate_gas_ebullition(double& ebull_today) {
 
 	// Initial mass
 	double initial_CH4 = get_sum(&Soillayer::CH4);
@@ -850,7 +850,7 @@ void Soilcolumn::calculate_gas_ebullition(double& ebull_today) {
 }
 
 
-void Soilcolumn::methane(bool generatemethane) {
+void Soil::methane(bool generatemethane) {
 
 	// Main methane routine, called daily. 
 	// Calculates daily methane fluxes and updates methane concentrations in peatland soil layers.

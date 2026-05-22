@@ -47,7 +47,7 @@
 /*
  *
  */
-void snow(Soilcolumn& soilcolumn, double prec, double temp, double u10) {
+void snow(Soil& soil, double prec, double temp, double u10) {
 
 	// Daily calculation of snowfall and rainfall from precipitation and snow melt from
 	// snow pack; update of snow pack with new snow and snow melt
@@ -57,19 +57,19 @@ void snow(Soilcolumn& soilcolumn, double prec, double temp, double u10) {
 	// temp = air temperature today (deg C)
 
 	// INPUT AND OUTPUT PARAMETER
-	// soilcolumn = stored snow (rainfall mm equivalents) and rainfall and snow melt today (mm)
+	// soil = stored snow (rainfall mm equivalents) and rainfall and snow melt today (mm)
 
 	// Snowfall, precipitation or snowmelt 
-	soilcolumn.snow_or_rainfall(temp, prec, u10, soilcolumn.rain_melt, soilcolumn.rain_melt_temp);
+	soil.snow_or_rainfall(temp, prec, u10, soil.rain_melt, soil.rain_melt_temp);
 
 	// Update snow density after mechanical compaction
-	soilcolumn.snow.compaction(soilcolumn.patch, soilcolumn.rain_melt, soilcolumn.rain_melt_temp);
+	soil.snow.compaction(soil.patch, soil.rain_melt, soil.rain_melt_temp);
 
 	// Soil water percolation
-	soilcolumn.percolate = soilcolumn.rain_melt >= 0.1;
+	soil.percolate = soil.rain_melt >= 0.1;
 
 	// Save maximum rain and melt water
-	soilcolumn.max_rain_melt = soilcolumn.rain_melt;
+	soil.max_rain_melt = soil.rain_melt;
 }
 
 /// SNOW_NINPUT
@@ -126,19 +126,19 @@ void snow_ninput(double prec, double snowpack, double rain_melt,
 void initial_infiltration(Patch& patch, Climate& climate) {
 
 	Gridcell& gridcell = climate.gridcell;
-	Soilcolumn& soilcolumn = patch.soilcolumn;
+	Soil& soil = patch.soil;
 
 	// Update snowpack
-	snow(soilcolumn, climate.prec - patch.intercep, climate.temp, climate.u10);
+	snow(soil, climate.prec - patch.intercep, climate.temp, climate.u10);
 
 	// Update snowpack N content
-	snow_ninput(climate.prec - patch.intercep, soilcolumn.snow.water_and_ice_content(), soilcolumn.rain_melt, 
+	snow_ninput(climate.prec - patch.intercep, soil.snow.water_and_ice_content(), soil.rain_melt, 
 		        gridcell.dNH4dep, gridcell.dNO3dep, patch.dnfert,
-				soilcolumn.snow.NH4_mass, soilcolumn.snow.NO3_mass, 
-				soilcolumn.NH4_input, soilcolumn.NO3_input);
+				soil.snow.NH4_mass, soil.snow.NO3_mass, 
+				soil.NH4_input, soil.NO3_input);
 
 	// Percolate initial water
-	soilcolumn.initial_percolation();
+	soil.initial_percolation();
 }
 
 /// Calculate required irrigation according to water deficiency.
@@ -146,7 +146,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
  */
 void irrigation(Patch& patch) {
 
-	Soilcolumn& soilcolumn = patch.soilcolumn;
+	Soil& soil = patch.soil;
 
 	double irrigation_d = 0.0;
 
@@ -166,7 +166,7 @@ void irrigation(Patch& patch) {
 	}
 	patch.fluxes.report_flux(Fluxes::WIRRI, irrigation_d);
 
-	soilcolumn.rain_melt_temp = soilcolumn.rain_melt + irrigation_d > 0.0 ? (soilcolumn.rain_melt * soilcolumn.rain_melt_temp + irrigation_d * patch.get_climate().temp) / (soilcolumn.rain_melt + irrigation_d) : soilcolumn.rain_melt_temp;
+	soil.rain_melt_temp = soil.rain_melt + irrigation_d > 0.0 ? (soil.rain_melt * soil.rain_melt_temp + irrigation_d * patch.get_climate().temp) / (soil.rain_melt + irrigation_d) : soil.rain_melt_temp;
 }
 
 // Inundation stress
@@ -178,7 +178,7 @@ void inundation_stress(Patch& patch) {
 
 		Patchpft& ppft = patch.pft[p];
 
-		double wtpp = patch.soilcolumn.wtp; // [-300,100] mm
+		double wtpp = patch.soil.wtp; // [-300,100] mm
 		double wtpm = ppft.pft.wtp_max; // mm
 
 		if (date.day == 0)
@@ -246,7 +246,7 @@ void soilwater(Patch& patch, Climate& climate) {
 	// DESCRIPTION
 	// Performs daily accounting of soil water
 
-	Soilcolumn& soilcolumn = patch.soilcolumn;
+	Soil& soil = patch.soil;
 
 	// Sum vegetation phenology-weighted FPC
 	// Fraction of grid cell subject to evaporation from soil surface is
@@ -274,7 +274,7 @@ void soilwater(Patch& patch, Climate& climate) {
 	if (patch.stand.is_highlatitude_peatland_stand()) {
         
 		// Hydrology for peatland soils
-		soilcolumn.hydrology_peat(climate, bare_ground);
+		soil.hydrology_peat(climate, bare_ground);
 
 		// Update inundation stress variables for this patch
 		inundation_stress(patch);
@@ -285,24 +285,24 @@ void soilwater(Patch& patch, Climate& climate) {
 		if (patch.stand.is_true_wetland_stand()) {
 
 			// Mineral wetland hydrology
-			if (soilcolumn.is_wet_season()) {
-				soilcolumn.hydrology_wetland(climate, bare_ground);
+			if (soil.is_wet_season()) {
+				soil.hydrology_wetland(climate, bare_ground);
 			}
 			else {
-				soilcolumn.hydrology_richards(climate, bare_ground);
+				soil.hydrology_richards(climate, bare_ground);
 			}
 		}
 		else if (hydrology == GERTEN) {
 			// Original two layer LPJ-GUESS hydrology
-			soilcolumn.hydrology_gerten(climate, bare_ground);
+			soil.hydrology_gerten(climate, bare_ground);
 		}
 		else if (hydrology == MILLER) {
 			// v4.1 15 layer LPJ-GUESS hydrology
-			soilcolumn.hydrology_miller(climate, bare_ground);
+			soil.hydrology_miller(climate, bare_ground);
 		}
 		else if (hydrology == RICHARDS) {
 			// Richards eqn hydrology
-			soilcolumn.hydrology_richards(climate, bare_ground);
+			soil.hydrology_richards(climate, bare_ground);
 		}
 		else {
 			fail("Hydrology scheme not defined!\n");

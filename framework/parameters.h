@@ -165,6 +165,9 @@ extern bool ifvcmaxtempacclimation;
 /// Whether maintenance respiration acclimation to temperature is enabled.
 extern bool ifresptempacclimation;
 
+/// Whether leaf damage due to high temperature is enabled.
+extern bool ifleafdamage;
+
 /// Whether leaf C:N ratio minimum calculated from leaf longevity (alt: prescribed)
 extern bool ifcalccton;
 

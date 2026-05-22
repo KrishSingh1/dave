@@ -2080,6 +2080,10 @@ double calc_leaf_damage(double tleaf, double t50_par, double z, double mins) {
 }
 
 void leaf_damage_dave(Patch &patch) {
+	if (!ifleafdamage) {
+		return;
+	}
+
 	Soil &soil = patch.soil;
 
 	// Timestep length in minutes.

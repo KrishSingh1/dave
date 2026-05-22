@@ -43,6 +43,7 @@ bool ifdisturb;
 bool ifcalcsla;
 bool ifvcmaxtempacclimation;
 bool ifresptempacclimation;
+bool ifleafdamage;
 bool ifcalccton;
 int estinterval;
 double distinterval;
@@ -289,6 +290,7 @@ void initsettings() {
 	ifcalcsla=false;
 	ifvcmaxtempacclimation = false;
 	ifresptempacclimation = false;
+	ifleafdamage = false;
 	ifdavehydraulics = false;
 	ifdavehydrology = false;
 	ifstoreuptake = true;
@@ -541,6 +543,8 @@ void plib_declarations(int id,xtring setname) {
 			"Whether vcmax acclimation to temperature is enabled (alt: prescribed)");
 		declareitem("ifresptempacclimation",&ifresptempacclimation,1,CB_NONE,
 			"Whether maintenance respiration acclimation to temperature is enabled");
+		declareitem("ifleafdamage",&ifleafdamage,1,CB_NONE,
+			"Whether leaf damage due to high temperature is enabled");
 		declareitem("ifcalccton",&ifcalccton,1,CB_NONE,
 			"Whether leaf C:N min calculated from leaf longevity");
 		declareitem("ifcdebt",&ifcdebt,1,CB_NONE,

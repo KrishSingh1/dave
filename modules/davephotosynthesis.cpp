@@ -1876,10 +1876,6 @@ void partition_tree_canopy_dave(Patch &patch) {
 		double lai_layer = calc_lai_layer(vegetation, lowbound, upbound, vstep);
 		lai_cum += lai_layer;
 
-		if (negligible(lai_layer)) {
-			continue;
-		}
-
 		// see e.g. Sands 1995, Australian Journal of Plant Physiology
 		double fipar_layer = calc_fipar(lai_cum - lai_layer / 2, K_BEER_TREE);
 

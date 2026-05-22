@@ -153,9 +153,8 @@ double round_to_nearest_multiple(double x, double y);
 Check if the given timepoint represents the first time step in the year.
 
 @param date: The date.
-@param day_length: Number of timesteps per day.
 */
-bool is_start_of_year(timepoint date, int day_length);
+bool is_start_of_year(timepoint date);
 
 /*
 Check if the given timepoint represents the first timestep in the year.
@@ -253,7 +252,7 @@ Check if the vector contains the specified value.
 @param x: The needle.
 @param vec: The haystack.
 */
-bool contains(double x, std::vector<double> vec);
+bool contains(double x, const std::vector<double> &vec);
 
 /*
 Check if the file exists.

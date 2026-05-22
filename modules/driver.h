@@ -43,11 +43,12 @@ Different algorithms which may be used to estimate saturation vapor pressure.
 typedef enum {
 	SONNTAG_1990,
 	ALDUCHOV_1996,
-	ALLEN_1998
+	ALLEN_1998,
+	BUCK_1981
 } esat_method_t;
 
 /*
-Estimate saturation vapor pressure (esat) from air temperature (tair).
+Estimate saturation vapor pressure (kPa) from air temperature (tair).
 
 @param tair Air temperature (℃)
 @param esat_method Method to use for estimating saturation vapor pressure.
@@ -62,5 +63,15 @@ Convert relative humidity to vapour pressure deficit in kPa.
 @param esat_method Method to use for estimating saturation vapor pressure.
 */
 double rh_to_vpd(double rh, double tair, esat_method_t esat_method = SONNTAG_1990);
+
+/*
+Convert specific humidity to vapour pressure deficit in kPa.
+
+@param sh Specific humidity (kg/kg)
+@param tair Air temperature (℃)
+@param ps Air pressure (Pa)
+@param esat_method Method to use for estimating saturation vapor pressure.
+*/
+double sh_to_vpd(double sh, double tair, double ps, esat_method_t esat_method);
 
 #endif // LPJ_GUESS_DRIVER_H

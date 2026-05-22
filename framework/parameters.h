@@ -159,8 +159,11 @@ extern xtring file_disturb;
 /// Whether SLA calculated from leaf longevity (alt: prescribed)
 extern bool ifcalcsla;
 
-/// Whether vcmax acclimation to temperature is enabeld (alt: prescribed)
-extern bool iftempacclimation;
+/// Whether vcmax acclimation to temperature is enabled (alt: prescribed)
+extern bool ifvcmaxtempacclimation;
+
+/// Whether maintenance respiration acclimation to temperature is enabled.
+extern bool ifresptempacclimation;
 
 /// Whether leaf C:N ratio minimum calculated from leaf longevity (alt: prescribed)
 extern bool ifcalccton;
@@ -401,6 +404,9 @@ extern bool ifdavephotosyn;
 /// Turn on/off tree phenology (Dave)
 extern bool iftreephen;
 
+/// Turn on/off daily carbon starvation mortality in trees (Dave)
+extern bool ifdailycstarvmort;
+
 /// Turn on/off grote tree allocation.
 extern bool ifgrote;
 
@@ -453,6 +459,13 @@ extern bool gzip_output;
 
 /// Maximum number of cohorts (individuals) allowed per pft (0 = unlimited).
 extern int nindiv_max;
+
+/// Maximum number of iterations to use in DAVE energy balance.
+extern int energy_balance_maxiter;
+
+/// Convergence criterion for DAVE energy balance (K). Iteration for tleaf will
+/// cease when the change in tleaf between iterations is less than this value.
+extern double energy_balance_eps;
 
 /// Number of days that animals are allowed to graze a particular set of
 /// patches (default: 1).

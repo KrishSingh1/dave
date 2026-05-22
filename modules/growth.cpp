@@ -47,6 +47,7 @@
 #include <assert.h>
 #include "somdynam.h"
 #include "driver.h"
+#include "logging.h"
 
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -849,6 +850,18 @@ void leaf_phenology(Patch& patch, Climate& climate) {
 			// decide on phenological state (from Grote)
 			tree_phenology_grote(indiv);
 		}
+
+		if (!indiv.pft.dave_allocation()) {
+			// Update mlai. Better here than in npp(). No effect on dave indivs
+			// because they will update this after calling allometry each day.
+			if (indiv.lai_today() > indiv.mlai_max[date.month]) {
+				indiv.mlai_max[date.month] = indiv.lai_today();
+			}
+
+			// This is the same as indiv.lai for grasses, but it includes phen for trees/mosses.
+			indiv.mlai[date.month] += indiv.lai_today() / (double)date.ndaymonth[date.month];
+		}
+
 		// ... on to next individual
 		vegetation.nextobj();
 	}
@@ -1541,17 +1554,11 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 }
 
 double calc_creserve_opt_grote(const Individual &indiv) {
-	double cmass_bark = indiv.cmass_heart * indiv.pft.bark_frac;
-	double cmass_leaf = indiv.get_cmass_leaf();
-	double cmass_twig = indiv.pft.twig_frac * indiv.cmass_sap;
-	double cmass_wood = indiv.cmass_sap - cmass_twig;
 
-	double nsc_bark = cmass_bark * indiv.pft.max_bark_nsc_conc;
-	double nsc_leaf = cmass_leaf * indiv.pft.max_leaf_nsc_conc;
-	double nsc_twig = cmass_twig * indiv.pft.max_twig_nsc_conc;
-	double nsc_wood = cmass_wood * indiv.pft.max_wood_nsc_conc;
+	double nsc_leaf = indiv.get_cmass_leaf() * indiv.pft.max_leaf_nsc_conc;
+	double nsc_wood = indiv.cmass_sap * indiv.pft.max_wood_nsc_conc;
 
-	return nsc_bark + nsc_leaf + nsc_twig + nsc_wood;
+	return nsc_leaf + nsc_wood;
 }
 
 // Capacity of C storage (kg C m-2)
@@ -1743,6 +1750,8 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 			// Capacity of C and N storage
 			indiv.cstorage_max = cstorage_capacity(indiv);
 			indiv.nstorage_max = nstorage_capacity(indiv);
+			assert(indiv.cstorage_max > 0);
+			assert(indiv.nstorage_max > 0);
 
 			// Growth stage is vegetative after establishment.
 			// note: don't set growth_stage here as it could change the status of an already established plant.
@@ -1820,6 +1829,8 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 				indiv.cstorage_max = cstorage_capacity(indiv);
 				indiv.nstorage_max = nstorage_capacity(indiv);
 			}
+			assert(indiv.cstorage_max > 0);
+			assert(indiv.nstorage_max > 0);
 
 			// initialise limits
 			if (is_zero(indiv.cmass_sap_limit)) {
@@ -1902,6 +1913,11 @@ const double INIT_LAI = 1;
 const double INIT_STORAGE_FRACTION = 1;
 
 double solve_csap(double bminit, const Pft &pft, double ltor, double init_storfrac, double EPS = 1e-6, size_t NITER_MAX = 10000) {
+
+	// TODO: consider how to handle ltor=0.
+	if (ltor == 0) {
+		fail("solve_csap(): ltor cannot be zero.");
+	}
 
 	if (is_zero(bminit)) {
 		return 0;
@@ -2043,6 +2059,9 @@ void establishment_sapling_dave_fixedlai(double bminit, Individual &indiv, doubl
 	indiv.nstorage_max = nstorage_capacity(indiv);
 	indiv.cmass_storage = indiv.cstorage_max;
 
+	assert(indiv.cstorage_max > 0);
+	assert(indiv.nstorage_max > 0);
+
 	// Nitrogen.
 	indiv.nmass_leaf = indiv.cmass_leaf / indiv.pft.cton_leaf_min;
 	indiv.nmass_sap = indiv.cmass_sap / indiv.pft.cton_sap_min;
@@ -2092,6 +2111,7 @@ void establishment_sapling_dave(double bminit, Individual& indiv, double ltor) {
 	indiv.cmass_root = indiv.cmass_leaf / ltor;
 
 	indiv.cstorage_max = cstorage_capacity(indiv);
+	assert(indiv.cstorage_max > 0);
 
 	indiv.cmass_storage = INIT_STORAGE_FRACTION * indiv.cstorage_max;
 
@@ -2607,7 +2627,7 @@ void growth(Stand& stand, Patch& patch) {
 					// BLARP! excess allocation to roots now also included (assumes leaf longevity = root longevity)
 
 					cmass_excess = max((double)indiv.aphen_raingreen /
-							(indiv.pft.leaflong * (double)date.year_length()) * (indiv.cmass_leaf + indiv.cmass_root) -
+							(indiv.pft.leaflong() * (double)date.year_length()) * (indiv.cmass_leaf + indiv.cmass_root) -
 							indiv.cmass_leaf - indiv.cmass_root, 0.0);
 
 					if (cmass_excess > bminc) cmass_excess = bminc;
@@ -2756,9 +2776,7 @@ void growth(Stand& stand, Patch& patch) {
 							if(indiv.alive)
 								patchpft.cmass_mort += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
 
-							if (date.year >= nyear_spinup && _ifdavediagnostics) {
-								printf("%04d-%02d-%02d (year %d) %s killed by carbon starvation...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
-							}
+							log_info("%s killed by carbon starvation...", (const char *)indiv.pft.name);
 							indiv.kill();
 
 							vegetation.killobj();
@@ -2850,9 +2868,7 @@ void growth(Stand& stand, Patch& patch) {
 							if(indiv.alive)
 								patchpft.cmass_mort += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
 
-							if (date.year >= nyear_spinup && _ifdavediagnostics) {
-								printf("%04d-%02d-%02d (year %d) %s killed by carbon starvation...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
-							}
+							log_info("%s killed by carbon starvation...", (const char *)indiv.pft.name);
 							indiv.kill();
 
 							vegetation.killobj();
@@ -2902,9 +2918,7 @@ void growth(Stand& stand, Patch& patch) {
 
 				if (!allometry(indiv)) {
 
-					if (date.year >= nyear_spinup && _ifdavediagnostics) {
-						printf("%04d-%02d-%02d (year %d) %s killed by carbon starvation...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
-					}
+					log_info("%s killed by carbon starvation...", (const char *)indiv.pft.name);
 					indiv.kill();
 
 					vegetation.killobj();
@@ -2958,9 +2972,7 @@ void growth(Stand& stand, Patch& patch) {
 						indiv.flush_repr_litter_DAVE();
 					}
 
-					if (date.year >= nyear_spinup && _ifdavediagnostics) {
-						printf("%04d-%02d-%02d (year %d) %s killed by carbon starvation...\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)indiv.pft.name);
-					}
+					log_info("%s killed by carbon starvation...", (const char *)indiv.pft.name);
 					indiv.kill();
 
 					vegetation.killobj();
@@ -3580,7 +3592,8 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 			cstore = indiv.dnpp - indiv.cgrow;
 		}
 		else {
-			
+			log_info("%s killed by carbon starvation: negative NPP cannot be fulfilled by storage. NPP: %.9g kgC/m2, cmass_storage: %.9g kgC/m2",
+				    (const char *)indiv.pft.name, indiv.dnpp, indiv.cmass_storage);
 			// Not enough C in storage to fulfill respiration demands --> kill individual
 			double cmass_deficit = -(indiv.cmass_storage + indiv.dnpp);
 			indiv.cmass_storage = 0.0;
@@ -3731,10 +3744,11 @@ double calculate_cgrow_tree(Individual &indiv) {
 	// cgrow potential which depends on environmental conditions(unitless). the higher 
 	// the value, higher proportion of cgrow will go to growth. 0 = no growth.
 	// fstorage = min(0.5, fstorage);
-	double cgrow_pot = min(min(ftemp, fwater), fphoto);
-	if (!iftreephen) {
-		cgrow_pot = 1.0;
-	}
+	double cgrow_pot = 1.0;
+	if (iftreephen) {
+		cgrow_pot = min(min(ftemp, fwater), fphoto);
+	} 
+	
 	// Scale the carbon that is potentially headed for tree growth by the minimum of 
 	// temperature and a water factor, assuming that either one can be the bottelneck 
 	// for growth.
@@ -3752,6 +3766,142 @@ double calculate_cgrow_tree(Individual &indiv) {
 	// actual allowance of c for growth today (kgC/m^2)
 	return cgrow;
 	
+}
+
+void reduce_tree_biomass(Individual &indiv, double frac) {
+	// TODO DH: reconcile with Individual::reduce_biomass(). We don't want to
+	// remove cmass_storage here - that's the main difference. We just want to
+	// take leaves, roots, and sapwood.
+	Patchpft &ppft = indiv.patchpft();
+
+	double cmass_leaf_litter = frac * indiv.get_cmass_leaf();
+	double cmass_root_litter = frac * indiv.cmass_root;
+	double cmass_sap_litter = frac * indiv.cmass_sap;
+	double cmass_repr_litter = frac * indiv.cmass_repr;
+
+	double nmass_leaf_litter = frac * indiv.get_nmass_leaf();
+	double nmass_root_litter = frac * indiv.nmass_root;
+	double nmass_sap_litter = frac * indiv.nmass_sap;
+	double nmass_repr_litter = frac * indiv.nmass_repr;
+
+	Soil &soil = indiv.vegetation.patch.soil;
+	Pft &pft = indiv.pft;
+
+	leaf_to_litter(soil, pft, cmass_leaf_litter, nmass_leaf_litter);
+	root_to_litter(soil, pft, cmass_root_litter, nmass_root_litter);
+
+	// Sapwood turnover to heartwood.
+	indiv.cmass_heart += cmass_sap_litter;
+	indiv.nmass_heart += nmass_sap_litter;
+
+	// See comment in turnover_dave_tree(). How should repr be handled? For now,
+	// treat it the same as root litter.
+	root_to_litter(soil, pft, cmass_repr_litter, nmass_repr_litter);
+
+	// Used by DAVE mass balance checks; not an actual litter pool.
+	indiv.ctolitter += cmass_leaf_litter + cmass_root_litter + cmass_repr_litter;
+	indiv.ntolitter += nmass_leaf_litter + nmass_root_litter + nmass_repr_litter;
+
+	double frac_remain = 1.0 - frac;
+
+	indiv.cmass_leaf *= frac_remain;
+	indiv.cmass_root *= frac_remain;
+	indiv.cmass_sap *= frac_remain;
+	indiv.cmass_repr *= frac_remain;
+
+	indiv.nmass_leaf *= frac_remain;
+	indiv.nmass_root *= frac_remain;
+	indiv.nmass_sap *= frac_remain;
+	indiv.nmass_repr *= frac_remain;
+
+	indiv.densindiv *= frac_remain;
+}
+
+// Reduce density of indoviduals *daily* when carbon storage reduces below a threshold.
+// To consider doing:
+// 1. Do we want mortality to be storchastic or deterministic (depending on ifstochmort)?
+//    currently it ignores ifstochmort completely.
+bool carbon_starvation_mortality(Individual &indiv) {
+
+	const Pft &pft = indiv.pft;
+	Patchpft &ppft = indiv.patchpft();
+
+	// Maximum fraction of cohort that can die per day.
+	double max_mort_frac = pft.cstarv_max / Date::MAX_YEAR_LENGTH;
+
+	// Negative NPP has already been subtracted from storage at this point.
+	double storage_state = 0.0;
+	if (indiv.cmass_storage > 0) {
+		if (indiv.cstorage_max > 0) {
+			storage_state = min(indiv.cmass_storage / indiv.cstorage_max, 1.0);
+		}
+	} else {
+		log_info("%s killed by carbon starvation: negative NPP cannot be fulfilled by storage. NPP: %.9g kgC/m2, cmass_storage: %.9g kgC/m2",
+				(const char *)indiv.pft.name, indiv.dnpp, indiv.cmass_storage);
+		// next check: if adding the NPP to the storage caused storage to be 
+		// negitive - kill tree and return.
+		// Not enough C in storage to fulfill respiration demands --> kill individual
+		double cmass_deficit = -indiv.cmass_storage;
+		indiv.cmass_storage = 0.0;
+		
+		// ASSAF: this code was coppied from storage_growth_partitioning_tree() function... 
+		// The respiration and NPP fluxes reported in canexch are
+		// now incorrect, so we need to fix them. Note that the RA
+		// flux is not used for mass balance checks (it's only used
+		// for outputs). The NPP flux is used in mass balance checks
+		// however, so it's important to correct it here.
+		indiv.report_flux(Fluxes::RA, -cmass_deficit);
+			// (npp has opposite sign to respiration)
+		indiv.report_flux(Fluxes::NPP, cmass_deficit);
+		// report carbon starvation mortality 
+		indiv.mort_cstarve += 1.0; // annual
+		indiv.mort_dcstarve = 1.0; // 100% mortality of this cohort (daily)
+		ppft.amort_cstarve += 1.0;
+		ppft.amort_cstarve_ntree += indiv.densindiv * patcharea;
+		ppft.dmort_cstarve_ntree += indiv.densindiv * patcharea;
+		indiv.kill();  // flushes all pools to litter
+		indiv.vegetation.killobj();  // removes individual object
+							
+		//fail("Year %d Day %d Daily Grass Negative %g !!!!!!!!!\n", date.year, date.day, diff);
+		// Don't think we need to call nextobj() here, as we've just
+		// removed an element from the list; when this happens, the
+		// "current" pointer internal to the list object points to
+		// the element that was previously the "next" element.
+		return false;
+	}
+		
+	// calculate probability of mortality due to carbon starvation (unitless)
+	double pmort_cstarve = max_mort_frac / (1.0 + pow(storage_state / pft.cstarv_inflect, 5.0));
+	
+    if (ifdailycstarvmort) {
+		// Start thinning.
+        if (indiv.densindiv > pft.cstarv_killdens) {
+			// Accounting. Need to do this - particularly ntree-related
+			// accounting - before reducing biomass.
+			indiv.mort_dcstarve = pmort_cstarve;
+			indiv.mort_cstarve += pmort_cstarve;
+			ppft.amort_cstarve += pmort_cstarve;
+			ppft.amort_cstarve_ntree += pmort_cstarve * indiv.densindiv * patcharea;
+			ppft.dmort_cstarve_ntree += pmort_cstarve * indiv.densindiv * patcharea;
+
+			reduce_tree_biomass(indiv, pmort_cstarve);
+        } else {
+			// kill individual
+			log_info("%s killed by carbon starvation: Cohort density (%g/m2) has fallen below kill threshold of %g/m2",
+				    (const char *)indiv.pft.name, indiv.densindiv, pft.cstarv_killdens);
+			ppft.dmort_cstarve_ntree += indiv.densindiv * patcharea;
+			ppft.amort_cstarve_ntree += indiv.densindiv * patcharea;
+			ppft.amort_cstarve += 1.0;
+			// No need to update indiv-level properties because it has died.
+            indiv.kill();
+            indiv.vegetation.killobj();
+			return false;
+        }
+    }
+	// We don't need to update allometry for the individual becasue 
+	// it hasn't occured yet today
+	
+	return true;
 }
 
 // Determine how much of the available C (NPP + C fraction from storage) goes to
@@ -3775,32 +3925,16 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 	// first add NPP to storage.
 	indiv.cmass_storage += indiv.dnpp;
 
-	// if this causes storage to be negitive - kill tree and return.
-	if (indiv.cmass_storage < 0) {
-		// Not enough C in storage to fulfill respiration demands --> kill individual
-		double cmass_deficit = -indiv.cmass_storage;
-		indiv.cmass_storage = 0.0;
-
-		// The respiration and NPP fluxes reported in canexch are
-		// now incorrect, so we need to fix them. Note that the RA
-		// flux is not used for mass balance checks (it's only used
-		// for outputs). The NPP flux is used in mass balance checks
-		// however, so it's important to correct it here.
-		indiv.report_flux(Fluxes::RA, -cmass_deficit);
-			// (npp has opposite sign to respiration)
-		indiv.report_flux(Fluxes::NPP, cmass_deficit);
-
-		indiv.kill();  // flushes all pools to litter
-		indiv.vegetation.killobj();  // removes individual object
-							
-		//fail("Year %d Day %d Daily Grass Negative %g !!!!!!!!!\n", date.year, date.day, diff);
-		// Don't think we need to call nextobj() here, as we've just
-		// removed an element from the list; when this happens, the
-		// "current" pointer internal to the list object points to
-		// the element that was previously the "next" element.
+	// implement *daily* carbon starvation mortality/thinning here (ASSAF).
+	// note: we should keep the killing of the whole cohort when cmass_storage <0 
+	// (below), but hopefully the thinning will alleviate the C starvation stress.
+	if (!carbon_starvation_mortality(indiv)) {
+		// in case the individual was killed there is no use in the next steps.
 		return;
 	}
 
+	// In case the individual wasn't killed (only lost a couple of trees), continue...
+	
 	// calculate allowance (cgrow) depending on the enviro conditions and a  
 	// maximum value (eg, 10% of storage).
 	// Note: cgrow can be > 0 even if storage has gon wodn (ie dnpp < 0).
@@ -3925,40 +4059,23 @@ void storage_growth_partitioning_grote(Individual &indiv) {
 	if (!ifgrote || !ifdailytree || !ifdavegrowth || indiv.pft.lifeform != TREE) {
 		return;
 	}
+
 	double bminc = indiv.dnpp;
 	if (bminc < 0) {
 		// Negative NPP.
-		if (bminc + indiv.cmass_storage >= 0) {
-			// Use NSCs to meet respiration costs, and don't grow.
-			indiv.cmass_storage += bminc;
-			bminc = 0;
-			assert(positive(indiv.cmass_storage));
-		} else {
-			// Insufficient NSCs to meet respiration costs -> kill individual.
-			indiv.cmass_storage += bminc;
-			double cmass_deficit = -indiv.cmass_storage;
-			indiv.cmass_storage = 0.0;
-
-			// The respiration and NPP fluxes reported in canexch are
-			// now incorrect, so we need to fix them. Note that the RA
-			// flux is not used for mass balance checks (it's only used
-			// for outputs). The NPP flux is used in mass balance checks
-			// however, so it's important to correct it here.
-			indiv.report_flux(Fluxes::RA, -cmass_deficit);
-				// (npp has opposite sign to respiration)
-			indiv.report_flux(Fluxes::NPP, cmass_deficit);
-
-			indiv.kill();  // flushes all pools to litter
-			indiv.vegetation.killobj();  // removes individual object
-								
-			//fail("Year %d Day %d Daily Grass Negative %g !!!!!!!!!\n", date.year, date.day, diff);
-			// Don't think we need to call nextobj() here, as we've just
-			// removed an element from the list; when this happens, the
-			// "current" pointer internal to the list object points to
-			// the element that was previously the "next" element.
-			return;
-		}
+		indiv.cmass_storage += bminc;
+		bminc = 0;
 	}
+
+	// implement *daily* carbon starvation mortality/thinning here (ASSAF).
+	// note: we should keep the killing of the whole cohort when cmass_storage <0 
+	// (below), but hopefully the thinning will alleviate the C starvation stress.
+	if (!carbon_starvation_mortality(indiv)) {
+		// in case the individual was killed there is no use in the next steps.
+		return;
+	}
+	// In case the individual wasn't killed (only lost a couple of trees), continue...
+
 	indiv.cgrow = bminc;
 }
 
@@ -3988,7 +4105,9 @@ void storage_growth_partitioning_dave(Vegetation& vegetation) {
 			storage_growth_partitioning_grass(indiv);
 		} else {
 			if (ifgrote) {
-				storage_growth_partitioning_grote(indiv);
+				storage_growth_partitioning_grote(indiv); 
+				// TRY TO RUN THE NEW CGROW CALCULATION WITH NO PHENOLOGY (ONLY FSTORAGE)
+				// storage_growth_partitioning_tree(indiv);
 			} else {
 				storage_growth_partitioning_tree(indiv);
 			}
@@ -4385,10 +4504,6 @@ void carbon_allocation_tree_grote(Individual &indiv) {
 	const double MAX_HEIGHT = 150;
 	const double MIN_HEIGHT = 0.05;
 
-	// proportion of cgrow that goes to reproduction.
-	// TODO: find literature values
-	const double REPR_PROP = 0.02;
-
 	// minimum age for reproduction in years.
 	// TODO: fix to be a function of tree size and not age, and a PFT parameter.
 	// also, check that age is counted in years and not days.
@@ -4423,21 +4538,18 @@ void carbon_allocation_tree_grote(Individual &indiv) {
 	// Update storage capacity.
 	// TODO: is this necessary? Pretty sure this is handled elsewhere.
 	indiv.cstorage_max = calc_creserve_opt_grote(indiv);
+	assert(indiv.cstorage_max > 0);
 
 	// Allocate to reproduction when:
 	// - age > MIN_AGE_FOR_REPR
 	// - storage_fraction > MIN_STORFRAC_FOR_REPR
 	double storage_fraction = indiv.cmass_storage / indiv.cstorage_max;
 	if (indiv.age > MIN_AGE_FOR_REPR && storage_fraction > MIN_STORFRAC_FOR_REPR) {
-		indiv.cgrow_repr = REPR_PROP * indiv.cgrow;
+		indiv.cgrow_repr = indiv.pft.reprfrac * indiv.cgrow;
 	}
 
 	// Remaining carbon available for growth (kgC/m2).
 	double cgrow = indiv.cgrow - indiv.cgrow_repr;
-
-	if (indiv.cmass_sap > 0.9) {
-		printf("\r");
-	}
 
 	// Sapwood target (to grow at least the turnover of N days) (kgC/m^2). This
 	// drives the growth of sapwood AND the leaves (in the next day). TODO: to
@@ -5174,6 +5286,10 @@ void update_pools_dave(Vegetation& vegetation) {
 		indiv.cmass_leaf_ygrowth += indiv.cgrow_leaf;
 		indiv.cmass_root_ygrowth += indiv.cgrow_root;
 
+		// Update stand-level cmass_repr used for annual establishment.
+		// This variable is zeroed in Standpft::annual_accounting().
+		patch.stand.pft[pft.id].cmass_repr += indiv.cgrow_repr;
+
 		// update indiv.cgrow (actual growth)
 		indiv.cgrow = indiv.cgrow_leaf + indiv.cgrow_root + indiv.cgrow_crown + indiv.cgrow_sap + indiv.cgrow_repr;
 		if (ifgrote) {
@@ -5228,7 +5344,6 @@ void senescence_dave_grass(Individual &indiv) {
 
 	const Pft &pft = indiv.pft;
 	Vegetation &vegetation = indiv.vegetation;
-	Patchpft ppft = indiv.patchpft();
 
 	// TODO: is there an active retranslocation of storage C and N in senescing
 	// annual plants?
@@ -5784,8 +5899,9 @@ void turnover_dave_tree(Individual &indiv) {
 		double fleafage = 1.0;
 
 		// fleafage = 1.0 + indiv.meanleafage / indiv.pft.leaflong;
+		double leaflong = 1.0 / pft.turnover_leaf;
 		if (iftreephen) {
-			fleafage = indiv.meanleafage / indiv.pft.leaflong;
+			fleafage = indiv.meanleafage / leaflong;
 		}
 		// fleafage = 1.0 + indiv.meanleafage / indiv.pft.leaflong;
 		// fleafage = 0.5 + 0.002 * pow(indiv.meanleafage, 5.0);
@@ -5819,7 +5935,6 @@ void turnover_dave_tree(Individual &indiv) {
 		// indiv.rel_turnover_leaf = turnover_leaf / turnover_leaf_max;
 		// Leaf C amount to turnover (kgC/m^2)
 		cturnover_leaf = turnover_leaf * indiv.cmass_leaf;
-
 		// // test (ASSAF): increasing the turnover significantly when mean leaf age is
 		// // higher thean the leaf longevity. Purpose: to increase the alpha_leaf
 		// // in the allocation 
@@ -6218,6 +6333,8 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 		// Update capacity of C and N storage
 		indiv.cstorage_max = cstorage_capacity(indiv);
 		indiv.nstorage_max = nstorage_capacity(indiv);
+		assert(indiv.cstorage_max > 0);
+		assert(indiv.nstorage_max > 0);
 
 		if (indiv.cstorage_max < indiv.cmass_storage) {
 			indiv.cexcess += indiv.cmass_storage - indiv.cstorage_max;  // TODO: check if cexcess here comes only from decreasing plant size.
@@ -6298,7 +6415,11 @@ void calc_tree_height_radius_increment(Individual& indiv, double& dh, double& dr
 	double wooddens = indiv.pft.wooddens;
 	double k_allom2 = indiv.pft.k_allom2;
 	double k_allom3 = indiv.pft.k_allom3;
-	
+	// added the form factor here to PI. It belongs im the next equations (Fr and Fh)
+	// since they are derived from the derivative of the equation of the mass of a cylinder (ie:
+	// Wcyl = PI * (R^2) * H * wooddens, once for change in radius with constant 
+	// height, and once for change in height for constnat  radius )
+
 	// Added the form factor here to PI. It belongs im the next equations (Fr
 	// and Fh) since they are derived from the derivative of the equation of the
 	// mass of a cylinder (ie: Wcyl = PI * (R^2) * H * wooddens, once for change
@@ -6341,17 +6462,23 @@ void allometry_dave_tree(Individual& indiv) {
 		indiv.d_diam = 2.0 * dr;
 
 		double basalarea_t1 = PI * pow((indiv.diam / 2.0), 2.0);
-		
+
 		// add increments to dimentions
 		indiv.height += indiv.d_height;
 		indiv.diam += indiv.d_diam;
-
+		
+		// calculate annual (cumulative) diameter incremnt (reset at Jan 1st of every year)
+		if (date.day == 0){
+			indiv.c_d_diam = 0.0;
+		}
+		indiv.c_d_diam += indiv.d_diam;
+		
 		// new basal area (m2)
 		indiv.basalarea = PI * pow((indiv.diam / 2.0), 2.0);
 		
 		// basal area increment (m2/day)
 		indiv.basalarea_inc = indiv.basalarea - basalarea_t1;
-		
+	
 		// Stem volume
 		// double vol = indiv.height * 3.1415 * indiv.diam * indiv.diam * 0.25;
 		// Crown area (Eqn 6)
@@ -6381,6 +6508,7 @@ void allometry_dave_tree(Individual& indiv) {
 			indiv.lai_indiv = 0.0;
 			indiv.fpc = 0.0;
 		}
+
 		// Patch-level LAI
 		if (ifforcedlai) {
 			indiv.lai = fixed_lai;
@@ -6450,6 +6578,13 @@ void allometry_dave(Vegetation& vegetation) {
 			// TODO: Assaf
 			allometry_dave_tree(indiv);
 		}
+
+		if (indiv.lai_today() > indiv.mlai_max[date.month]) {
+			indiv.mlai_max[date.month] = indiv.lai_today();
+		}
+
+		// This is the same as indiv.lai for grasses, but it includes phen for trees/mosses.
+		indiv.mlai[date.month] += indiv.lai_today() / (double)date.ndaymonth[date.month];
 	}
 }
 

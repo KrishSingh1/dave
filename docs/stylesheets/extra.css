@@ -1,0 +1,35 @@
+picture img.dave-logo {
+	max-width: 220px;
+	height: auto;
+    float: left;
+    margin: 0px 10px 10px 0px;
+}
+
+#what-youll-find-here {
+    clear: both;
+}
+
+.theme-figure {
+    margin: 1rem 0;
+}
+
+.theme-figure img {
+    width: 100%;
+    max-width: 980px;
+    height: auto;
+    display: block;
+}
+
+.theme-figure .theme-dark {
+    display: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    .theme-figure .theme-light {
+        display: none;
+    }
+
+    .theme-figure .theme-dark {
+        display: block;
+    }
+}

@@ -17,6 +17,8 @@
 #include <float.h>
 #include "archive.h"
 #include "shell.h"
+#include <type_traits>
+#include "logging.h"
 
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -54,6 +56,9 @@ const double KMH_PER_MS         = 3.6;
 const double FRACT_TO_PERCENT   = 100.;
 const double PERCENT_TO_FRACT   = 0.01;
 const double R_EARTH            = 6371.2213; // mean earth-radius[km]
+
+class Vegetation;
+class Individual;
 
 inline bool negligible(double dval, int limit = 0) {
 	// If limit is nonzero, returns true if |dval| < 10^limit.
@@ -95,6 +100,18 @@ changed, make it a multiple of DBL_EPSILON.
 inline bool is_zero(double x, double eps = DBL_EPSILON) {
 	return fabs(x) < eps;
 }
+
+/*
+Solve a quadratic equation ax^2 + bx + c = 0.
+
+@param a: Coefficient of x^2.
+@param b: Coefficient of x.
+@param c: Constant term.
+@param root: The root to return (passed by reference).
+@param lower: If true, return the lower root; otherwise, return the higher root.
+@return: True if a real root exists; false otherwise.
+*/
+bool solve_quadratic(double a, double b, double c, double &root, bool lower);
 
 /*
 Returns true if x is sufficiently close to y.
@@ -221,6 +238,9 @@ inline double mean(double* array, int nitem) {
 	return sum / (double)nitem;
 }
 
+double sum(const Vegetation &vegetation, double (*func)(const Individual &indiv));
+double max(const Vegetation &vegetation, double (*func)(const Individual &indiv));
+
 /// Gives the mean of just two values
 inline double mean(double x, double y) {
 	return (x+y)/2.0;
@@ -231,7 +251,7 @@ inline double mean(double x, double y) {
 
 inline double safe_divide(double x, double y,
                           const char *file, int line, const char *func) {
-	if (equal(y, 0)) {
+	if (is_zero(y, 0)) {
 		fail("Divide by 0: %f / %f at %s:%d (%s)", x, y, file, line, func);
 	}
 	return x / y;
@@ -525,6 +545,7 @@ private:
 // length as input.
 template<typename T>
 class HistoricDynamic {
+	static_assert(std::is_arithmetic<T>::value, "HistoricDynamic can only be used with arithmetic types.");
 public:
 	HistoricDynamic() {
 		capacity = 0;
@@ -532,14 +553,37 @@ public:
 		full = false;
 		current_index = 0;
 	}
+	~HistoricDynamic() {
+		clear();
+	}
+
+	// Delete copy constructors to prevent accidental copying of this class,
+	// which would cause double frees and other memory issues.
+	HistoricDynamic(const HistoricDynamic&) = delete;
+	HistoricDynamic& operator=(const HistoricDynamic&) = delete;
+	HistoricDynamic(HistoricDynamic&&) = delete;            // optional, but safest
+	HistoricDynamic& operator=(HistoricDynamic&&) = delete; // optional, but safest
 
 	// Set the capacity to the specified value.
 	void set_capacity(size_t capacity) {
 		if (capacity == this->capacity) {
 			return;
 		}
+
+		if (capacity == 0) {
+			log_error("HistoricDynamic: Attempted to set capacity to 0.");
+			clear();
+			this->capacity = 0;
+			current_index = 0;
+			full = false;
+			return;
+		}
 		// TODO Drew: double check this logic.
 		T *new_list = (T *)malloc(sizeof(T) * capacity);
+		if (!new_list) {
+			fail("HistoricDynamic: Failed to allocate memory with capacity %zu: %s",
+				 capacity, strerror(errno));
+		}
 		size_t n = size();
 		if (capacity < this->capacity) {
 			size_t start = modulo(current_index - std::min(n,capacity), this->capacity);
@@ -551,9 +595,7 @@ public:
 				new_list[i] = i < n ? values[i] : 0;
 			}
 		}
-		if (values) {
-			free(values);
-		}
+		clear();
 		values = new_list;
 		this->capacity = capacity;
 		// Current index should wrap around to the start of the list if
@@ -567,7 +609,10 @@ public:
 
 	/// Adds a value, overwriting the oldest if full
 	void add(double value) {
-		assert(capacity > 0);
+		if (capacity == 0) {
+			log_error("HistoricDynamic: Attempted to add value with capacity 0.");
+			return;
+		}
 
 		values[current_index] = value;
 
@@ -583,6 +628,10 @@ public:
 		// Get the number of values currently stored, in case the vector is not
 		// yet full.
 		size_t n = size();
+		if (n == 0) {
+			log_error("HistoricDynamic: Attempted to calculate mean with no values.");
+			return 0;
+		}
 
 		double sum = 0;
 		for (size_t i = 0; i < n; i++) {
@@ -596,15 +645,19 @@ public:
 		// Get the number of values currently stored, in case the vector is not
 		// yet full.
 		size_t n = size();
+		if (n == 0) {
+			log_error("HistoricDynamic: Attempted to calculate weighted mean with no values.");
+			return 0;
+		}
 
 		double sum = 0;
 		double total_weight = 0;
 		for (size_t i = 0; i < n; i++) {
-			double weight = 1.0 - i / n;
+			double weight = 1.0 - 1.0 * i / n;
 			sum += values[i] * weight;
 			total_weight += weight;
 		}
-		return sum / (n * total_weight);
+		return sum / total_weight;
 	}
 
 	/// Get the number of values currently stored.
@@ -613,6 +666,13 @@ public:
 	}
 
 private:
+	void clear() {
+		if (values) {
+			free(values);
+			values = NULL;
+		}
+	}
+
 	/// The number of values this object can currently hold.
 	size_t capacity;
 

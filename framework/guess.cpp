@@ -152,6 +152,21 @@ void Climate::serialize(ArchiveStream& arch) {
 		& weathergenstate;
 }
 
+double Climate::get_tgrowth() const {
+	return dtemp_31.periodicmean(30);
+}
+
+double Climate::get_gtemp_mean() const {
+	if (date.diurnal()) {
+		double sum = 0;
+		for (size_t i = 0; i < date.subdaily; i++) {
+			sum += gtemps[i];
+		}
+		return sum / date.subdaily;
+	}
+	return gtemp;
+}
+
 void WeatherGenState::serialize(ArchiveStream& arch) {
 
 	arch & carry
@@ -391,6 +406,46 @@ void Patchpft::serialize(ArchiveStream& arch) {
 
 }
 
+/*
+Ensure the given wscal value lies within range [0, 1]. If not, terminate the
+simulation.
+*/
+void validate_wscal(double wscal, const char *context, const char *pft) {
+	if (wscal < 0 || wscal > 1) {
+		fail("%s: wscal value %f for PFT %s out of range [0,1]", context, wscal, pft);
+	}
+}
+
+void Patchpft::set_wscal(double wstress) {
+	if (wscal_set_today) {
+		// Debatable what we should do in this case. For now I'm going with an
+		// immediate fail. Alternatively, we could update to the newer values,
+		// although why you would want to do that is beyond me. If you do that,
+		// make sure you take that into account wrt wscal_mean and the moving
+		// averages.
+		fail("Patchpft::set_wscal(): wscal has already been set today. Don't do this to yourself.");
+	}
+
+	if (pft.landcover == CROPLAND) {
+		fail("Patchpft::set_wscal(): crops not supported (need to implement growing-season wscal as in canexch.cpp water_scalar())");
+	}
+	validate_wscal(wstress, "Patchpft::set_wscal()", (const char *)pft.name);
+
+	// This gets reset to false in daily_accounting().
+	wscal_set_today = true;
+
+	wscal = wstress;
+	wscal_5.add(wstress);
+	wscal_10.add(wstress);
+	wscal_30.add(wstress);
+
+	// This is reset to 0 in Patchpft::annual_accounting().
+	wscal_mean += wstress;
+	if (date.islastmonth && date.islastday) {
+		wscal_mean /= date.year_length();
+	}
+}
+
 cropphen_struct* Patchpft::get_cropphen() {
 	if (pft.landcover != CROPLAND) {
 		fail("Only crop individuals have cropindiv struct. Re-write code !\n");
@@ -413,14 +468,47 @@ bool Patchpft::growingseason() const {
 		return true;
 }
 
-void Patchpft::daily_accounting() {
+void Patchpft::daily_accounting(const Patch &patch) {
 	if (date.day == 0) {
-		annual_accounting();
+		annual_accounting(patch);
 	}
+	double total_lai = 0;
+	double total_agb = 0;
+	for (size_t i = 0; i < patch.vegetation.nobj; ++i) {
+		const Individual& indiv = patch.vegetation[i];
+		if (indiv.pft.id == pft.id) {
+			total_lai += indiv.lai;
+			total_agb += indiv.aboveground_biomass();
+		}
+	}
+
+	lai_ymax = max(lai_ymax, total_lai);
+	agb_ymax = max(agb_ymax, total_agb);
+	lai_ymean += total_lai;
+	agb_ymean += total_agb;
+
+	if (date.islastday && date.islastmonth) {
+		int year_length = date.year_length();
+		lai_ymean /= year_length;
+		agb_ymean /= year_length;
+	}
+
+	airtemp_10.add(patch.get_climate().temp);
+	wscal_set_today = false;
+	dmort_cstarve_ntree = 0.0;
 }
 
-void Patchpft::annual_accounting() {
-
+void Patchpft::annual_accounting(const Patch &patch) {
+	lai_ymax = 0;
+	agb_ymax = 0;
+	lai_ymean = 0;
+	agb_ymean = 0;
+	wscal_mean = 0;
+	if (pft.phenology==CROPGREEN || pft.isintercropgrass) {
+		cropphen->growingdays_y = 0;
+	}
+	amort_cstarve = 0.0;
+	amort_cstarve_ntree = 0.0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -848,6 +936,15 @@ void Standpft::serialize(ArchiveStream& arch) {
 		& irrigated;
 }
 
+void Standpft::daily_accounting() {
+	if (date.day == 0) {
+		annual_accounting();
+	}
+}
+
+void Standpft::annual_accounting() {
+	cmass_repr = 0;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Stand member functions
@@ -1916,19 +2013,18 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	n_opt_isabovelim  = false;
 	nstress           = false;
 	stomata_open	  = true;
-	E_not_met   	  = false;
 
 	weighted_psi = 0;
 	predawn_lwp = 0.0;
 	lwp_previous = 0.0;
-	transp_previous = 0.0;
 	lwp.resize(date.subdaily);
-	Vl.resize(date.subdaily);
 	k_loss.resize(date.subdaily);
+	transpiration.resize(date.subdaily);
 	hydraulic_failure = false;
 	mort_age = 0;
 	mort_greff = 0;
-
+	mort_cstarve = 0.0;
+	mort_dcstarve = 0.0;
 	wscal = 0.0;
 	wscal_mean_year = 0.0;
 
@@ -1997,6 +2093,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	diam              = 0.0;
 	d_height		  = 0.0;
 	d_diam		      = 0.0;
+	c_d_diam          = 0.0;
 	basalarea    	  = 0.0;
 	basalarea_inc	  = 0.0;
 	crownarea		  = 0.0;
@@ -2043,11 +2140,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	resp_crown        = 0.0;
 	cropindiv         = NULL;
 	last_turnover_day = -1;
-
-	fipar_layerwise.clear();
-	lai_layerwise.clear();
-	an_layerwise.clear();
-
 	andemand_leaf     = 0.0;
 	andemand_root     = 0.0;
 	andemand_sap      = 0.0;
@@ -2069,6 +2161,12 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	man_strength = 0.0;
 	nscal_5.add(1.0);
 	nscal_30.add(1.0);
+
+	if (ifdavephotosyn) {
+		ps_inputs_layerwise.resize(date.subdaily);
+		ps_outputs_layerwise.resize(date.subdaily);
+		energy_balance_layerwise.resize(date.subdaily);
+	}
 }
 
 void Individual::serialize(ArchiveStream& arch) {
@@ -2922,6 +3020,16 @@ bool Pft::dave_allocation() const {
 	return false;
 }
 
+bool Pft::daily_establishment() const {
+	if (is_grass() && ifdailygrass && ifdavegrowth) {
+		// DAVE daily grass.
+		return true;
+	}
+
+	// Everything else uses annual establishment.
+	return false;
+}
+
 // b is s1
 // c is s2
 
@@ -2997,7 +3105,7 @@ bool Pft::get_psi_from_transpiration(double transpiration, double &psi) const {
 	return psi_from_transpiration.try_eval(transpiration, psi);
 }
 
-bool Pft::get_transpiration_from_psi(double psi, double &transpiration) const {
+bool Pft::get_transpiration_lower_bound(double psi, double &transpiration) const {
 	return transpiration_from_psi.try_eval(psi, transpiration);
 }
 
@@ -3247,6 +3355,22 @@ double Individual::cmass_root_today() const {
 		return cmass_root * phen;
 }
 
+double Individual::get_cmass_crown() const {
+	if (pft.is_grass() && pft.dave_allocation()) {
+		return cmass_crown;
+	} else {
+		return 0.0;
+	}
+}
+
+double Individual::get_cmass_repr() const {
+	if (pft.dave_allocation()) {
+		return cmass_repr;
+	} else {
+		return 0.0;
+	}
+}
+
 /// Gets the individual's daily fpc value
 double Individual::fpc_today() const {
 
@@ -3261,7 +3385,9 @@ double Individual::fpc_today() const {
 /// Gets the individual's daily lai value
 double Individual::lai_today() const {
 
-	if (pft.phenology == CROPGREEN)
+	if (pft.dave_allocation()) {
+		return lai;
+	} else if (pft.phenology == CROPGREEN)
 		return patchpft().cropphen->growingseason ? lai_daily : 0;
 	else if (pft.is_grass() && ifdailygrass)
 		return lai;
@@ -3711,6 +3837,21 @@ void Individual::daily_accounting() {
 		annual_accounting();
 	}
 	cmass_germ = 0;
+	mort_dcstarve = 0.0;
+	closs_temp = 0;
+	nloss_temp = 0;
+	loss_temp = 0;
+	for (size_t i = 0; i < date.subdaily; i++) {
+		ps_inputs_layerwise[i].clear();
+		ps_outputs_layerwise[i].clear();
+		energy_balance_layerwise[i].clear();
+	}
+	canopy.clear();
+
+	if (ifdavephotosyn) {
+		ps_subdaily.clear();
+		photosynthesis.clear();
+	}
 }
 
 void Individual::annual_accounting() {
@@ -3718,7 +3859,13 @@ void Individual::annual_accounting() {
 	wscal_mean_year = 0;
 	mort_age = 0;
 	mort_greff = 0;
+	mort_cstarve = 0;
 	antoavail = 0;
+	mort_cstarve = 0.0;
+	aaet = 0.0;
+	acloss_temp = 0;
+	anloss_temp = 0;
+	aloss_temp = 0;
 }
 
 size_t Individual::get_wscal_dynamic_capacity() const {
@@ -3734,6 +3881,8 @@ double Individual::get_wscal_moving_average() const {
 }
 
 void Individual::set_wscal(double wscal) {
+	validate_wscal(wscal, "Individual::set_wscal()", (const char *)pft.name);
+
 	this->wscal = wscal;
 	wscal_dynamic.add(wscal);
 	// TODO: combine the 5-, 10-, and 30-day moving averages into a single
@@ -3803,6 +3952,27 @@ const Historic<double,30> &Individual::get_wscal_30() const {
 		return wscal_30;
 	} else {
 		return patchpft().wscal_30;
+	}
+}
+
+void Individual::validate_canopy() const {
+	double lai_sum = 0;
+	for (size_t j = 0; j < canopy.size(); j++) {
+		lai_sum += canopy[j].lai;
+		if (j > 0) {
+			// fipar should decrease as we go down the canopy.
+			if (canopy[j].fipar > canopy[j - 1].fipar) {
+				log_fatal("Invalid canopy for individual %d (%s): fipar should decrease as we go down the canopy, but fipar in layer %d is %g and in layer %d is %g.",
+						  id, (const char *)pft.name, j, canopy[j].fipar,
+						  j - 1, canopy[j - 1].fipar);
+			}
+		}
+	}
+
+	// Ensure that entire LAI is allocated across layers.
+	if (!equal(lai_sum, lai_today())) {
+		log_fatal("Invalid canopy for individual %d (%s): total LAI across layers (%g) does not match today's LAI (%g).",
+				  id, (const char *)pft.name, lai_sum, lai_today());
 	}
 }
 
@@ -4753,6 +4923,47 @@ double calc_a_growth(const Pft *pft) {
 		fail("Failed to optimise temp_growth curve - check pft parameters Ha_growth, T0_growth, temp_dormancy!!!");
 	}
 	return 1.0 / y;
+}
+
+void Canopy::clear() {
+	// Reset all daily values.
+	for (size_t i = 0; i < size(); i++) {
+		layers[i].lai = 0.0;
+		layers[i].fipar = 0.0;
+	}
+}
+
+void Canopy::set(size_t layer, double lai, double fipar) {
+	verify_size(layer);
+	layers[layer].lai = lai;
+	layers[layer].fipar = fipar;
+}
+
+CanopyLayer &Canopy::operator[] (size_t i) {
+	verify_size(i);
+	return layers[i];
+}
+
+const CanopyLayer &Canopy::operator[] (size_t i) const {
+	// FIXME: only necessary until daveoutput refactor to improve handling of
+	// cohort-level outputs.
+	if (i >= size()) {
+		// Accessing a layer that doesn't exist - return an empty layer.
+		static CanopyLayer empty_layer;
+		return empty_layer;
+	}
+	return layers[i];
+}
+
+void Canopy::verify_size(size_t size) {
+	// Ensure that layer `size` exists.
+	while (this->size() < size + 1) {
+		layers.push_back(CanopyLayer{});
+	}
+}
+
+size_t Canopy::size() const {
+	return layers.size();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

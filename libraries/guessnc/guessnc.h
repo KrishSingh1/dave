@@ -52,6 +52,8 @@ bool get_coordinate_variable(int ncid_file, int ncid_dim, int& ncid_coord_var);
 /// Gets the name of a variable with a given id
 std::string get_variable_name(int ncid_file, int ncid_var);
 
+/// Gets the number of variables in a NetCDF file.
+int get_nvars(int ncid_file);
 }
 
 #endif // HAVE_NETCDF

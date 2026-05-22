@@ -1,0 +1,48 @@
+site_name: LPJ-GUESS DAVE
+nav:
+  - Home: index.md
+  - Science:
+      - Overview: science/index.md
+      - Establishment: science/establishment.md
+      - Mortality: science/mortality.md
+      - Daily Tree Growth: science/daily-growth-tree.md
+      - Daily Grass Growth: science/daily-growth-grass.md
+  - How-to:
+      - Overview: howto/index.md
+      - Setup:
+          - Windows: howto/INSTALL.windows.md
+          - macOS: howto/INSTALL.macos.md
+          - Linux: howto/INSTALL.linux.md
+      - Data Access:
+          - HIE-Storage: howto/hie-storage.md
+          - SFTP via FileZilla: howto/sftp-filezilla.md
+          - SFTP via Terminal: howto/sftp-terminal.md
+          - SSH Key Management: howto/ssh-keys.md
+      - Running:
+          - OzFlux Site Simulations: howto/ozflux-simulations.md
+          - Climate Input: howto/climate-input.md
+          - Debugging via VSCode: howto/debugging-vscode.md
+          - Running Serially (CLI): howto/run-serial.md
+          - Running in Parallel (MPI): howto/run-parallel.md
+          - Running on Gadi: howto/run-gadi.md
+      - Contributing:
+          - Contributing Code (Workflow): howto/contributing-code.md
+          - Migrating from Upstream Repo: howto/migrate-from-upstream-repo.md
+          - Contributing to the Documentation: howto/contributing-docs.md
+          - Writing Equations: howto/markdown-math.md
+          - Version Control via SourceTree: howto/sourcetree.md
+          - Version Control via CLI: howto/git-cli.md
+  - Development:
+      - Overview: development/index.md
+      - Contributing Code (Policy): development/contributing-code.md
+      - LPJ-GUESS Development Ecosystem: development/lpj-guess-development-ecosystem.md
+      - Dependencies and Toolchains: development/toolchains.md
+markdown_extensions:
+  - admonition
+  - pymdownx.arithmatex:
+      generic: true
+extra_css:
+    - stylesheets/extra.css
+extra_javascript:
+  - javascripts/config.js
+  - https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js

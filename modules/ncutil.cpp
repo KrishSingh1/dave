@@ -79,8 +79,8 @@ double round_to_nearest_multiple(double x, double y) {
 	return (int)(z < 0 ? z - 0.5 : z + 0.5);
 }
 
-bool contains(double x, std::vector<double> vec) {
-	for (double &xi : vec) {
+bool contains(double x, const std::vector<double> &vec) {
+	for (const double &xi : vec) {
 		if (x == xi) {
 			return true;
 		}
@@ -88,7 +88,7 @@ bool contains(double x, std::vector<double> vec) {
 	return false;
 }
 
-bool is_start_of_year(timepoint date, int day_length) {
+bool is_start_of_year(timepoint date) {
 	return date.day == 0 && date.timestep == 0;
 }
 

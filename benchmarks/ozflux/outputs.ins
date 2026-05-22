@@ -11,6 +11,10 @@ file_aagb                          "aagb.out"                          ! Annual 
 !file_aagb_tree                     "aagb_tree.out"                     ! Annual gridcell-level above-ground tree biomass (kg/m2)
 !file_dave_amet_prec                "dave_amet_prec.out"                ! Annual gridcell-level precipitation (mm)
 !file_dave_amet_par                 "dave_amet_par.out"                 ! Annual gridcell-level PAR (J/m2)
+!file_dave_lai_ymax                 "dave_lai_ymax.out"                 ! Maximum gridcell-level annual leaf area index (m2/m2)
+!file_dave_agb_ymax                 "dave_agb_ymax.out"                 ! Maximum gridcell-level annual above-ground biomass (kg/m2)
+!file_dave_lai_ymean                "dave_lai_ymean.out"                ! Mean gridcell-level annual leaf area index (m2/m2)
+!file_dave_agb_ymean                "dave_agb_ymean.out"                ! Mean gridcell-level annual above-ground biomass (kg/m2)
 
 ! Annual patch-level outputs.
 !file_dave_patch_age                "dave_patch_age.out"                ! Annual patch-level age since last disturbance (years)
@@ -40,7 +44,7 @@ file_aagb                          "aagb.out"                          ! Annual 
 !file_dave_par_grass                "dave_par_grass.out"                ! Annual mean PAR at top of grass canopy (MJ/m2/year)
 
 ! Annual indiv-level per-patch outputs.
-!file_dave_alai                     "dave_alai.out"                     ! Annual LAI(m2/m2)
+file_dave_alai                     "dave_alai.out"                     ! Annual LAI(m2/m2)
 !file_dave_afpc                     "dave_afpc.out"                     ! Annual FPC ()
 !file_dave_acmass                   "dave_acmass.out"                   ! Annual cmass (kgC/m2). Unlike the "standard" cmass output file, this is an individual-level output; it does not contain litter, and it will not account for individuals which were established and died in the same year.
 !file_dave_anmass                   "dave_anmass.out"                   ! Annual nmass (kgN/m2). Unlike the "standard" nmass output file, this is an individual-level output; it does not contain litter, and it will not account for individuals which were established and died in the same year.
@@ -58,14 +62,16 @@ file_aagb                          "aagb.out"                          ! Annual 
 !file_dave_anretranslocated         "dave_anretranslocated.out"         ! Annual nitrogen retranslocated (kgN/m2)
 !file_dave_amort_greff              "dave_amort_greff.out"              ! Annual PFT-level growth-efficiency-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.
 !file_dave_amort_age                "dave_amort_age.out"                ! Annual PFT-level age-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.
+file_dave_amort_cstarve            "dave_amort_cstarve.out"            ! Annual PFT-level carbon starvation-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.
+!file_dave_amort_cstarve_ntree      "dave_amort_cstarve_ntree.out"      ! Annual number of trees killed by carbon starvation
 !file_dave_acmass_germ              "dave_acmass_germ.out"              ! Annual germinated C mass (kgC/m2)
 
 ! Annual pft-level per-patch outputs.
-file_dave_anpp                     "dave_anpp.out"                     ! Total Annual Pft-Level NPP (kgC/m2/year)
-file_dave_agpp                     "dave_agpp.out"                     ! Total Annual Pft-Level GPP (kgC/m2/year)
-file_dave_acue                     "dave_acue.out"                     ! Annual CUE (unitless)
-file_dave_aresp                    "dave_aresp.out"                    ! Total Annual Pft-Level Autotrophic Respiration (kgC/m2/year)
-file_dave_anee                     "dave_anee.out"                     ! Total annual patch-level NEE (kgC/m2)
+!file_dave_anpp                     "dave_anpp.out"                     ! Total Annual Pft-Level NPP (kgC/m2/year)
+!file_dave_agpp                     "dave_agpp.out"                     ! Total Annual Pft-Level GPP (kgC/m2/year)
+!file_dave_acue                     "dave_acue.out"                     ! Annual CUE (unitless)
+!file_dave_aresp                    "dave_aresp.out"                    ! Total Annual Pft-Level Autotrophic Respiration (kgC/m2/year)
+!file_dave_anee                     "dave_anee.out"                     ! Total annual patch-level NEE (kgC/m2)
 !file_dave_acmass_mort              "dave_acmass_mort.out"              ! Mass of annual killed vegetation (kgC/m2/year)
 !file_dave_aclitter                 "dave_aclitter.out"                 ! Total End-of-Year PFT-Level C Mass in Litter (kgC/m2)
 !file_dave_ancohort                 "dave_ancohort.out"                 ! Number of cohorts currently established per pft (unitless)
@@ -95,6 +101,9 @@ file_dave_anee                     "dave_anee.out"                     ! Total a
 !file_dave_acalloc_storage          "dave_calloc_storage.out"           ! Total annual C allocation to sap (kgC/m2)
 !file_dave_acalloc_crown            "dave_acalloc_crown.out"            ! Total annual C allocation to crown (kgC/m2)
 !file_dave_anstorage_drawdown       "dave_anstorage_drawdown.out"       ! Total annual amount of N withdrawn from storage for growth (kgN/m2)
+!file_dave_acloss_temp              "dave_acloss_temp.out"              ! Total annual amount of C lost to high temperature (kgC/m2)
+!file_dave_anloss_temp              "dave_anloss_temp.out"              ! Total annual amount of N lost to high temperature (kgN/m2)
+!file_dave_aloss_temp               "dave_aloss_temp.out"               ! Total annual fraction of leaves lost to high temperature (unitless)
 
 ! Annual indiv-level outputs.
 !file_dave_indiv_mort               "dave_indiv_mort.out"               ! Annual indiv-level mortality divided by component/cause, expressed as fraction of individuals within the cohort which died this year.
@@ -103,6 +112,10 @@ file_dave_anee                     "dave_anee.out"                     ! Total a
 ! Daily gridcell-level outputs.
 file_agb                            "agb.out"                           ! Daily gridcell-level above-ground biomass (kg/m2)
 file_agb_tree                       "agb_tree.out"                      ! Daily gridcell-level above-ground tree biomass (kg/m2)
+
+! Annual cohort-level outputs
+file_dave_annual_indiv_c_d_dbh  "dave_annual_indiv_c_d_dbh.out" ! Annual diameter increment (m)
+file_dave_annual_indiv_dbh      "dave_annual_indiv_dbh.out"     ! Cohort-level DBH  (m)
 
 ! Daily pft-level per-patch outputs.
 file_dave_lai                      "dave_lai.out"                      ! LAI by individual (m2/m2)
@@ -147,7 +160,7 @@ file_dave_lai                      "dave_lai.out"                      ! LAI by 
 !file_dave_lai_today                "dave_lai_today.out"                ! Daily LAI
 !file_dave_indiv_npp                "dave_indiv_npp.out"                ! Daily cohort-level NPP (gC/m2/day)
 !file_dave_indiv_gpp                "dave_indiv_gpp.out"                ! Daily cohort-level GPP (gC/m2/day)
-!file_dave_resp_autotrophic         "dave_resp_auto.out"                ! Daily autotrophic respiration (gC/m2/day)  (Note: this does NOT include leaf respiration, as this is already accounted for in gpp!)
+!file_dave_resp_autotrophic         "dave_resp_autotrophic.out"         ! Daily autotrophic respiration (gC/m2/day)  (Note: this does NOT include leaf respiration, as this is already accounted for in gpp!)
 !file_dave_resp_maintenance         "dave_resp_maintenance.out"         ! Daily maintenance respiration (gC/m2/day)
 !file_dave_resp_growth              "dave_resp_growth.out"              ! Daily growth respiration (gC/m2/day)
 !file_dave_fnuptake                 "dave_fnuptake.out"                 ! Fraction of nitrogen demand taken up
@@ -252,6 +265,7 @@ file_dave_lai                      "dave_lai.out"                      ! LAI by 
 
 ! Subdaily indiv-level per-patch outputs.
 !file_dave_dncohort                 "dave_dncohort.out"                 ! Get the number of cohorts of this PFT currently established in this patch
+!file_dave_dmort_cstarve_ntree      "dave_dmort_cstarve_ntree.out"      ! Daily number of trees killed by carbon starvation
 !file_dave_subdaily_an              "dave_subdaily_an.out"              ! Subdaily net photosynthesis (mol/m2/s)
 !file_dave_subdaily_rd              "dave_subdaily_rd.out"              ! Subdaily leaf respiration (mol/m2/s)
 !file_dave_subdaily_anc             "dave_subdaily_anc.out"             ! Subdaily RuBisCO-limited net photosynthesis (mol/m2/s)
@@ -260,6 +274,9 @@ file_dave_lai                      "dave_lai.out"                      ! LAI by 
 !file_dave_subdaily_ci              "dave_subdaily_ci.out"              ! Subdaily intercellular CO2 concentration (mol/mol)
 !file_dave_subdaily_vcmax           "dave_subdaily_vcmax.out"           ! Subdaily max carboxylation rate (mol/m2/s)
 !file_dave_subdaily_jmax            "dave_subdaily_jmax.out"            ! Subdaily max electron transport rate (mol/m2/s)!
+!file_dave_ps_inputs                "dave_ps_inputs.out"                ! Subdaily layered cohort-level photosynthesis inputs
+!file_dave_ps_outputs               "dave_ps_outputs.out"               ! Subdaily layered cohort-level photosynthesis outputs
+!file_dave_energy_balance           "dave_energy_balance.out"           ! Subdaily layered energy balance diagnostics
 !file_dave_ksoil_layer               "dave_ksoil_layer.out"              ! Soil hydraulic conductivity (cm/hr)
 !file_dave_met_subdaily_temp        "dave_met_subdaily_temp.out"        ! Subdaily temperature (°C)
 !file_dave_met_subdaily_par         "dave_met_subdaily_par.out"         ! Subdaily PAR (J/m2/timestep)
@@ -295,7 +312,6 @@ file_dave_lai                      "dave_lai.out"                      ! LAI by 
 !file_dave_daylength                "dave_daylength.out"                ! Daylength (hours)
 !file_dave_cpool                    "dave_cpool.out"                    ! Daily C pools (kgC/m2)
 !file_dave_subdaily_lwp             "dave_subdaily_lwp.out"             ! Subdaily leaf water potential (MPa)
-!file_dave_subdaily_Vl              "dave_subdaily_Vl.out"             ! Subdaily stem water volume (m3)
 !file_dave_alpha_leaf               "dave_alpha_leaf.out"               ! Daily leaf sink strength (0-1)
 !file_dave_alpha_root               "dave_alpha_root.out"               ! Daily root sink strength (0-1)
 !file_dave_alpha_sap                "dave_alpha_sap.out"                ! Daily sap sink strength (0-1)
@@ -334,6 +350,9 @@ file_dave_lai                      "dave_lai.out"                      ! LAI by 
 !file_dave_belowground_nmass        "dave_belowground_nmass.out"        ! Daily below-ground N biomass (kgN/m2)
 !file_dave_aboveground_tree_biomass "dave_aboveground_tree_biomass.out" ! Daily total above-ground tree biomass (kg/m2)
 !file_dave_csenesc                  "dave_csenesc.out"                  ! Daily total C senesced by grasses (gC/m2/day)
+!file_dave_closs_temp               "dave_closs_temp.out"               ! Daily C lost to high temperature (kgC/m2/day)
+!file_dave_nloss_temp               "dave_nloss_temp.out"               ! Daily N lost to high temperature (kgN/m2/day)
+!file_dave_loss_temp                "dave_loss_temp.out"                ! Daily fraction of leaves lost to high temperature (unitless)
 !file_dave_cgrazed_repr             "dave_cgrazed_repr.out"             ! Daily reproductive cmass grazed (kgC/m2/day)
 !file_dave_cgrazed_green_leaf       "dave_cgrazed_green_leaf.out"       ! Daily green leaf cmass grazed (kgC/m2/day)
 !file_dave_cgrazed_brown_leaf       "dave_cgrazed_brown_leaf.out"       ! Daily brown leaf cmass grazed (kgC/m2/day)
@@ -398,7 +417,7 @@ file_anpp "anpp.out"
 file_agpp "agpp.out"
 !file_fpc "fpc.out"
 !file_aaet "aaet.out"
-!file_lai "lai.out"
+file_lai "lai.out"
 file_dlai "dlai.out"
 !file_cflux "cflux.out"
 !file_doc "doc.out"

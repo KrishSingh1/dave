@@ -24,6 +24,8 @@ void dprintf(xtring format,...);
 /// (but not to TTY).
 void lprintf(xtring format, ...);
 
+void vlprintf(xtring format, va_list args);
+
 /// A printf-style function that sends the user a message and then terminates.
 void fail(xtring format,...);
 

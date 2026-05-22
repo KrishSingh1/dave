@@ -26,12 +26,14 @@ set(headers
   soil.h
   soilinput.h
   ntransform.h
+  daveinput.h
   ncinput.h
   ncutil.h
   ncvariable.h
   daveoutput.h
   daveoutputhelpers.h
   hydraulics.h
+  davephotosynthesis.h
   )
 
 set(source  
@@ -61,12 +63,14 @@ set(source
   soil.cpp
   soilinput.cpp
   ntransform.cpp
+  daveinput.cpp
   ncinput.cpp
   ncutil.cpp
   ncvariable.cpp
   daveoutput.cpp
   daveoutputhelpers.cpp
   hydraulics.cpp
+  davephotosynthesis.cpp
   )
 
 include(add_guess_sources)

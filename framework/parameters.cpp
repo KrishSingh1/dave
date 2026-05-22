@@ -19,6 +19,7 @@
 #include "parameters.h"
 #include "guess.h"
 #include "plib.h"
+#include "logging.h"
 #include <map>
 
 // Definitions of parameters defined globally in parameters.h,
@@ -40,7 +41,8 @@ bool ifstochestab;
 bool ifstochmort;
 bool ifdisturb;
 bool ifcalcsla;
-bool iftempacclimation;
+bool ifvcmaxtempacclimation;
+bool ifresptempacclimation;
 bool ifcalccton;
 int estinterval;
 double distinterval;
@@ -80,6 +82,7 @@ bool ifdailygrass;
 bool ifdailytree;
 bool ifdavephotosyn;
 bool iftreephen;
+bool ifdailycstarvmort;
 bool ifgrote;
 bool ifdavegrowth;
 bool ifdavehydrology;
@@ -102,6 +105,9 @@ bool ifforcedlai;
 double fixed_lai;
 int nlayer_canopy = 0;
 double layer_thickness_canopy = 0;
+int energy_balance_maxiter;
+double energy_balance_eps;
+
 
 // Arctic and wetland options
 bool iftwolayersoil;			// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below. 
@@ -277,9 +283,12 @@ void initsettings() {
 	firemodel=BLAZE;
 	weathergenerator=GWGEN;
 	ifcalcsla=true;
+	ifdailycstarvmort=false;
+	iftreephen=false;
 	ifdisturb=false;
 	ifcalcsla=false;
-	iftempacclimation = false;
+	ifvcmaxtempacclimation = false;
+	ifresptempacclimation = false;
 	ifdavehydraulics = false;
 	ifdavehydrology = false;
 	ifstoreuptake = true;
@@ -314,6 +323,8 @@ void initsettings() {
 	ifadaptive_rootdist = false;
 	grazing_duration = 1;
 	epsiresolution = 100;
+	energy_balance_maxiter = 1;
+	energy_balance_eps = 1;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -526,8 +537,10 @@ void plib_declarations(int id,xtring setname) {
 			"Deterministic disturbance input file. Required when disttype = \"DETERMINISTIC\". Path to a plaintext file containing one year per line, specifying the years in which disturbance occurs.");
 		declareitem("ifcalcsla",&ifcalcsla,1,CB_NONE,
 			"Whether SLA calculated from leaf longevity");
-		declareitem("iftempacclimation",&iftempacclimation,1,CB_NONE,
-			"Whether vcmax acclimation to temperature is enabeld (alt: prescribed)");
+		declareitem("ifvcmaxtempacclimation",&ifvcmaxtempacclimation,1,CB_NONE,
+			"Whether vcmax acclimation to temperature is enabled (alt: prescribed)");
+		declareitem("ifresptempacclimation",&ifresptempacclimation,1,CB_NONE,
+			"Whether maintenance respiration acclimation to temperature is enabled");
 		declareitem("ifcalccton",&ifcalccton,1,CB_NONE,
 			"Whether leaf C:N min calculated from leaf longevity");
 		declareitem("ifcdebt",&ifcdebt,1,CB_NONE,
@@ -647,8 +660,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
 		declareitem("save_state", &save_state, 1, CB_NONE, "Whether to save new state files");
 		declareitem("state_year", &state_year, 1, 20000, 1, CB_NONE, "Save/restart year. Unspecified means just after spinup");
-		declareitem("verbosity", &verbosity, 0, 4, 1, CB_NONE,
-			"Determines the amount of information that is printed to the logfile. 0 = suppress all output (even errors) 4 = print all information");
+		declareitem("verbosity", &verbosity, 0, 6, 1, CB_NONE,
+			"Determines the amount of information that is printed to the logfile. 0 = suppress all output (even errors) 6 = print all information");
 		declareitem("ifdailyoutput", &ifdailyoutput, 1, CB_NONE, "Whether to produce daily output. Unspecified means no, do not.");
 
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
@@ -660,6 +673,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem ("useClosestNdep", &useClosestNdep, 1, CB_NONE, "Use closest available n deposition data if none is available for a gridcell");
 		declareitem("ifdavephotosyn", &ifdavephotosyn, 1, CB_NONE, "Use DAVE photosynthesis routine");
 		declareitem("iftreephen", &iftreephen, 1, CB_NONE, "Turn on/off tree phenology (Dave)");
+		declareitem("ifdailycstarvmort", &ifdailycstarvmort, 1, CB_NONE, "Turn on/off daily carbon starvation mortality (Dave)");
 		declareitem("ifgrote", &ifgrote, 1, CB_NONE, "Turn on/off grote tree allocation (requires ifdailytree 1)");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
 		declareitem("ifdavehydrology", &ifdavehydrology, 1, CB_NONE, "Use DAVE hydrology updates");
@@ -672,6 +686,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("spinup_output", &spinup_output, 1, CB_NONE, "True to write DAVE outputs during the spinup, false otherwise.");
 		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
 		declareitem("epsiresolution", &epsiresolution, 1, 1e6, 1, CB_NONE, "Resolution for splines used to calculate psi from transpiration. This is the number of control points used for the integration. Default: 100.");
+		declareitem("energy_balance_maxiter", &energy_balance_maxiter, 1, 1000, 1, CB_NONE, "Maximum number of iterations for energy balance convergence in DAVE photosynthesis (default: 1, i.e. single iteration).");
+		declareitem("energy_balance_eps", &energy_balance_eps, 0, 20, 1, CB_NONE, "Convergence criterion for DAVE energy balance (K). Iteration for tleaf will cease when the change in tleaf between iterations is less than this value.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
 		declareitem("ifstoreuptake", &ifstoreuptake, 1, CB_NONE, "Whether N uptake should go into long-term storage pool");
 		declareitem("ifusegdd", &ifusegdd, 1, CB_NONE, "Use growing degree days to infer growth stage");
@@ -766,8 +782,6 @@ void plib_declarations(int id,xtring setname) {
 			"Shape parameter to determine fraction of roots in each soil layer");
  		declareitem("rootdist",ppft->input_rootdist,0.0,1.0,NSOILLAYER,CB_ROOTFRAC,
 			"Fraction of roots in each soil layer (first value=upper layer)");
-		declareitem("gmin",&ppft->gmin,0.0,1.0,1,CB_NONE,
-			"Canopy conductance not assoc with photosynthesis (mm/s)");
 		declareitem("emax",&ppft->emax,0.0,50.0,1,CB_NONE,
 			"Maximum evapotranspiration rate (mm/day)");
 		// guess2008 - increased the upper limit to possible respcoeff values (was 1.2)
@@ -780,13 +794,9 @@ void plib_declarations(int id,xtring setname) {
 			"Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)");
 		declareitem("g1",&ppft->g1,0.0,50.0,1,CB_NONE,
 			"Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)");
-		declareitem("vcmax_25",&ppft->vcmax_25,0.0,10.0,1,CB_NONE, 
-			"Maximum carboxylation rate at 25 degC (mol m-2 s-1)");
 		// Subdaily photosynthesis parameters, Zhou model
 		declareitem("g1x",&ppft->g1x,0,20.0,1,CB_NONE,
 			"g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), units are (kPa^0.5)");
-		declareitem("b1z",&ppft->b1z,0,5.0,1,CB_NONE,
-			"Parameter for Zhou et al. (2014) stomatal model");
 		// Hydraulic parameters
 		declareitem("stom_clos",&ppft->stom_clos,-1000.0,0.0,1,CB_NONE, 
 			"Water potential at which stomatal close and roots disconnect from soil (MPa)");
@@ -798,10 +808,12 @@ void plib_declarations(int id,xtring setname) {
 			"Water potential at 50% loss of xylem conductance (MPa)");
 		declareitem("kmax",&ppft->kmax,0.0,1000000.0,1,CB_NONE, 
 			"Maximum hyraulic conductance per unit xylem area (mol/m2/s/MPa)");
-		declareitem("nx",&ppft->nx,0.0,1.0,1,CB_NONE, 
-			"Water holding capacity of the xylem conduits plus nonconducting tissues (unitless)");
 		declareitem("gcutic",&ppft->gcutic,0,0.05,1,CB_NONE,
-			"cuticular conductance at 20 degC (mol/m2/s)");
+			"cuticular conductance at 25 degC (mol/m2/s)");					
+		declareitem("s_f",&ppft->s_f,0,1000,1,CB_NONE,
+			"Sensitivity parameter indicating steepness of decline in Vcmax with water stress (Zhou 2014)");
+		declareitem("psi_f",&ppft->psi_f,-100,0,1,CB_NONE,
+			"Reference value at which Vcmax or Jmax is half it's non-water-stresed value (Zhou 2014)");
 		declareitem("ifcalcvcmax",&ppft->ifcalcvcmax,1,CB_NONE,
 			"Whether Vcmax calculated from leaf nutrient content");
 		declareitem("cton_root",&ppft->cton_root,1.0,1.0e4,1,CB_NONE,
@@ -816,6 +828,12 @@ void plib_declarations(int id,xtring setname) {
 			"fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen storage scalar");
 		declareitem("extkn",&ppft->extkn,-0.5,2.0,1,CB_NONE,
 			"Canopy nitrogen extinction coefficient (Hikosaka et al. 2016)");
+		declareitem("racclim",&ppft->racclim,-5000,5000,1,CB_NONE,
+			"Acclimation sensitivity coefficient for respiration (1/degC)");
+		declareitem("t50",&ppft->t50,-5000,5000,1,CB_NONE,
+			"Reference temperature (°C) at which 50% leaf damage occurs after 1 minute of exposure.");
+		declareitem("z",&ppft->z,-5000,5000,1,CB_NONE,
+			"Temperature sensitivity coefficient (°C). Controls how rapidly damage changes with temperature; smaller values produce a steeper damage response curve.");
 
 		declareitem("vcmax_25",&ppft->vcmax_25,-5000,5000,1,CB_NONE,
 			"Maximum carboxylation rate at 25 degC (μmol m-2 s-1).");
@@ -833,7 +851,21 @@ void plib_declarations(int id,xtring setname) {
 			"Entropy terms (deltaS) for jmax (J mol-1 K-1).");
 		declareitem("boleht_frac", &ppft->boleht_frac, 0.0, 1.0, 1, CB_NONE,
 			"Bole height as a fraction of tree height (0-1)");
+		declareitem("absorptance_par", &ppft->absorptance_par, 0.0, 1.0, 1, CB_NONE,
+			"Leaf absorptance of photosynthetically active radiation (0-1)");
+		declareitem("absorptance_nir", &ppft->absorptance_nir, 0.0, 1.0, 1, CB_NONE,
+			"Leaf absorptance of near-infrared radiation (0-1)");
+		declareitem("alpha", &ppft->alpha, 0.0, 1.0, 1, CB_NONE,
+			"Quantum yield of electron transport (mol (electrons) mol-1 (photon)).");
+		declareitem("leaf_width", &ppft->leaf_width, 0.0, 1.0, 1, CB_NONE,
+			"Leaf width (m)");
 
+		declareitem("cstarv_inflect", &ppft->cstarv_inflect, 0.0, 1.0, 1, CB_NONE,
+			"Inflection point of sigmoidal carbon starvation as a function of storage fraction full. Higher values mean carbon starvation starts at higher storage levels.");
+		declareitem("cstarv_max", &ppft->cstarv_max, 0.0, 100.0, 1, CB_NONE,
+			"Maximum carbon starvation rate (fraction of cohort killed per year) at low storage levels are low.");
+		declareitem("cstarv_killdens", &ppft->cstarv_killdens, 0.0, 100.0, 1, CB_NONE,
+			"Tree density at which carbon starvation mortality kills the entire cohort (trees per m2).");
 		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
 			"Temperature below which plants fall dormant (degC)");
 		declareitem("RGR_pot",&ppft->RGR_pot,0.0,0.5,1,CB_NONE,
@@ -852,12 +884,8 @@ void plib_declarations(int id,xtring setname) {
 			"Fraction of NPP allocated to crowns");
 		declareitem("culmfrac",&ppft->culmfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of shoot allocated to culms (=culm / (culm + leaves))");
-		declareitem("max_bark_nsc_conc", &ppft->max_bark_nsc_conc, 0.0, 1.0, 1, CB_NONE,
-			"Maximum NSC concentration in dead bark.");
 		declareitem("max_leaf_nsc_conc", &ppft->max_leaf_nsc_conc, 0.0, 1.0, 1, CB_NONE,
 			"Maximum NSC concentration in leaves.");
-		declareitem("max_twig_nsc_conc", &ppft->max_twig_nsc_conc, 0.0, 1.0, 1, CB_NONE,
-			"Maximum NSC concentration in twigs.");
 		declareitem("max_wood_nsc_conc", &ppft->max_wood_nsc_conc, 0.0, 1.0, 1, CB_NONE,
 			"Maximum NSC concentration in wood.");
 		declareitem("bark_frac", &ppft->bark_frac, 0.0, 1.0, 1, CB_NONE,
@@ -960,9 +988,9 @@ void plib_declarations(int id,xtring setname) {
 			"Expected longevity under lifetime non-stressed conditions (yr)");
 		declareitem("greff_min",&ppft->greff_min,0.0,1.0,1,CB_NONE,
 			"Threshold for growth suppression mortality (kgC/m2 leaf/yr)");
-		declareitem("leaflong",&ppft->leaflong,0.1,100.0,1,CB_NONE,
-			"Leaf longevity (years)");
 		declareitem("intc",&ppft->intc,0.0,1.0,1,CB_NONE,"Interception coefficient");
+		declareitem("sapsize",&ppft->sapsize,0.01,1.0,1,CB_NONE,
+			"Initial sapling size coefficient");
 		declareitem("formfactor",&ppft->formfactor,0.01,1.0,1,CB_NONE,
 			"Form Factor for converting cylindrical stem into conical stem and branches");	
 
@@ -1425,6 +1453,12 @@ void plib_declarations(int id,xtring setname) {
 	}
 }
 
+void badins(xtring block, xtring missing) {
+	xtring message=(xtring)"Block " + block + (xtring)": Missing mandatory setting: " + missing;
+	sendmessage("Error",message);
+	plibabort();
+}
+
 void badins(xtring missing) {
 
 	xtring message=(xtring)"Missing mandatory setting: "+missing;
@@ -1818,6 +1852,10 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 
+		if (ifdailycstarvmort && !(ifdavegrowth && ifdailytree)) {
+			sendmessage("Error", "Daily carbon starvation requires daily carbon allocation and daily tree (dave grote)");
+			plibabort();
+		}
 		// Ensure that nlayer_canopy and layer_thickness_canopy are not both specified.
 		if (itemparsed("nlayer_canopy") && itemparsed("layer_thickness_canopy")) {
 			sendmessage("Error", "Cannot specify both nlayer_canopy and layer_thickness_canopy. Specify one or the other.");
@@ -2084,7 +2122,7 @@ void plib_callback(int callback) {
 
 			int pftid = pftlist.getpftid(st.get_management(0).pftname);
 			if(st.intercrop == NATURALGRASS && pftid >= 0 && pftlist[pftid].phenology != CROPGREEN)
-				dprintf("Warning: covercrop grass should not be activated in stand types without true crops\n");
+				log_warning("covercrop grass should not be activated in stand types without true crops\n");
 			stlist.nextobj();
 		}
 
@@ -2154,19 +2192,20 @@ void plib_callback(int callback) {
 
 			if (!itemparsed("lifeform")) badins("lifeform");
 			if (!itemparsed("phenology")) badins("phenology");
-			if (ppft->phenology==SUMMERGREEN || ppft->phenology==ANY)
+			if (!(ppft->dave_allocation() || ifbvoc) && (ppft->phenology==SUMMERGREEN || ppft->phenology==ANY))
 				if (!itemparsed("phengdd5ramp")) badins("phengdd5ramp");
-			if (ppft->phenology==RAINGREEN || ppft->phenology==ANY)
+			if (ppft->phenology==RAINGREEN || ppft->phenology==ANY ||
+				(ppft->dave_allocation() && ppft->is_grass()))
 				if (!itemparsed("wscal_min")) badins("wscal_min");
 			if (!itemparsed("leafphysiognomy")) badins("leafphysiognomy");
 			if (!itemparsed("pathway")) badins("pathway");
-			if (!ifdavegrowth) {
+			if (!ifdavephotosyn) {
 				if (!itemparsed("pstemp_min")) badins("pstemp_min");
 				if (!itemparsed("pstemp_low")) badins("pstemp_low");
 				if (!itemparsed("pstemp_high")) badins("pstemp_high");
 				if (!itemparsed("pstemp_max")) badins("pstemp_max");
 			}
-			if (!itemparsed("lambda_max")) badins("lambda_max");
+			if (!itemparsed("lambda_max") && !ifdavephotosyn) badins("lambda_max");
 			if (rootdistribution == ROOTDIST_FIXED) {
 				if (!itemparsed("rootdist")) badins("rootdist");
 				// if (itemparsed("root_beta")) badins("root_beta given but rootdistribution is fixed. This does not make sense.");
@@ -2185,22 +2224,39 @@ void plib_callback(int callback) {
 				if (!itemparsed("cton_leaf_min")) badins("cton_leaf_min");
 
 
-			if (!itemparsed("cton_root")) badins("cton_root");
-			if (!itemparsed("nuptoroot")) badins("nuptoroot");
-			if (!itemparsed("km_volume")) badins("km_volume");
-			if (!itemparsed("fnstorage")) badins("fnstorage");
-			if (!itemparsed("extkn"))     badins("extkn");
+			if (!ppft->dave_allocation()) {
+				if (!itemparsed("nuptoroot")) badins("nuptoroot");
+				if (!itemparsed("km_volume")) badins("km_volume");
+				if (!itemparsed("fnstorage")) badins("fnstorage");
+				if (ppft->lifeform == TREE) {
+					if (!itemparsed("cton_root")) badins("cton_root");
+					if (!itemparsed("cton_sap")) badins("cton_sap");
+				}
+			}
 
 			if (!itemparsed("reprfrac")) badins("reprfrac");
-			if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
-			if (!itemparsed("turnover_root")) badins("turnover_root");
+
+			// turnover_leaf not required by dave grasses.
+			if (!(ppft->dave_allocation() && ppft->is_grass())) {
+				if (!itemparsed("turnover_leaf")) badins("turnover_leaf");
+				if (!itemparsed("turnover_root")) badins("turnover_root");
+			}
 			if (!itemparsed("ltor_max")) badins("ltor_max");
 			if (!itemparsed("intc")) badins("intc");
-			if (!itemparsed("stem_frac")) badins("stem_frac");
-			if (!itemparsed("twig_frac")) badins("twig_frac");
+
+			if (!ppft->is_grass() && run_landcover && ppft->landcover != NATURAL) {
+				if (!itemparsed("stem_frac")) badins("stem_frac");
+				if (!itemparsed("twig_frac")) badins("twig_frac");
+			}
 
 			if (ifdavegrowth) {
 				// Mandatory parameters for pfts using dave daily growth.
+				if (ppft->lifeform == TREE) {
+					if (!itemparsed("turnover_repr")) badins("turnover_repr");
+					if (!itemparsed("sapsize")) badins("sapsize");
+					if (!itemparsed("formfactor")) badins("formfactor");
+					if (!itemparsed("sapsize")) badins("sapsize");
+				}
 				if (!itemparsed("turnover_repr_litter")) badins("turnover_repr");
 
 				// Calculate a_growth if it's not provided by the user.
@@ -2211,11 +2267,8 @@ void plib_callback(int callback) {
 				if (ifdailytree && ppft->lifeform == TREE) {
 					// turnover_repr not currently used by grasses (but turnover_repr_litter is).
 					if (!itemparsed("turnover_repr")) badins("turnover_repr");
-					if (!itemparsed("max_bark_nsc_conc")) badins("max_bark_nsc_conc");
 					if (!itemparsed("max_leaf_nsc_conc")) badins("max_leaf_nsc_conc");
-					if (!itemparsed("max_twig_nsc_conc")) badins("max_twig_nsc_conc");
 					if (!itemparsed("max_wood_nsc_conc")) badins("max_wood_nsc_conc");
-					if (!itemparsed("bark_frac")) badins("bark_frac");
 				}
 
 				if (ifdailygrass && ppft->is_grass() && ifdavegrowth) {
@@ -2233,34 +2286,66 @@ void plib_callback(int callback) {
 					if (!itemparsed("temp_senesc1")) badins("temp_senesc1");
 					if (!itemparsed("temp_senesc2")) badins("temp_senesc2");
 				}
-				if (ppft->lifeform == TREE && !itemparsed("boleht_frac")) {
-					badins("boleht_frac");
+				if (ppft->lifeform == TREE) {
+					if (!itemparsed("boleht_frac")) badins("boleht_frac");
+					if (ifdailytree) {
+						if (!itemparsed("cstarv_inflect")) badins("cstarv_inflect");
+						if (ppft->cstarv_inflect <= 0) {
+							sendmessage("Error", "cstarv_inflect must be greater than 0");
+							plibabort();
+						}
+						if (!itemparsed("cstarv_max")) badins("cstarv_max");
+						if (!itemparsed("cstarv_killdens")) badins("cstarv_killdens");
+					}
+					if (ifdavephotosyn) {
+						if (!itemparsed("absorptance_par")) badins("absorptance_par");
+						if (!itemparsed("absorptance_nir")) badins("absorptance_nir");
+						if (!itemparsed("alpha")) badins("alpha");
+						if (!itemparsed("leaf_width")) badins("leaf_width");
+						if (ppft->leaf_width <= 0) {
+							sendmessage("Error", "leaf_width must be greater than 0");
+							plibabort();
+						}
+					}
 				}
-
 				if (!itemparsed("max_mobil_cstorage")) badins("max_mobil_cstorage");
-			}
-			if (!ppft->ifcalcvcmax) {
-				if (!itemparsed("vcmax_25")) badins("vcmax_25");
-				if (!itemparsed("vpmax_25")) badins("vpmax_25");
-				if (!itemparsed("jmax_25")) badins("jmax_25");
-			} else {
-				if (itemparsed("vcmax_25")) dprintf("WARNING: %s vcmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
-				if (itemparsed("vpmax_25")) dprintf("WARNING: %s vpmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
-				if (itemparsed("jmax_25")) dprintf("WARNING: %s jmax_25 value provided but it's not used when ifcalcvcmax is enabled.\n", (const char *)ppft->name);
 			}
 
 			if (ifdavephotosyn) {
 				// Mandatory parameters for dave photosynthesis.
 				if (!itemparsed("g0")) badins("g0");
-				if (!itemparsed("g1")) badins("g1");
 				if (!itemparsed("gcutic")) badins("gcutic");
+				if (ifzhou) {
+					if (!itemparsed("g1x")) badins("g1x");
+				} else {
+					if (!itemparsed("g1")) badins("g1");
+				}
 				if (!itemparsed("extkn")) badins("extkn");
+				if (ppft->extkn == 0) {
+					sendmessage("Error", "extkn cannot be 0 in dave photosynthesis model");
+					plibabort();
+				}
 				if (!itemparsed("ha_v")) badins("ha_v");
 				if (!itemparsed("ha_j")) badins("ha_j");
 				if (!itemparsed("ds_v")) badins("ds_v");
 				if (!itemparsed("ds_j")) badins("ds_j");
+				if (!itemparsed("extkn")) badins("extkn");
+				if (!itemparsed("racclim")) badins("racclim");
 				if (!ifdavegrowth && ppft->ifcalcvcmax) {
-					printf("WARNING: using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 0");
+					log_warning("Using dave photosynthesis and trunk allocation without fixed vcmax is not recommended. Suggest using ifcalcvcmax 0");
+				}
+				if (!itemparsed("t50")) badins("t50");
+				if (!itemparsed("z")) badins("z");
+
+				// If vcmax is calculated and PFT uses daily establishment, then
+				// vcmax25/jmax25/vpmax25 are not required. In all other cases,
+				// they are required.
+				if (!(ppft->ifcalcvcmax && ppft->daily_establishment())) {
+					if (!itemparsed("vcmax_25")) badins("vcmax_25");
+					if (!itemparsed("jmax_25")) badins("jmax_25");
+					if (ppft->is_grass() && ppft->pathway == C4) {
+						if (!itemparsed("vpmax_25")) badins("vpmax_25");
+					}
 				}
 			}
 
@@ -2274,8 +2359,9 @@ void plib_callback(int callback) {
 				if (!itemparsed("p88")) badins("p88");	
 				if (!itemparsed("kmax")) badins("kmax");	
 				if (!itemparsed("stom_clos")) badins("stom_clos");	
-				if (!itemparsed("g1x")) badins("g1x");
 				if (!itemparsed("gcutic")) badins("gcutic");
+				if (!itemparsed("s_f")) badins("s_f");
+				if (!itemparsed("psi_f")) badins("psi_f");
 				if (ppft->is_grass()){
 					if (!itemparsed("tlp")) badins("tlp");
 				}
@@ -2389,7 +2475,6 @@ void plib_callback(int callback) {
 			}
 
 			if (ppft->lifeform==TREE) {
-				if (!itemparsed("cton_sap")) badins("cton_sap");
 				if (!itemparsed("turnover_sap")) badins("turnover_sap");
 				if (ppft->dave_allocation() && ppft->lifeform == TREE && !itemparsed("turnover_repr")) badins("turnover_repr");
 				if (!itemparsed("wooddens")) badins("wooddens");

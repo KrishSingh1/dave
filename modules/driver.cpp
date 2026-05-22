@@ -911,6 +911,10 @@ void dailyaccounting_stand(Stand& stand) {
 	stand.cmass_wood = 0.0;
 	stand.cmass_wood_harv = 0.0;
 	stand.cmass_mort = 0.0;
+
+	for (size_t i = 0; i < stand.pft.nobj; i++) {
+		stand.pft[i].daily_accounting();
+	}
 }
 
 /// Manages C and N fluxes from slow harvest pools
@@ -1049,6 +1053,11 @@ void dailyaccounting_patch(Patch& patch) {
 
 			vegetation.nextobj();
 		}
+	}
+
+	for (size_t i = 0; i < patch.pft.nobj; i++) {
+		Patchpft &patchpft = patch.pft[i];
+		patchpft.daily_accounting(patch);
 	}
 
 	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
@@ -1543,6 +1552,12 @@ void get_esat_params(esat_method_t esat_method, esat_params_t *params) {
 		params->a = 610.8;
 		params->b = 17.27;
 		params->c = 237.3;
+	} else if (esat_method == BUCK_1981) {
+		// a = 1.0007 + (3.46 * 10^-6) * P, where P is air pressure in mb
+		// With P = 1000 mb, a = 613.75;
+		params-> a = 613.75;
+		params->b = 17.502;
+		params->c = 240.97;
 	}
 }
 
@@ -1560,6 +1575,19 @@ double esat(double tair, esat_method_t esat_method) {
 
 double rh_to_vpd(double rh, double tair, esat_method_t esat_method) {
 	return esat(tair, esat_method) * (1.0 - rh);
+}
+
+double qair_to_e(double sh, double ps, esat_method_t esat_method) {
+	// Ratio of the molecular weight of water vapor to dry air (=Mw/Md)
+	const double EPS = 0.622;
+
+	return sh * ps / ((1.0 - EPS) * sh + EPS);
+}
+
+double sh_to_vpd(double sh, double tair, double ps, esat_method_t esat_method) {
+	double es = esat(tair, esat_method);
+	double e = qair_to_e(sh, ps, esat_method);
+	return es - e;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

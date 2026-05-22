@@ -40,7 +40,7 @@ void print_logfile_heading() {
 	xtring datetime;
 	unixtime(datetime);
 
-	xtring header = xtring("[LPJ-GUESS  ") + datetime + "]\n\n";
+	xtring header = xtring("\n[LPJ-GUESS  ") + datetime + "]\n\n";
 	dprintf((char*)header);
 
 	// Print the title of this run

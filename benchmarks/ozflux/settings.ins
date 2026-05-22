@@ -26,17 +26,19 @@ ifapproximate_C4         1   ! Use approximation of von Caemmerer 2000 C4 photos
 use_mean_annual_co2      1   ! If true, each day's CO2 value will be the mean annual co2 for the current year. Otherwise, a mean of that day's subdaily data will be used.
 ifusegdd                 0   ! If true, use growing degree days to calculate growth stage, otherwise infer from biomass dynamics
 ifevenlaidist            1   ! Whether LAI is distributed evenly across canopy layers for grasses.
-ifadaptive_rootdist      1   ! Adaptive root distribution and response window?
+ifadaptive_rootdist      0   ! Adaptive root distribution and response window?
 epsiresolution           100 ! Resolution for splines used to calculate psi from transpiration. This is the number of control points used for the integration. Default: 100.
 iftreephen               0   ! Turn on/off tree phenology (Dave)
 ifgrote                  1   ! Turn on/off grote tree allocation (Requires ifdailytree 1)
-iftempacclimation        0   ! DAVE temperature acclimation of photosynthesis.
-soildepth_evap           200 ! Depth of sublayer at top of upper soil layer, from which evaporation is possible Must be a multiple of 100. Trunk default is 200, Clare had 500
+ifvcmaxtempacclimation   0   ! Acclimation of vcmax to temperature.
+ifresptempacclimation    0   ! Acclimation of maintenance respiration to temperature.
+soildepth_evap           500 ! Depth of sublayer at top of upper soil layer, from which evaporation is possible Must be a multiple of 100. Trunk default is 200, Clare had 500
 ifstoreuptake            1   ! Whether tree N uptake goes into long-term storage pool.
+ifdailycstarvmort        1   ! Turn on/off daily carbon starvation mortality in trees (Dave)
 
 ! Soil Data
 file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one
-!file_soildata         		  "../forcing/slga.ozflux.dat"        ! from soil & landscape grid
+! file_soildata         		  "../forcing/slga.ozflux.dat"        ! from soil & landscape grid
 
 ! Simfire Data
 param "file_simfire"          (str "../forcing/SimfireInput.bin")                        ! Relative to the main .ins file, not this one
@@ -56,9 +58,10 @@ param "file_disturbance_st"   (str "")
 param "file_elevation_st"     (str "")
 
 ! File containing long-term mean maximum temperature of warmest month, used for
-! DAVE temperature acclimation of photosynthesis.
-! Only required if iftempacclimation is enabled.
-file_thome                      "../forcing/ozflux.thome.csv"
+! DAVE temperature acclimation of photosynthesis. Only required if
+! ifvcmaxtempacclimation is enabled. If not provided, thome will be calculated
+! from the climate data.
+file_thome                      ""
 
 ! Number of timesteps per day.
 nsteps_day            			8
@@ -67,9 +70,6 @@ nsteps_day            			8
 searchradius_soil               50
 
 ! Other site-agnostic settings.
-
-! Seed used to control RNG of met sampling/shuffling in spinup
-met_sampling_seed             12345
 
 ! 1 to enable sensibility checking of inputs, 0 otherwise
 nc_check_inputs                0
@@ -87,53 +87,12 @@ useClosestNdep               1   ! Use closest available N Deposition data if no
 
 ! User input from the instruction file. The number of years of data to recycle
 ! during the spinup. If 0, all data will be recycled during freenyears.
-spinup_met_cycle_length      30
-
-! Names of variables in met input file.
-variable_lon                 "longitude" ! Longitude
-variable_lat                 "latitude"  ! Latitude
-variable_time                "time"      ! Time
-variable_temp                "tav"       ! Air Temperature (°C)
-variable_insol               "insol"     ! Shortwave Radiation (W m^-2)
-variable_precip              "prec"      ! Precipitation (mm)
-variable_vpd                 "vpd"       ! Vapour Pressure Deficit (kPa)
-variable_ps                  "ps"        ! Atmospheric Pressure (Pa)
-variable_wind                "wind"      ! Wind speed (m/2) (optional if not using blaze)
-
-! Empty string means it will be calculated from subdaily temperature. If this
-! variable doesn't exist, it will be calculated from subdaily temperature. If
-! this variable doesn't exist, and input timestep is daily, an error will occur.
-variable_tmax                "tmax" ! Maximum Daily Air Temperature (°C)
-
-! Empty string means it will be calculated from subdaily temperature. If this
-! variable doesn't exist, it will be calculated from subdaily temperature. If
-! this variable doesn't exist, and input timestep is daily, an error will occur.
-variable_tmin                "tmin" ! Minimum Daily Air Temperature (°C)
-
-! Name of the nhx nitrogen deposition variable in the NetCDF file (optional).
-! If not set, file_ndep must be set. The quantities in this variable are assumed
-! to be rates of N deposition, so aggregation will occur by taking the mean of
-! these rates over a time period.
-variable_ndep_nhx            ""     ! Daily NHX N deposition (mgN/m2/day)
-
-! Name of the noy nitrogen deposition variable in the NetCDF file (optional).
-! If not set, file_ndep must be set. The quantities in this variable are assumed
-! to be rates of N deposition, so aggregation will occur by taking the mean of
-! these rates over a time period.
-variable_ndep_noy            ""     ! Daily NOY N deposition (mgN/m2/day)
-
-! This is the optional name of a variable in the NetCDF file which contains CO2
-! concentrations. Either this or file_co2 must be provided. If both are set,
-! file_co2 will be used.
-!variable_co2                 "co2"  ! CO2 Concentration (ppm)
-
-! Subdaily relative humidity (0-1). Not required if VPD is provided instead.
-variable_rh                   ""
+spinup_met_cycle_length      0
 
 ! Algorithm used to estimate saturation vapour pressure (esat) from air
 ! temperature. Required iff variable_rh is set. Valid options are:
-! sonntag_1990, alduchov_1996, allen_1998
-esat_method                  "sonntag_1990"
+! sonntag_1990, alduchov_1996, allen_1998, buck_1981
+esat_method                  "buck_1981"
 
 ! Input file containing atmospheric co2 concentration by year. This is optional
 ! if co2 data is being read from the NetCDF file (ie if variable_co2 is set).
@@ -163,6 +122,9 @@ temperature_delta            0
 ! Optional constant to be added to daily co2 (ppm).
 co2_delta                    0
 
+! Optional constant by which to multiply all precipitation values.
+precip_scalar                1
+
 ! Interval in seconds between progress reports; 0 for yearly or -1 for daily.
 progress_interval            0
 
@@ -181,7 +143,7 @@ strict_math                  1
 !layer_thickness_canopy      2
 
 ! Iff enabled, patch-level outputs will be written during spinup.
-spinup_output                0
+spinup_output               0
 
 ! Iff enabled, outputs will be written in gzip (ie compressed) format.
 gzip_output                  0
@@ -189,6 +151,16 @@ gzip_output                  0
 ! Iff enabled, patch-level outputs will be written as mean/median/standard
 ! deviation instead.
 patch_output_stats           0
+
+! Verbosity level in log file (0-6, higher is more verbose).
+verbosity                    3
+
+! Maximum number of iterations to use in DAVE energy balance.
+energy_balance_maxiter       1
+
+! Convergence criterion for DAVE energy balance (K). Iteration for tleaf will
+! cease when the change in tleaf between iterations is less than this value.
+energy_balance_eps           0.1
 
 ! The first year after the spinup period. During spinup, all met data before
 ! this year is cycled. If not set, all available data will be cycled during the
@@ -231,14 +203,14 @@ ifbvoc 0                         ! Whether to include BVOC calculations (1) or n
 !///////////////////////////////////////////////////////////////////////////////
 ! Disturbance
 !///////////////////////////////////////////////////////////////////////////////
-ifdisturb    0          ! Whether generic patch-destroying disturbances enabled
-disttype     "NONE"     ! Disturbance regime ("NONE", "STOCHASTIC" (requires distinterval), "DETERMINISTIC" (requires file_disturb))
+ifdisturb    1          ! Whether generic patch-destroying disturbances enabled
+disttype     "DETERMINISTIC"     ! Disturbance regime ("NONE", "STOCHASTIC" (requires distinterval), "DETERMINISTIC" (requires file_disturb))
 
 distinterval 50        ! Average return time for generic patch-destroying disturbances
                         ! Only used if disttype = "STOCHASTIC"
                         ! Hickler et al. (2011) used 200
 
-!file_disturb ""        ! Path to a plaintext file containing years in which
+file_disturb "../disturbances.txt"        ! Path to a plaintext file containing years in which
                         ! disturbances should occur, one value per line.
                         ! Only used if disttype = "DETERMINISTIC"
                         ! It may be more useful to include this in the site-
@@ -343,7 +315,11 @@ import "landcover.ins"
 !import "c3g.ins"
 !import "c4g.ins"
 
-!import "pft_dave.ins"
+! for Warra only 
+! import "pfts_jamey.ins"
+!import "warra_pfts.ins"
+! also, comment out pft_commons.ins
+
 import "pft_grasses.ins"
 
 ! Uncomment this (and comment out all other pft .ins files) to use the standard

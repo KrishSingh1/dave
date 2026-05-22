@@ -13,6 +13,7 @@
 
 #include "config.h"
 #include "shell.h"
+#include "guess.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -45,9 +46,13 @@ void lprintf(xtring format, ...) {
 	va_list v;
 	va_start(v, format);
 
-	current_shell->vwrite_log((const char *)format, v);
-
+	vlprintf(format, v);
 	va_end(v);
+}
+
+void vlprintf(xtring format, va_list args) {
+	// Prefix message with a timestamp.
+	current_shell->vwrite_log((const char *)format, args);
 }
 
 void fail(xtring format,...) {

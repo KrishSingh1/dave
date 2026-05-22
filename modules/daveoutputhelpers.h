@@ -294,29 +294,12 @@ Get the total standing dead biomass for the given PFT.
 double get_pft_standing_dead_cmass(const Patch &patch, const Pft &pft);
 
 /*
-Get the first individual in the patch, if any are established.
-
-@param patch: A patch object.
-*/
-Individual *get_first_indiv(Patch &patch);
-
-/*
-Get the number of canopy layers used for fpar calculations today in the
-specified patch.
-
-@param patch: A patch object.
-*/
-int get_nlayer_fpar(const Patch &patch);
-
-/*
 Get the number of canopy layers used for light interception today in the
 specified patch.
 
 @param patch: A patch object.
 */
-int get_nlayer_lai(const Patch &patch);
-
-int get_nlayer_an(const Patch &patch);
+size_t get_nlayer_canopy(const Patch &patch);
 
 /*
 Get the litter cmass for the specified pft in the specified patch (kgC/m2).
@@ -370,6 +353,11 @@ Get the columns used in the vegetation C pool output file.
 std::vector<ColumnDefinition<Individual>> indiv_cpool_columns();
 
 /*
+Get the columns used in the vegetation C pool output file.
+*/
+std::vector<ColumnDefinition<Individual>> indiv_cpool_tree_columns();
+
+/*
 Get the columns used in the vegetation N pool output file.
 */
 std::vector<ColumnDefinition<Individual>> indiv_npool_columns();
@@ -384,6 +372,9 @@ Aggregate a value across all individuals in a patch.
 */
 double aggregate_indivs(const Patch &patch, const Pft &pft, double (*read_value)(const Individual &), double (*aggregate)(double *, int));
 
+std::vector<ColumnDefinition<Individual>> indiv_dbhcoloumns_columns();
+
+int get_ncohort(const Patch &patch, const Pft &pft);
 /*
 Aggregate a patch-level value to gridcell-level, by reading it for all patches
 in the gridcell and aggregating accordingly.
@@ -397,6 +388,14 @@ from an individual up to the gridcell level, for all PFTs.
 std::vector<ColumnDefinition<Gridcell>> get_gridcell_aggregated_indiv_columns(
     double (*read_value)(const Individual &),
     double (*aggregate)(const double *, size_t)
+);
+
+/*
+Generate a vector of column definitions, which aggregate the specified value
+read from a pft in a given patch up to the gridcell level, for all PFTs.
+*/
+std::vector<ColumnDefinition<Gridcell>> get_gridcell_patchpft_columns(
+	double (*read_value)(const Patch &, const Pft &)
 );
 
 /*
@@ -442,6 +441,21 @@ std::vector<ColumnDefinition<Patch>> nitrogen_budget_cols_daily();
 Get the columns used in the mortality output file.
 */
 std::vector<ColumnDefinition<Individual>> mortality_cols();
+
+/*
+Get the columns used in the high-fidelity photosynthesis inputs file.
+*/
+std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_input_cols();
+
+/*
+Get the columns used in the high-fidelity photosynthesis outputs file.
+*/
+std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_output_cols();
+
+/*
+Get the columns used in the high-fidelity energy balance output file.
+*/
+std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> energy_balance_cols();
 
 } // namespace GuessOutput
 

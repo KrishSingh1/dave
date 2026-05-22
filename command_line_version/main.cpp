@@ -89,5 +89,8 @@ int main(int argc,char* argv[]) {
 	// Say goodbye
 	dprintf("\nFinished\n");
 
+	// Final cleanups. e.g. terminate MPI
+	cleanupAtExit();
+
 	return EXIT_SUCCESS;
 }

@@ -2174,7 +2174,7 @@ void canopy_exchange_dave(Patch &patch) {
     npp_dave(patch);
 
 	// Calculate leaf damage due to high temperature.
-	leaf_damage_dave(patch);
+	//leaf_damage_dave(patch);
 
     // Leaf senescence for crops.
     leaf_senescence(patch.vegetation);

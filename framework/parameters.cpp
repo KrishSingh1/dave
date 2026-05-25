@@ -95,7 +95,6 @@ double epsiresolution;
 bool ifevenlaidist;
 bool ifadaptive_rootdist;
 bool ifapproximate_C4;
-bool ifusegdd;
 bool ifstoreuptake;
 bool gzip_output;
 bool spinup_output;
@@ -690,7 +689,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("energy_balance_eps", &energy_balance_eps, 0, 20, 1, CB_NONE, "Convergence criterion for DAVE energy balance (K). Iteration for tleaf will cease when the change in tleaf between iterations is less than this value.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
 		declareitem("ifstoreuptake", &ifstoreuptake, 1, CB_NONE, "Whether N uptake should go into long-term storage pool");
-		declareitem("ifusegdd", &ifusegdd, 1, CB_NONE, "Use growing degree days to infer growth stage");
 		declareitem("nindiv_max", &nindiv_max, 0, 1024, 1, CB_NONE, "Maximum number of individuals allowed to establish at once per pft (0 = unlimited)");
 		declareitem("grazing_duration", &grazing_duration, 0, 1024, 1, CB_NONE, "Number of days that animals are allowed to graze a particular set of patches (default: 1).");
 		declareitem("ifforcedlai", &ifforcedlai, 1, CB_NONE, "Maximum number of individuals allowed to establish at once per pft (0 = unlimited)");
@@ -868,8 +866,6 @@ void plib_declarations(int id,xtring setname) {
 			"Tree density at which carbon starvation mortality kills the entire cohort (trees per m2).");
 		declareitem("temp_dormancy",&ppft->temp_dormancy,-5.0,30.0,1,CB_NONE,
 			"Temperature below which plants fall dormant (degC)");
-		declareitem("RGR_pot",&ppft->RGR_pot,0.0,0.5,1,CB_NONE,
-			"Potential relative growth rate in vegetative phase (d-1)");
 		declareitem("max_mobil_cstorage",&ppft->max_mobil_cstorage,0.0,1.0,1,CB_NONE,
 			"Maximum NSC mobilisation rate from C storage (d-1)");
 		declareitem("Ha_growth",&ppft->Ha_growth,0.0,200.0,1,CB_NONE,

@@ -673,14 +673,14 @@ class GridcellLevelOutput : public OutputFile {
 			@param description: A description of the output (including units!!).
 			@param aggregator: Pointer to a function which takes an array, aggregates the array in some way and returns a scalar.
 			*/
-			IndivLevelArrayOutput(std::string param_name, std::string element_name, int (*get_nelem)(const Patch &), ArrayOutputReader<Individual> *get_output, std::string description, double (*aggregator)(const double*, size_t));
+			IndivLevelArrayOutput(std::string param_name, std::string element_name, size_t (*get_nelem)(const Patch &), ArrayOutputReader<Individual> *get_output, std::string description, double (*aggregator)(const double*, size_t));
 
 			/*
 			Create a new individual output using a custom weight reader. When a weight
 			reader is provided, values are aggregated as a weighted mean across
 			individuals: sum(value_i * weight_i) / sum(weight_i).
 			*/
-			IndivLevelArrayOutput(std::string param_name, std::string element_name, int (*get_nelem)(const Patch &), ArrayOutputReader<Individual> *get_output, std::string description, OutputReader<Individual> *read_weight);
+			IndivLevelArrayOutput(std::string param_name, std::string element_name, size_t (*get_nelem)(const Patch &), ArrayOutputReader<Individual> *get_output, std::string description, OutputReader<Individual> *read_weight);
 
 			/*
 			Destructor.
@@ -716,7 +716,7 @@ class GridcellLevelOutput : public OutputFile {
 			/*
 			Get the number of elements in the output array.
 			*/
-			int (*get_n)(const Patch &);
+			size_t (*get_n)(const Patch &);
 
 			/*
 			Read the i-th element of the output array.
@@ -1149,14 +1149,14 @@ class GridcellLevelOutput : public OutputFile {
 	@param description: Description of the output (with units!!).
 	@param aggregator: Pointer to a function which takes an array, aggregates the array in some way and returns a scalar.
 	*/
-	void add_indiv_array_output(std::string name, timestep_t timestep, std::string elem_name, int (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description, double (*aggregator)(const double *, size_t));
+	void add_indiv_array_output(std::string name, timestep_t timestep, std::string elem_name, size_t (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description, double (*aggregator)(const double *, size_t));
 
 	/*
 	Add an individual-level array output using a custom weight function. When a
 	weight reader is provided, values are aggregated as a weighted mean across
 	individuals: sum(value_i * weight_i) / sum(weight_i).
 	*/
-	void add_indiv_array_output(std::string name, timestep_t timestep, std::string elem_name, int (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description, double (*read_weight)(const Individual&));
+	void add_indiv_array_output(std::string name, timestep_t timestep, std::string elem_name, size_t (*get_nelem)(const Patch &), double (*read_output)(const Individual&, int), std::string description, double (*read_weight)(const Individual&));
 
 	/*
 	Add a per-cohort, per-subdaily-timestep, per-canopy-layer output. One row is

@@ -29,24 +29,6 @@ void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 					double vm,
 					PhotosynthesisResult& result);
 
-// Temperature response function following a modified Arrhenius equation (Johnson et al. 1942) 
-double Arrhenius_temp_response(double k25, double Tl, double Ha, double Hd, double dS);
-
-// Temperature response function for leaf mitochondrial respiration (Heskel et al. 2016, PNAS)
-double respiration_temp_response(double Tl);
-
-// Light inhibition of leaf mitochondrial respiration.
-double light_inhibition(double PAR);
-
-// System of equations to solve coupled photosynthesis-stomatal conductance scheme.
-// Wang & Leuning 1998
-double photosyn_solver(double g0, double X, double gamma, double beta, 
-					   double gamstar, double Rd, double Ca);
-
-// Calculate electron transport rate from PAR
-// e.g. von Caemmerer 2013
-double electron_transport_rate(double PAR,double Jmax);
-
 /// Nitrogen- and landuse specific alpha a
 double alphaa(const Pft& pft);
 
@@ -61,6 +43,35 @@ double nitrogen_uptake_strength(const Individual& indiv);
 
 /// Use nitrogen storage to limit stress
 void nstore_usage(Vegetation& vegetation);
+
+/// Get CO2 concentration in air (ppm).
+double get_co2(const Patch& p, const Climate& climate, const Pft& pft);
+
+void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
+	double respcoeff, double cton_sap, double cton_root, double cton_crown,
+	double cmass_sap, double cmass_root_today, double cmass_crown, double cmass_repr, 
+	double growth, double fphen_activity, double assim, double resp_leaf,
+	double& resp, double &resp_maintenance, double &resp_growth,
+	double &resp_repr, double &resp_crown, double &resp_root, double &resp_sap);
+
+/// Leaf senescence for crops Eqs. 8,9,13 and 14 in Olin 2015
+void leaf_senescence(Vegetation& vegetation);
+
+void ndemand(Patch& patch, Vegetation& vegetation);
+
+void nitrogen_uptake(Vegetation &vegetation);
+
+double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual &indiv);
+
+double water_uptake_twolayer(double wcont[NSOILLAYER], double awc[NSOILLAYER],
+	double rootdist[NSOILLAYER], double emax, double fpc_rescale,
+	double fwuptake[NSOILLAYER], bool ifsmart, double species_drought_tolerance);
+
+
+double water_uptake(double wcont[NSOILLAYER], double awc[NSOILLAYER],
+	double rootdist[NSOILLAYER], double emax, double fpc_rescale,
+	double fwuptake[NSOILLAYER], bool ifsmart, double species_drought_tolerance,
+	double Rs_r[NSOILLAYER]);
 
 // Constants for photosynthesis calculations
 
@@ -94,6 +105,14 @@ const double BC3 = 0.015;
 /// leaf respiration as fraction of maximum carboxylation rate, C4 plants
 const double BC4 = 0.025;
 
+// Maximum number of iterations that the C4 photosynthesis solver can use to
+// find An, gs, and ci.
+const int NIT_MAX = 20;
+
+// Iteration to solve C4 photosynthesis ceases when ci changes by less than this
+// amount.
+const double CI_DIFF_MAX = 5e-7; // mol mol-1
+
 /// Radiation conversion from J m-2 s-1 (=W m-2) to mol (quanta) m-2 s-1
 const double JTOMOL = 4.6E-6;
 
@@ -105,6 +124,27 @@ const double MOL2G_C = 12.011;
 
 /// Molecular mass of Water (g mol-1)
 const double MOL2G_H2O = 18.01528;
+
+// Stefan-Boltzmann constant (W m-2 K-4).
+const double BOLTZ = 5.67e-8;
+
+// Specific heat capacity of air (J kg-1 K-1).
+const double CP_AIR = 1010;
+
+// Emissivity of leaves (dimensionless).
+const double EMISSIVITY = 0.95;
+
+// TODO: umols of what??? (umol J-1).
+const double UMOL_PER_J = 4.57;
+
+// J kg-1
+const double H2OLV0 = 2501000;
+
+// kg mol-1
+const double AIRMA = 0.029;
+
+// TODO: get description.
+const double DHEAT = 2.15e-05;
 
 // von Caemmerer 2013, PCE: 0.36125
 // Medlyn et al. 2002, PCE: 0.3
@@ -165,12 +205,12 @@ const double xj = 0.4;
 // Fraction of cyclic electron transport (von Caemmerer 2021)
 const double fcyc = 0.3;
 
+// Ratio of ATP production to linear electron transport (JATP/J).
+const double zj = (3.0 - fcyc) / (4.0 * (1.0 - fcyc));
+
 // Bundle-sheath conductance to CO2 (mol m-2 s-1)
 const double gbs = 0.003;  // von Caemmerer 2000
 						   // 0.00287 in Yin et al. 2016 
-
-// Average leaf N:P ratio for C3 grasses from Thum et al. 2019 (SI Table 8).
-const double C3_LEAF_NTOP = 10.7;
 
 // The following parameters are only used for the complex C4 photosynthesis formulation
 // Michaelis-Menten constant for CO2 and O2 (Boyd et al. 2015)
@@ -217,12 +257,6 @@ const double ALPHAA_CROP_NLIM = 0.9;	// Value for crops with N limitation
 inline double lambertbeer(double lai, double k=0.5) {
 	return exp(-k * lai);
 }
-
-// Leaf transmission coefficient (Sands, 1995)
-const double m_trans = 0.0;
-
-// Light extinction coefficient used for grasses in ifdavephotosyn
-const double k_beer_grass = 0.5;
 
 /// Alternative parameterisations of the convective boundary layer
 /**

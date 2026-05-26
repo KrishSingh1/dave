@@ -389,6 +389,7 @@ public:
 private:
 
 	int nyear;
+	bool initialised;
 
 	// MEMBER FUNCTIONS
 
@@ -409,6 +410,7 @@ public:
 		first_calendar_year = 0;
 		nyear = 0;
 		ismidday = false;
+		initialised = false;
 	}
 
 	/// Initialises date to day 0 of year 0 and sets intended number of simulation years
@@ -423,6 +425,7 @@ public:
 		islastmonth = islastday = ismidday = false;
 		if (nyear == 1) islastyear = true;
 		else islastyear = false;
+		initialised = true;
 	}
 
 	/// Call at end of every simulation day to update member variables.
@@ -521,6 +524,10 @@ public:
 			return day + step + MAX_YEAR_LENGTH;
 		else
 			return 0;
+	}
+
+	bool is_initialised() const {
+		return initialised;
 	}
 };
 
@@ -688,6 +695,60 @@ struct Wood_harvest_struct {
 	}
 };
 
+struct CanopyLayer {
+	double lai;
+	double fipar;
+};
+
+class Canopy {
+public:
+	/*
+	Called once per day to invalidate/clear yesterday's values without altering
+	layer structure.
+	*/
+	void clear();
+
+	/*
+	Set LAI and fipar in the given layer.
+
+	@param layer zero-based index of layer to set (0=top layer).
+	@param lai leaf area index of this layer (m2 m-2 ground).
+	@param fipar fraction of PAR incident to this layer (0-1).
+	*/
+	void set(size_t layer, double lai, double fipar);
+
+	/*
+	Access the i-th canopy layer.
+
+	@param i zero-based index of layer to access (0=top layer).
+	*/
+	CanopyLayer & operator[] (size_t i);
+
+	/*
+	Read-only access to the i-th canopy layer.
+
+	@param i zero-based index of layer to access (0=top layer).
+	*/
+	const CanopyLayer & operator[] (size_t i) const;
+
+	/*
+	Get the number of layers in the canopy.
+	*/
+	size_t size() const;
+private:
+	/*
+	Ensure that layer i exists, and if not, add layers up to and including i.
+
+	@param layer index (0=top).
+	*/
+	void verify_size(size_t i);
+
+	/*
+	The vector of canopy layers. First layer is top, last is bottom.
+	*/
+	std::vector<CanopyLayer> layers;
+};
+
 /// Inputs required to calculate photosynthesis for a single individual in a
 /// single canopy layer at a single subdaily timestep (DAVE photosynthesis).
 class PhotosynthesisInputs {
@@ -703,8 +764,8 @@ public:
 	// LAI of this individual in this layer.
 	double lai;
 
-	// Fraction of PAR incident in the middle of the layer.
-	double fipar;
+	// Cumulative LAI above this layer.
+	double lai_cum;
 
 	// Physiological downregulation due to dormancy.
 	double fphen_activity;
@@ -727,8 +788,8 @@ public:
 	// Water stress parameter (0-1 range; 1=minimum stress).
 	double wscal;
 
-	// Air temperature in °C.
-	double temp;
+	// Leaf temperature in °C.
+	double tleaf;
 
 	// activation energy for vcmax (kJ mol-1)
 	double ha_v;
@@ -742,8 +803,33 @@ public:
 	// Entropy terms (deltaS) for jmax (J mol-1 K-1)
 	double ds_j;
 
-	// Incident PAR in the middle of the layer (W m-2) (0.5 * climate.insols).
+	// Quantum yield of electron transport (mol e- mol-1 photon).
+	double alpha;
+
+	// Above-canopy radiation this timestep (W m-2).
 	double par;
+
+	// Fraction of PAR incident to this layer (0-1).
+	double fipar;
+
+	// Fraction of PAR absorbed by leaf area (0-1).
+	double absorptance_par;
+
+	// Fraction of NIR absorbed by leaf area (0-1).
+	double absorptance_nir;
+
+	// Leaf width (m).
+	double leaf_width;
+
+	// PAR incident to this layer (W m-2).
+	double ipar() const {
+		return par * fipar;
+	}
+
+	// Absorbed PAR in the middle of the layer (W m-2).
+	double apar() const {
+		return ipar() * absorptance_par;
+	}
 
 	// VPD in kPa.
 	double vpd;
@@ -758,7 +844,7 @@ public:
 	bool stomata_open;
 
 	// Predawn leaf water potential (MPa)
-	double predawn_lwp;
+	double lwp;
 
 	// Sensitivity parameter indicating steepness of decline in Vcmax with water stress (Zhou 2014)
 	double s_f;
@@ -771,6 +857,12 @@ public:
 
 	// Leaf water potential at stomatal closure (MPa)
 	double stom_clos;
+	
+	/// Tgrowth, mean air temperature of preceding 30 d.
+	double tgrowth;
+
+    /// The acclimation sensitivity coefficient for respiration (1/degC).
+	double racclim;
 };
 
 /// Outputs from the photosynthesis function for a single individual in a single
@@ -790,34 +882,120 @@ public:
 		ci = 0;
 		vcmax = 0;
 		jmax = 0;
+		tleaf = 0;
 	}
 
-	//< Respiration (mol m-2 s-1).
+	// Respiration (mol m-2 s-1).
 	double rd;
 
-	//< Net photosynthesis (mol m-2 s-1).
+	// Net photosynthesis (mol m-2 s-1).
 	double an;
 
-	//< Rubisco-limited net photosynthesis (mol m-2 s-1).
+	// Rubisco-limited net photosynthesis (mol m-2 s-1).
 	double anc;
 
-	//< RuBP regeneration-limited photosynthesis (mol m-2 s-1).
+	// RuBP regeneration-limited photosynthesis (mol m-2 s-1).
 	double anj;
 
-	//< PEP carboxylation-limited photosynthesis (mol m-2 s-1) [C4 only].
+	// PEP carboxylation-limited photosynthesis (mol m-2 s-1) [C3 only].
 	double anp;
 
-	//< Stomatal conductance to CO2 (mol m-2 s-1).
+	// Stomatal conductance to CO2 (mol m-2 s-1).
 	double gsc;
 
-	//< Intercellular CO2 concentration (mol mol-1).
+	// Intercellular CO2 concentration (mol mol-1).
 	double ci;
 
-	//< Maximum carboxylation rate (mol m-2 s-1).
+	// Leaf temperature (degC).
+	double tleaf;
+
+	// Maximum carboxylation rate (mol m-2 s-1).
 	double vcmax;
 
-	//< Maximum electron transport rate (mol m-2 s-1).
+	// Maximum electron transport rate (mol m-2 s-1).
 	double jmax;
+};
+
+class EnergyBalance {
+public:
+	EnergyBalance(double tleaf, size_t niter, double delta_tleaf,
+						bool converged, double transp) :
+		tleaf(tleaf), niter(niter), delta_tleaf(delta_tleaf),
+		converged(converged), transp(transp) {
+	}
+	double get_tleaf() const { return tleaf; }
+	size_t get_niter() const { return niter; }
+	double get_delta_tleaf() const { return delta_tleaf; }
+	bool get_converged() const { return converged; }
+	double get_transp() const { return transp; }
+private:
+	// Leaf temperature (degC).
+	double tleaf;
+	// Number of iterations taken to converge.
+	size_t niter;
+	// Difference in leaf temperature between last two iterations (degC).
+	double delta_tleaf;
+	// Did the solver converge within the maximum number of iterations?
+	bool converged;
+	// Transpiration rate (mol H2O m-2 s-1).
+	double transp;
+};
+
+/*
+Inputs to the C4 photosynthesis solver function for a single layer/timestep.
+*/
+struct C4Biochemistry {
+	// Scaled maximum Rubisco carboxylation rate (mol m-2 s-1).
+	double vcmax;
+	// Scaled maximum electron transport rate (mol m-2 s-1).
+	double jmax;
+	// Scaled maximum PEP carboxylation rate (mol m-2 s-1).
+	double vpmax;
+	// PEP regeneration rate (mol m-2 s-1).
+	double vpr;
+	// Daytime (mitochondrial) leaf respiration (mol m-2 s-1).
+	double rd;
+	// Rd in the mesophyll cells (mol m-2 s-1).
+	double rm;
+	// Rd in the bundle-sheath cells (mol m-2 s-1).
+	double rs;
+	// Michaelis-Menten constant of PEPC for CO2 (mol mol-1).
+	double kp;
+	// Michaelis-Menten constant of Rubisco for CO2 (mol mol-1).
+	double kc;
+	// Michaelis-Menten constant of Rubisco for O2 (mol mol-1).
+	double ko;
+	// Effective Michaelis-Menten constant of Rubisco for CO2 in the presence of O2 (mol mol-1).
+	double km;
+};
+
+struct C4IterationState {
+	// Intercellular CO2 concentration (mol mol-1).
+	double ci;
+	// PEP carboxylation rate (mol m-2 s-1).
+	double vp;
+};
+
+/*
+Outputs from the C4 photosynthesis solver function for a single layer/timestep.
+*/
+struct C4SolverResult {
+	// Rubisco-limited net photosynthesis (mol m-2 s-1).
+	double ac;
+	// RuBP regeneration-limited photosynthesis (mol m-2 s-1).
+	double aj;
+	// Net photosynthesis rate (mol m-2 s-1).
+	double an;
+	// Stomatal conductance to CO2 (mol m-2 s-1).
+	double gsc;
+	// Intercellular CO2 concentration (mol mol-1).
+	double ci;
+	// Number of iterations taken to find a solution.
+	int iterations;
+	// Whether the solution converged within the maximum number of iterations.
+	bool converged;
+	// Difference between ci in the last two iterations (mol mol-1).
+	double ci_diff;
 };
 
 /// Structure containing variables for sub-daily photosynthesis calculation.
@@ -1178,7 +1356,7 @@ public:
 	/// precipitation today (mm)
 	double prec;
 
-	/// 10 m wind (km/h)
+	/// 10 m wind (m/s)
 	double u10;
 
 	/// rel. humidity (fract.)
@@ -1350,6 +1528,9 @@ public:
 	/// Sub-daily atmospheric pressure values (Pa).
 	std::vector<double> pressure;
 
+	/// Sub-daily 10 m wind speed (m s-1) (\see u10)
+	std::vector<double> winds;
+
 	/// Variables used for crop sowing date or seasonality calculation
 
 	/// max temperature during the last crop test period (between two summer seasons)
@@ -1434,6 +1615,18 @@ public:
 
 	/// Long-term mean maximum temperature of the warmest month (°C).
 	double thome;
+
+	/*
+	Get the growth temperature for the current day, calculated as the mean of the
+	previous 30 days' mean daily air temperatures.
+	*/
+	double get_tgrowth() const;
+
+	/*
+	Get mean daily respiration response to today's soil temperature at 0.25 m
+	depth.
+	*/
+	double get_gtemp_mean() const;
 public:
 	/// constructor function: initialises gridcell member
 	Climate(Gridcell& gc):gridcell(gc) {
@@ -2250,8 +2443,6 @@ public:
 
 	/// shape parameter for initialisation of root distribtion
 	double root_beta;
-	/// canopy conductance component not associated with photosynthesis (mm/s)
-	double gmin;
     /// Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)
     double g0;
 	/// Cuticular conductance (mol m-2 s-1)
@@ -2260,8 +2451,6 @@ public:
     double g1;
 	/// Stomatal intercept parameter at leaf water potential = -0.3 Mpa (Zhou et al. 2014), (kPa^0.5)
     double g1x;
-    /// Parameter for Zhou et al. (2014) stomatal model (hydraulics version)
-    double b1z;
 	/// maximum evapotranspiration rate (mm/day)
 	double emax;
 	/// maintenance respiration coefficient (0-1)
@@ -2280,6 +2469,22 @@ public:
 	double kmax;
 	/// Nitrogen extinction coefficient within the canopy (Hikosaka et al. 2016)
 	double extkn;
+    /// The acclimation sensitivity coefficient for respiration (1/degC).
+    /// Positive values reduce the respiration scalar when tgrowth is above 15
+    /// degC and increase it when tgrowth is below 15 degC, with the strength of
+    /// the effect determined by racclim. A value of zero means no acclimation
+    /// effect.
+	double racclim;
+
+	// Temperature sensitivity coefficient (°C). Controls how rapidly damage
+	// changes with temperature; smaller values produce a steeper damage
+	// response curve.
+	double z;
+
+	// Reference temperature (°C) at which 50% leaf damage occurs after 1 minute
+	// of exposure.
+	double t50;
+
 	/// Turgor loss point (MPa) - used for grasses only, where this often comes long before stomatal closure
 	double tlp;
 	// Sensitivity parameter indicating steepness of decline in Vcmax with water stress (Zhou 2014)
@@ -2327,8 +2532,6 @@ public:
 	/// Development and Growth parameters
     /// temperature below which plants fall dormant (degC)
 	double temp_dormancy;
-	/// Potential relative growth rate in vegetative phase (d-1)
-	double RGR_pot;
 	/// Maximum NSC mobilisation rate from C storage (d-1)
 	double max_mobil_cstorage;
     /// activation energy for growth temperature relationship (kJ mol-1) (Parent & Tardieu 2012)
@@ -2389,7 +2592,7 @@ public:
 	double turnover_repr_litter;
 	/// annual turnover of "live" reproductive tissue to litter as a proportion of reproductive C biomass
 	double turnover_repr;
-	/// size of sapling
+	/// Scalar for initial tree biomass.
 	double sapsize;
 	/// annual sapwood turnover as a proportion of sapwood C biomass
 	double turnover_sap;
@@ -2409,8 +2612,6 @@ public:
 	double k_latosa;
 	/// specific leaf area (m2/kgC)
 	double sla;
-	/// leaf longevity (years)
-	double leaflong;
 	/// leaf to root mass ratio under non-water-stressed conditions
 	double ltor_max;
 	/// litter moisture flammability threshold (fraction of AWC)
@@ -2426,9 +2627,10 @@ public:
 	 */
 	double alphar;
 
-	/// form factor to use in tree height calculations to that takes into account
-	/// the relationship betweeb the difference in tree mass betweenthe cylindrical
-	/// stem hypothesis and measured mass of tree log with its branches.
+	/// Form factor to use in tree height calculations that takes into account
+	/// the relationship between the difference in tree mass between the
+	/// cylindrical stem hypothesis and measured mass of tree log with its
+	/// branches.
 	double formfactor;
 
 	/// Whether vcmax is calculated from leaf nutrient content (alt: prescribed)
@@ -2459,6 +2661,31 @@ public:
 
 	// Bole height as a fraction of tree height (0-1).
 	double boleht_frac;
+
+	// Fraction of PAR absorbed by the leaf area (0-1).
+	double absorptance_par;
+
+	// Fraction of NIR absorbed by the leaf area (0-1).
+	double absorptance_nir;
+
+	// Quantum yield of electron transport (mol (electrons) mol-1 (photon)).
+	double alpha;
+
+	// Leaf width (m).
+	double leaf_width;
+
+	// Inflection point of sigmoidal carbon starvation as a function of storage
+	// fraction full. Higher values mean carbon starvation starts at higher
+	// storage levels.
+	double cstarv_inflect;
+
+	// Maximum carbon starvation rate (fraction of cohort killed per year) when
+	// storage is low.
+	double cstarv_max;
+
+	// Theshold for carbon starvation mortality killing the entire cohort,
+	// expressed in density terms (number of trees per m2).
+	double cstarv_killdens;
 
 	/// maximum sapling establishment rate (saplings/m2/year) (individual and cohort modes)
 	double est_max;
@@ -2702,6 +2929,10 @@ public:
 	/// Check whether DAVE allocation is enabled for this PFT.
 	bool dave_allocation() const;
 
+	/// Return true if this PFT is using daily establishment, or false otherwise
+	/// (ie if it's using the annual (trunk) establishment).
+	bool daily_establishment() const;
+
 	/// transfer constant of leaf material between compartments (used for daily grass growth)
 	double transferconst;
 
@@ -2733,6 +2964,13 @@ public:
 		formfactor = 1.0;
 		sapsize = 0.1;
 		boleht_frac = 0;
+		absorptance_par = 0.0;
+		absorptance_nir = 0.0;
+		alpha = 0.0;
+		leaf_width = 0.0;
+		cstarv_inflect = 0.0;
+		cstarv_max = 0.0;
+		cstarv_killdens = 0.0;
 		max_mobil_cstorage = 0;
 
 		isintercropgrass = false;
@@ -2806,7 +3044,6 @@ public:
 		p88=0.0;
 		kmax=0.0;
 		g1x=0.0;
-		b1z=0.0;
 		tlp=0.0;
 		ifcalcvcmax = false;
 
@@ -2822,6 +3059,8 @@ public:
 		temp_senesc1 = 0;
 		temp_senesc2 = 0;
 
+		extkn = 0;
+		racclim = 0;
 		for (int i=0; i<3; i++)
 			photo[i]=0.0;
 	}
@@ -2836,10 +3075,10 @@ public:
 			// m2/kgC)
 
 			if (leafphysiognomy == BROADLEAF) {
-				sla = 0.2 * pow(10.0, 2.41 - 0.38 * log10(12.0 * leaflong));
+				sla = 0.2 * pow(10.0, 2.41 - 0.38 * log10(12.0 * leaflong()));
 			}
 			else if (leafphysiognomy == NEEDLELEAF) {
-				sla = 0.2 * pow(10.0, 2.29 - 0.4 * log10(12.0 * leaflong));
+				sla = 0.2 * pow(10.0, 2.29 - 0.4 * log10(12.0 * leaflong()));
 			}
 		}
 	}
@@ -2862,10 +3101,15 @@ public:
 			// kgN/kgC)
 
 			if (leafphysiognomy == BROADLEAF)
-				cton_leaf_min = 500.0 / pow(10.0, 1.75 - 0.33 * log10(12.0 * leaflong));
+				cton_leaf_min = 500.0 / pow(10.0, 1.75 - 0.33 * log10(12.0 * leaflong()));
 			else if (leafphysiognomy == NEEDLELEAF)
-				cton_leaf_min = 500.0 / pow(10.0, 1.52 - 0.26 * log10(12.0 * leaflong));
+				cton_leaf_min = 500.0 / pow(10.0, 1.52 - 0.26 * log10(12.0 * leaflong()));
 		}
+	}
+
+	// Calculate leaf longevity in years.
+	double leaflong() {
+		return 1.0 / turnover_leaf;
 	}
 
 	void init_cton_limits() {
@@ -3017,11 +3261,11 @@ public:
 
 			//transferconst = 0.01 / leaflong; // DW_COMMENT to be calibrated!!! 0.0091 / leaflong;
 			if (pathway == C3) {
-				transferconst = 0.02 / leaflong; // DW_COMMENT to be calibrated!!! 0.0091 / leaflong;
+				transferconst = 0.02 / leaflong(); // DW_COMMENT to be calibrated!!! 0.0091 / leaflong;
 				//transferconst = 0.005 / leaflong; // Sturt Plains: 0.005, Yanco: 0.02, Otway: 0.025
 			} 
 			else {
-				transferconst = 0.022 / leaflong; 
+				transferconst = 0.022 / leaflong(); 
 				//transferconst = 0.01 / leaflong; // Otway: 0.02, Yanco: 0.022
 			}
 		}
@@ -3540,6 +3784,18 @@ public:
 	double ctolitter;
 	/// Daily N sent to litter (kgN/m2). This is used for accounting purposes.
 	double ntolitter;
+	/// Daily C lost to high temperature (kgC/m2). This is used for accounting purposes.
+	double closs_temp;
+	/// Daily N lost to high temperature (kgN/m2). This is used for accounting purposes.
+	double nloss_temp;
+	/// Daily fraction of leaves lost to high temperature (unitless). This is used for accounting purposes.
+	double loss_temp;
+	/// Cumulative annual C sent to litter (kgC/m2).
+	double acloss_temp;
+	/// Cumulative annual N sent to litter (kgN/m2).
+	double anloss_temp;
+	/// Cumulative annual fraction of leaves lost to high temperature (unitless).
+	double aloss_temp;
 	/// Daily N taken up but then sent back to available N pool (kgN/m2).
 	double ntoavail;
 	/// Cumulative annual N taken up but then sent back to available N pool (kgN/m2).
@@ -3564,18 +3820,9 @@ public:
 	double rpc;
 	/// fraction of PAR absorbed by foliage over projective area today, taking account of leaf phenological state
 	double fpar;
-	/// layer-wise fpar (see fpar description)
-	/// Does this need to be serialised? It's reinitialised each day, so I'm going to say no.
-	/// incident radiation per layer as fraction of above-canopy PAR (0-1)
-	std::vector<double> fipar_layerwise;
 
-	/// layer-wise lai (see lai description).
-	/// I've opted not to serialise this, as it's reinitialised each day.
-	std::vector<double> lai_layerwise;
-
-	/// layer-wise net photosynthesis 
-	/// I've opted not to serialise this, as it's reinitialised each day.
-	std::vector<double> an_layerwise;
+	// Canopy layers.
+	Canopy canopy;
 
 	/// average density of individuals over patch (indiv/m2)
 	double densindiv;
@@ -3615,6 +3862,10 @@ public:
 	/// Per-subdaily-timestep, per-canopy-layer photosynthesis outputs.
 	/// Indexed as [timestep][layer]. Reinitialised each day in photosynthesis_gs().
 	std::vector<std::vector<PhotosynthesisOutputs>> ps_outputs_layerwise;
+
+	/// Per-subdaily-timestep, per-canopy-layer energy balance outputs.
+	/// Indexed as [timestep][layer]. Reinitialised each day in photosynthesis_gs().
+	std::vector<std::vector<EnergyBalance>> energy_balance_layerwise;
 
 	/// Photosynthesis values for this individual under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
@@ -4215,6 +4466,12 @@ public:
 	/// Gets the individual's daily cmass_root value
 	double cmass_root_today() const;
 
+	/// Return crown cmass for DAVE grasses, 0 for all other PFTs (kgC/m2).
+	double get_cmass_crown() const;
+
+	/// Return live reproductive cmass for DAVE PFTs, 0 for all other PFTs (kgC/m2).
+	double get_cmass_repr() const;
+
 	/// Gets the individual's daily LAI value (patch-level)
 	/** Based on total leaf area for whatever the individual represents
 	 *  (individual, cohort, population), over the whole patch.
@@ -4251,6 +4508,9 @@ public:
 
 	/// Get the moving average of water stress.
 	double get_wscal_moving_average() const;
+
+	/// Ensure that canopy layers are internally consistent.
+	void validate_canopy() const;
 private:
 	// Reset annual variables. Called from daily_accounting() on the first day
 	// of the year.
@@ -5348,6 +5608,11 @@ public:
 	Historic<double, 10> soiltemp_10;
 	/// thirty day mean of wscal. Used in DAVE daily grass growth for determination of dormancy.
 	Historic<double, 30> wscal_30;
+	/// Populate all wscal fields with today's wscal value.
+	void set_wscal(double wstress);
+	/// Flag to track whether wscal has been set today, to avoid multiple
+	/// updates per day.
+	bool wscal_set_today;
 
 	// Assaf: ???? Probably reason for senescence
 	sen_type senescence_reason;
@@ -5497,7 +5762,21 @@ public:
 	// Mean above-ground biomass over the year (kg/m2). Note: this is a rolling
 	// sum, divided by year length only on last day of year.
 	double agb_ymean;
-	
+
+	// Total fraction of cohort that was killed this year by carbon starvation
+	// mortality, summed over all days of the year and cohorts of this PFT in
+	// this patch.
+	double amort_cstarve;
+
+	// Total number of trees that were killed this year by carbon starvation
+	// mortality, summed over all days of the year and cohorts of this PFT in
+	// this patch.
+	double amort_cstarve_ntree;
+
+	// Daily number of trees that were killed by carbon starvation mortality,
+	// summed over all cohorts of this PFT in this patch.
+	double dmort_cstarve_ntree;
+
 	// MEMBER FUNCTIONS:
 
 	/// Constructor: initialises id, pft and data members
@@ -5572,6 +5851,10 @@ public:
 		agb_ymax = 0;
 		lai_ymean = 0;
 		agb_ymean = 0;
+		wscal_set_today = false;
+		amort_cstarve = 0.0;
+		amort_cstarve_ntree = 0.0;
+		dmort_cstarve_ntree = 0.0;
 	}
 
 	~Patchpft() {
@@ -5912,6 +6195,13 @@ public:
 	}
 
 	void serialize(ArchiveStream& arch);
+
+	/// Reset daily variables.
+	void daily_accounting();
+private:
+	/// Reset annual variables. Called from daily_accounting() on the first day
+	/// of the year.
+	void annual_accounting();
 };
 
 

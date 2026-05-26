@@ -1,5 +1,9 @@
 #ifdef HAVE_NETCDF
 
+#include <algorithm>
+#include <cmath>
+#include <limits>
+
 #include "driver.h"
 #include "guessnc.h"
 #include "pathresolver.h"
@@ -7,8 +11,10 @@
 #include "ncinput.h"
 #include "ncinventory.h"
 #include "ncutil.h"
+#include "ncfile.h"
 #include "ncvariable.h"
 #include "variableresolver.h"
+#include "logging.h"
 
 ResolveOptions to_resolve_options(const NCInputOptions &options) {
     ResolveOptions resolve_options;
@@ -34,10 +40,20 @@ ResolvedPlan get_forcing_plan(const std::string &file_path,
     return resolver.resolve(inventory, resolve_options);
 }
 
-void open_file(const ResolvedPlan &plan, Variable var,
-               CacheStrategy cache_strategy, bool sensibility_checks,
-               bounds limits, const std::vector<xtring> &units,
-               int &nc_id, std::unique_ptr<NCVariable> &variable) {
+std::shared_ptr<NCFile> NCInput::open_file(const std::string &file_path) {
+    auto it = files.find(file_path);
+    if (it != files.end()) {
+        return it->second;
+    }
+
+    std::shared_ptr<NCFile> file = std::make_shared<NCFile>(file_path);
+    files[file_path] = file;
+    return file;
+}
+
+void NCInput::open_file(const ResolvedPlan &plan, Variable var,
+                        bounds limits,
+                        const std::vector<xtring> &units) {
     // Get variable info from bindings map.
     auto it = plan.bindings.find(var);
     if (it == plan.bindings.end()) {
@@ -52,26 +68,20 @@ void open_file(const ResolvedPlan &plan, Variable var,
     // 3. We are double-parsing (this parsing has already occurred).
     // Need to refactor this requirement out of the NCVariable contructor.
     const VariableInfo &var_info = it->second;
-    nc_id = GuessNC::open_ncdf(var_info.file.c_str());
-    variable = std::make_unique<NCVariable>(nc_id, var_info.name.c_str(),
-                                            cache_strategy, sensibility_checks,
-                                            limits, units, true);
+    std::shared_ptr<NCFile> file = open_file(var_info.file);
+    std::unique_ptr<NCVariable> variable = std::make_unique<NCVariable>(
+        file, var_info.name.c_str(), options.cache_strategy,
+        options.nc_check_inputs, limits, units, true);
+
+    if (variables.find(var) != variables.end()) {
+        // This should never happen. Such a case should be caught by
+        // ResolvedPlan::validate() before we get here.
+        throw std::runtime_error("Variable " + std::to_string(static_cast<int>(var)) + " is already open");
+    }
+    variables[var] = std::move(variable);
 }
 
 NCInput::NCInput() {
-    nc_tas = -1;
-    nc_rs = -1;
-    nc_pr = -1;
-    nc_vpd = -1;
-    nc_rh = -1;
-    nc_sh = -1;
-    nc_ps = -1;
-    nc_co2 = -1;
-    nc_nhx = -1;
-    nc_noy = -1;
-    nc_tmax = -1;
-    nc_tmin = -1;
-    nc_ws = -1;
     open_dataset = Dataset::None;
 }
 
@@ -83,7 +93,9 @@ void NCInput::init(const NCInputOptions &options) {
         options.file_met_spinup;
 
     spinup_plan = get_forcing_plan(file_met_spinup, options);
+    log_info("NCInput: successfully resolved all variables from spinup dataset");
     simulation_plan = get_forcing_plan(options.file_met_forcing, options);
+    log_info("NCInput: successfully resolved all variables from main simulation dataset");
 
     separate_spinup = file_met_spinup != options.file_met_forcing;
     open_files(spinup_plan, Dataset::Spinup);
@@ -93,14 +105,14 @@ void NCInput::init(const NCInputOptions &options) {
     // simulation, the timestep may be different between the two files. In
     // this case, we use the input timestep for the spinup, and then use
     // the nsteps_day timestep for the simulation.
-    int input_timestep = tas->get_day_length();
+    int input_timestep = get(Variable::Temp).get_day_length();
     spinup_timestep = input_timestep;
-    spinup_calendar = tas->get_calendar();
+    spinup_calendar = get(Variable::Temp).get_calendar();
 
     simulation_calendar = spinup_calendar;
 
-    spinup_start = first_timestep = tas->get_first_date();
-    spinup_end = final_timestep = tas->get_last_date();
+    spinup_start = first_timestep = get(Variable::Temp).get_first_date();
+    spinup_end = final_timestep = get(Variable::Temp).get_last_date();
 
     // Ensure that there is at least one year of data for the spinup.
     verify_data_length(first_timestep, final_timestep, input_timestep,
@@ -109,36 +121,31 @@ void NCInput::init(const NCInputOptions &options) {
     // Record length of input data.
     if (separate_spinup) {
         // Temporarily open a file for the main simulation period.
-        int nc_tmp;
-        std::unique_ptr<NCVariable> tmp;
-        open_file(simulation_plan, Variable::Temp, CacheStrategy::Year, true,
-                  { -273.15, 1e4 }, {"degC", "degc", "°C", "℃"}, nc_tmp, tmp);
+        // Need to manually open the NCFile handle so as to avoid polluting the
+        // open files map.
+        // TODO: consolidate units/bounds/etc
+        VariableInfo var_info = simulation_plan.bindings.at(Variable::Temp);
+        std::shared_ptr<NCFile> file_tmp = std::make_shared<NCFile>(var_info.file);
+        bounds bounds = {-273.15, 1e4};
+        std::vector<xtring> units = {"degC", "degc", "°C", "℃"};
+        std::unique_ptr<NCVariable> tmp = std::make_unique<NCVariable>(file_tmp,
+                                            xtring(var_info.name.c_str()),
+                                            options.cache_strategy,
+                                            options.nc_check_inputs,
+                                            bounds, units, true);
 
-        // TODO: RAII.
-        try {
-            // Update simulation timesteps.
-            first_timestep = tmp->get_first_date();
-            final_timestep = tmp->get_last_date();
+        // Update simulation timesteps.
+        first_timestep = tmp->get_first_date();
+        final_timestep = tmp->get_last_date();
 
-            // Set input_timestep to the value from file_met_forcing.
-            input_timestep = tmp->get_day_length();
-            simulation_calendar = tmp->get_calendar();
+        // Set input_timestep to the value from file_met_forcing.
+        input_timestep = tmp->get_day_length();
+        simulation_calendar = tmp->get_calendar();
 
-            // These three parameters all now come from file_met_forcing; last
-            // time we called this function, they came from file_met_spinup.
-            // Therefore we should check the main file. Better to fail early.
-            verify_data_length(first_timestep, final_timestep, input_timestep, tmp->get_calendar());
-
-            GuessNC::close_ncdf(nc_tmp);
-            nc_tmp = -1;
-            tmp.reset();
-        }
-        catch (const std::exception &e) {
-            if (nc_tmp != -1) {
-                GuessNC::close_ncdf(nc_tmp);
-            }
-            throw;
-        }
+        // These three parameters all now come from file_met_forcing; last
+        // time we called this function, they came from file_met_spinup.
+        // Therefore we should check the main file. Better to fail early.
+        verify_data_length(first_timestep, final_timestep, input_timestep, tmp->get_calendar());
     }
 
     // input_timestep is the timestep from file_met_forcing. Ensure that it
@@ -157,7 +164,7 @@ void NCInput::init(const NCInputOptions &options) {
     if (separate_spinup && spinup_end.year + 1 == first_timestep.year && is_end_of_year(spinup_end, spinup_timestep, spinup_calendar)) {
         first_year = spinup_start.year;
         spinup_in_simulation = true;
-        dprintf("file_met_spinup will be included in main simulation, which will run from %04d-%02d-%02d - %04d-%02d-%02d.\n",
+        log_info("file_met_spinup will be included in main simulation, which will run from %04d-%02d-%02d - %04d-%02d-%02d.\n",
             spinup_start.year, get_month(spinup_start, spinup_calendar) + 1, get_day_of_month(spinup_start, spinup_calendar) + 1,
             final_timestep.year, get_month(final_timestep, simulation_calendar) + 1, get_day_of_month(final_timestep, simulation_calendar) + 1);
     }
@@ -187,29 +194,22 @@ void NCInput::begin_gridcell(double lon, double lat) {
     }
 }
 
-void close_if_open(int &nc_id, std::unique_ptr<NCVariable> &variable) {
-    if (nc_id != -1) {
-        GuessNC::close_ncdf(nc_id);
-        nc_id = -1;
-    }
-    variable.reset();
+void NCInput::close() {
+    // All NCVariables hold a shared_ptr to their NCFile. Therefore, clearing
+    // all variables and emptying the map will close all open file handles.
+    variables.clear();
+    files.clear();
+    open_dataset = Dataset::None;
 }
 
-void NCInput::close() {
-    close_if_open(nc_tas, tas);
-    close_if_open(nc_rs, rs);
-    close_if_open(nc_pr, pr);
-    close_if_open(nc_ws, ws);
-    close_if_open(nc_co2, co2);
-    close_if_open(nc_tmax, tmax);
-    close_if_open(nc_tmin, tmin);
-    close_if_open(nc_vpd, vpd);
-    close_if_open(nc_sh, sh);
-    close_if_open(nc_rh, rh);
-    close_if_open(nc_ps, ps);
-    close_if_open(nc_nhx, nhx);
-    close_if_open(nc_noy, noy);
-    open_dataset = Dataset::None;
+NCVariable &NCInput::get(Variable var) const {
+    auto it = variables.find(var);
+    if (it == variables.end()) {
+        xtring msg;
+        msg.printf("Dataset contains no %s variable", to_string(var));
+        throw std::runtime_error((const char *)msg);
+    }
+    return *it->second;
 }
 
 void NCInput::open_files(const ResolvedPlan &plan, Dataset dataset) {
@@ -220,35 +220,26 @@ void NCInput::open_files(const ResolvedPlan &plan, Dataset dataset) {
 
     std::vector<xtring> temp_units = {"degC", "degc", "°C", "℃"};
     bounds temp_bounds = {-100, 100};
-    open_file(plan, Variable::Temp, options.cache_strategy,
-              options.nc_check_inputs, temp_bounds, temp_units, nc_tas, tas);
+    open_file(plan, Variable::Temp, temp_bounds, temp_units);
 
 	// TODO: Should provide units for other insol types as well.
     std::vector<xtring> rs_units = {"W/m2", "W m-2", "w/m^2"};
 	bounds bounds_rs = {0, 1e6};
-    open_file(plan, Variable::Rs, options.cache_strategy, options.nc_check_inputs,
-              bounds_rs, rs_units, nc_rs, rs);
+    open_file(plan, Variable::Rs, bounds_rs, rs_units);
 	std::vector<xtring> pr_units = {"mm", "kg m-2", "kg/m2"};
 	bounds bounds_pr = {0, 1000};
-    open_file(plan, Variable::Pr, options.cache_strategy, options.nc_check_inputs,
-              bounds_pr, pr_units, nc_pr, pr);
+    open_file(plan, Variable::Pr, bounds_pr, pr_units);
 
     if (plan.ws_mode == WsMode::Direct) {
         std::vector<xtring> ws_units = {"m/s", "m s-1", "m s^-1"};
         bounds bounds_ws = {0, 100};
-        open_file(plan, Variable::Ws, options.cache_strategy, options.nc_check_inputs,
-                  bounds_ws, ws_units, nc_ws, ws);
-    } else {
-        ws = nullptr;
+        open_file(plan, Variable::Ws, bounds_ws, ws_units);
     }
 
     if (plan.co2_mode == Co2Mode::Direct) {
         std::vector<xtring> co2_units = {"ppm"};
         bounds bounds_co2 = {0, 900};
-        open_file(plan, Variable::CO2, options.cache_strategy, options.nc_check_inputs,
-                  bounds_co2, co2_units, nc_co2, co2);
-    } else {
-        co2 = nullptr;
+        open_file(plan, Variable::CO2, bounds_co2, co2_units);
     }
 
     if (plan.vpd_mode == VpdMode::Direct) {
@@ -256,39 +247,39 @@ void NCInput::open_files(const ResolvedPlan &plan, Dataset dataset) {
         // CS updated max from 200 to 100, min from 0 to 0.01 to avoid log(0)
         // issues.
         bounds bounds_vpd = {0.01, 100};
-        open_file(plan, Variable::Vpd, options.cache_strategy, options.nc_check_inputs,
-                  bounds_vpd, vpd_units, nc_vpd, vpd);
+        open_file(plan, Variable::Vpd, bounds_vpd, vpd_units);
     } else if (plan.vpd_mode == VpdMode::FromSH) {
         std::vector<xtring> sh_units = {"1", "kg/kg"};
         bounds bounds_sh = {0, 1};
-        open_file(plan, Variable::SH, options.cache_strategy, options.nc_check_inputs,
-                  bounds_sh, sh_units, nc_sh, sh);
+        open_file(plan, Variable::SH, bounds_sh, sh_units);
     } else if (plan.vpd_mode == VpdMode::FromRH) {
         std::vector<xtring> rh_units = {"1"};
         bounds bounds_rh = {0, 1};
-        open_file(plan, Variable::RH, options.cache_strategy, options.nc_check_inputs,
-                  bounds_rh, rh_units, nc_rh, rh);
+        open_file(plan, Variable::RH, bounds_rh, rh_units);
     } else {
-        throw std::runtime_error("Invalid VPD mode in input plan: " + std::to_string(static_cast<int>(plan.vpd_mode)));
+        xtring msg;
+        msg.printf("Invalid VPD mode in input plan: %d", static_cast<int>(plan.vpd_mode));
+        throw std::runtime_error((const char *)msg);
     }
 
     if (plan.ndep_mode == NdepMode::Direct) {
         // We will read nitrogen deposition data directly from the input file.
         std::vector<xtring> ndep_units = {"kgN/m2/day"};
         bounds bounds_ndep = {0, 1000};
-        open_file(plan, Variable::Nhx, options.cache_strategy, options.nc_check_inputs,
-                  bounds_ndep, ndep_units, nc_nhx, nhx);
-        open_file(plan, Variable::Noy, options.cache_strategy, options.nc_check_inputs,
-                  bounds_ndep, ndep_units, nc_noy, noy);
+        open_file(plan, Variable::Nhx, bounds_ndep, ndep_units);
+        open_file(plan, Variable::Noy, bounds_ndep, ndep_units);
     }
 
     if (plan.ps_mode == PsMode::Direct) {
         std::vector<xtring> ps_units = {"Pa"};
         bounds bounds_ps = {50000, 150000};
-        open_file(plan, Variable::Ps, options.cache_strategy, options.nc_check_inputs,
-                  bounds_ps, ps_units, nc_ps, ps);
+        open_file(plan, Variable::Ps, bounds_ps, ps_units);
     }
 
+    if (plan.dtr_mode == DtrMode::Direct) {
+        open_file(plan, Variable::Tmax, temp_bounds, temp_units);
+        open_file(plan, Variable::Tmin, temp_bounds, temp_units);
+    }
     open_dataset = dataset;
 }
 
@@ -303,18 +294,18 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
 			// We are in the final year, which is missing some days of data.
 			// Because the N deposition disaggregation requires an entire years'
 			// worth of precipitation data, we can't simulate part of a year.
-            dprintf("Final year (%d) of data is missing some days (contains %d but requires %d for a full year). Because the N deposition disaggregation requires an entire years' worth of precipitation data, we can't simulate this year.\n",
+            log_error("Final year (%d) of data is missing some days (contains %d but requires %d for a full year). Because the N deposition disaggregation requires an entire years' worth of precipitation data, we can't simulate this year.\n",
                     final_timestep.year, final_timestep.day + 1,
                     Date::MAX_YEAR_LENGTH);
 			return false;
 		}
 
-		if (final_timestep.timestep < tas->get_day_length() - 1) {
+		if (final_timestep.timestep < get(Variable::Temp).get_day_length() - 1) {
 			// We are in the final year, and the final day is missing some
 			// timesteps.
-            dprintf("Final year (%d) of data is missing some timesteps (contains %d but requires %d for a full day). Because the N deposition disaggregation requires an entire years' worth of precipitation data, we can't simulate this year.\n",
+            log_error("Final year (%d) of data is missing some timesteps (contains %d but requires %d for a full day). Because the N deposition disaggregation requires an entire years' worth of precipitation data, we can't simulate this year.\n",
                     final_timestep.year, final_timestep.timestep + 1,
-                    tas->get_day_length());
+                    get(Variable::Temp).get_day_length());
 			return false;
 		}
 	}
@@ -322,6 +313,10 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
     if (day == 0 && date.year == 0) {
         // TODO: find a way to improve the insoltype situation. This is a mess.
 		set_insoltype(climate);
+
+        if (options.calculate_thome) {
+            climate.thome = calculate_thome(lon, lat);
+        }
     }
 
     if (day == 0 && date.get_calendar_year() == first_timestep.year && separate_spinup) {
@@ -330,10 +325,14 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
 
         // Update the cliamte insoltype (as it could have changed).
         set_insoltype(climate);
+
+        if (options.calculate_thome) {
+            climate.thome = calculate_thome(lon, lat);
+        }
     }
 
     // TODO: is this correct? What about spinup_in_simulation?
-    ResolvedPlan plan = year < first_timestep.year ?
+    ResolvedPlan plan = date.year < nyear_spinup ?
                                 spinup_plan :
                                 simulation_plan;
 
@@ -344,22 +343,11 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
 	// objects will handle caching internally).
 	// Note that these arrays will still be on the timestep of the input data,
 	// which is not necessarily the same as that of the nsteps_day parameter.
-	std::vector<double> temps = tas->read(lon, lat, year, day, 1);
-	std::vector<double> precs = pr->read(lon, lat, year, day, 1);
-	std::vector<double> insols = rs->read(lon, lat, year, day, 1);
+	std::vector<double> temps = get(Variable::Temp).read(lon, lat, year, day, 1);
+	std::vector<double> precs = get(Variable::Pr).read(lon, lat, year, day, 1);
+	std::vector<double> insols = get(Variable::Rs).read(lon, lat, year, day, 1);
 	std::vector<double> pressure = get_ps(plan, year, day);
     std::vector<double> vpds = get_vpd(plan, year, day);
-
-	if ((tas->has_missing_value() && contains(tas->get_missing_value(), temps)) ||
-		(pr->has_missing_value() && contains(pr->get_missing_value(), precs)) ||
-		(rs->has_missing_value() && contains(rs->get_missing_value(), insols)) ||
-		(vpd && vpd->has_missing_value() && contains(vpd->get_missing_value(), vpds)) ||
-		(ps && ps->has_missing_value() && contains(ps->get_missing_value(), pressure))) {
-
-		dprintf("WARNING: Encountered missing value in climate data for gridcell (%f, %f) on Year %04d day (of year) %03d. Simulation will now terminate.\n",
-                lon, lat, year, day);
-		return false;
-	}
 
 	// Aggregate subdaily values to daily where necessary, and store them in the
 	// climate object. Note that sum inputs are rates and sum are quantities;
@@ -381,7 +369,7 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
 	double mint = min(temps);
 
     // TODO: should be handled by NCVariable.
-	if (options.nsteps_day != tas->get_day_length()) {
+	if (options.nsteps_day != get(Variable::Temp).get_day_length()) {
 		temps = aggregate(temps, options.nsteps_day, mean);
 		insols = aggregate(insols, options.nsteps_day, mean);
 		vpds = aggregate(vpds, options.nsteps_day, mean);
@@ -391,15 +379,17 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
 		// precs = aggregate(precs, options.nsteps_day, sum);
 	}
 
-	if (plan.ws_mode == WsMode::Direct && ws) {
-		std::vector<double> winds = ws->read(lon, lat, year, day, 1);
+	if (plan.ws_mode == WsMode::Direct) {
+		std::vector<double> winds = get(Variable::Ws).read(lon, lat, year, day, 1);
 		climate.u10 = mean(winds);
+        winds = aggregate(winds, options.nsteps_day, mean);
+        climate.winds = winds;
 	}
 
 	for (size_t i = 0; i < vpds.size(); i++) {
 		if (vpds[i] < 0.01) {
 			if (options.nc_check_inputs) {
-				dprintf("Year %d day %d timestep %zu vpd is below 0.01: %f\n", year, day, i, vpds[i]);
+				log_warning("Year %d day %d timestep %zu vpd is below 0.01: %f\n", year, day, i, vpds[i]);
 			}
 			vpds[i] = 0.01;
 		}
@@ -421,8 +411,8 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
 		// It only really makes sense to provide separate variables for tmin and
 		// tmax if input data is daily. Therefore these arrays will usually be
 		// of length 1.
-		std::vector<double> tmaxs = tmax->read(lon, lat, year, day, 1);
-		std::vector<double> tmins = tmin->read(lon, lat, year, day, 1);
+		std::vector<double> tmaxs = get(Variable::Tmax).read(lon, lat, year, day, 1);
+		std::vector<double> tmins = get(Variable::Tmin).read(lon, lat, year, day, 1);
 
 		climate.tmax = mean(tmaxs);
 		climate.tmin = mean(tmins);
@@ -477,7 +467,7 @@ void NCInput::verify_data_length(timepoint start, timepoint end, int timestep,
 
 void NCInput::set_insoltype(Climate &climate) const {
 	// We can get instype from insol's standard_name attribute.
-	xtring insol_name = rs->get_standard_name();
+	xtring insol_name = get(Variable::Rs).get_standard_name();
 	climate.instype = parse_insoltype((const char*)insol_name);
 }
 
@@ -491,16 +481,16 @@ void NCInput::set_co2(const ResolvedPlan &plan, int year, int day, Climate &clim
     if (options.use_mean_annual_co2) {
         // Mean annual co2 - update once per year.
         if (date.day == 0) {
-            int year_len = get_year_len(year, co2->get_calendar());
+            int year_len = get_year_len(year, get(Variable::CO2).get_calendar());
             int co2_year = date.get_calendar_year() < spinup_start.year ?
                                 spinup_start.year :
                                 date.get_calendar_year();
-            std::vector<double> co2_annual = co2->read(lon, lat, co2_year, 0, year_len);
+            std::vector<double> co2_annual = get(Variable::CO2).read(lon, lat, co2_year, 0, year_len);
             climate.co2 = mean(co2_annual);
         }
     } else {
         // Mean of subdaily co2.
-        climate.co2 = mean(co2->read(lon, lat, year, day, 1));
+        climate.co2 = mean(get(Variable::CO2).read(lon, lat, year, day, 1));
     }
 }
 
@@ -520,8 +510,8 @@ void NCInput::distribute_ndep(const ResolvedPlan &plan, int year, int day) {
         int year_len = Date::MAX_YEAR_LENGTH;
 
         // Read n deposition data from NetCDF input.
-        std::vector<double> nhx_subdaily = nhx->read(lon, lat, year, 0, year_len);
-        std::vector<double> noy_subdaily = noy->read(lon, lat, year, 0, year_len);
+        std::vector<double> nhx_subdaily = get(Variable::Nhx).read(lon, lat, year, 0, year_len);
+        std::vector<double> noy_subdaily = get(Variable::Noy).read(lon, lat, year, 0, year_len);
 
         // Aggregate to daily timestep. Input units are mgN/m2/day, so we take
         // the mean rate over the course of a day, and that will give us the
@@ -538,18 +528,18 @@ void NCInput::distribute_ndep(const ResolvedPlan &plan, int year, int day) {
 
 std::vector<double> NCInput::get_vpd(const ResolvedPlan &plan, int year, int day) {
     if (plan.vpd_mode == VpdMode::Direct) {
-        return vpd->read(lon, lat, year, day, 1);
+        return get(Variable::Vpd).read(lon, lat, year, day, 1);
     }
 
     // Read subdaily air temperature - required for both SH and RH methods.
-    std::vector<double> temp_values = tas->read(lon, lat, year, day, 1);
+    std::vector<double> temp_values = get(Variable::Temp).read(lon, lat, year, day, 1);
 
     // TODO: should look into ways to vectorise this.
     std::vector<double> vpds(temp_values.size());
 
     if (plan.vpd_mode == VpdMode::FromSH) {
         // Estimate VPD from specific humidity.
-        std::vector<double> sh_values = sh->read(lon, lat, year, day, 1);
+        std::vector<double> sh_values = get(Variable::SH).read(lon, lat, year, day, 1);
         std::vector<double> ps_values = get_ps(plan, year, day);
         for (size_t i = 0; i < temp_values.size(); i++) {
             vpds[i] = sh_to_vpd(sh_values[i], temp_values[i], ps_values[i], options.esat_method);
@@ -559,7 +549,7 @@ std::vector<double> NCInput::get_vpd(const ResolvedPlan &plan, int year, int day
 
     if (plan.vpd_mode == VpdMode::FromRH) {
         // Estimate VPD from relative humidity.
-        std::vector<double> rh_values = rh->read(lon, lat, year, day, 1);
+        std::vector<double> rh_values = get(Variable::RH).read(lon, lat, year, day, 1);
         for (size_t i = 0; i < temp_values.size(); i++) {
             vpds[i] = rh_to_vpd(rh_values[i], temp_values[i], options.esat_method);
         }
@@ -571,10 +561,12 @@ std::vector<double> NCInput::get_vpd(const ResolvedPlan &plan, int year, int day
 
 std::vector<double> NCInput::get_ps(const ResolvedPlan &plan, int year, int day) {
     if (plan.ps_mode == PsMode::Direct) {
-        return ps->read(lon, lat, year, day, 1);
+        return get(Variable::Ps).read(lon, lat, year, day, 1);
     }
 
-    std::vector<double> pressure(tas->get_day_length());
+    // Check day length of temperature variable (remember, we don't have an air
+    // pressure variable).
+    std::vector<double> pressure(get(Variable::Temp).get_day_length());
     for (size_t i = 0; i < pressure.size(); i++) {
         pressure[i] = options.constant_ps;
     }
@@ -594,7 +586,7 @@ bool NCInput::has_co2() const {
     // Could check ResolvedPlan, but then we'd need to know year, because it
     // can be different for main simulation vs spinup. This implementation is
     // simpler, although it does assume that input files are already open.
-    return co2 != nullptr;
+    return variables.find(Variable::CO2) != variables.end();
 }
 
 int NCInput::get_spinup_length() const {
@@ -604,7 +596,7 @@ int NCInput::get_spinup_length() const {
 std::vector<double> NCInput::read_annual_precip(int year) {
     // Read subdaily precipitation data for the entire year.
     int year_len = Date::MAX_YEAR_LENGTH;
-    return pr->read(lon, lat, year, 0, year_len);
+    return get(Variable::Pr).read(lon, lat, year, 0, year_len);
 }
 
 timepoint NCInput::get_spinup_start() const {
@@ -624,6 +616,73 @@ int NCInput::get_simulation_start_year() const {
         return spinup_start.year;
     }
     return first_timestep.year;
+}
+
+double NCInput::calculate_thome(double lon, double lat) const {
+    double calc_thome_start = get_wall_time();
+    if (variables.find(Variable::Temp) == variables.end()) {
+        throw std::runtime_error("Cannot calculate thome: temperature data is not open");
+    }
+
+    NCVariable &tas = get(Variable::Temp);
+    timepoint start = tas.get_first_date();
+    timepoint end = tas.get_last_date();
+    GuessNC::CF::CalendarType calendar = tas.get_calendar();
+    int day_length = tas.get_day_length();
+
+    int start_year = start.year;
+    if (!is_start_of_year(start)) {
+        start_year++;
+    }
+
+    int end_year = end.year;
+    if (!is_end_of_year(end, day_length, calendar)) {
+        end_year--;
+    }
+
+    if (end_year < start_year) {
+        throw std::runtime_error("Cannot calculate thome: temperature data contains no complete years");
+    }
+
+    std::vector<double> monthly_daily_max_sum(12, 0.0);
+    std::vector<int> monthly_day_count(12, 0);
+
+    for (int year = start_year; year <= end_year; year++) {
+        int year_len = get_year_len(year, calendar);
+
+        for (int day = 0; day < year_len; day++) {
+            std::vector<double> temps = tas.read(lon, lat, year, day, 1);
+
+            timepoint timestamp;
+            timestamp.year = year;
+            timestamp.day = day;
+            timestamp.timestep = 0;
+
+            int month = get_month(timestamp, calendar);
+            monthly_daily_max_sum[month] += *std::max_element(temps.begin(), temps.end());
+            monthly_day_count[month]++;
+        }
+    }
+
+    double thome = -std::numeric_limits<double>::infinity();
+    for (int month = 0; month < 12; month++) {
+        if (monthly_day_count[month] == 0) {
+            continue;
+        }
+
+        double monthly_mean_daily_max =
+            monthly_daily_max_sum[month] / monthly_day_count[month];
+        thome = std::max(thome, monthly_mean_daily_max);
+    }
+
+    if (!std::isfinite(thome)) {
+        throw std::runtime_error("Cannot calculate thome: no monthly temperature data was found");
+    }
+
+    double calc_thome_end = get_wall_time();
+    log_info("Calculated thome: %f for gridcell (%f, %f) in %f ms",
+             thome, lon, lat, (calc_thome_end - calc_thome_start) * 1000.0);
+    return thome;
 }
 
 #endif // HAVE_NETCDF

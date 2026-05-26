@@ -911,6 +911,10 @@ void dailyaccounting_stand(Stand& stand) {
 	stand.cmass_wood = 0.0;
 	stand.cmass_wood_harv = 0.0;
 	stand.cmass_mort = 0.0;
+
+	for (size_t i = 0; i < stand.pft.nobj; i++) {
+		stand.pft[i].daily_accounting();
+	}
 }
 
 /// Manages C and N fluxes from slow harvest pools
@@ -1550,6 +1554,12 @@ void get_esat_params(esat_method_t esat_method, esat_params_t *params) {
 		params->a = 610.8;
 		params->b = 17.27;
 		params->c = 237.3;
+	} else if (esat_method == BUCK_1981) {
+		// a = 1.0007 + (3.46 * 10^-6) * P, where P is air pressure in mb
+		// With P = 1000 mb, a = 613.75;
+		params-> a = 613.75;
+		params->b = 17.502;
+		params->c = 240.97;
 	}
 }
 

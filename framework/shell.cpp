@@ -52,7 +52,6 @@ void lprintf(xtring format, ...) {
 
 void vlprintf(xtring format, va_list args) {
 	// Prefix message with a timestamp.
-	current_shell->write_log("[%04d-%02d-%02d] ", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1);
 	current_shell->vwrite_log((const char *)format, args);
 }
 

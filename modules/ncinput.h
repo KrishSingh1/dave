@@ -3,6 +3,8 @@
 
 #ifdef HAVE_NETCDF
 
+#include <map>
+#include <memory>
 #include <string>
 
 #include "driver.h"
@@ -12,6 +14,7 @@
 #include "ncutil.h"
 #include "ncvariable.h"
 #include "variableresolver.h"
+#include "ncfile.h"
 
 /*
 Configuration options which control the behaviour of the NCInput module.
@@ -47,6 +50,9 @@ struct NCInputOptions {
     // The method to use for estimating saturation vapor pressure, which is
     // required for calculating VPD from RH or SH.
     esat_method_t esat_method;
+    /// Whether thome should be calculated from the input dataset and stored in
+    /// the climate object.
+    bool calculate_thome;
 };
 
 class NCInput {
@@ -144,6 +150,38 @@ private:
     void close();
 
     /*
+    Open the specified file.
+
+    @param plan The input management plan specifying which variable to open and how to obtain it.
+    @param var The variable to open.
+    @param limits The valid data limits for this variable.
+    @param units The valid units for this variable.
+    @param variable The NCVariable object to store the opened variable in.
+    @return A shared pointer to the opened NCFile.
+    */
+    void open_file(const ResolvedPlan &plan,
+                   Variable var,
+                   bounds limits,
+                   const std::vector<xtring> &units);
+
+    /*
+    Open the specified file for reading.
+
+    @param file The path to the file to open.
+    @return A shared pointer to the opened NCFile.
+    */
+    std::shared_ptr<NCFile> open_file(const std::string &file);
+
+    /*
+    Get the NCVariable object for the specified variable. This will throw if the
+    currently-open dataset does not contain the specified variable.
+
+    @param var The variable to get.
+    @return A reference to the NCVariable object for the specified variable.
+    */
+    NCVariable &get(Variable var) const;
+
+    /*
     The different datasets that can be used in the simulation.
     */
     enum class Dataset {
@@ -153,9 +191,9 @@ private:
     };
 
     /*
-    Open all files required by the given input plan, store the file IDs in the
-    nc_* members, and store the variable objects in the corresponding NCVariable
-    members.
+    Open all files required by the given input plan, store the file handles in
+    the files map, and store the variable objects in the corresponding
+    NCVariable members.
 
     @param plan The input management plan specifying which variables are
                 required and how to obtain them.
@@ -179,9 +217,8 @@ private:
 	@param timestep: Timestep of time range.
 	@param calendar: The CF calendar type used in this file.
 	*/
-    void verify_data_length(timepoint start, timepoint end,
-                                     int timestep,
-                                     GuessNC::CF::CalendarType calendar) const;
+    void verify_data_length(timepoint start, timepoint end, int timestep,
+                            GuessNC::CF::CalendarType calendar) const;
 
 	/*
 	Get the number of complete years of data which exist in the input file.
@@ -247,6 +284,15 @@ private:
     std::vector<double> get_vpd(const ResolvedPlan &plan, int year, int day);
 
     /*
+    Calculate the thome value for the given gridcell from the currently-loaded
+    dataset.
+
+    @param lon The longitude of the gridcell.
+    @param lat The latitude of the gridcell.
+    */
+    double calculate_thome(double lon, double lat) const;
+
+    /*
     Configuration options which control the behaviour of this module.
     */
     NCInputOptions options;
@@ -262,139 +308,17 @@ private:
     */
     ResolvedPlan simulation_plan;
 
-	/*
-	The NetCDF file ID for the air temperature variable.
-	*/
-	int nc_tas;
+    /*
+    A map of file names to open files.
+    */
+    std::map<std::string, std::shared_ptr<NCFile>> files;
 
-	/*
-	The NetCDF file ID for the shortwave radiation variable.
-	*/
-	int nc_rs;
-
-	/*
-	The NetCDF file ID for the precipitation variable.
-	*/
-	int nc_pr;
-
-	/*
-	The NetCDF file ID for the vpd variable. This will be -1 if vpd is being
-	calculated from specific humidity.
-	*/
-	int nc_vpd;
-
-	/*
-	The NetCDF file ID for the specific humidity variable. This will be -1 if
-	vpd is being read directly from the input file.
-	*/
-	int nc_sh;
-
-	/*
-	The NetCDF file ID for the relative humidity variable.
-	*/
-	int nc_rh;
-
-	/*
-	The NetCDF file ID for the air pressure variable.
-	*/
-	int nc_ps;
-
-	/*
-	The NetCDF file ID for the wind speed variable.
-	*/
-	int nc_ws;
-
-	/*
-	The NetCDF file ID for the co2 variable.
-	*/
-	int nc_co2;
-
-	/*
-	The NetCDF file ID for the tmax variable.
-	*/
-	int nc_tmax;
-
-	/*
-	The NetCDF file ID for the tmin variable.
-	*/
-	int nc_tmin;
-
-	/*
-	The NetCDF file ID for the nhx N deposition variable.
-	*/
-	int nc_nhx;
-
-	/*
-	The NetCDF file ID for the noy N deposition variable.
-	*/
-	int nc_noy;
-
-	/*
-	Air temperature variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> tas;
-
-	/*
-	Shortwave radiation variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> rs;
-
-	/*
-	Precipitation variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> pr;
-
-	/*
-	Wind speed variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> ws;
-
-	/*
-	CO2 variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> co2;
-
-	/*
-	Tmax variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> tmax;
-
-	/*
-	Tmin variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> tmin;
-
-	/*
-	VPD variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> vpd;
-
-	/*
-	Optional specific humidity variable in the NetCDF file. If not set,
-	vpd must be provided instead.
-	*/
-	std::unique_ptr<NCVariable> sh;
-
-	/*
-	Optional relative humidity variable in the NetCDF file. If not set,
-	vpd must be provided instead.
-	*/
-	std::unique_ptr<NCVariable> rh;
-
-	/*
-	Atmospheric pressure variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> ps;
-
-	/*
-	Optional nhx nitrogen deposition variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> nhx;
-
-	/*
-	Optional noy nitrogen deposition variable in the NetCDF file.
-	*/
-	std::unique_ptr<NCVariable> noy;
+    /*
+    A map of variables to NCVariable objects. This may not contain an entry for
+    every variable, but will contain entries for all variables required by the
+    input plan corresponding to the currently-open dataset.
+    */
+    std::map<Variable, std::unique_ptr<NCVariable>> variables;
 
     /*
     Longitude of the current gridcell. This is set in begin_gridcell() and used

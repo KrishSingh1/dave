@@ -20,6 +20,7 @@
 #include "commandlinearguments.h"
 #include "parallel.h"
 #include "inputmodule.h"
+#include "logging.h"
 
 #include <process.h>
 #include <stdarg.h>
@@ -231,6 +232,7 @@ __declspec(dllexport) int dll_main(GuessParam arg) {
 	framework(args);
 
 	// Say goodbye
+	logging_print_run_summary();
 	message_finished();
 
 	return 0;

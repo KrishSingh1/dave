@@ -164,38 +164,13 @@ std::vector<std::string> get_pft_flux_names() {
 	return fluxes;
 }
 
-Individual *get_first_indiv(const Patch &patch) {
-	const Vegetation &vegetation = patch.vegetation;
-	if (vegetation.nobj > 0) {
-		return &(vegetation[0]);
+size_t get_nlayer_canopy(const Patch &patch) {
+	size_t nlayer = 0;
+	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
+		const Individual &indiv = patch.vegetation[i];
+		nlayer = max(nlayer, indiv.canopy.size());
 	}
-	return NULL;
-}
-
-int get_nlayer_fpar(const Patch &patch) {
-	Individual *indiv = get_first_indiv(patch);
-	if (indiv) {
-		return indiv->fipar_layerwise.size();
-	}
-	// No individuals are established in this patch.
-	return 0;
-}
-
-
-int get_nlayer_lai(const Patch &patch) {
-	Individual *indiv = get_first_indiv(patch);
-	if (indiv) {
-		return indiv->lai_layerwise.size();
-	}
-	return 0;
-}
-
-int get_nlayer_an(const Patch &patch) {
-	Individual *indiv = get_first_indiv(patch);
-	if (indiv) {
-		return indiv->an_layerwise.size();
-	}
-	return 0;
+	return nlayer;
 }
 
 std::vector<ColumnDefinition<Individual>> get_pft_litter_pools() {
@@ -1335,7 +1310,6 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_
 	return {
 		{"gdark",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].gdark; }},
 		{"lai",          [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].lai; }},
-		{"fipar",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].fipar; }},
 		{"fphen",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].fphen_activity; }},
 		{"ps_sink_lim",  [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ps_sink_lim; }},
 		{"vcmax25",      [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].vcmax25; }},
@@ -1343,16 +1317,23 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_
 		{"jmax25",       [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].jmax25; }},
 		{"nscal",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].nscal; }},
 		{"wscal",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].wscal; }},
-		{"temp",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].temp; }},
+		{"tleaf",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].tleaf; }},
 		{"ha_v",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ha_v; }},
 		{"ha_j",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ha_j; }},
 		{"ds_v",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ds_v; }},
 		{"ds_j",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ds_j; }},
 		{"par",          [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].par; }},
+		{"apar",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].apar(); }},
+		{"ipar",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ipar(); }},
+		{"fipar",         [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].fipar; }},
 		{"vpd",          [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].vpd; }},
 		{"ca",           [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].ca; }},
 		{"X",            [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].X; }},
 		{"stomata_open", [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].stomata_open ? 1.0 : 0.0; }},
+		{"predawn_lwp",  [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].lwp; }},
+		{"s_f",          [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].s_f; }},
+		{"psi_f",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].psi_f; }},
+		{"tgrowth",      [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].tgrowth; }},
 	};
 }
 
@@ -1365,8 +1346,19 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_
 		{"anp",   [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].anp; }},
 		{"gsc",   [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].gsc; }},
 		{"ci",    [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].ci; }},
+		{"tleaf", [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].tleaf; }},
 		{"vcmax", [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].vcmax; }},
 		{"jmax",  [](const Individual &i, int t, int l) { return i.ps_outputs_layerwise[t][l].jmax; }},
+	};
+}
+
+std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> energy_balance_cols() {
+	return {
+		{"converged",    [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_converged() ? 1.0 : 0.0; }},
+		{"delta_tleaf",  [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_delta_tleaf(); }},
+		{"niter",        [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_niter() * 1.0; }},
+		{"tleaf",        [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_tleaf(); }},
+		{"tair",         [](const Individual &i, int t, int l) { return i.vegetation.patch.get_climate().temps[t]; }},
 	};
 }
 

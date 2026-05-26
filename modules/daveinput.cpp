@@ -21,6 +21,7 @@
 #include "parameters.h"
 #include "guessmath.h"
 #include "util.h" // Required by MSVC
+#include "logging.h"
 
 #ifdef _WIN32
 #include <io.h>
@@ -31,7 +32,7 @@
 REGISTER_INPUT_MODULE("nc", DaveInput)
 
 DaveInput::DaveInput() {
-	ctor_start = get_wall_time();
+	double ctor_start = get_wall_time();
 
 	// Register instruction file parameters.
 
@@ -55,7 +56,7 @@ DaveInput::DaveInput() {
 	declare_parameter("file_co2", &file_co2, PATH_MAX
 	, "Path to global co2 concentration input file. Either this or variable_co2 must be provided.");
 	declare_parameter("file_thome", &file_thome, PATH_MAX
-	, "Path to the mean maximum daily temperature (T_home) input file, used for DAVE temperature acclimation calculations. This is optional if iftempacclimation is disabled.");
+	, "Path to the mean maximum daily temperature (T_home) input file, used for DAVE temperature acclimation calculations. This is optional if ifvcmaxtempacclimation is disabled.");
 
 	declare_parameter("cache_strategy", &cache_strategy, 0, 2
 	, "Cache strategy to be used when reading NetCDF data (0 = cache entire file (fastest), 1 = cache one year at a time (slower, but uses less memory), 2 = no caching (slowest, not recommended)");
@@ -155,13 +156,13 @@ void DaveInput::init(void) {
 		landcover_input.init(file_gridlist);
 
 		if (file_thome != "") {
-			if (iftempacclimation) {
+			if (ifvcmaxtempacclimation) {
 				thome_input.init(file_thome);
 			} else {
 				printf("WARNING: Temperature acclimation file specified but temperatue acclimation is disabled, so the file will not be used.\n");
 			}
 		} else {
-			if (iftempacclimation) {
+			if (ifvcmaxtempacclimation) {
 				fail("Temperature acclimation is enabled, but t_home input file is not specified. Please set file_thome in the instruction file.");
 			}
 			// else not specified and not needed - no problem.
@@ -185,7 +186,18 @@ void DaveInput::init(void) {
 		options.constant_ps = fixed_pressure;
 		options.use_mean_annual_co2 = use_mean_annual_co2;
 		options.esat_method = esat_method;
+		// Calculate thome from dataset if acclimation is enabled but no thome
+		// file is provided.
+		options.calculate_thome = ifvcmaxtempacclimation && file_thome == "";
 		ncinput.init(options);
+
+		if (options.calculate_thome) {
+			log_diagnostic("Thome values will be calculated from the input climate data");
+		} else if (ifvcmaxtempacclimation) {
+			log_diagnostic("Thome values will be read from file %s", (const char *)file_thome);
+		} else {
+			log_warning("Thome input file was provided, but ifvcmaxtempacclimation is disabled, so thome values will not be used.");
+		}
 
 		if (!options.allow_netcdf_co2) {
 			co2_file = std::unique_ptr<GlobalCO2File>(new GlobalCO2File());
@@ -227,9 +239,8 @@ bool DaveInput::getgridcell(Gridcell& gridcell) {
 		double getgridcell_start = get_wall_time();
 
 		if (current_gridcell == gridlist.end()) {
-			double total_walltime = (getgridcell_start - ctor_start) * 1000;
-			double prop = ncinput_walltime_use / total_walltime;
-			printf("Simulations completed. Total time: %.2fs.                     \nTotal time spent in dave  input: %.2fs\n", total_walltime / 1000, ncinput_walltime_use / 1000);
+			log_diagnostic("Total time spent in dave  input: %.2fs\n",
+					       ncinput_walltime_use / 1000);
 			return false;
 		}
 
@@ -254,7 +265,7 @@ bool DaveInput::getgridcell(Gridcell& gridcell) {
 			misc_input.loadelevation(lon, lat);
 		}
 
-		if (iftempacclimation) {
+		if (ifvcmaxtempacclimation) {
 			// Temperature acclimation is enabled - read thome value for this
 			// gridcell.
 			gridcell.climate.thome = thome_input.read_gridcell(lat, lon);
@@ -575,6 +586,8 @@ esat_method_t DaveInput::parse_esat_method(xtring name) const {
 		return ALDUCHOV_1996;
 	} else if (name == "allen_1998") {
 		return ALLEN_1998;
+	} else if (name == "buck_1981") {
+		return BUCK_1981;
 	} else {
 		fail("Invalid esat_method: %s", (const char *)name);
 	}

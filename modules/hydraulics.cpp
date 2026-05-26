@@ -38,6 +38,7 @@
 #include "hydraulics.h"
 #include "canexch.h"
 #include "somdynam.h"
+#include "logging.h"
 
 // The cohort density (/m2) above which cohorts will lose MORT_FRAC biomass
 // upon hydraulic failure, and below which they will be killed outright.
@@ -202,7 +203,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
     const Soil &soil = patch.soil;
 
     if (!ifdavephotosyn || !ifdavehydraulics) {
-		// Only apply if using DAVE photosynthesis
+		// Only apply if using DAVE photosynthesis and hydraulics.
 		return;
 	}
 
@@ -266,7 +267,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 	        printf("total area under curve = %f/n",transpiration_check * (kmax_param * 1000 * Ax));
             printf("transpiration = %f/n",transpiration);
 
-            //fail("[%04d-%02d] hydraulic vulnerability curve doesn't allow E to be met\n", date.year, date.day);
+            log_error("hydraulic vulnerability curve doesn't allow E to be met");
             
         }
 
@@ -322,15 +323,15 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 
         if (!e_met) {
             psi2 = -pft.p88;
-            printf("[%04d-%02d] hydraulic vulnerability curve doesn't allow E to be met in water stressed module\n", date.year, date.day);
+            log_warning("hydraulic vulnerability curve doesn't allow E to be met in water stressed module");
         }
 
         indiv.k_loss[day.period] = 1 - exp(-pow(psi2 / pft.s1, pft.s2));
 
         indiv.lwp[day.period] = -psi2;
    
-        if (indiv.lwp[day.period] <= pft.p88) {
-            printf("%04d-%02d-%02d indiv %d (%s) hydraulic failure\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, indiv.id, (const char *)pft.name);
+        if (indiv.lwp[day.period] < pft.p88) {
+            log_info("Hydraulic failure for indiv %d (%s)", indiv.id, (const char *)pft.name);
             indiv.lwp[day.period] = pft.p88;
             indiv.hydraulic_failure = true;
         }
@@ -403,11 +404,11 @@ void hydraulic_mortality(Patch &patch) {
         if (indiv.hydraulic_failure) {
             double densindiv = indiv.densindiv;
             if (indiv.densindiv > KILL_THRESHOLD) {
-                printf("%04d-%2d-%02d indiv %d (%s): biomass loss due to hydraulic failure\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, indiv.id, (const char *)pft.name);
+                log_info("Indiv %d (%s): biomass loss due to hydraulic failure", indiv.id, (const char *)pft.name);
                 indiv.reduce_biomass(MORT_FRAC, 0);
                 indiv.hydraulic_failure = false;
             } else {
-                printf("%04d-%02d-%02d indiv %d (%s): mortality due to hydraulic failure\n", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, indiv.id, (const char *)indiv.pft.name);
+                log_info("Indiv %d (%s): mortality due to hydraulic failure", indiv.id, (const char *)indiv.pft.name);
                 indiv.kill();
                 vegetation.killobj();
             }
@@ -592,7 +593,7 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
 
         // Set water potential to stom_clos to close stomata.
         psi2 = -pft.stom_clos;
-        printf("hydraulic vulnerability curve doesn't allow E to be met\n");
+        log_error("Hydraulic vulnerability curve doesn't allow E to be met");
     }
 
     indiv.lwp[day.period] = -psi2;

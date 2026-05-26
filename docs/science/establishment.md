@@ -111,7 +111,7 @@ number is simply the maximum recruitment rate scaled by patch area:
 
 $$
 \begin{equation}
-est = est_{\mathrm{max}} \times A_{\mathrm{patch}}
+\text{est} = \text{est}_{\mathrm{max}} \times A_{\mathrm{patch}}
 \end{equation}
 $$
 
@@ -130,7 +130,7 @@ establishment:
 
 $$
 \begin{equation}
-est = c \times \left(k_{\mathrm{est,repr}} \times C_{\mathrm{repr}} + k_{\mathrm{est,bg}}\right)
+\text{est} = c \times \left(k_{\mathrm{est,repr}} \times C_{\mathrm{repr}} + k_{\mathrm{est,bg}}\right)
 \end{equation}
 $$
 
@@ -140,7 +140,7 @@ If the spatial mass effect is disabled, but a propagule pool exists:
 
 $$
 \begin{equation}
-est = c \times \left(k_{\mathrm{est,pres}} + k_{\mathrm{est,bg}}\right)
+\text{est} = c \times \left(k_{\mathrm{est,pres}} + k_{\mathrm{est,bg}}\right)
 \end{equation}
 $$
 
@@ -150,7 +150,7 @@ If the spatial mass effect is disabled, and no propagule pool exists:
 
 $$
 \begin{equation}
-est = c \times k_{\mathrm{est,bg}}
+\text{est} = c \times k_{\mathrm{est,bg}}
 \end{equation}
 $$
 
@@ -160,7 +160,7 @@ Where:
 
 $$
 \begin{equation}
-c = \mu(F) \times est_{\mathrm{max}} \times A_{\mathrm{patch}}
+c = \mu(F) \times \text{est}_{\mathrm{max}} \times A_{\mathrm{patch}}
 \end{equation}
 $$
 
@@ -198,7 +198,7 @@ $k_{\mathrm{est,pres}}$ is a PFT-specific constant in range 0-1 (usually ~1).
 $C_{\mathrm{repr}}$ is the net C allocated to reproduction for this PFT in all
 patches of this stand this year (kgC/m2).
 
-$est_{\mathrm{max}}$ is the (nominal) maximum establishment rate for this PFT
+$\text{est}_{\mathrm{max}}$ is the (nominal) maximum establishment rate for this PFT
 (saplings/m2/year).
 
 $A_{\mathrm{patch}}$ is the patch area (m2).
@@ -230,7 +230,9 @@ Figure source script: `analysis/establishment_plots.r`.
 Expected tree recruitment is scaled by:
 
 $$
-est \leftarrow est \times \frac{3.0}{n_{\mathrm{woody,eligible}}}
+\begin{equation}
+\text{est} \leftarrow \text{est} \times \frac{3.0}{n_{\mathrm{woody,eligible}}}
+\end{equation}
 $$
 
 Purpose: prevent an artificial increase in total tree establishment simply

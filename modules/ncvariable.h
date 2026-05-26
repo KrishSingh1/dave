@@ -14,10 +14,12 @@
 
 #include <stdint.h>
 #include <vector>
+#include <memory>
 
 #include "cftime.h"
 #include "gutil.h"
 #include "ncutil.h"
+#include "ncfile.h"
 
 /*
 Represents a single time point for a single gridcell.
@@ -75,7 +77,7 @@ public:
 	/*
 	Initialise a new NCVariable instance, perform basic sanity checking.
 
-	@param file_id: NetCDF file ID.
+	@param file: Shared pointer to the NetCDF file.
 	@param name: Name of the variable.
 	@param dim_lon: Name of the longitude dimension.
 	@param dim_lat: Name of the latitude dimension.
@@ -85,9 +87,9 @@ public:
 	@param units: Expected units.
 	@param check_units: Iff true, an error will be generated for invalid units.
 	*/
-	NCVariable(int file_id, xtring name, CacheStrategy chunk_mode
-	, bool sensibility_checks, bounds limits, std::vector<xtring> units
-	, bool check_units);
+	NCVariable(std::shared_ptr<NCFile> file, xtring name,
+		       CacheStrategy chunk_mode, bool sensibility_checks, bounds limits,
+			   std::vector<xtring> units, bool check_units);
 
 	/*
 	Read one day's data for a particular gridpoint. Note that this method may
@@ -352,7 +354,7 @@ private:
 	/*
 	NetCDF file ID.
 	*/
-	int id_file;
+	std::shared_ptr<NCFile> file;
 
 	/*
 	Variable ID.

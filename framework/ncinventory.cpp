@@ -3,6 +3,8 @@
 #include "shell.h"
 #include "ncinventory.h"
 #include "guessnc.h"
+#include "logging.h"
+#include "ncfile.h"
 
 static const char *ATTR_STD_NAME = "standard_name";
 static const char *ATTR_UNITS = "units";
@@ -14,26 +16,16 @@ NCInventory::NCInventory(std::vector<std::string> files) {
 }
 
 std::unique_ptr<NCInventory::FileInfo> NCInventory::parse(const std::string &file) const {
-    int ncid = GuessNC::open_ncdf((const char *)file.c_str());
-    std::vector<std::unique_ptr<VariableMetadata>> variables;
-    try
-    {
-        int nvars = GuessNC::get_nvars(ncid);
-        for (int i = 0; i < nvars; i++) {
-            auto var_info = get_variable_info(ncid, i);
-            if (var_info) {
-                variables.push_back(std::move(var_info));
-            }
-        }
-        GuessNC::close_ncdf(ncid);
-    }
-    catch (const std::exception &e)
-    {
-        // TODO: RAII via a wrapper around ncid? Probably overkill...
-        GuessNC::close_ncdf(ncid);
-        throw;
-    }
+    NCFile nc_file(file);
 
+    std::vector<std::unique_ptr<VariableMetadata>> variables;
+    int nvars = GuessNC::get_nvars(nc_file.id());
+    for (int i = 0; i < nvars; i++) {
+        auto var_info = get_variable_info(nc_file.id(), i);
+        if (var_info) {
+            variables.push_back(std::move(var_info));
+        }
+    }
     return std::make_unique<FileInfo>(file, std::move(variables));
 }
 
@@ -46,6 +38,9 @@ std::unique_ptr<NCInventory::VariableMetadata> NCInventory::get_variable_info(in
     if (has_std_name && has_units) {
         return std::make_unique<VariableMetadata>(name, std_name, units);
     }
+    // TODO: true logging
+    log_warning("Ignoring variable '%s' in file '%s' because it doesn't have both a standard_name and units attribute\n",
+            name.c_str(), GuessNC::get_variable_name(ncid, varid).c_str());
     return nullptr;
 }
 

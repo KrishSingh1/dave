@@ -3250,9 +3250,14 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 
 	// apply water stress scaling to vcmax / jmax
 	if(ifzhou){
-	// function to scale vcmax and jmax by pre-dawn water potential, see Zhou (2014)
-		double wp_vmax_scale = pslim_lwp_scalar(inputs.s_f, inputs.psi_f, inputs.predawn_lwp);
-		pslim = pslim * wp_vmax_scale;
+	// function to scale vcmax and jmax by pre-dawn water potential 
+		//see Zhou (2014)
+		//double wp_vcmax_scale = pslim_lwp_scalar(inputs.s_f, inputs.psi_f, inputs.predawn_lwp);
+		// from Xu et al (2016), they use a1 = 6
+		double a1 = 7.0;
+		double pg50 = inputs.stom_clos * pow(9.0, -1.0 / a1);
+		double wp_vcmax_scale = 1.0 / (1.0 + pow(inputs.lwp_previous / pg50, a1));
+		pslim = pslim * wp_vcmax_scale;
 	} else {
 		pslim = pslim * pow(inputs.wscal, qb);
 	}
@@ -3380,9 +3385,12 @@ void photosynthesis_dave_c4(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 
 	// apply water stress scaling to vcmax / jmax
 	if(ifzhou){
-		// function to scale vcmax and jmax by pre-dawn water potential, see Zhou (2014)
-		double wp_vmax_scale = pslim_lwp_scalar(inputs.s_f, inputs.psi_f, inputs.predawn_lwp);
-		pslim = pslim * wp_vmax_scale;
+		//double wp_vcmax_scale = pslim_lwp_scalar(inputs.s_f, inputs.psi_f, inputs.predawn_lwp);
+		// from Xu et al (2016), they use a1 = 6
+		double a1 = 7.0;
+		double pg50 = inputs.stom_clos * pow(9.0, -1.0 / a1);
+		double wp_vcmax_scale = 1.0 / (1.0 + pow(inputs.lwp_previous / pg50, a1));
+		pslim = pslim * wp_vcmax_scale;
 	} else {
 		pslim = pslim * pow(inputs.wscal, qb);
 	}
@@ -3544,7 +3552,7 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 
 		// stomatal parameters for Zhou model (Zhou et al. 2014) - used for hydraulics mode
 		double g1x = pft.g1x;
-		double b1z = log(0.05)/(pft.stom_clos+0.3); // We set parameter b1z to the value that results in 95% reduction in g1 at stom_clos (for compatibility with hydraulic module)
+		double b1z = log(0.1)/(pft.stom_clos+0.3); // We set parameter b1z to the value that results in 90% reduction in g1 at stom_clos (for compatibility with hydraulic module)
 
 		// Atmospheric CO2 concentration (mol mol-1)
 		// TODO: check if annual global means would make more sense 
@@ -3558,6 +3566,8 @@ void photosynthesis_gs(Patch& patch, Climate& climate, Vegetation& vegetation) {
 		inputs.s_f = pft.s_f;
 		inputs.psi_f = pft.psi_f;
 		inputs.predawn_lwp = indiv.predawn_lwp;
+		inputs.lwp_previous = indiv.lwp_previous;
+		inputs.stom_clos = pft.stom_clos;
 
 		get_temp_acclimation_parameters(climate, pft, inputs.ha_v, inputs.ha_j, inputs.ds_v, inputs.ds_j);
 
@@ -4069,11 +4079,11 @@ void water_stress_dave_root_resistance(Patch &patch) {
 			stress_base = max(min(stress_base, 1.0), 0.0);
 
 			// Weight by root resistance.
-			// double weight = 1.0 / indiv.Rs_r[j];
+			double weight = 1.0 / indiv.Rs_r[j];
 
 			// Alternative: weight by root distributeion. Reason: weighting by
 			// root resistance leads to a flatter relationship with wcont.
-			double weight = indiv.rootdist[j];
+			// double weight = indiv.rootdist[j];
 
 			wstress_layer[j] = stress_base * weight;
 
@@ -4425,6 +4435,8 @@ void forest_floor_dave(Patch &patch) {
 			inputs.s_f = pft.s_f;
 			inputs.psi_f = pft.psi_f;
 			inputs.predawn_lwp = patch.soil.soil_psi;
+			inputs.stom_clos = pft.stom_clos;
+			inputs.lwp_previous = patch.soil.soil_psi;
 
 			// Atmospheric CO2 concentration in mol mol-1.
 			inputs.ca = get_co2(patch, climate, pft) / UMOL_PER_MOL;

@@ -793,7 +793,7 @@ void plib_declarations(int id,xtring setname) {
 			"Parameter for Zhou et al. (2014) stomatal model - not currently used");
 		// Hydraulic parameters
 		declareitem("stom_clos",&ppft->stom_clos,-1000.0,0.0,1,CB_NONE, 
-			"Water potential at which stomatal close and roots disconnect from soil (MPa)");
+			"Water potential at which stomata close and roots disconnect from soil (MPa)");
 		declareitem("tlp",&ppft->tlp,-1000.0,0.0,1,CB_NONE, 
 			"Turgor loss point (MPa) - used for grasses only, where this often comes long before stomatal closure, controls sensescence");
 		declareitem("p50",&ppft->p50,-1000.0,0.0,1,CB_NONE, 

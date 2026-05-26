@@ -1942,7 +1942,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	weighted_psi = 0;
 	predawn_lwp = 0.0;
-	lwp_previous = 0.0;
+	lwp_previous = -0.1;
 	lwp.resize(date.subdaily);
 	k_loss.resize(date.subdaily);
 	transpiration.resize(date.subdaily);

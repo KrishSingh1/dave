@@ -644,13 +644,13 @@ pft "MRS" (
 
 	! Changes
 	!wooddens 300
-	sla 10
+	sla 9.2 !Clare changed from 10
 	turnover_leaf 1
 	leaflong 1
 	turnover_sap 0.07
 	turnover_root 1
-	ltor_max 0.67
-	k_latosa 4000
+	ltor_max 0.6	!Clare changed from 0.67
+	k_latosa 3200	!Clare changed from 4000
 	k_allom2 35
 	longevity 300
 	vcmax_25 60 ! apprx from Dushan (EucFACE) - 91
@@ -660,19 +660,18 @@ pft "MRS" (
 	ds_v 638 ! apprx from Dushan (EucFACE)
 	ds_j 638 ! apprx from Dushan (EucFACE)
 	g1 3.38 ! Austraits
-	g1x 3.9 ! Austraits
+	respcoeff 0.8 ! Clare changed
 
 	! hydraulic traits
 	wooddens 350  ! Peters (2021)
-	kmax 15  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area 
-	stom_clos -2.4 !-3.2   ! Peters (2021)
-	p50 -4.3 !-5.8   ! Peters (2021)
-	p88 -4.7 !-7.7  ! Peters (2021)
-	g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9
+	kmax 10  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area 
+	stom_clos -3.2 !-3.2   ! Peters (2021)
+	p50 -5.8 !-5.8   ! Peters (2021)
+	p88 -7.7 !-7.7  ! Peters (2021)
+	g1x 3.4  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9
 	gcutic 0.0025 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, Erick's data at 25deg generally comes in around 0.0025 for E tereticornis.
-	s_f 1.0
-	psi_f -1.8
 	rootdist 0.1 0.1 0.1 0.1 0.1 0.06 0.06 0.06 0.06 0.06 0.04 0.04 0.04 0.04 0.04
+	ifcalcvcmax 0
 
 	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	! ! WOMBAT (Clare) - fixedLAI = 2.253

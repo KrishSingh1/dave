@@ -1503,10 +1503,12 @@ void dave_penman_monteith(Climate& climate, Patch& patch, Vegetation& vegetation
 
 			double k = 0.41; // von Karman's constant
 
+			/// replace with layer-scale one that depends on leaf width and wind speed
 			ra = log((zm - d) / zom) * log((zh - d)/zoh) / pow(k, 2.0) / (climate.u10 / KMH_PER_MS);
 
 			double MOL2M3 = (climate.temps[day.period] + K2degC) * R_gas / climate.pressure[day.period]; // mol to m3 conversion factor (m3/mol) based on ideal gas law
 
+			/// we'll use this at the layer scale - need to use gs per layer
 			double rl = 1.0 / (indiv.ps_subdaily.gsw[day.period] * MOL2M3);	// bulk stomatal resistance (s/m)
 
 			rs = rl / (indiv.lai);

@@ -765,6 +765,12 @@ public:
 
 	// Reference value at which Vcmax or Jmax is half it's non-water-stresed value (Zhou 2014)
 	double psi_f;
+
+	// Leaf water potential (MPa) saved from hydraulics routine, previous timestep
+	double lwp_previous;
+
+	// Leaf water potential at stomatal closure (MPa)
+	double stom_clos;
 };
 
 /// Outputs from the photosynthesis function for a single individual in a single
@@ -2260,7 +2266,7 @@ public:
 	double emax;
 	/// maintenance respiration coefficient (0-1)
 	double respcoeff;
-	/// water potential at 12% loss of hydraulic conductance
+	/// Leaf water potential at stomatal closure (MPa)
 	double stom_clos;
 	/// water potential at 50% loss of hydraulic conductance
 	double p50;
@@ -3991,11 +3997,11 @@ public:
 	/// hydraulic resistance between soil and roots (mmol/m/s/MPa)
 	double Rs_r[NSOILLAYER];
 
-	// predawn leaf water potential calculated using hydraulics module
+	// predawn leaf water potential (same as weighted soil water potential, MPa)
 	double predawn_lwp;
 	// leaf water potential at subdaily timescale (MPa)
 	std::vector<double> lwp;
-	// leaf water potential (MPa) from previous timestep (for plant water storage)
+	// leaf water potential (MPa) from previous timestep (saved for use in canexch)
 	double lwp_previous;
 	// loss of hydraulic conductance at subdaily timescale (mol/m2/s/MPa)
 	std::vector<double> k_loss;

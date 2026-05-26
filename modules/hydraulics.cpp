@@ -50,6 +50,8 @@ const double MORT_FRAC = 0.01;
 // PAR threshold between predawn and postdawn (J/m2).
 const double PAR_DAWN = 10;
 
+// Alternative formulation that uses root distribution directly - recommended is 
+// the root resistance method given in calc_weighted_psi
 double calc_weighted_psi_rootdist(Soil & soil, Pft& pft, Individual &indiv){
 
     double weighted_psi = 0.0;
@@ -206,6 +208,8 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 
     const Pft &pft = indiv.pft;
 
+    indiv.predawn_lwp = indiv.weighted_psi; // Assume zero transpiration overnight
+
     double patmos = climate.pressure[day.period];
     double vpd = climate.vpds[day.period];
     double gsw = indiv.ps_subdaily.gsw[day.period];
@@ -317,7 +321,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
 
         if (!e_met) {
-            indiv.lwp[day.period] = pft.p88;
+            psi2 = -pft.p88;
             printf("[%04d-%02d] hydraulic vulnerability curve doesn't allow E to be met in water stressed module\n", date.year, date.day);
         }
 
@@ -592,16 +596,6 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
     }
 
     indiv.lwp[day.period] = -psi2;
-
-    if (day.period > 0) {
-        // W m-2; 0.5 * climate.insols
-        double par_previous = climate.pars[day.period - 1];
-
-        if (par_previous < PAR_DAWN && climate.pars[day.period] > PAR_DAWN) {
-            // Note Zhou model uses actual (negative) pd lwp.
-            indiv.predawn_lwp = indiv.lwp[day.period];
-        }
-    }
 
     double min_lwp_day = 0.0;
 

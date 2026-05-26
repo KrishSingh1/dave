@@ -862,7 +862,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 	if (snowpack < 10.0) {	// evap only if snow depth < 10mm
 							// The potential evaporation:
 		if (ifdavehydrology){
-			evap_init = climate.eet * PRIESTLEY_TAYLOR * fevap * wcont_evap_init;// * wcont_evap_init ;		// CS changed because it gave better results and I can't find justification for the change to wcont^2 (first appears in Rost 2008, Eq A5, but no squared term in Gerten 2004)
+			evap_init = climate.eet * PRIESTLEY_TAYLOR * fevap * wcont_evap_init * wcont_evap_init;		// CS changed because it gave better results and I can't find justification for the change to wcont^2 (first appears in Rost 2008, Eq A5, but no squared term in Gerten 2004)
 		} else {
 			evap_init = climate.eet * PRIESTLEY_TAYLOR * wcont_evap_init * wcont_evap_init * fevap;
 		}

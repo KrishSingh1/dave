@@ -26,7 +26,6 @@
 namespace GuessParallel {
 
 bool parallel = false;
-static bool barrier_sync_hazard = false;
 
 void init(int& argc, char**& argv) {
 #ifdef HAVE_MPI
@@ -91,36 +90,6 @@ void finalize() {
 		MPI_Finalize();
 	}
 #endif
-}
-
-void begin_barrier_sync_section() {
-	barrier_sync_hazard = true;
-}
-
-void end_barrier_sync_section() {
-	barrier_sync_hazard = false;
-}
-
-void barrier() {
-#ifdef HAVE_MPI
-	if (parallel) {
-		MPI_Barrier(MPI_COMM_WORLD);
-	}
-#endif
-}
-
-bool barrier_sync_hazard_active() {
-	return barrier_sync_hazard;
-}
-
-void abort_parallel(int errorcode) {
-#ifdef HAVE_MPI
-	if (parallel) {
-		MPI_Abort(MPI_COMM_WORLD, errorcode);
-	}
-#endif
-	// If we get here (no MPI or MPI_Abort didn't terminate), fall back.
-	exit(errorcode);
 }
 
 }

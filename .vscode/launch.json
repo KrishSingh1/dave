@@ -15,7 +15,7 @@
                 "Abisko.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Abisko",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Abisko",
             "osx": {
                 "MIMode": "lldb"
             },
@@ -53,7 +53,7 @@
                 "AdelaideRiver.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/AdelaideRiver",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/AdelaideRiver",
             "osx": {
                 "MIMode": "lldb"
             },
@@ -91,7 +91,7 @@
                 "AliceSpringsMulga.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/AliceSpringsMulga",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/AliceSpringsMulga",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -129,7 +129,7 @@
                 "Boyagin.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Boyagin",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Boyagin",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -167,7 +167,7 @@
                 "Calperum.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Calperum",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Calperum",
             "osx": {
                 "MIMode": "lldb"
             },
@@ -205,7 +205,7 @@
                 "CapeTribulation.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/CapeTribulation",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CapeTribulation",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -243,7 +243,7 @@
                 "ClimGrass.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/ClimGrass",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/ClimGrass",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -281,7 +281,7 @@
                 "Collie.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Collie",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Collie",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -319,7 +319,7 @@
                 "CowBay.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/CowBay",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CowBay",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -357,7 +357,7 @@
                 "CumberlandPlain.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/CumberlandPlain",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CumberlandPlain",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -395,7 +395,7 @@
                 "DalyPasture.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/DalyPasture",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/DalyPasture",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -433,7 +433,7 @@
                 "DalyUncleared.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/DalyUncleared",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/DalyUncleared",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -471,7 +471,7 @@
                 "DryRiver.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/DryRiver",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/DryRiver",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -509,7 +509,7 @@
                 "Emerald.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Emerald",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Emerald",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -547,7 +547,7 @@
                 "FletcherView.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/FletcherView",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/FletcherView",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -584,7 +584,7 @@
                 "FoggDam.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/FoggDam",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/FoggDam",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -622,7 +622,7 @@
                 "Gingin.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Gingin",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Gingin",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -660,7 +660,7 @@
                 "Goulburn.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Goulburn",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Goulburn",
             "osx": {
                 "MIMode": "lldb"
             },
@@ -697,7 +697,7 @@
                 "GreatWesternWoodlands.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/GreatWesternWoodlands",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/GreatWesternWoodlands",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -735,7 +735,7 @@
                 "HenryBayly.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/HenryBayly",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/HenryBayly",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -773,7 +773,7 @@
                 "HowardSprings.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/HowardSprings",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/HowardSprings",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -811,7 +811,7 @@
                 "Litchfield.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Litchfield",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Litchfield",
             "environment": [],
             "externalConsole": false,
             // "MIMode": "lldb",
@@ -829,7 +829,7 @@
                 "Longreach.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Longreach",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Longreach",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -867,82 +867,7 @@
                 "MtAlex.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/MtAlex",
-            "environment": [],
-            "externalConsole": false,
-            "osx": {
-                "MIMode": "lldb"
-            },
-            "linux": {
-                "MIMode": "gdb",
-                "setupCommands": [
-                    {
-                        "description": "Enable pretty-printing for gdb",
-                        "text": "-enable-pretty-printing",
-                        "ignoreFailures": true
-                    },
-                    {
-                        "description":  "Set Disassembly Flavor to Intel",
-                        "text": "-gdb-set disassembly-flavor intel",
-                        "ignoreFailures": true
-                    }
-                ],
-            },
-            "windows": {
-                "program": "${workspaceFolder}/build/guesscmd.exe",
-                "MIMode": "gdb"
-            },
-            "preLaunchTask": "build"
-        },
-        {
-            "name": "MtDuval",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/guess",
-            "args": [
-                "-input",
-                "nc",
-                "MtDuval.ins"
-            ],
-            "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/MtDuval",
-            "osx": {
-                "MIMode": "lldb"
-            },
-            "linux": {
-                "MIMode": "gdb",
-                "setupCommands": [
-                    {
-                        "description": "Enable pretty-printing for gdb",
-                        "text": "-enable-pretty-printing",
-                        "ignoreFailures": true
-                    },
-                    {
-                        "description":  "Set Disassembly Flavor to Intel",
-                        "text": "-gdb-set disassembly-flavor intel",
-                        "ignoreFailures": true
-                    }
-                ],
-            },
-            "windows": {
-                "MIMode": "gdb"
-            },
-            "environment": [],
-            "externalConsole": false,
-            "preLaunchTask": "build"
-        },
-        {
-            "name": "Mt. Majura",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/guess",
-            "args": [
-                "-input",
-                "nc",
-                "MtMajura.ins"
-            ],
-            "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/MtMajura",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/MtAlex",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -980,7 +905,7 @@
                 "Otway.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Otway",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Otway",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1018,7 +943,7 @@
                 "RedDirtMelonFarm.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/RedDirtMelonFarm",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/RedDirtMelonFarm",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1056,7 +981,7 @@
                 "Ridgefield.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Ridgefield",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Ridgefield",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1094,7 +1019,7 @@
                 "RiggsCreek.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/RiggsCreek",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/RiggsCreek",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1132,7 +1057,7 @@
                 "RobsonCreek.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/RobsonCreek",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/RobsonCreek",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1170,7 +1095,7 @@
                 "Samford.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Samford",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Samford",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1208,7 +1133,7 @@
                 "Sevilletagrass.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Sevilletagrass",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Sevilletagrass",
             "osx": {
                 "MIMode": "lldb"
             },
@@ -1246,7 +1171,7 @@
                 "SilverPlains.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/SilverPlains",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/SilverPlains",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1284,7 +1209,7 @@
                 "SturtPlains.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/SturtPlains",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/SturtPlains",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1322,7 +1247,7 @@
                 "TiTreeEast.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/TiTreeEast",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/TiTreeEast",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1360,7 +1285,7 @@
                 "Tumbarumba.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Tumbarumba",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Tumbarumba",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1398,7 +1323,7 @@
                 "UNE.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/UNE",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/UNE",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1436,7 +1361,7 @@
                 "WallabyCreek.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/WallabyCreek",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/WallabyCreek",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1474,7 +1399,7 @@
                 "Warra.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Warra",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Warra",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1512,7 +1437,7 @@
                 "Whroo.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Whroo",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Whroo",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1550,7 +1475,7 @@
                 "WombatStateForest.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/WombatStateForest",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/WombatStateForest",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1588,7 +1513,7 @@
                 "Yanco.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Yanco",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Yanco",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1626,7 +1551,7 @@
                 "YarCon.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/YarCon",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/YarCon",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1664,7 +1589,7 @@
                 "YarIrr.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/YarIrr",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/YarIrr",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1702,7 +1627,7 @@
                 "Neustift.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Neustift",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Neustift",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1740,7 +1665,7 @@
                 "NL-Hor.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/NL-Hor",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/NL-Hor",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1778,7 +1703,7 @@
                 "DK-Eng.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/DK-Eng",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/DK-Eng",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1816,7 +1741,7 @@
                 "IT-Tor.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/IT-Tor",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/IT-Tor",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1854,7 +1779,7 @@
                 "Abisko.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Abisko",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Abisko",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -4086,44 +4011,6 @@
             "preLaunchTask": "build"
         },
         {
-            "name": "CN-HaM",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/guess",
-            "args": [
-                "-input",
-                "nc",
-                "CN-HaM.ins"
-            ],
-            "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CN-HaM",
-            "environment": [],
-            "externalConsole": false,
-            "osx": {
-                "MIMode": "lldb"
-            },
-            "linux": {
-                "MIMode": "gdb",
-                "setupCommands": [
-                    {
-                        "description": "Enable pretty-printing for gdb",
-                        "text": "-enable-pretty-printing",
-                        "ignoreFailures": true
-                    },
-                    {
-                        "description":  "Set Disassembly Flavor to Intel",
-                        "text": "-gdb-set disassembly-flavor intel",
-                        "ignoreFailures": true
-                    }
-                ],
-            },
-            "windows": {
-                "program": "${workspaceFolder}/build/guesscmd.exe",
-                "MIMode": "gdb"
-            },
-            "preLaunchTask": "build"
-        },
-        {
             "name": "CN-GuT",
             "type": "cppdbg",
             "request": "launch",
@@ -4284,7 +4171,7 @@
             "args":
             {
                 "key": "sitename",
-                "description": "Name of the ozflux site to run",
+                "description": "Name of the fluxnet site to run",
                 "default": "SturtPlains",
                 "options": [
                     "Abisko",

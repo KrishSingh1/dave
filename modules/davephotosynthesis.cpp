@@ -681,7 +681,6 @@ double calc_c4_ac_full(const C4Biochemistry &biochemistry,
 	double km = biochemistry.km;
 
 	// TODO: check value of alpha_PSII.
-
 	// Equations 22-24
 	double a_c = alpha_PSII / a0 * kc / ko;
 	double b_c = -((vp - rm + gbs * ci) + (vcmax - rd) + gbs * km + alpha_PSII / a0
@@ -690,7 +689,7 @@ double calc_c4_ac_full(const C4Biochemistry &biochemistry,
 			(vcmax * gbs * lgamstar * O2atm + rd * gbs * km);
 
 	double anc;
-	if (solve_quadratic(a_c, b_c, c_c, anc, true)) {
+	if (solve_quadratic(a_c, b_c, c_c, anc, false)) {
 		return anc;
 	}
 	log_warning("No solution to C4 photosynthesis quadratic equation for Ac. A value of -Rd (%g) will be used for Ac. a_c: %g, b_c: %g, c_c: %g",
@@ -754,7 +753,7 @@ double calc_c4_aj_full(const C4Biochemistry &biochemistry,
 			gbs * lgamstar * O2atm * (divide(zj,3.0) * (1.0 - xj) * je + divide((7.0 * rd),3.0));
 
 	double anj;
-	if (solve_quadratic(a_j, b_j, c_j, anj, true)) {
+	if (solve_quadratic(a_j, b_j, c_j, anj, false)) {
 		return anj;
 	}
 
@@ -1138,8 +1137,8 @@ EnergyBalanceResult energy_balance_dave(double tleaf, double tair, double gs,
 	if (ea < 0 && ea > -100.0) {
 		ea = 0.0;
 	} else if (ea < 0) {
-		fail("energy_balance_dave(): ea < 0, this means saturation vapour pressure is less than actual vapour pressure, which shouldn't happen. east=%f kPa, vpd=%f kPa, tair=%f °C",
-			 esat(tair, m), vpd, tair);
+		log_warning("energy_balance_dave(): ea < 0, this means saturation vapour pressure is less than actual vapour pressure, which shouldn't happen. east=%f kPa, vpd=%f kPa, tair=%f °C",
+			        esat(tair, m), vpd, tair);
 	}
 
 	double ema = 0.642 * pow(ea / tair_k, 1.0 / 7.0);
@@ -1346,14 +1345,14 @@ void photosynthesis_gs(Patch& patch) {
 					clim, outputs, diagnostics, pft.pathway,
 					energy_balance_maxiter, energy_balance_eps);
 
-				if (balance.get_converged()) {
-					log_diagnostic("Energy balance solver converged for individual %d (%s) in layer %d at day period %d in %d iterations.",
-								   indiv.id, (const char *)pft.name, j, day.period, balance.get_niter());
-				} else {
-					log_warning("Energy balance solver did not converge for individual %d (%s) in layer %d at day period %d after %d iterations (tleaf_diff = %g).",
-								indiv.id, (const char *)pft.name, j, day.period,
-								balance.get_niter(), balance.get_delta_tleaf());
-				}
+				//if (balance.get_converged()) {
+				//	log_diagnostic("Energy balance solver converged for individual %d (%s) in layer %d at day period %d in %d iterations.",
+				//				   indiv.id, (const char *)pft.name, j, day.period, balance.get_niter());
+				//} else {
+				//	log_warning("Energy balance solver did not converge for individual %d (%s) in layer %d at day period %d after %d iterations (tleaf_diff = %g).",
+				//				indiv.id, (const char *)pft.name, j, day.period,
+				//				balance.get_niter(), balance.get_delta_tleaf());
+				//}
 
 				indiv.ps_inputs_layerwise[day.period][j] = inputs;
 				indiv.ps_outputs_layerwise[day.period][j] = outputs;

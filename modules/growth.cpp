@@ -553,7 +553,9 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			}
 			else if (indiv.growth_stage == vegetative) {
 				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(20) > 0.0 &&
-				    indiv.growth_stage_days > 15 && is_zero(1.0 - indiv.fdev_growth) && indiv.lai > 0.0){
+				    is_zero(1.0 - indiv.fdev_growth) && indiv.lai > 0.0 &&
+				    indiv.growth_stage_days > 20 && Cstorage_fillfrac(indiv) < 0.9){  
+					// last two conditions above are there to prevent too early flowering.
 					if (indiv.lai > lai_min) {
 						indiv.growth_stage = reproductive;
 						indiv.growth_stage_days = 0;

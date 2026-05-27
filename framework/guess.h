@@ -3808,6 +3808,8 @@ public:
 
 	/// foliar projective cover (FPC) under full leaf cover as fraction of modelled area
 	double fpc;
+	/// foliar projective cover (FPC) under full leaf cover as fraction of modelled area accounting for green and brown pools
+	double fpc_greenbrown;
 	/// foliar projective cover (FPC) this day as fraction of modelled area
 	double fpc_daily;
 	/// root projective cover (RPC)
@@ -4021,6 +4023,8 @@ public:
 	double lai_layer;
 	/// individual leaf area index (individual and cohort modes only)
 	double lai_indiv;
+	/// individual leaf area index of brown leaves (individual and cohort modes only; grasses only)
+	double lai_brown_indiv;
 	/// patch-level individual leaf area index (individual and cohort modes only)
 	double lai_daily;
 	/// daily individual leaf area index (individual and cohort modes only)
@@ -4483,6 +4487,9 @@ public:
 
 	/// Gets the individual's daily fpc value
 	double fpc_today() const;
+
+	/// Gets the individual's daily fpc value accounting for green and brown leaves
+	double fpc_greenbrown_today() const;
 
 	/// Gets the growingseason status for crop individual. Non-crop individuals always return true.
 	bool growingseason() const;

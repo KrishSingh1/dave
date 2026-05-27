@@ -2230,8 +2230,10 @@ bool allometry(Individual& indiv) {
 	//    (11) lai_ind = cmass_leaf * sla
 
 	double fpc_new; // updated FPC
-	double lai_leaf=0.0;  // grass only
-	double lai_culm=0.0;  // grass only
+	double lai_leaf=0.0;        // grass only
+	double lai_culm=0.0;        // grass only
+	double lai_leaf_brown=0.0;  // grass only
+	double lai_culm_brown=0.0;  // grass only
 
 	// guess2008 - max tree height allowed (metre).
 	const double HEIGHT_MAX = 150.0;
@@ -2340,12 +2342,16 @@ bool allometry(Individual& indiv) {
 				if (ifdavegrowth) {
 					lai_leaf = indiv.get_cmass_leaf() * (1.0 - indiv.pft.culmfrac) * indiv.sla();
 					lai_culm = indiv.get_cmass_leaf() * indiv.pft.culmfrac * (indiv.sla() * frac_sla_culm);
+					lai_leaf_brown = indiv.get_cmass_leaf_brown() * (1.0 - indiv.pft.culmfrac) * indiv.sla();
+					lai_culm_brown = indiv.get_cmass_leaf_brown() * indiv.pft.culmfrac * (indiv.sla() * frac_sla_culm);
 					indiv.lai_indiv = lai_leaf + lai_culm;
+					indiv.lai_brown_indiv = lai_leaf_brown + lai_culm_brown;
 					// indiv.lai_indiv *= (1.0 - indiv.pft.culmfrac);
 				}
 				
 				// FPC (Eqn 10)
 				indiv.fpc = 1.0 - lambertbeer(indiv.lai_indiv);
+				indiv.fpc_greenbrown = 1.0 - lambertbeer(indiv.lai_indiv + indiv.lai_brown_indiv);
 				// Root projective cover (RPC) introduced to capture feedback between 
 				// belowground C investment and available N. eff_rpc represents the efficiency of 
 				// roots to cover volume, related to specfic root length (SRL in m g-1). SRL is ca. 4 times 

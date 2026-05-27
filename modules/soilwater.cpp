@@ -478,7 +478,11 @@ void soilwater(Patch& patch, Climate& climate) {
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
-		fpc_phen_total += indiv.fpc_today();
+		if (indiv.pft.is_grass()) {
+		  fpc_phen_total += indiv.fpc_greenbrown_today();
+		} else {
+		  fpc_phen_total += indiv.fpc_today();
+		}
 
 		vegetation.nextobj();
 	}

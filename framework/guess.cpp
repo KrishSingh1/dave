@@ -1844,6 +1844,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	agpp			  = 0.0;
 	aresp			  = 0.0;
 	fpc               = 0.0;
+	fpc_greenbrown    = 0.0;
 	fpc_daily		  = 0.0;
 	rpc               = 0.0;
 	densindiv         = 0.0;
@@ -2111,6 +2112,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	lai               = 0.0;
 	lai_layer         = 0.0;
 	lai_indiv         = 0.0;
+	lai_brown_indiv   = 0.0;
 	lai_daily       = 0.0;
 	lai_indiv_daily = 0.0;
 	alive             = false;
@@ -2186,6 +2188,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_sap_limit
 		& last_turnover_day
 		& fpc
+		& fpc_greenbrown
 		& fpc_daily
 		& rpc
 		& fpar
@@ -2237,6 +2240,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& lai
 		& lai_layer
 		& lai_indiv
+		& lai_brown_indiv
 		& lai_daily
 		& lai_indiv_daily
 		& greff_5
@@ -3380,6 +3384,18 @@ double Individual::fpc_today() const {
 		return fpc;
 	else
 		return fpc * phen;
+}
+
+/// Gets the individual's daily fpc value including green and brown leaves
+double Individual::fpc_greenbrown_today() const {
+
+	// TODO: adjust for vegtypes other than grasses, if needed
+	if (pft.phenology == CROPGREEN)
+		return patchpft().cropphen->growingseason ? fpc_daily : 0;
+	else if (pft.is_grass() && ifdailygrass)
+		return fpc_greenbrown;
+	else
+		return fpc * phen;  
 }
 
 /// Gets the individual's daily lai value

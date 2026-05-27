@@ -183,6 +183,15 @@ CommandLineShell::~CommandLineShell() {
 
 void CommandLineShell::fail(const char* message) {
 	log_message(xtring(message)+"\n");
+
+	// If we are in a barrier-sync section, abort the parallel run immediately
+	// to avoid deadlocks where some ranks are stuck in an MPI_Barrier.
+	if (GuessParallel::barrier_sync_hazard_active()) {
+		GuessParallel::abort_parallel(99);
+	}
+
+	// Otherwise, perform the normal cleanup (which may call MPI_Finalize)
+	// and then terminate.
 	cleanupAtExit();
 	exit(99);
 }

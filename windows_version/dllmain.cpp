@@ -6,7 +6,6 @@
 /// time argument(s) for GUESS and pointers to the executable's own callback functions.
 ///
 /// \author Ben Smith
-/// $Date$
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -72,7 +71,17 @@ public:
 
 		message_finished();
 
+		cleanupAtExit();
 		_endthread();
+	}
+
+	/// Do the last things before exiting, e.g. termiante MPI
+	void cleanupAtExit() {
+
+		// Terminate parallel communication if available.
+		// Note that the graphical user interface doesn't support parallel runs yet.
+		// The following line will call MPI_Finalize() only if the "parallel" option is true.
+		GuessParallel::finalize();
 	}
 
 	/// Sends a message to the user somehow
@@ -235,6 +244,9 @@ __declspec(dllexport) int dll_main(GuessParam arg) {
 	logging_print_run_summary();
 	message_finished();
 
+	// Final cleanups. e.g. terminate MPI
+	cleanupAtExit();
+
 	return 0;
 }
 
@@ -245,9 +257,10 @@ __declspec(dllexport) int dll_main(GuessParam arg) {
 
 __declspec(dllexport) void abort_run() {
 
-
 	dprintf("\nAbort request received\n");
 	ifabort=true;
+
+	cleanupAtExit();
 }
 
 

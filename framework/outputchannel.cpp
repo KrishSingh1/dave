@@ -3,7 +3,6 @@
 /// \brief Classes for formatting and printing output from the model
 ///
 /// \author Joe Siltberg
-/// $Date$
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -18,6 +17,7 @@
 
 namespace GuessOutput {
 
+// w: set width to the user-specified width or the title width + 1, whichever is the largest.
 ColumnDescriptor::ColumnDescriptor(const char* title, 
                                    int width, 
                                    int precision,

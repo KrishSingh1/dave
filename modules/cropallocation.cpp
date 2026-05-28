@@ -3,7 +3,6 @@
 /// \brief Crop allocation and growth
 ///
 /// \author Mats Lindeskog, Stefan Olin
-/// $Date:  $
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -113,9 +112,9 @@ void turnover_grass(Individual& indiv) {
 		indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap, indiv.nmass_heart,
 		patchpft.cmass_litter_leaf,
 		patchpft.cmass_litter_root,
+		patchpft.cmass_leaf_root_turnover,
 		patchpft.nmass_litter_leaf,
 		patchpft.nmass_litter_root,
-		patchpft.cmass_leaf_root_turnover,
 		indiv.nstore_longterm, indiv.max_n_storage,
 		true, sap_turnover);
 

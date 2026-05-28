@@ -7,7 +7,6 @@
 /// for global static data, use: dummy data-columns (with "static" as first word in header).
 ///
 /// \author Mats Lindeskog
-/// $Date: $
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -104,21 +103,22 @@ bool TimeDataD::GetHeader(char *cropnames[MAXRECORDS]) const {
 	}
 }
 
-bool TimeDataD::GetHeaderFull(char *header_line) const {
+bool TimeDataD::GetHeaderFull(char header_line[MAXLINE]) const {
 
 	if(ifheader) {
+		
 		if(format==LOCAL_YEARLY)
 			strcpy(header_line, "   Lon\t   Lat\t  Year");
 		else if(format==GLOBAL_YEARLY)
-			strcpy(header_line, "    lon\t    lat");
+			strcpy(header_line, "    Lon\t    Lat");
 		else if(format==LOCAL_STATIC)
-			strcpy(header_line, "   year");
+			strcpy(header_line, "   Year");
 
 		for(int i=0; i<nColumns; i++) {
-
+			size_t current_len = strlen(header_line);
 			char buffer[MAXNAMESIZE];
 			sprintf(buffer, "\t%8s", header_arr[i]);
-			strncat(header_line, buffer, strlen(buffer));
+			strncat(header_line, buffer, (MAXLINE - current_len) -1);
 		}
 		return true;
 	}

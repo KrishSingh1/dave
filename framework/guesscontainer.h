@@ -3,7 +3,6 @@
 /// \brief Container class for the main LPJ-GUESS classes which contain sub-objects
 ///
 /// \author Joe Siltberg
-/// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 

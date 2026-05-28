@@ -3,7 +3,6 @@
 /// \brief Global Weather GENerator 
 ///
 /// \author Lars Nieradzik
-/// $Date: 2017-11-24 15:04:09 +0200 (Fri, 24 Nov 2017) $
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -43,16 +42,7 @@
 #include "config.h"
 #include "weathergen.h"
 #include <limits>
-
-const double DHUGE     = std::numeric_limits<double>::max();
-const long LHUGE       = std::numeric_limits<long>::max()  ;
-const int IHUGE	       = std::numeric_limits<int>::max()   ;
-const double D_EPSILON = std::numeric_limits<double>::min();
-const float R_EPSILON  = std::numeric_limits<float>::min() ;
-
-// Parameters used witin GWGEN
-// Freezing temperature of freshwater (K)
-const double TFREEZE = 273.15;      
+#include "guessmath.h"
 
 // -----------------------------------------------------------------------------
 // ------------------- Defaults for the namelist parameters --------------------
@@ -289,20 +279,6 @@ void matrixmult(double AA[4][4], double B[4], double CC[4]) {
 		} 
 		CC[j] = res; 
 	}
-}
-
-// Generate seed depending on geolocation
-unsigned int geohash(double lat, double lon) {
-	const double SCALE  = 120.0; // scale factor for geohash, the larger the number the more unique values
-	const double OFFSET = 0.5;   // offset to calculate pixel number assuming gridcell center coordinates
-	const unsigned int ROWLEN = (int)roundoff(SCALE * 360.,0);
-	
-	unsigned int i,j;
-	
-	i = (int)roundoff(OFFSET + SCALE * (lon + 180.),0);
-	j = (int)roundoff(OFFSET + SCALE * (lat +  90.),0);
-	unsigned int geohash = i + ROWLEN * ( j-1 ) - IHUGE;
-	return geohash;
 }
 
 // Set the seed for the random distribution
@@ -2639,7 +2615,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			doy++;
 
 			// Compute days max rad (i.e. cldfr=0.) for weighting
-			cldwght[day] = max(0.01,cldf2rad(0.0,lat,doy,true));
+			cldwght[day] = max(0.,cldf2rad(0.0,lat,doy,true));
 			tot_cldwght += cldwght[day];
 		}
 
@@ -2688,8 +2664,11 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			drhum[day]   = get_arden_rh(tdavg,dtmin[day]);
 		}
 
-		// Redistribute limited parameters like relhum and cloud-fraction		
+		// Redistribute limited parameters like relhum and cloud-fraction
 		double limit[2] = {0.,1.};
+        for (int day=0;day<ndaymon;day++) {
+            dsol[day] = 0.;
+        }
 		if ( in_msol[mon] > 0. ) {
 	
 			if (in_mcldf[mon] > 0.)
@@ -2697,15 +2676,15 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			
 			solcor = 0.;
 			for (int day=0;day<ndaymon;day++) {
-				doy = accumday+day+1;
-				dsol[day] = max(0.001,cldf2rad(dcldf[day],lat,doy,true));
+				int ldoy = accumday+day+1;
+				dsol[day] = max(0.,cldf2rad(dcldf[day],lat,ldoy,true));
 				solcor += dsol[day];
 			}
 			solcor /= (in_msol[mon]*(double)ndaymon);
 			for (int day=0;day<ndaymon;day++) 
 				dsol[day] /= solcor;
 		}
-		
+
 		if ( in_mrhum[mon] > 0. ) {
 			redist_restricted_vals(drhum, ndaymon, in_mrhum[mon], limit, dum);
 		}

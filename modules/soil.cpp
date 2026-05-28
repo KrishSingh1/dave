@@ -6,7 +6,6 @@
 /// The class Soil and its member functions and variables are declared in guess.h
 ///
 /// \author Paul Miller
-/// $Date: 2015-12-22 15:22:04 +0100 (Tue, 22 Dec 2015) $
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -200,7 +199,6 @@ void Soil::init_states() {
 	maxthawdepththisyear = 0.0;
 	thaw = 0.0;
 	snowdens = snowdens_start; // kg/m3
-	dsnowdepth = 0.0;
 
 	for (int mth = 0; mth<12; mth++) {
 		mthaw[mth] = 0.0;
@@ -498,7 +496,6 @@ void Soil::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	//              layers (mm rainfall) [0=upper layer]
 	// fevap      = fraction of modelled area (grid cell or patch) subject to
 	//              evaporation from soil surface
-	// snowpack   = depth of snow (mm)
 
 	// INPUT AND OUTPUT PARAMETERS
 	// wcont      = array containing water content of soil layers [0=upper layer] as
@@ -583,7 +580,7 @@ void Soil::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 	// - see Bondeau et al. (2007),  Rost et al. (2008)
 	// Added the snowdepth restriction too.
 	double evap = 0.0;
-	if (snowpack < 10.0) {					// evap only if snow depth < 10mm
+	if (snowdepth() < 10.0) {					// evap only if snow depth < 10mm
 		evap = climate.eet * PRIESTLEY_TAYLOR * twolayerwcont_evap * twolayerwcont_evap * fevap;
 	}
 
@@ -784,6 +781,14 @@ bool Soil::ice_in_top_layer() {
 	return false;
 }
 
+/// return snow depth [mm]
+/** Snow depth is the result of water in ice form  
+ *  and the density of the snowpack
+ */
+double Soil::snowdepth() {
+	return snowpack / (snowdens / water_density);
+}
+
 
 /// Updates the water content for each soil layer in non-peatland soils
 /**
@@ -859,7 +864,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 	double wcont_evap_init = Faw_evap_init / awc_init;
 
-	if (snowpack < 10.0) {	// evap only if snow depth < 10mm
+	if (snowdepth() < 10.0) {	// evap only if snow depth < 10mm
 							// The potential evaporation:
 		if (ifdavehydrology){
 			evap_init = climate.eet * PRIESTLEY_TAYLOR * fevap * wcont_evap_init;// * wcont_evap_init ;		// CS changed because it gave better results and I can't find justification for the change to wcont^2 (first appears in Rost 2008, Eq A5, but no squared term in Gerten 2004)
@@ -1554,7 +1559,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 	water_evap -= aet_evap;
 
 	// Wania et al (2009)
-	if (snowpack < 10.0 && wtd < SOILDEPTH_EVAP && !negligible(fevap)) { // i.e. evap only if snow depth < 1cm
+	if (snowdepth() < 10.0 && wtd < SOILDEPTH_EVAP && !negligible(fevap)) { // i.e. evap only if snow depth < 1cm
 		evap = min(water_evap, fevap*climate.eet*PRIESTLEY_TAYLOR*(0.99 / (1+exp(-1.0*(-wtd + 98.7)/22.6) + 0.02)));
 	} 
 	else {
@@ -1589,7 +1594,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 		// This would give almost identical results to the Kim & Verma formula below 
 		// when the water table is at the surface
 
-		if (snowpack < 10.0) { // i.e. evap only if snow depth < 1cm
+		if (snowdepth() < 10.0) { // i.e. evap only if snow depth < 1cm
 			evapotranspiration = min(water_acro, climate.eet*(1.02 - 0.00075 * wtd)*fevap); // wtd [-100,+300]
 		}
 		else {
@@ -3042,7 +3047,7 @@ void Soil::update_snow_properties(const double& dailyairtemp, double& Dsnow, dou
 	bool snow_active_old = snow_active;
 
 	// Are there snow layers?
-	if (snowpack > 1) // mm water
+	if (snowdepth() > 1.0) // mm
 		snow_active = true;
 	else
 		snow_active = false;
@@ -3780,14 +3785,13 @@ bool Soil::soil_temp_multilayer(const double &dailyairtemp) {
 	// Determine how many snow layers are active, based on snow_active, snow depth and snow_active_layers (<=NLAYERS_SNOW);
 	int snow_active_layers_old = snow_active_layers;
 
-	double snowdepth = snowpack / (snowdens / water_density); // mm
 	int soilsurfaceindex = NLAYERS - ngroundl - mixedl;
 
 	if (ifmultilayersnow && !iftwolayersoil) {
 
 		// Allow multiple layers?
 		if (snow_active) {
-			snowpack_dynamics(snowdepth, soilsurfaceindex, snow_active_layers);
+			snowpack_dynamics(snowdepth(), soilsurfaceindex, snow_active_layers);
 		}
 		else {
 			snow_active_layers = 0;
@@ -3799,7 +3803,7 @@ bool Soil::soil_temp_multilayer(const double &dailyairtemp) {
 		if (snow_active) {
 
 			snow_active_layers = 1; // a single layer
-			Dz[soilsurfaceindex - snow_active_layers] = snowdepth;
+			Dz[soilsurfaceindex - snow_active_layers] = snowdepth();
 		}
 		else {
 			snow_active_layers = 0;
@@ -4154,7 +4158,6 @@ void Soil::serialize(ArchiveStream& arch) {
 		& snow_water
 		& snow_ice
 		& msnowdepth
-		& dsnowdepth
 		& thaw
 		& runoff
 		& surfrunoff

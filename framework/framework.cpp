@@ -3,7 +3,6 @@
 /// \brief Implementation of the framework() function
 ///
 /// \author Ben Smith
-/// $Date$
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -187,11 +186,11 @@ int framework(const CommandLineArguments& args) {
 	// primary model data structures and containing all explicit loops through
 	// space (grid cells/stands) and time (days and years).
 
-	using std::auto_ptr;
+	using std::unique_ptr;
 
 	const char* input_module_name = args.get_input_module();
 
-	auto_ptr<InputModule> input_module(InputModuleRegistry::get_instance().create_input_module(input_module_name));
+	unique_ptr<InputModule> input_module(InputModuleRegistry::get_instance().create_input_module(input_module_name));
 
 	GuessOutput::OutputModuleContainer output_modules;
 	GuessOutput::OutputModuleRegistry::get_instance().create_all_modules(output_modules);
@@ -218,17 +217,17 @@ int framework(const CommandLineArguments& args) {
 	}
 
 	// Create objects for (de)serializing grid cells
-	auto_ptr<GuessSerializer> serializer;
-	auto_ptr<GuessDeserializer> deserializer;
+    unique_ptr<GuessSerializer> serializer;
+    unique_ptr<GuessDeserializer> deserializer;
 
 	if (save_state) {
 		// Create state_path if it doesn't already exist.
 		mkdir_p((const char *)state_path);
-		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes()));
+        serializer = std::make_unique<GuessSerializer>(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes());
 	}
 
 	if (restart) {
-		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
+        deserializer = std::make_unique<GuessDeserializer>(state_path);
 	}
 
 	while (true) {

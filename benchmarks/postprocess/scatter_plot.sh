@@ -1,5 +1,11 @@
 # This file contains a function for creating a scatter plot using gnuplot.
-#
+
+# On Lunarc nodes, it is necessary to load gnuplot in this file.
+if [[ "$ARCH" == "lunarc" || "$ARCH" == "aurora" ]]; then
+    module load gnuplot/5.4.4
+fi
+
+# scatter_plot, function for creating a scatter plot using gnuplot.
 # Parameters:
 # $1 title of the graph
 # $2 title of the x axis
@@ -24,7 +30,7 @@ fit y(x) "${datafile}" via m,c
 EOF
 
 # This is where the actual plotting is done
-    cat <<EOF | gnuplot &> /dev/null
+    cat <<EOF | gnuplot > /dev/null
 set title "${title}"
 set xlabel "${xtitle}"
 set ylabel "${ytitle}"

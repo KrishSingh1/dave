@@ -10,7 +10,6 @@
 ///        "parallel" run with just one process.
 ///
 /// \author Joe Siltberg
-/// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -26,6 +25,9 @@ namespace GuessParallel {
  *  \param argv Passed along from main() to underlying communications library
  */
 void init(int& argc, char**& argv);
+
+/// Terminate the MPI library
+void finalize();
 
 /// The process id of this process in the parallel run
 /** Returns zero when no MPI library is available/used. */

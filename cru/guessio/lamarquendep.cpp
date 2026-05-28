@@ -2,7 +2,6 @@
 /// \file lamarquendep.cpp
 /// \brief Functionality for reading the Lamarque Nitrogen deposition data set
 ///
-/// $Date$
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -95,7 +94,7 @@ void get_scenario(const char* file_ndep, const char* scen_suffix,
 	if (!ark.getindex(rec)) {
 		// The coordinate wasn't found in the archive
 		ark.close();
-		fail("Grid cell not found in %s", (char*)scenario_filename);
+		fail("get_scenario(): Grid cell (lon, lat: %g,%g) not found in %s", lon, lat, (char*)scenario_filename);
 	}
 	else {
 		// Found the record, get the values
@@ -126,7 +125,7 @@ void NDepData::getndep(const char* file_ndep,
 
 		GlobalNitrogenDepositionArchive ark;
 		if (!ark.open(file_ndep)) {
-			fail("Could not open %s for input", (char*)file_ndep);
+			fail("getndep(): Could not open %s for input", (char*)file_ndep);
 		}
 
 		GlobalNitrogenDeposition rec;
@@ -135,7 +134,7 @@ void NDepData::getndep(const char* file_ndep,
 
 		if (!ark.getindex(rec)) {
 			ark.close();
-			fail("Grid cell not found in %s", (char*)file_ndep);
+			fail("getndep(): Grid cell (lon, lat: %g,%g) not found in %s", lon, lat, (char*)file_ndep);
 		}
 
 		// Found the record, get the values
@@ -196,7 +195,7 @@ void NDepData::getndep(const char* file_ndep,
 				break;
 			default:
 				// shouldn't happen
-				fail("Unexpected timeseriestype!");
+				fail("getndep(): Unexpected timeseriestype!");
 			}
 
 			// for the overlapping decade, use mean value of historic and scenario

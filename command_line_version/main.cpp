@@ -3,7 +3,6 @@
 /// \brief Main module for command line version of LPJ-GUESS
 ///
 /// \author Ben Smith
-/// $Date$
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -98,6 +97,9 @@ int main(int argc,char* argv[]) {
 	// Say goodbye
 	logging_print_run_summary();
 	dprintf("\nFinished\n");
+
+	// Final cleanups. e.g. terminate MPI
+	cleanupAtExit();
 
 	return EXIT_SUCCESS;
 }

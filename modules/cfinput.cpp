@@ -3,7 +3,6 @@
 /// \brief Input module for CF conforming NetCDF files
 ///
 /// \author Joe Siltberg
-/// $Date$
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -54,9 +53,23 @@ bool first_month_of_year(GuessNC::CF::DateTime dt) {
 	return dt.get_month() == 1;
 }
 
+// Check if a unit string is in a list of allowed
+// fails the program and produces error message if a valid unit is not found
+void check_allowed_units(const std::string varname, const std::string& unit, const std::vector<std::string>& allowed_units) {
+	if (std::find(allowed_units.begin(), allowed_units.end(), unit) == allowed_units.end()) {
+		// Compile error message
+		std::string error_message("Unrecognised unit (" + unit + ") for " + varname + ". Allowed units are: ");
+		for (int i=0; i<allowed_units.size(); i++) {
+			error_message.append("\"" + allowed_units[i] + "\", ");
+		}
+
+		fail(error_message.c_str());
+	}
+}
+
 // Compares a Date with a GuessNC::CF::DateTime to see if the Date is on an earlier day
 bool earlier_day(const Date& date, int calendar_year,
-                 const GuessNC::CF::DateTime& date_time) {
+				 const GuessNC::CF::DateTime& date_time) {
 	std::vector<int> d1(3),d2(3);
 
 	d1[0] = calendar_year;
@@ -75,7 +88,7 @@ bool earlier_day(const Date& date, int calendar_year,
 // The date object must know about its calendar years (i.e. set_first_calendar_year must
 // have been called)
 bool later_day(const Date& date,
-               const GuessNC::CF::DateTime& date_time) {
+			   const GuessNC::CF::DateTime& date_time) {
 	std::vector<int> d1(3),d2(3);
 
 	d1[0] = date.get_calendar_year();
@@ -130,22 +143,20 @@ void check_temp_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() != "air_temperature") {
 		fail("Temperature variable doesn't seem to contain air temperature data");
 	}
-	if (cf_var->get_units() != "K") {
-		fail("Temperature variable doesn't seem to be in Kelvin");
-	}
+	static const std::vector<std::string> ALLOWED_TEMP_UNITS{"K", "k"};  // Extend as necessary
+	check_allowed_units(cf_var->get_standard_name(), cf_var->get_units(), ALLOWED_TEMP_UNITS);
 }
 
 // Verifies that a CF variable with precipitation data contains what we expect
 void check_prec_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() == "precipitation_flux") {
-		if (cf_var->get_units() != "kg m-2 s-1") {
-			fail("Precipitation is given as flux but does not have the correct unit (kg m-2 s-1)");
-		}
+		static const std::vector<std::string> ALLOWED_PREC_FLUX_UNITS{"kg m-2 s-1"}; 
+		check_allowed_units(std::string("precipitation flux"), cf_var->get_units(), ALLOWED_PREC_FLUX_UNITS);
+
 	}
 	else if (cf_var->get_standard_name() == "precipitation_amount") {
-		if (cf_var->get_units() != "kg m-2") {
-			fail("Precipitation is given as amount but does not have the correct unit (kg m-2)");
-		}
+		static const std::vector<std::string> ALLOWED_PREC_AMOUNT_UNITS{"kg m-2", "mm"};
+		check_allowed_units(std::string("precipitation amount"), cf_var->get_units(), ALLOWED_PREC_AMOUNT_UNITS);
 	}
 	else {
 		fail("Unrecognized precipitation type");
@@ -155,21 +166,19 @@ void check_prec_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 // Verifies that a CF variable with insolation data contains what we expect
 void check_insol_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() != "surface_downwelling_shortwave_flux_in_air" &&
-	    cf_var->get_standard_name() != "surface_downwelling_shortwave_flux" &&
-	    cf_var->get_standard_name() != "surface_net_downward_shortwave_flux" &&
-	    cf_var->get_standard_name() != "cloud_area_fraction") {
+		cf_var->get_standard_name() != "surface_downwelling_shortwave_flux" &&
+		cf_var->get_standard_name() != "surface_net_downward_shortwave_flux" &&
+		cf_var->get_standard_name() != "cloud_area_fraction") {
 		fail("Insolation variable doesn't seem to contain insolation data");
 	}
 
 	if (cf_var->get_standard_name() == "cloud_area_fraction") {
-		if (cf_var->get_units() != "1") {
-			fail("Unrecognized unit for cloud cover");
-		}
+		static const std::vector<std::string> ALLOWED_CLOUD_AREA_UNITS{"1", "frac", "Frac"};
+		check_allowed_units(std::string("cloud cover"), cf_var->get_units(), ALLOWED_CLOUD_AREA_UNITS);
 	}
 	else {
-		if (cf_var->get_units() != "W m-2") {
-			fail("Insolation variable given as radiation but unit doesn't seem to be in W m-2");
-		}
+		static const std::vector<std::string> ALLOWED_SWRAD_UNITS{"W m-2", "w m-2", "W/m^2", "w/m^2", "W m^-2"};
+		check_allowed_units(std::string("insolation"), cf_var->get_units(), ALLOWED_SWRAD_UNITS);
 	}
 }
 
@@ -189,9 +198,8 @@ void check_pres_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() != pres_standard_name) {
 		fail("Pressure variable should have standard name %s ",pres_standard_name);
 	}
-	if (cf_var->get_units() != "Pa") {
-		fail("Pressure must be given in Pa!");
-	}
+	static const std::vector<std::string> ALLOWED_PRESSURE_UNITS{"Pa", "pa"};
+	check_allowed_units(std::string("surface pressure"), cf_var->get_units(), ALLOWED_PRESSURE_UNITS);
 }
 
 // Verifies that a CF variable with specific humidity data contains what we expect
@@ -200,9 +208,8 @@ void check_specifichum_variable(const GuessNC::CF::GridcellOrderedVariable* cf_v
 	if (cf_var->get_standard_name() != standard_name) {
 		fail("QAir variable should have standard name %s ",standard_name);
 	}
-	if (cf_var->get_units() != "1") {
-		fail("Specific Humidity must be dimensionless (here, '1'!");
-	}
+	static const std::vector<std::string> ALLOWED_SHUM_UNITS{"1", "frac", "Frac"};
+	check_allowed_units(std::string("specific humidity"), cf_var->get_units(), ALLOWED_SHUM_UNITS);
 }
 
 // Verifies that a CF variable with relative humidity data contains what we expect
@@ -211,9 +218,8 @@ void check_relhum_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() != standard_name) {
 		fail("Relative humidity variable should have standard name %s ",standard_name);
 	}
-	if (cf_var->get_units() != "1") {
-		fail("Relative Humidity must be dimensionless (here, '1'!");
-	}
+	static const std::vector<std::string> ALLOWED_RHUM_UNITS{"1", "frac", "Frac"};
+	check_allowed_units(std::string("relative humidity"), cf_var->get_units(), ALLOWED_RHUM_UNITS);
 }
 
 // Verifies that a CF variable with wind-speed data contains what we expect
@@ -222,9 +228,8 @@ void check_wind_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 	if (cf_var->get_standard_name() != standard_name) {
 		fail("Wind variable should have standard name %s ",standard_name);
 	}
-	if (cf_var->get_units() != "m s-1") {
-		fail("Wind data must be given in m s-1 !");
-	}
+	static const std::vector<std::string> ALLOWED_WIND_UNITS{"m s-1", "m/s"};
+	check_allowed_units(std::string("wind"), cf_var->get_units(), ALLOWED_WIND_UNITS);
 }
 
 // Checks if two variables contain data for the same time period
@@ -232,7 +237,7 @@ void check_wind_variable(const GuessNC::CF::GridcellOrderedVariable* cf_var) {
 // Compares start and end of time series, the day numbers are only compared if
 // both variables are daily.
 void check_compatible_timeseries(const GuessNC::CF::GridcellOrderedVariable* var1,
-                                 const GuessNC::CF::GridcellOrderedVariable* var2) {
+								 const GuessNC::CF::GridcellOrderedVariable* var2) {
 	GuessNC::CF::DateTime start1, start2, end1, end2;
 
 	const std::string error_message = format_string("%s and %s have incompatible timeseries",
@@ -289,12 +294,12 @@ double calc_relative_humidity(double temp, double specific_humidity, double pres
 	// qair  specific humidity, dimensionless (e.g. kg/kg) 
 	// temp  temperature in degrees C
 	// press pressure in Pa
-	// rh    relative humidity in frac.
-	if ( pressure > 106000 || pressure < 10000 ) {
-		fail("Unit for pressure must be [Pa]: calc_relative_humidity(cfinput.cpp)");
+	// rh	relative humidity in frac.
+	if ( pressure > 109000 || pressure < 10000 ) {
+		fail("calc_relative_humidity() in cfinput.cpp: Unit for pressure must be [Pa], and its value <109000. The value is %g", pressure);
 	} 
 	if ( temp  > 80. ) {
-		fail("Unit for temperature must be [deg C]: calc_relative_humidity(cfinput.cpp)");
+		fail("Unit for temperature must be [deg C]: calc_relative_humidity() in cfinput.cpp");
 	} 
 	double pres_hPa = pressure / 100.; // convert to hPa
 
@@ -302,7 +307,7 @@ double calc_relative_humidity(double temp, double specific_humidity, double pres
 	double es   = 6.112 * exp(17.67 * temp/(temp + 243.5));
 
 	// water-vapour pressure
-	// derived from approximation for s = rho_w/(rho_dryAir - rho_w)    
+	// derived from approximation for s = rho_w/(rho_dryAir - rho_w)	
 	double e    = specific_humidity * pres_hPa / (0.378 * specific_humidity + 0.622);
 	double rh   = min(max(e / es ,0.),1.) ;
 	return rh;		
@@ -321,11 +326,13 @@ CFInput::CFInput()
 	  cf_specifichum(0),
 	  cf_relhum(0),
 	  cf_wind(0),
-	  ndep_timeseries("historic") {
+	  ndep_timeseries("historic"),
+	  ifsyncspinupclimate(0) {
 
 	// Declare instruction file parameters
 	declare_parameter("ndep_timeseries", &ndep_timeseries, 10, "Nitrogen deposition time series to use (historic, rcp26, rcp45, rcp60 or rcp85");
-	 SoilInput soilinput;
+	declare_parameter("ifsyncspinupclimate", &ifsyncspinupclimate, "If true, synchronize spinup climate with historic climate, if false (default, previous behavior), no synchronisation");
+
 }
 
 CFInput::~CFInput() {
@@ -437,8 +444,11 @@ void CFInput::init() {
 
 	// Read list of localities and store in gridlist member variable
 
+	// If a user wants to read an indexed gridlist, allow then so. 
+	// The gridlist_cf is used if it is defined, otherwise the program does not care about it
+	bool read_indexed_grid = param.isparam("file_gridlist_cf");
 	// Retrieve name of grid list file as read from ins file
-	xtring file_gridlist=param["file_gridlist_cf"].str;
+	xtring file_gridlist= read_indexed_grid ? param["file_gridlist_cf"].str : param["file_gridlist"].str;
 
 	std::ifstream ifs(file_gridlist, std::ifstream::in);
 
@@ -449,6 +459,7 @@ void CFInput::init() {
 
 		// Read next record in file
 		int rlat, rlon;
+		double lon, lat;
 		int landid;
 		std::string descrip;
 		Coord c;
@@ -462,16 +473,28 @@ void CFInput::init() {
 				c.landid = landid;
 			}
 		}
-		else {
+		else if (!cf_temp->is_reduced() && read_indexed_grid) {
 			if (iss >> rlon >> rlat) {
 				getline(iss, descrip);
-
-				c.rlat = rlat;
 				c.rlon = rlon;
-
+				c.rlat = rlat;
 			}
 			else {
-				fail("The gridlist for netCDF input must be in X,Y coordinates");
+				fail("The gridlist for netCDF input is given by file_gridlist_cf which must be in X,Y coordinates. If you have a lat/lon gridlist, please use the file_gridlist instead.\n");
+			}
+		}
+		else {
+			if (iss >> lon >> lat) {
+				getline(iss, descrip);
+				// We check above that all variables have the same grid, thus this works.
+				double lon_center, lat_center;
+				lon_center = ((double)std::floor(lon * (1 / 0.5))) * 0.5 + 0.5 / 2.0;
+				lat_center = ((double)std::floor(lat * (1 / 0.5))) * 0.5 + 0.5 / 2.0;
+				cf_temp->get_index_for_coords(lon_center, lat_center, rlon, rlat);
+				c.lat = lat_center;
+				c.lon = lon_center;
+				c.rlon = rlon;
+				c.rlat = rlat;
 			}
 		}
 		c.descrip = (xtring)trim(descrip).c_str();
@@ -492,6 +515,10 @@ void CFInput::init() {
 
 	soilinput.init(param["file_soildata"].str);
 
+	if (state_year>0) {
+		state_calendar_year = (state_year-1) + date.first_calendar_year;
+	}
+
 	// Set timers
 	tprogress.init();
 	tmute.init();
@@ -509,17 +536,17 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	// Load data for next gridcell, or if that fails, skip ahead until
 	// we find one that works.
 	while (current_gridcell != gridlist.end() &&
-	       !load_data_from_files(lon, lat)){
+		   !load_data_from_files(lon, lat)){
 		++current_gridcell;
 	}
-
-	cru_lon = floor(lon * 2.0) / 2.0 + 0.25;
-	cru_lat = floor(lat * 2.0) / 2.0 + 0.25;
 
 	if (current_gridcell == gridlist.end()) {
 		// simulation finished
 		return false;
 	}
+
+	cru_lon = floor(lon * 2.0) / 2.0 + 0.25;
+	cru_lat = floor(lat * 2.0) / 2.0 + 0.25;
 
 	if(readdisturbance || readdisturbance_st || readelevation_st) {
 		// Not all gridcells have to be included in input file
@@ -580,6 +607,59 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	
 	spinup_temp.detrend_data();
 
+	// allow to synchronize the spinup start climate and available climate period
+	// with the setup `nyear_spinup 500` and `NYEAR_SPINUP_DATA 30` 
+	// without synchronization (default, previous behavior so benchmarks are not affected):
+	//   the climate of 1901 is used in 1401, 1902 in 1402, ..., 1920 in 1900 during the spinuup
+	//   then the climate of 1901 will get used in year 1901
+	// with synchronization:
+	//   the climate of 1911 is used in 1401, 1912 in 1402,..., 1930 in 1900 during the spinuup
+	//   then the climate of 1901 will get used in year 1901
+	if (ifsyncspinupclimate) {
+		GuessNC::CF::DateTime first_date = cf_temp->get_date_time(0);
+		int climate_first_year = first_date.get_year();
+		int sync_first_year = date.first_calendar_year;
+		if (restart&&((state_calendar_year+1) < climate_first_year))
+			sync_first_year = state_calendar_year+1;
+		int year_offset = NYEAR_SPINUP_DATA-(climate_first_year - sync_first_year)%NYEAR_SPINUP_DATA;
+
+		for (int y=0;y<year_offset;y++) {
+			// Move to next year in spinup dataset
+			spinup_temp.nextyear();
+			spinup_prec.nextyear();
+			spinup_insol.nextyear();
+
+			if (cf_wetdays) {
+				spinup_wetdays.nextyear();
+			}
+
+			if (cf_min_temp) {
+				spinup_min_temp.nextyear();
+			}
+
+			if (cf_max_temp) {
+				spinup_max_temp.nextyear();
+			}
+			
+			if (cf_pres) {
+				spinup_pres.nextyear();
+			}
+			
+			if (cf_specifichum) {
+				spinup_specifichum.nextyear();
+			}
+			
+			if (cf_wind) {
+				spinup_wind.nextyear();
+			}
+			
+			if (cf_relhum) {
+				spinup_relhum.nextyear();
+			}
+		
+		}
+	}
+
 	gridcell.climate.instype = parse_insoltype(cf_insol->get_standard_name());
 
 	// Get nitrogen deposition, using the found CRU coordinates
@@ -605,7 +685,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	if (current_gridcell->descrip != "") {
 		dprintf("Description: %s\n", current_gridcell->descrip.c_str());
 	}
-	dprintf("Using soil code and Nitrogen deposition for (%3.1f,%3.1f)\n", cru_lon, cru_lat);
+	dprintf("Getting soil code and Nitrogen deposition at (%3.2f,%3.2f)\n", cru_lon, cru_lat);
 
 	return true;
 }
@@ -620,30 +700,30 @@ bool CFInput::load_data_from_files(double& lon, double& lat){
 
 	if (cf_temp->is_reduced()) {
 		if (!cf_temp->load_data_for(landid) ||
-		    !cf_prec->load_data_for(landid) ||
-		    !cf_insol->load_data_for(landid) ||
-		    (cf_wetdays && !cf_wetdays->load_data_for(landid)) ||
-		    (cf_min_temp && !cf_min_temp->load_data_for(landid)) ||
-		    (cf_max_temp && !cf_max_temp->load_data_for(landid)) ||
-		    (cf_pres && !cf_pres->load_data_for(landid)) ||
-		    (cf_specifichum && !cf_specifichum->load_data_for(landid)) ||
-		    (cf_relhum && !cf_relhum->load_data_for(landid)) ||
-		    (cf_wind && !cf_wind->load_data_for(landid))) {
+			!cf_prec->load_data_for(landid) ||
+			!cf_insol->load_data_for(landid) ||
+			(cf_wetdays && !cf_wetdays->load_data_for(landid)) ||
+			(cf_min_temp && !cf_min_temp->load_data_for(landid)) ||
+			(cf_max_temp && !cf_max_temp->load_data_for(landid)) ||
+			(cf_pres && !cf_pres->load_data_for(landid)) ||
+			(cf_specifichum && !cf_specifichum->load_data_for(landid)) ||
+			(cf_relhum && !cf_relhum->load_data_for(landid)) ||
+			(cf_wind && !cf_wind->load_data_for(landid))) {
 			dprintf("Failed to load data for (%d) from NetCDF files, skipping.\n", landid);
 			return false;
 		}
 	}
 	else {
 		if (!cf_temp->load_data_for(rlon, rlat) ||
-		    !cf_prec->load_data_for(rlon, rlat) ||
-		    !cf_insol->load_data_for(rlon, rlat) ||
-		    (cf_wetdays && !cf_wetdays->load_data_for(rlon, rlat)) ||
-		    (cf_min_temp && !cf_min_temp->load_data_for(rlon, rlat)) ||
-		    (cf_max_temp && !cf_max_temp->load_data_for(rlon, rlat))||
-		    (cf_pres && !cf_pres->load_data_for(rlon, rlat))||
-		    (cf_specifichum && !cf_specifichum->load_data_for(rlon, rlat))||
-		    (cf_relhum && !cf_relhum->load_data_for(rlon, rlat))||
-		    (cf_wind && !cf_wind->load_data_for(rlon, rlat)) ) {
+			!cf_prec->load_data_for(rlon, rlat) ||
+			!cf_insol->load_data_for(rlon, rlat) ||
+			(cf_wetdays && !cf_wetdays->load_data_for(rlon, rlat)) ||
+			(cf_min_temp && !cf_min_temp->load_data_for(rlon, rlat)) ||
+			(cf_max_temp && !cf_max_temp->load_data_for(rlon, rlat))||
+			(cf_pres && !cf_pres->load_data_for(rlon, rlat))||
+			(cf_specifichum && !cf_specifichum->load_data_for(rlon, rlat))||
+			(cf_relhum && !cf_relhum->load_data_for(rlon, rlat))||
+			(cf_wind && !cf_wind->load_data_for(rlon, rlat)) ) {
 			dprintf("Failed to load data for (%d, %d) from NetCDF files, skipping.\n", rlon, rlat);
 			return false;
 		}
@@ -658,13 +738,17 @@ bool CFInput::load_data_from_files(double& lon, double& lat){
 		cf_temp->get_coords_for(rlon, rlat, lon, lat);
 	}
 
+	if (param.isparam("file_gridlist_cf")) {
+		dprintf("\nSuccessfully loaded climate data for gridcell at (%g,%g) with indices (%d,%d)", lon, lat, rlon, rlat);
+	}
+	
 	return true;
 }
 
 void CFInput::get_yearly_data(std::vector<double>& data,
-                              const GenericSpinupData& spinup,
-                              GridcellOrderedVariable* cf_historic,
-                              int& historic_timestep) {
+							  const GenericSpinupData& spinup,
+							  GridcellOrderedVariable* cf_historic,
+							  int& historic_timestep) {
 	// Extract all values for this year, for one variable,
 	// either from spinup dataset or historical dataset
 
@@ -698,6 +782,13 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 
 					++historic_timestep;
 					GuessNC::CF::DateTime dt = cf_historic->get_date_time(historic_timestep);
+
+					if (restart) { // in case of restart from state need to advance to the restart year
+						while(dt.get_year() < (state_calendar_year + 1)) {
+							++historic_timestep;
+							dt = cf_historic->get_date_time(historic_timestep);
+						}
+					}
 
 					// Deal with calendar mismatch
 
@@ -737,8 +828,8 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 
 			// In the spinup?
 			if (calendar_year < first_date.get_year() ||
-			    (calendar_year == first_date.get_year() &&
-			     m+1 < first_date.get_month())) {
+				(calendar_year == first_date.get_year() &&
+				 m+1 < first_date.get_month())) {
 				data[m] = spinup[m];
 			}
 			else {
@@ -746,6 +837,15 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 				if (historic_timestep + 1 < cf_historic->get_timesteps()) {
 					++historic_timestep;
 				}
+				
+				GuessNC::CF::DateTime dt = cf_historic->get_date_time(historic_timestep);
+				if (restart) { // in case of restart from state need to advance to the restart year
+					while(dt.get_year() < (state_calendar_year +1)) {
+						++historic_timestep;
+						dt = cf_historic->get_date_time(historic_timestep);
+					}
+				}
+				
 
 				if (historic_timestep < cf_historic->get_timesteps()) {
 					data[m] = cf_historic->get_value(historic_timestep);
@@ -760,11 +860,11 @@ void CFInput::get_yearly_data(std::vector<double>& data,
 }
 
 void CFInput::populate_daily_array(double* daily,
-                                   const GenericSpinupData& spinup,
-                                   GridcellOrderedVariable* cf_historic,
-                                   int& historic_timestep,
-                                   double minimum,
-                                   double maximum) {
+								   const GenericSpinupData& spinup,
+								   GridcellOrderedVariable* cf_historic,
+								   int& historic_timestep,
+								   double minimum,
+								   double maximum) {
 
 	// Get the data from spinup and/or historic
 	std::vector<double> data;
@@ -827,17 +927,18 @@ void CFInput::populate_daily_prec_array(long& seed) {
 	}
 }
 
+// Extract daily values for all days in this year, either from
+// spinup dataset or historical dataset
 void CFInput::populate_daily_arrays(Gridcell& gridcell) {
-	// Extract daily values for all days in this year, either from
-	// spinup dataset or historical dataset
 
+	// If monthly input and GWGEN
 	if ( !is_daily(cf_temp) && weathergenerator == GWGEN ) {
 
 		int instype = parse_insoltype(cf_insol->get_standard_name());
 		
 		// TODO IMPLEMENT cloud-frac
 		if (!cf_min_temp || !cf_max_temp || !cf_wind || ( ( !cf_pres || !cf_specifichum ) && !cf_relhum ) ||
-		    instype != SWRAD_TS) {
+			instype != SWRAD_TS) {
 			fail("The weathergenerator GWGEN requires: \n Tmax, Tmin, (Pressure & Specific Humidity) or rel.humidity, Windspeed, and SW radiation");
 		}
 		
@@ -879,7 +980,7 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 		double xmdtr[12];
 		double shift[12];
 		for ( int i=0; i<12; i++) {
-			xmdtr[i] = 0.5 * (mtmax[i] - mtmin[i]);
+			xmdtr[i] = mtmax[i] - mtmin[i];
 			shift[i] = 0.5 * (mtmax[i] + mtmin[i]) - mtemp[i];
 		}
 
@@ -911,7 +1012,7 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 		else if ( cf_pres && cf_specifichum ) {
 			// compute rel. humidity if it can't be read from file
 			for ( int i=0; i<12; i++) {
-				xmrhum[i] = calc_relative_humidity(mtemp[i],mspecifichum[i],mpres[i]);
+				xmrhum[i] = calc_relative_humidity(xmtemp[i],mspecifichum[i],mpres[i]);
 			}
 		}
 
@@ -928,6 +1029,10 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 				accumday += date.ndaymonth[mon];
 				mon++;
 			}
+			//CLN !! QUICKFIX for Stefan by LN --(
+			dtemp[i] += K2degC;
+			//CLN !! QUICKFIX for Stefan by LN --)
+
 			dmin_temp[i] = dtemp[i] - 0.5 * ddtr[i];
 			dmax_temp[i] = dtemp[i] + 0.5 * ddtr[i];
 			// correct dmin and dmax against t_mean if available
@@ -935,9 +1040,10 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 				dmin_temp[i] += shift[mon];
 				dmax_temp[i] += shift[mon];
 			}
+			
 		}
 	}
-	else {
+	else {	// Only for daily input or when not GWGEN
 		
 		populate_daily_array(dtemp, spinup_temp, cf_temp, historic_timestep_temp, 0);
 		populate_daily_prec_array(gridcell.seed);
@@ -967,7 +1073,19 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 		if (cf_relhum) {
 			populate_daily_array(drelhum, spinup_relhum, cf_relhum, historic_timestep_relhum, 0);
 		}
+
+		// Convert to units the model expects. This part only for daily input or when not GWGEN. More converts continues further below.
+		if ( (cf_pres && cf_specifichum) && !cf_relhum ) {
+			// compute relative humidity for BLAZE
+			for (int i = 0; i < date.year_length(); ++i) {
+						drelhum[i] = calc_relative_humidity(dtemp[i]-K2degC, dspecifichum[i], dpres[i]);
+			}
+		}
+		else if (firemodel == BLAZE && !cf_relhum) {
+			fail("BLAZE is switched on WITHOUT info on either specific humidity and pressure or relative humidity! \n");
+		}
 	}
+	
 	// Convert to units the model expects
 	bool cloud_fraction_to_sunshine = (parse_insoltype(cf_insol->get_standard_name()) == SUNSHINE);
 	for (int i = 0; i < date.year_length(); ++i) {
@@ -986,16 +1104,8 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 			// and convert fraction (0-1) to percent (0-100)
 			dinsol[i] = (1-dinsol[i]) * 100.0;
 		}
-		
-		if ( (cf_pres && cf_specifichum) && !cf_relhum ) {
-			// compute relative humidity for BLAZE
-			drelhum[i] = calc_relative_humidity(dtemp[i], dspecifichum[i], dpres[i]);
-		}
-		else if ( firemodel == BLAZE && !cf_relhum ) {
-			fail("BLAZE is switched on WITHOUT info on either specific humidity and pressure or relative humidity! \n" );
-		}
 	}
-
+	
 	// Move to next year in spinup dataset
 
 	spinup_temp.nextyear();
@@ -1036,7 +1146,7 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 	double mNHxwetdep[12], mNOywetdep[12];
 
 	ndep.get_one_calendar_year(date.get_calendar_year(),
-	                           mNHxdrydep, mNOydrydep,
+							   mNHxdrydep, mNOydrydep,
 							   mNHxwetdep, mNOywetdep);
 
 	// Distribute N deposition
@@ -1081,6 +1191,26 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 	gridcell.dNH4dep = dNH4dep[date.day];
 	gridcell.dNO3dep = dNO3dep[date.day];
 
+	// Check whether all needed input is available
+	// BLAZE
+	if ( firemodel == BLAZE ) {
+		bool blaze_fail = false;
+		if ( !cf_relhum && !( cf_pres && cf_specifichum)) {
+			dprintf("BLAZE needs either specific humidity and pressure or relative humidity! \n" );
+			blaze_fail = true;
+		}
+		if ( !(cf_min_temp && cf_max_temp) ) {
+			dprintf("BLAZE needs Tmin and Tmax! \n" );
+			blaze_fail = true;
+		}
+		if ( !cf_wind ) {
+			dprintf("BLAZE needs 10m horizontal wind speed!\n" );
+			blaze_fail = true;
+		}
+		if ( blaze_fail ) {
+			fail("Forcing data missing for BLAZE! See above. \n" );
+		}
+	}
 	// bvoc
 	if(ifbvoc){
 		if (cf_min_temp && cf_max_temp) {
@@ -1121,11 +1251,11 @@ bool CFInput::getclimate(Gridcell& gridcell) {
 }
 
 void CFInput::load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_var,
-                               GenericSpinupData& spinup_data) {
+							   GenericSpinupData& spinup_data) {
 
 	const std::string error_message =
 		format_string("Not enough data to build spinup, at least %d years needed",
-		              NYEAR_SPINUP_DATA);
+					  NYEAR_SPINUP_DATA);
 
 	GenericSpinupData::RawData source;
 
@@ -1137,7 +1267,7 @@ void CFInput::load_spinup_data(const GuessNC::CF::GridcellOrderedVariable* cf_va
 
 	// Skip the first year if data doesn't start at the beginning of the year
 	while ((daily && !first_day_of_year(cf_var->get_date_time(timestep))) ||
-	       (monthly && !first_month_of_year(cf_var->get_date_time(timestep)))) {
+		   (monthly && !first_month_of_year(cf_var->get_date_time(timestep)))) {
 		++timestep;
 
 		if (timestep >= cf_var->get_timesteps()) {
@@ -1197,7 +1327,7 @@ std::vector<GuessNC::CF::GridcellOrderedVariable*> CFInput::all_variables() cons
 
 	// Get rid of null pointers
 	result.erase(std::remove_if(result.begin(), result.end(), is_null),
-	             result.end());
+				 result.end());
 
 	return result;
 }

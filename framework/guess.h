@@ -2526,8 +2526,6 @@ public:
 	/// Development and Growth parameters
     /// temperature below which plants fall dormant (degC)
 	double temp_dormancy;
-	/// Potential relative growth rate in vegetative phase (d-1)
-	double RGR_pot;
 	/// Maximum NSC mobilisation rate from C storage (d-1)
 	double max_mobil_cstorage;
     /// activation energy for growth temperature relationship (kJ mol-1) (Parent & Tardieu 2012)

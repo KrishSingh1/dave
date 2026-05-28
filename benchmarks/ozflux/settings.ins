@@ -38,16 +38,17 @@ ifstoreuptake            1   ! Whether tree N uptake goes into long-term storage
 ifdailycstarvmort        1   ! Turn on/off daily carbon starvation mortality in trees (Dave)
 
 ! Soil Data
- file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one
+file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one
 ! file_soildata         		  "../forcing/slga.ozflux.dat"        ! from soil & landscape grid
 
 ! Simfire Data
 param "file_simfire"          (str "../forcing/SimfireInput.bin")                        ! Relative to the main .ins file, not this one
 
-! N Deposition Data
-! This is optional if variable_ndep_nhx and variable_ndep_noy are set, in which
-! case N deposition data will be read from the NetCDF file.
-param "file_ndep"             (str "../forcing/ndep/GlobalNitrogenDeposition.bin")    ! Relative to the main .ins file, not this one
+! Path to N deposition data in fastarchive format. This is optional if N
+! deposition data are provided in the NetCDF files. If both NetCDF and
+! fastarchive N deposition data are unavailable, N deposition rates will be set
+! to pre-industrial levels (2 kgN/ha/yr).
+file_ndep ""
 
 ! Disturbance Data (optional)
 param "file_disturbance"      (str "")
@@ -161,7 +162,7 @@ energy_balance_maxiter       1
 
 ! Convergence criterion for DAVE energy balance (K). Iteration for tleaf will
 ! cease when the change in tleaf between iterations is less than this value.
-energy_balance_eps           0.1
+energy_balance_eps           5
 
 ! The first year after the spinup period. During spinup, all met data before
 ! this year is cycled. If not set, all available data will be cycled during the

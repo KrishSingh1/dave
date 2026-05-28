@@ -10,7 +10,7 @@ static const double COARSE_ROOT_OUTTAKE = 0.1;
 static const double TWIG_OUTTAKE = 0.4;
 static const double HARVEST_EFFICIENCY = 0.9;
 
-static Individual create_individual(Pft &tree, Patch &patch, double dens, double biomass, double height) {
+static Individual& create_individual(Pft &tree, Patch &patch, double dens, double biomass, double height) {
     Individual& indiv=patch.vegetation.createobj(tree, patch.vegetation);
     indiv.densindiv=dens;
     indiv.alive=true;
@@ -45,7 +45,7 @@ TEST_CASE("Management harvests one tree", "[harvest][emission][litter]") {
     Patch &patch = stand.getobj();
 
     double initial_wood_biomass = 12.0;
-    Individual indiv = create_individual(tree, patch, 1.0, initial_wood_biomass, 30.0);
+    Individual& indiv = create_individual(tree, patch, 1.0, initial_wood_biomass, 30.0);
 
     SECTION( "Harvest split up into litter and atmosphere" ) {
 
@@ -94,4 +94,3 @@ TEST_CASE("Management harvests one tree", "[harvest][emission][litter]") {
         REQUIRE(patch.fluxes.get_annual_flux(Fluxes::HARVESTC) == Approx(emissions).margin(TOLERANCE));
     }
 }
-

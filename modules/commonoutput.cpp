@@ -1857,7 +1857,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
   */
 void outlimit_daily(OutputRows& out, const Table& table, double d) {
 
-	// if (date.year>=nyear_spinup)
+	if (date.year >= nyear_spinup)
 		out.add_value(table, d);
 }
 

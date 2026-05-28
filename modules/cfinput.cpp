@@ -458,7 +458,7 @@ void CFInput::init() {
 	while (getline(ifs, line)) {
 
 		// Read next record in file
-		int rlat, rlon;
+		size_t rlat, rlon;
 		double lon, lat;
 		int landid;
 		std::string descrip;
@@ -692,8 +692,8 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 
 bool CFInput::load_data_from_files(double& lon, double& lat){
 
-	int rlon = current_gridcell->rlon;
-	int rlat = current_gridcell->rlat;
+	size_t rlon = current_gridcell->rlon;
+	size_t rlat = current_gridcell->rlat;
 	int landid = current_gridcell->landid;
 
 	// Try to load the data from the NetCDF files

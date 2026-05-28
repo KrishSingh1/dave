@@ -68,8 +68,8 @@ private:
 
 		// Type for storing grid cell longitude, latitude and description text
 
-		int rlon;
-		int rlat;
+		size_t rlon;
+		size_t rlat;
 		double lon;
 		double lat;
 		int landid;

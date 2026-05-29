@@ -244,3 +244,12 @@ if (UNIX)
       FORCE)
   endif(NOT CMAKE_BUILD_TYPE)
 endif(UNIX)
+
+if(APPLE)
+  add_custom_command(TARGET guess POST_BUILD
+    COMMAND codesign --force --sign - 
+            --entitlements ${CMAKE_SOURCE_DIR}/debug.entitlements
+            $<TARGET_FILE:guess>
+    COMMENT "Ad-hoc signing LPJ-GUESS with debug entitlement"
+  )
+endif()

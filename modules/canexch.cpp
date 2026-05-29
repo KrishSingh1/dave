@@ -1139,15 +1139,44 @@ void vegetation_n_uptake(Patch& patch) {
 			indiv.anuptake = 0.0;
 
 		nuptake_day = indiv.ndemand * indiv.fnuptake;
-		indiv.anuptake += nuptake_day;
-		indiv.nmass_leaf += indiv.leaffndemand * nuptake_day;
-		indiv.nmass_root += indiv.rootfndemand * nuptake_day;
-		indiv.nmass_sap += indiv.sapfndemand * nuptake_day;
-		if (indiv.pft.phenology == CROPGREEN && ifnlim) {
-			indiv.cropindiv->nmass_agpool += indiv.storefndemand * nuptake_day;
+
+		// Trunk version apparently allows negative soil N content.
+		if (indiv.pft.dave_allocation()) {
+			nuptake_day = max(0.0, min(soil.nmass_avail(), nuptake_day));
 		}
-		else {
-			indiv.nstore_longterm += indiv.storefndemand * nuptake_day;
+
+		indiv.anuptake += nuptake_day;
+		indiv.dnuptake = nuptake_day;
+
+		if (indiv.pft.dave_allocation() || (indiv.pft.is_grass() && ifdailygrass)) {
+			// N uptake added to storage
+			if (indiv.pft.store_uptake()) {
+				// Default behaviour - N uptake added to storage.
+				indiv.nmass_storage += nuptake_day;
+			} else {
+				// N uptake added to short-term uptake pool.
+				assert(indiv.nmass_uptake_no3 == 0);
+				assert(indiv.nmass_uptake_nh4 == 0);
+				indiv.nmass_uptake_no3 += nuptake_day * (1.0 - ammonium_frac);
+				indiv.nmass_uptake_nh4 += nuptake_day * ammonium_frac;
+			}
+		} else {
+			indiv.nmass_leaf += indiv.leaffndemand * nuptake_day;
+			indiv.nmass_root += indiv.rootfndemand * nuptake_day;
+			indiv.nmass_sap += indiv.sapfndemand * nuptake_day;
+			if (indiv.pft.phenology == CROPGREEN && ifnlim) {
+				indiv.cropindiv->nmass_agpool += indiv.storefndemand * nuptake_day;
+			}
+			else {
+				indiv.nstore_longterm += indiv.storefndemand * nuptake_day;
+			}
+
+			// If leaffndemand, rootfndemand, sapfndemand and storefndemand
+			// don't add to 1, we will have subtracted more N from the soil than
+			// we added to the plant.
+			if (nuptake_day > 0) {
+				assert(equal(1.0, indiv.leaffndemand + indiv.rootfndemand + indiv.sapfndemand + indiv.storefndemand));
+			}
 		}
 
 		double ammonium = nuptake_day * ammonium_frac;
@@ -1156,7 +1185,7 @@ void vegetation_n_uptake(Patch& patch) {
 
 		// Years of free N tissues should at least have C:N ratios 
 		// corresponding to PFT specific avr to build up healthy SOM pools
-		if (date.year < freenyears) {
+		if (date.year < freenyears && !indiv.pft.dave_allocation()) {
 			if (indiv.cton_leaf() > indiv.pft.cton_leaf_avr) {
 				double nmass = indiv.cmass_leaf_today() / indiv.pft.cton_leaf_avr - indiv.nmass_leaf;
 				indiv.nmass_leaf += nmass;

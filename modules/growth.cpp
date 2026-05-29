@@ -130,7 +130,7 @@ double get_nmass(const Individual &indiv) {
 		   indiv.nmass_root +
 		   indiv.nmass_repr;
 	}
-	double nmass_uptake = indiv.pft.store_uptake() ? 0.0 : indiv.nmass_uptake;
+	double nmass_uptake = indiv.pft.store_uptake() ? 0.0 : (indiv.nmass_uptake_no3 + indiv.nmass_uptake_nh4);
 	return indiv.nmass_storage +
 		   indiv.nmass_leaf +
 		   indiv.nmass_root +
@@ -337,9 +337,7 @@ double dphen_activity(Individual &indiv, Climate& climate) {
 	const Historic<double,10> &wscal_10 = indiv.get_wscal_10();
 
 	// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn. pathway)
-	// double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
-	double grass_temp = 0;
-	fail("FIXME: figure out how to get surface soil temperature here");
+	double grass_temp = indiv.vegetation.patch.soil.soillayers[0].temp;   // Temperature of first soil layer
 	double wscal_mean = indiv.get_wscal_moving_average();
 	double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 
@@ -420,6 +418,7 @@ double move_toward(double current, double target, double max_change) {
 // water scalar.
 void adjust_response_window(Individual &indiv) {
 	Patchpft &ppft = indiv.patchpft();
+	const Soil &soil = indiv.vegetation.patch.soil;
 
 	// Only grasses respond dynamically to the growing conditions (for
 	// now!). TODO: Assaf
@@ -449,8 +448,7 @@ void adjust_response_window(Individual &indiv) {
 		double root_beta_new = calc_root_beta(nday_dormant);
 		const double MAX_ROOT_BETA_CHANGE = 0.0005;
 		indiv.root_beta = move_toward(indiv.root_beta, root_beta_new, MAX_ROOT_BETA_CHANGE);
-		// calc_root_distribution(indiv.root_beta, indiv.rootdist);
-		fail("FIXME: figure out how to implement this in new soil scheme");
+		calc_root_distribution(soil, indiv.root_beta, indiv.rootdist);
 	}
 }
 
@@ -500,8 +498,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
     for (pftlist.firstobj(); pftlist.isobj; pftlist.nextobj()) {
 		Pft &pft = pftlist.getobj();
 		Patchpft &ppft = vegetation.patch.pft[pft.id];
-		// ppft.soiltemp_10.add(vegetation.patch.soil.T_soil[7]);   // temp of upper soil layer
-		fail("FIXME: figure out how to implement this in new soil scheme");
+		ppft.soiltemp_10.add(vegetation.patch.soil.soillayers[0].temp);   // temp of upper soil layer
 		ppft.daylength_10.add(climate.daylength);
 		ppft.reldaylength = climate.daylength / climate.daylength_max;
 	}
@@ -516,8 +513,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = vegetation.patch.pft[indiv.pft.id];
 
-		// indiv.soiltemp_dynamic.add(vegetation.patch.soil.T_soil[7]);
-		fail("FIXME: figure out how to implement this in new soil scheme");
+		indiv.soiltemp_dynamic.add(vegetation.patch.soil.soillayers[0].temp);
 
 		if (pft.is_grass()) { 
 
@@ -3121,9 +3117,7 @@ void growth_daily_grass_warlind(Patch& patch) {
 	Gridcell& gridcell = vegetation.patch.stand.get_gridcell();
 
 	// Air temperature or bottom snow layer if snow present
-	// double grass_temp = patch.soil.T_soil[6];
-	double grass_temp = 0;
-	fail("FIXME: figure out how to get surface soil temp here");
+	double grass_temp = patch.soil.soillayers[0].temp;
 
 	if (date.day == 0) {
 		flush_cmass_repr(patch);
@@ -3571,9 +3565,7 @@ double growth_demand(Individual& indiv) {
 	// Calculate ancillary metrics
 	// ------------------------------
 	// Air temperature or bottom snow layer if snow present
-	// double grass_temp = veg.patch.soil.T_soil[6];
-	double grass_temp = 0;
-	fail("FIXME: figure out how to get grass temperature here");
+	double grass_temp = veg.patch.soil.soillayers[0].temp;
 
 	// Total biomass used for estimation of potential growth demand.
 	//double cmass_total  = indiv.cmass_root + indiv.cmass_crown + indiv.get_cmass_leaf() + indiv.cmass_storage;
@@ -5037,7 +5029,7 @@ double fnavail_dave(const Individual &indiv) {
 
 	// If N uptake is going into its own pool, this is part of the supply.
 	if (!indiv.pft.store_uptake()) {
-		supply += indiv.nmass_uptake;
+		supply += indiv.nmass_uptake_no3 + indiv.nmass_uptake_nh4;
 	}
 
 	double demand = indiv.ndemand - indiv.storendemand;
@@ -5326,14 +5318,15 @@ void update_pools_dave(Vegetation& vegetation) {
 		indiv.nstorage_drawdown = 0;
 		if (!pft.store_uptake()) {
 			// First take ngrow out of uptake pool.
-			indiv.nmass_uptake -= ngrow;
-			if (indiv.nmass_uptake < 0) {
+			double nmass_uptake = indiv.nmass_uptake_no3 + indiv.nmass_uptake_nh4;
+			nmass_uptake -= ngrow;
+			if (nmass_uptake < 0) {
 				// Supply remaining N from storage.
-				double drawdown = -indiv.nmass_uptake; // positive sign now
+				double drawdown = -nmass_uptake; // positive sign now
 				indiv.nmass_storage = max(0.0, indiv.nmass_storage - drawdown);
-				indiv.nmass_uptake = 0;
+				nmass_uptake = 0;
 				indiv.nstorage_drawdown = drawdown;
-			} else if (indiv.nmass_uptake > 0) {
+			} else if (nmass_uptake > 0) {
 				// N supply was met by uptake. If any uptake remains, put it
 				// back into the available soil N, as if it had never been
 				// taken up.
@@ -5344,14 +5337,17 @@ void update_pools_dave(Vegetation& vegetation) {
 				// annual variables (anuptake, antoavail). This isn't really too
 				// important, except to ensure that we've accounted for all
 				// fluxes so that the nitrogen budget outputs make sense.
-				indiv.ntoavail += indiv.nmass_uptake;
-				indiv.antoavail += indiv.nmass_uptake;
+				indiv.ntoavail += nmass_uptake;
+				indiv.antoavail += nmass_uptake;
 
-				// TODO: decide how to partition between NO3 and NH4.
-				fail("FIXME: need to do this by layer now");
-				// vegetation.patch.soil.nmass_inc(indiv.nmass_uptake * 0.5, NO3);
-				// vegetation.patch.soil.nmass_inc(indiv.nmass_uptake * 0.5, NH4);
-				indiv.nmass_uptake = 0;
+				// Fraction of uptake that is being returned to soil.
+				double freturn = nmass_uptake / (indiv.nmass_uptake_no3 + indiv.nmass_uptake_nh4);
+
+				Soil &soil = vegetation.patch.soil;
+				soil.nmass_avail_inc(indiv.nmass_uptake_no3 * freturn, NO3);
+				soil.nmass_avail_inc(indiv.nmass_uptake_nh4 * freturn, NH4);
+				indiv.nmass_uptake_no3 = 0;
+				indiv.nmass_uptake_nh4 = 0;
 			}
 		} else {
 			// Draw down on storage.
@@ -5432,9 +5428,7 @@ void senescence_dave_grass(Individual &indiv) {
 	// annual plants?
 
 	// Air temperature or bottom snow layer if snow present
-	// double grass_temp = vegetation.patch.soil.T_soil[6];
-	double grass_temp = 0;
-	fail("FIXME: figure out how to get tsoil in new soil scheme");
+	double grass_temp = vegetation.patch.soil.soillayers[0].temp;
 
 	// Baseline (minimum) senescence rate from leaf longevity under unstressed conditions.
 	// double senesc_base = 1.0 / (indiv.pft.leaflong * date.year_length());
@@ -5650,13 +5644,10 @@ void turnover_seed(Vegetation& vegetation) {
 		// Turnover rate of seeds
 
 		// Air temperature or bottom snow layer if snow present and soil moisture of first soil layer.
-		// double surf_temp = vegetation.patch.soil.T_soil[6];
-		double surf_temp = 0;
-		fail("FIXME: figure out how to get tsoil in new soil scheme");
-		// double surf_water = patch.soil.get_layer_soil_water(0);
-		double surf_water = 0;
-		fail("FIXME: figure out how to get soil water in new soil scheme");
-		
+		const Soillayer &surface_layer = patch.soil.soillayers[0];
+		double surf_temp = surface_layer.temp;
+		double surf_water = surface_layer.wcont();
+
 		// Base turnover rate modified by temperature and water availability
 		double ftemp = 0.0, fwater = 0.0;
 		double base_turnover_seed = ppft.pft.turnover_repr_litter / date.year_length();
@@ -5797,11 +5788,9 @@ void turnover_dave_grass(Individual &indiv) {
 	// Determine turnover rate (same for all individuals in a PFT).
 	// Assumed daily rates here (fraction d-1)!
 	// Air temperature or bottom snow layer if snow present and soil moisture of first soil layer.
-	// double surf_temp = vegetation.patch.soil.T_soil[6];
-	// double surf_water = patch.soil.get_layer_soil_water(0);
-	double surf_temp = 0;
-	double surf_water = 0;
-	fail("FIXME: figure out how to get tsoil and soil water in new soil scheme");
+	const Soillayer &surface_layer = patch.soil.soillayers[0];
+	double surf_temp = surface_layer.temp;
+	double surf_water = surface_layer.wcont();
 
 	// crown turnover relative to root turnover.
 	double scal_crown_turnover = 0.35;

@@ -412,6 +412,7 @@ Individual* get_beneficiary(Patch& patch, Pft& pft) {
 
 
 double germination_fraction_grass(Patchpft& ppft, Patch& patch) {
+	const Soil &soil = patch.soil;
 
 	// Water content and temperature of the first soil layer (0-10cm).
 	// wcont as fraction of available water holding capacity.
@@ -419,11 +420,13 @@ double germination_fraction_grass(Patchpft& ppft, Patch& patch) {
 	double fgerm_max25 = 0.6; // maximum daily germination rate at temperature optimum (fraction) 
 
 	// get average conditions over the last 3-5 (currently 4) days.
-	fail("FIXME: figure out how to access these in new soil scheme");
-	// ppft.wcont_germ_30.add(patch.soil.get_layer_soil_water(2));  // longer term wcont used for seed dormancy
-	// ppft.wcont_germ_4.add(patch.soil.get_layer_soil_water(0)); 
-	// ppft.tsoil_germ_4.add(patch.soil.T_soil[7]);
-	double wcont = ppft.wcont_germ_4.mean();
+	// wcont at 30cm depth.
+	fail("checkme");
+	double wcont = soil.var_depth(0.25, 0.35, [](const Soillayer& layer) { return layer.wcont(); });
+	ppft.wcont_germ_30.add(wcont);  // longer term wcont used for seed dormancy
+	ppft.wcont_germ_4.add(soil.soillayers[0].wcont()); 
+	ppft.tsoil_germ_4.add(soil.soillayers[0].temp);
+	wcont = ppft.wcont_germ_4.mean();
 	double tsoil = ppft.tsoil_germ_4.mean();
 	
 	// TODO: parameterise this relationship from data
@@ -457,59 +460,12 @@ double germination_fraction_grass(Patchpft& ppft, Patch& patch) {
 	return frac_germ;
 }
 
-// fraction of seeds that will germinate today
-double germination_fraction_tree(Patchpft& ppft, Patch& patch) {
-
-	double frac_germ = .3;
-	if (date.year == 0) {
-		return 0.0;
-	}
-	double max_frac = 1.0;
-	double peaktemp = 20.0;
-	double tempbreadth = 0.2;
-	double midpoint_sm = .8; 
-	double shape = .03;
-	// And to Climate object
-	const Climate& climate = patch.get_climate();
-	// find the maximum PAR from the input 
-	// TODO: Is there an analytical way of calculating that (using latitude and DOY)?
-	// the amount of today's par that reaches the forest floor, relative to the 
-	// maximum potential par:
-	// TODO: find what is par_max (ie: maximum PAR in the peak of summer at this latitude)!!!
-	double relative_par_ff = min((patch.fpar_ff * climate.par) / climate.par_max, 1.0);
-	// inflection (mid) point of the par_ff (shade tolerance)
-	const double x0 = .5; // TODO: should be PFT paramter related to shade tolerance
-	// shape of the sigmoid curve
-	const double b = .08; // TODO: should be PFT paramter related to shade tolerance
-	double f_par =  1 / (1 + exp( -( (relative_par_ff - x0) / b) ) );
-
-	// get average conditions over the last 14 days.
-	fail("FIXME: figure out how to access these in new soil scheme");
-	// ppft.wcont_germ_14.add(patch.soil.get_layer_soil_water(0)); 
-	// ppft.tsoil_germ_14.add(patch.soil.T_soil[7]);
-	double wcont = ppft.wcont_germ_14.mean();
-	double tsoil = ppft.tsoil_germ_14.mean();
-	// calculate f_temp
-	// TODO: Use Juergen's function
-	double exponent = pow((log(tsoil / peaktemp) / 0.5), 2);
-	double f_temp = max_frac * exp(-1.0*(exponent));
-	// calculate f_water
-	double f_water =  1 / (1 + exp(-(wcont - midpoint_sm) / shape));
-
-	// return frac_germ
-	return frac_germ * f_par * f_temp * f_water;
-
-}
-
 // Calculates the fraction of the seedbank that is germinating today.
 double germination_fraction(Patchpft& ppft, Patch& patch) {
-
 	if (ppft.pft.is_grass()) {
 		return germination_fraction_grass(ppft, patch);
-	} else {
-		return germination_fraction_tree(ppft, patch);
 	}
-
+	return 0;
 }
 
 double nseedlings(double cmass_seed, Pft &pft) {

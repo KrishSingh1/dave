@@ -1804,22 +1804,27 @@ double calc_root_beta(size_t nday_dormant) {
 }
 
 // Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
-void calc_root_distribution(double root_beta, double rootdist[NSOILLAYERS_MAX]) {
+void calc_root_distribution(const Soil &soil, double root_beta, double rootdist[NSOILLAYERS_MAX]) {
 
-	fail("FIXME: need to implement against new soil scheme");
-	// double depth = Dz_soil * CM_PER_MM;
+	double depth = Dz_soil * CM_PER_MM;
 
-	// rootdist[0] = 1.0 - pow(root_beta, depth); // init first layer
+	rootdist[0] = 1.0 - pow(root_beta, depth); // init first layer
 
-	// double tot = rootdist[0];
-	// for (int i=1; i<NSOILLAYER; i++){
-	// 	depth += Dz_soil * CM_PER_MM;
-	// 	rootdist[i] = 1.0 - pow(root_beta, depth) - (1.0 - pow(root_beta, depth - Dz_soil * CM_PER_MM));
-	// 	tot += rootdist[i];
-	// }
-	// // Calibrated the root_beta for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
-	// // Sometimes the rootdist goes below our maximum soildepth. When that happens, put the residual fraction in lowest soil layer
-	// rootdist[NSOILLAYER-1] += 1.0 - tot;
+	double tot = rootdist[0];
+	for (int i = 1; i < soil.nsoillayers; i++){
+		depth += Dz_soil * CM_PER_MM;
+		rootdist[i] = 1.0 - pow(root_beta, depth) - (1.0 - pow(root_beta, depth - Dz_soil * CM_PER_MM));
+		tot += rootdist[i];
+	}
+
+	// Calibrated the root_beta for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
+	// Sometimes the rootdist goes below our maximum soildepth. When that happens, put the residual fraction in lowest soil layer
+	rootdist[soil.nsoillayers-1] += 1.0 - tot;
+
+	// Set root distribution in remaining unused soil layers to 0.
+	for (size_t i = soil.nsoillayers; i < NSOILLAYERS_MAX; i++) {
+		rootdist[i] = 0.0;
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1907,7 +1912,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cgrow_pot					= 0.0;
 	cstorage_max                = 0.0;
 	nmass_storage				= 0.0;
-	nmass_uptake                = 0.0;
+	nmass_uptake_no3            = 0.0;
+	nmass_uptake_nh4            = 0.0;
 	nretranslocated             = 0.0;
 	anretranslocated            = 0.0;
 	ntoavail                    = 0.0;
@@ -1936,7 +1942,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	// Initialise dynamic root_beta and rootdist to the pft-level values.
 	if (ifadaptive_rootdist && pft.is_grass() && pft.dave_allocation()) {
 		root_beta = calc_root_beta(nday_dormant);
-		calc_root_distribution(root_beta, rootdist);
+		calc_root_distribution(v.patch.soil, root_beta, rootdist);
 	} else { // Take PFT-level default
 		root_beta = pft.root_beta;
 		for (size_t i = 0; i < NSOILLAYERS_MAX; i++) {
@@ -2259,7 +2265,8 @@ void Individual::serialize(ArchiveStream& arch) {
 		& nmass_repr
 		& nmass_sap
 		& nmass_heart
-		& nmass_uptake
+		& nmass_uptake_no3
+		& nmass_uptake_nh4
 		& ntoavail
 		& antoavail
 		& cmass_wood_old
@@ -2942,7 +2949,7 @@ double Individual::ncont(double scale_indiv, bool luc, bool ignore_alive) const 
 			ncont += nstore_longterm - nstore_longterm_luc * (1.0 - scale_indiv);
 			ncont += nstore_labile - nstore_labile_luc * (1.0 - scale_indiv);
 			ncont += nmass_storage - nmass_storage_luc * (1.0 - scale_indiv);
-			ncont += nmass_uptake * (1.0 - scale_indiv);
+			ncont += (nmass_uptake_no3 + nmass_uptake_nh4) * (1.0 - scale_indiv);
 
 			if (ifdailygrass && pft.is_grass()) {
 				ncont += nmass_leafs[0] - nmass_leafs_luc[0] * (1.0 - scale_indiv);
@@ -2971,7 +2978,7 @@ double Individual::ncont(double scale_indiv, bool luc, bool ignore_alive) const 
 			ncont += nstore_labile * scale_indiv;
 			ncont += nmass_storage * scale_indiv;
 			if (!pft.store_uptake()) {
-				ncont += nmass_uptake * scale_indiv;
+				ncont += (nmass_uptake_no3 + nmass_uptake_nh4) * scale_indiv;
 			}
 
 			if (ifdailygrass && pft.is_grass()) {
@@ -3715,10 +3722,16 @@ void Individual::kill(bool harvest /* = false */) {
 		ppft.cmass_litter_root += cmass_storage;
 	}
 
-	if (!pft.store_uptake() && nmass_uptake > 0) {
-		fail("FIXME: figure out how to deal with this case in new soil scheme");
-		// vegetation.patch.soil.nmass_inc(nmass_uptake);
-		nmass_uptake = 0;
+	if (!pft.store_uptake()) {
+		Soil &soil = vegetation.patch.soil;
+		if (nmass_uptake_no3 > 0) {
+			soil.soillayers[0].nmass_inc(nmass_uptake_no3, NO3);
+			nmass_uptake_no3 = 0;
+		}
+		if (nmass_uptake_nh4 > 0) {
+			soil.soillayers[0].nmass_inc(nmass_uptake_nh4, NH4);
+			nmass_uptake_nh4 = 0;
+		}
 	}
 
 	// C doesn't return to litter/harvest if the Individual isn't alive

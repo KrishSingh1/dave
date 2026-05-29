@@ -2498,7 +2498,7 @@ typedef std::bitset<NSEN_TYPE> sen_type;
 /*
 Calculate the root distribution given a root beta value.
 */
-void calc_root_distribution(double root_beta, double soil_depth, double *rootdist, int nsoillayer);
+void calc_root_distribution(const Soil &soil, double root_beta, double rootdist[NSOILLAYERS_MAX]);
 
 /// Holds static functional parameters for a plant functional type (PFT).
 /** There should be one Pft object for each potentially occurring PFT. The same Pft object
@@ -3471,7 +3471,7 @@ public:
 
 	// Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
 	void calc_rootdist(double rootdist_new[NSOILLAYERS_MAX], double soil_lyr_depth[NSOILLAYERS_MAX], int nsoillayers,
-		double depth_root, double root_beta, double fhom_root) {
+		double depth_root, double root_beta, double fhom_root) const{
 
 		// Multi layer soil scheme uses Jackson root distribution
 		// root_beta is calibrated for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
@@ -4224,7 +4224,9 @@ public:
 	/// Nitrogen storage for leaf daily allocation
 	double nmass_storage;
 	/// Nitrogen uptake today (0 when ifstoreuptake=true) (kgN/m2).
-	double nmass_uptake;
+	double nmass_uptake_no3;
+	double nmass_uptake_nh4;
+
 	/// Nitrogen retranslocated today (kgN/m2).
 	double nretranslocated;
 	/// Cumulative total nitrogen retranslocated this year (kgN/m2).
@@ -5983,6 +5985,8 @@ public:
 	double nmass_avail(n_pref_type pref = NO, bool water_limited = false);
 	/// Nitrogen uptake from soil nmass_avail
 	void nmass_avail_uptake(double uptake, n_pref_type pref);
+	/// Nitrogen increment to soil nmass_avail
+	void nmass_avail_inc(double inc, n_pref_type pref);
 	/// Calculate root volume
 	void calc_root_volume();
 	/// Returns a fine vertical resolution C soil fraction

@@ -3024,6 +3024,21 @@ void Soil::nmass_avail_uptake(double uptake, n_pref_type pref) {
 	}
 }
 
+/// Extracts N from soillayers
+/** Extracts N from soillayers
+ *  This should be done more advanced depending on root distribution and competition in each soil layer
+ */
+void Soil::nmass_avail_inc(double inc, n_pref_type pref) {
+	double tot_nmass_avail = nmass_avail(pref);
+
+	if (!negligible(tot_nmass_avail)) {
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			Soillayer& soillayer = soillayers[lyr];
+			soillayer.nmass_inc(inc * soillayer.nmass_avail(pref) / tot_nmass_avail, pref);
+		}
+	}
+}
+
 /// Calculate water content for this month
 /** Calculate water content for this month
  */

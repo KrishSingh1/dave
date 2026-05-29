@@ -673,6 +673,10 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 
 		// Texture depth set to 100 mm
 		soiltype.text_depths[0] = 100.0;
+
+		soiltype.b = soilprop.b;
+		soiltype.Psi_s = soilprop.Psi_s;
+		soiltype.Ksat = soilprop.Ksat;
 	}
 	else {
 		// Inhomogeneous soil profile when it comes to minerals and pH
@@ -689,6 +693,12 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 		soiltype.soilC.resize(nr_lyr);
 		soiltype.pH.resize(nr_lyr);
 		soiltype.text_depths.resize(nr_lyr);
+
+		SoilProperties soilprop = soil_code ? get_lpj(c) : get_mineral(c);
+		soiltype.K = soilprop.K; // unused
+		soiltype.b = soilprop.b;
+		soiltype.Psi_s = soilprop.Psi_s;
+		soiltype.Ksat = soilprop.Ksat;
 
 		for (int lyr = 0; lyr < nr_lyr; lyr++) {
 
@@ -751,12 +761,6 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 		dprintf("Soil depth needs to be of 100mm intervals. Input %g Used %g\n", gridcell.soil_depth, soil_depth_interval);
 		gridcell.soil_depth = soil_depth_interval;
 	}
-
-	fail("FIXME: figure out what K, b, and Psi_s are, and add to new type if necessary");
-	// soiltype.K = soilpropmineral.K;
-	// soiltype.b = soilpropmineral.b;
-	// soiltype.Psi_s = soilpropmineral.Psi_s;
-
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

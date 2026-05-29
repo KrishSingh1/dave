@@ -4,6 +4,7 @@
 #include "simfire.h"
 #include "blaze.h"
 #include "ncutil.h"
+#include "canexch.h"
 
 namespace GuessOutput {
 
@@ -180,6 +181,40 @@ std::vector<ColumnDefinition<Individual>> get_pft_litter_pools() {
 	columns.push_back(ColumnDefinition<Individual>("Sap", [](const Individual &i) { return i.patchpft().cmass_litter_sap; }));
 	columns.push_back(ColumnDefinition<Individual>("Heart", [](const Individual &i) { return i.patchpft().cmass_litter_heart; }));
 	columns.push_back(ColumnDefinition<Individual>("Repr", [](const Individual &i) { return i.patchpft().cmass_litter_repr; }));
+	return columns;
+}
+
+double calc_aet_old(const Individual &indiv) {
+	const Climate &climate = indiv.vegetation.patch.get_climate();
+	double transp = 0;
+
+	// Loop over time steps per day
+	for (Day day; day.period != date.subdaily; day.next()) {	
+
+		// T = Gc / (pressure/VPD)
+		// Gc in mol m-2 s-1
+		// VPD and pressure in Pa
+		double patmos = climate.pressure[day.period];
+		double vpd = climate.vpds[day.period];
+		double gsw = indiv.ps_subdaily.gsw[day.period];
+		if (vpd > 0 && patmos > 0) {
+			transp += gsw / (patmos / (vpd * 1000.0));
+		}
+
+	} // end sub-daily loop
+	
+	// daily transpiration rate in mol m-2 s-1
+	transp /= date.subdaily;
+
+	// daily transpiration rate in mm d-1
+	// Limiting transpiration to the actual supply is handled later.
+	return transp * MOL2G_H2O * KG_PER_G * SECS_PER_DAY;
+}
+
+std::vector<ColumnDefinition<Individual>> transp_check_columns() {
+	std::vector<ColumnDefinition<Individual>> columns;
+	columns.push_back(ColumnDefinition<Individual>("new", [](const Individual &i) { return i.aet; }));
+	columns.push_back(ColumnDefinition<Individual>("old", calc_aet_old));
 	return columns;
 }
 

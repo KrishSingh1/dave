@@ -38,7 +38,13 @@ public:
 	~SoilInput() {};
 
 	/// Initialises the soil object and decides based on the input file the data source type.
-	void init(const char* filename, const std::vector<coord>& gridlist=std::vector<coord>());
+	void init(const char* filename, const std::vector<coord>& gridlist = std::vector<coord>());
+
+	/// Initialises the soil depth.
+	void init_depth(const char* filename, const std::vector<coord>& gridlist = std::vector<coord>());
+
+	/// Initialises the soil slope.
+	void init_slope(const char* filename, const std::vector<coord>& gridlist = std::vector<coord>());
 
 	/// Get and set the Soiltype-object in the current Gridcell-object.
 	void get_soil(double lon, double lat, Gridcell& gridcell);
@@ -46,12 +52,14 @@ public:
 	/// searchstep_soil instruction file parameter
 	double STEP;
 
-private:
-	void get_soil_mineral(double lon, double lat, Gridcell& gridcell);
+	/// Initialises the soil object and decides based on the input file the data source type.
+	void init_depth_varying(const std::set<coord>& coords);
 
-	void get_soil_organic(double lon, double lat, Gridcell& gridcell);
+private:
 
 	bool soil_code;
+
+	bool soil_varying;
 	
 	double searchradius_soil;
 
@@ -104,6 +112,10 @@ private:
 		double Theta_s;
 		// saturated hydraulic conductivity (m/s) calculated based on eq 10 in Saxton et al (1986)
 		double Ksat;
+		// Depth (mm)
+		double depth;
+		// Slope
+		double slope;
 	};
 
 	void load_mineral_soils(const char* fname, const std::set<coord>& coords);
@@ -121,10 +133,37 @@ private:
 		double pH;
 		double soilC;			// Initial soil C content (kgC/m2), from model output or a database
 		double CN;				// C:N ratio from database
+
+		std::vector<double> sand_lyr;
+		std::vector<double> clay_lyr;
+		std::vector<double> coarse_lyr;
+		std::vector<double> orgc_lyr;
+		std::vector<double> bulkdensity_lyr;
+		std::vector<double> pH_lyr;
+		std::vector<double> soilC_lyr;
+		std::vector<double> CN_lyr;
+		std::vector<double> depth_lyr;
 	};
 
 	std::map<coord, int> lpj_map;
+	std::map<coord, double> depth_map;
+	std::map<coord, double> slope_map;
 	std::map<coord, SoilDataMineral> mineral_map;
+
+	void get_depth_varying_prop(
+		const std::set<coord>& coords,
+		std::ifstream& prop,
+		std::map<coord, SoilDataMineral>& mineral_map,
+		std::vector<double> SoilDataMineral::* member);
+
+	// Reads only the header and extracts the depth values
+	std::vector<double> extract_layer_depths(std::ifstream& prop);
+
+	// Assigns depth vector to all coords
+	void assign_depths(
+		const std::set<coord>& coords,
+		std::map<coord, SoilDataMineral>& mineral_map,
+		const std::vector<double>& depths);
 };
 
 const double data[10][12] = {
@@ -148,18 +187,18 @@ const double data[10][12] = {
 	//       From the AGRMET Handbook, 2002 - not used here, use column 5 in data instead
 	//    11 porosity from AGRMET Handbook, 2002
 
-	//    0      1      2      3      4      5      6       7       8       9       10      11          soilcode
+	//  0      1      2      3      4      5      6      7      8      9     10     11        soilcode
 	//  ------------------------------------------------------------------------------------------
-	{ 5.0, 0.110,   0.2, 0.800,   0.4,	0.074,	0.395,	0.90,	0.05,    0.01,    0.029,  0.421 },    // 0	Ice (copied from coarse: Stefan)
-	{ 5.0, 0.110,   0.2, 0.800,   0.4,	0.074,	0.395,	0.90,	0.05,    0.01,    0.029,  0.421 },    // 1	Coarse
-	{ 4.0, 0.150,   0.2, 0.650,   0.4,	0.184,	0.439,	0.35,	0.15,    0.01,    0.119,  0.464 },    // 2	Medium
-	{ 3.0, 0.120,   0.2, 0.500,   0.4,	0.274,	0.454,	0.30,	0.45,    0.01,    0.139,  0.468 },    // 3	Fine
-	{ 4.5, 0.130,   0.2, 0.725,   0.4,	0.129,	0.417,	0.60,	0.15,    0.01,    0.047,  0.434 },    // 4	Medium-coarse
-	{ 4.0, 0.115,   0.2, 0.650,   0.4,	0.174,	0.425,	0.60,	0.30,    0.01,    0.020,  0.406 },    // 5	Fine-coarse
-	{ 3.5, 0.135,   0.2, 0.575,   0.4,	0.229,	0.447,	0.20,	0.30,    0.01,    0.103,  0.465 },    // 6	Fine-medium
-	{ 4.0, 0.127,   0.2, 0.650,   0.4,	0.177,	0.430,	0.45,	0.25,    0.01,    0.069,  0.404 },    // 7	Fine-medium-coarse
-	{ 9.0, 0.300,   0.1, 0.100,   0.1,	0.200,	0.600,	0.28,	0.12,    0.20,    0.066,  0.800 },    // 8	Organic (values not know for wp), sand and clay are from Parton 2010
-	{ 0.2, 0.100,   0.2, 0.500,   0.4,	0.100,	0.250,	0.10,	0.80,    0.01,    0.364,  0.482 }     // 9	Vertisols (values not know for wp)
+	{ 5.0, 0.110,   0.2, 0.800,   0.4, 0.074, 0.395,  0.90,  0.05,  0.01, 0.029, 0.421 },  // 0 Ice (copied from coarse: Stefan)
+	{ 5.0, 0.110,   0.2, 0.800,   0.4, 0.074, 0.395,  0.90,  0.05,  0.01, 0.029, 0.421 },  // 1 Coarse
+	{ 4.0, 0.150,   0.2, 0.650,   0.4, 0.184, 0.439,  0.35,  0.15,  0.01, 0.119, 0.464 },  // 2 Medium
+	{ 3.0, 0.120,   0.2, 0.500,   0.4, 0.274, 0.454,  0.30,  0.45,  0.01, 0.139, 0.468 },  // 3 Fine
+	{ 4.5, 0.130,   0.2, 0.725,   0.4, 0.129, 0.417,  0.60,  0.15,  0.01, 0.047, 0.434 },  // 4 Medium-coarse
+	{ 4.0, 0.115,   0.2, 0.650,   0.4, 0.174, 0.425,  0.60,  0.30,  0.01, 0.020, 0.425 },  // 5 Fine-coarse por - (0.406) < wsat (0.425) -> por = wsat
+	{ 3.5, 0.135,   0.2, 0.575,   0.4, 0.229, 0.447,  0.20,  0.30,  0.01, 0.103, 0.465 },  // 6 Fine-medium
+	{ 4.0, 0.127,   0.2, 0.650,   0.4, 0.177, 0.430,  0.45,  0.25,  0.01, 0.069, 0.430 },  // 7 Fine-medium-coarse - por (0.404) < wsat (0.430) -> por = wsat
+	{ 9.0, 0.300,   0.1, 0.100,   0.1, 0.200, 0.600,  0.28,  0.12,  0.20, 0.066, 0.800 },  // 8 Organic (values not know for wp), sand and clay are from Parton 2010
+	{ 0.2, 0.100,   0.2, 0.500,   0.4, 0.100, 0.250,  0.10,  0.80,  0.01, 0.364, 0.482 }   // 9 Vertisols (values not know for wp)
 };
 
 /// Set soil physical properties based in soilcode

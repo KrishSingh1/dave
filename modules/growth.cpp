@@ -48,7 +48,6 @@
 #include "driver.h"
 #include "logging.h"
 
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // FILE SCOPE GLOBAL CONSTANTS
 
@@ -338,7 +337,9 @@ double dphen_activity(Individual &indiv, Climate& climate) {
 	const Historic<double,10> &wscal_10 = indiv.get_wscal_10();
 
 	// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn. pathway)
-	double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
+	// double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
+	double grass_temp = 0;
+	fail("FIXME: figure out how to get surface soil temperature here");
 	double wscal_mean = indiv.get_wscal_moving_average();
 	double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 
@@ -448,7 +449,8 @@ void adjust_response_window(Individual &indiv) {
 		double root_beta_new = calc_root_beta(nday_dormant);
 		const double MAX_ROOT_BETA_CHANGE = 0.0005;
 		indiv.root_beta = move_toward(indiv.root_beta, root_beta_new, MAX_ROOT_BETA_CHANGE);
-		calc_root_distribution(indiv.root_beta, indiv.rootdist);
+		// calc_root_distribution(indiv.root_beta, indiv.rootdist);
+		fail("FIXME: figure out how to implement this in new soil scheme");
 	}
 }
 
@@ -498,7 +500,8 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
     for (pftlist.firstobj(); pftlist.isobj; pftlist.nextobj()) {
 		Pft &pft = pftlist.getobj();
 		Patchpft &ppft = vegetation.patch.pft[pft.id];
-		ppft.soiltemp_10.add(vegetation.patch.soil.T_soil[7]);   // temp of upper soil layer
+		// ppft.soiltemp_10.add(vegetation.patch.soil.T_soil[7]);   // temp of upper soil layer
+		fail("FIXME: figure out how to implement this in new soil scheme");
 		ppft.daylength_10.add(climate.daylength);
 		ppft.reldaylength = climate.daylength / climate.daylength_max;
 	}
@@ -513,7 +516,8 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = vegetation.patch.pft[indiv.pft.id];
 
-		indiv.soiltemp_dynamic.add(vegetation.patch.soil.T_soil[7]);
+		// indiv.soiltemp_dynamic.add(vegetation.patch.soil.T_soil[7]);
+		fail("FIXME: figure out how to implement this in new soil scheme");
 
 		if (pft.is_grass()) { 
 
@@ -871,17 +875,31 @@ void leaf_phenology(Patch& patch, Climate& climate) {
  * nitrogen storage capacity is not exceeded
  */
 double calc_nrelocfrac(lifeformtype lifeform, double turnover_leaf, double nmass_leaf,
-	double turnover_root, double nmass_root, double turnover_sap, double nmass_sap, double max_n_storage, double longterm_nstore) {
+	double turnover_root, double nmass_root, double turnover_sap, double nmass_sap, double max_n_storage, double nstore) {
+
+	// Maximum retranslocation fraction is set to 50% over standard level
+	const double MAX_NRELOCFRAC = 1.5;
+	// Maximum retranslocation level
+	double nrelocfrac_max = min(1.0, MAX_NRELOCFRAC * nrelocfrac);
 
 	double turnover_nmass = turnover_leaf * nmass_leaf + turnover_root * nmass_root;
 
 	if (lifeform == TREE)
 		turnover_nmass += turnover_sap * nmass_sap;
 
-	if (max_n_storage < longterm_nstore)
+	// No N from turnover
+	if (negligible(turnover_nmass))
+		return 1.0;
+	// Storage is already larger than maximum level, no retranslocation
+	else if (max_n_storage < nstore)
 		return 0.0;
-	else if (max_n_storage < longterm_nstore + turnover_nmass * nrelocfrac && !negligible(turnover_nmass))
-		return (max_n_storage - longterm_nstore) / (turnover_nmass);
+	// Less N retranslocation is needed than standard nrelocfrac to fill maximum
+	else if ((max_n_storage - nstore) / turnover_nmass < nrelocfrac)
+		return (max_n_storage - nstore) / turnover_nmass;
+	else if ((max_n_storage - nstore) / turnover_nmass > nrelocfrac) {
+		double val = sqrt(0.1 * ((max_n_storage - nstore) / turnover_nmass - nrelocfrac));
+		return min(nrelocfrac_max, val * (nrelocfrac_max - nrelocfrac) + nrelocfrac);
+	}
 	else
 		return nrelocfrac;
 }
@@ -919,8 +937,8 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	double& cmass_heart, double& nmass_leaf, double& nmass_root, double& nmass_sap,
 	double& nmass_heart, double& litter_leaf, double& litter_root, double& cmass_leaf_root_turnover,
 	double& nmass_litter_leaf, double& nmass_litter_root,
-	double& longterm_nstore, double &max_n_storage,
-	bool alive, double& cmass_sap_turnover) {
+	double& longterm_nstore, double& max_n_storage,
+	bool alive, double& NH4_mass) {
 
 	// DESCRIPTION
 	// Transfers carbon from leaves and roots to litter, and from sapwood to heartwood
@@ -967,8 +985,12 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 
 	turnover = turnover_leaf * nmass_leaf;
 	nmass_leaf -= turnover;
-	assert(nmass_leaf >= 0);
-	nmass_litter_leaf += turnover * (1.0 - actual_nrelocfrac);
+	if (alive) {
+		nmass_litter_leaf += turnover * (1.0 - actual_nrelocfrac);
+	}
+	else {
+		NH4_mass += turnover * (1.0 - actual_nrelocfrac);
+	}
 	longterm_nstore += turnover * actual_nrelocfrac;
 
 	// Root turnover
@@ -979,7 +1001,12 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 
 	turnover = turnover_root * nmass_root;
 	nmass_root -= turnover;
-	nmass_litter_root += turnover * (1.0 - actual_nrelocfrac);
+	if (alive) {
+		nmass_litter_root += turnover * (1.0 - actual_nrelocfrac);
+	}
+	else {
+		NH4_mass += turnover * (1.0 - actual_nrelocfrac);
+	}
 	longterm_nstore += turnover * actual_nrelocfrac;
 
 	if (lifeform == TREE) {
@@ -990,7 +1017,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 		turnover = turnover_sap * cmass_sap;
 		cmass_sap -= turnover;
 		cmass_heart += turnover;
-		cmass_sap_turnover = turnover;
+		// cmass_sap_turnover = turnover;
 
 		// NB: assumes nitrogen is translocated from sapwood prior to conversion to
 		//     heartwood and that this is the same fraction that is conserved
@@ -1066,34 +1093,14 @@ inline double f(double& cmass_leaf_inc) {
 }
 
 
-void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf_inc, double& cmass_root_inc,
-		double& cmass_sap_inc, double& cmass_debt_inc, double& cmass_heart_inc,
-		double& litter_leaf_inc, double& litter_root_inc, double& exceeds_cmass) {
-
-	// leaf C biomass for last time period on individual basis (kgC)
-	double cmass_leaf = indiv.get_cmass_leaf() / indiv.densindiv;
-	// root C biomass for last time period on individual basis (kgC)
-	double cmass_root = indiv.cmass_root / indiv.densindiv;
-	// sapwood C biomass for last time period on individual basis (kgC)
-	double cmass_sap = indiv.cmass_sap / indiv.densindiv;
-	// C debt for last time period on individual basis (kgC)
-	double cmass_debt = indiv.cmass_debt / indiv.densindiv;
-	// heartwood C biomass for last time period on individual basis (kgC)
-	double cmass_heart = indiv.cmass_heart / indiv.densindiv;
-	// individual height (m)
-	double height = indiv.height;
-	// specific leaf area (PFT-specific constant) (m2/kgC)
-	double sla = indiv.sla();
-	// wood density (PFT-specific constant) (kgC/m3)
-	double wooddens = indiv.pft.wooddens;
-	// life form class (TREE or GRASS)
-	lifeformtype lifeform = indiv.pft.lifeform;
-	// ratio of leaf area to sapwood cross-sectional area (PFT-specific constant)          
-	double k_latosa = indiv.pft.k_latosa;
-	// constant in allometry equations
-	double k_allom2 = indiv.pft.k_allom2;
-	// constant in allometry equations
-	double k_allom3 = indiv.pft.k_allom3;
+void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sap,
+	double cmass_debt,double cmass_heart,double ltor,double height,double sla,
+	double wooddens,lifeformtype lifeform,double k_latosa,double k_allom2,
+	double k_allom3,double& cmass_leaf_inc,double& cmass_root_inc,
+	double& cmass_sap_inc,
+	double& cmass_debt_inc,
+	double& cmass_heart_inc,double& litter_leaf_inc,
+	double& litter_root_inc,double& exceeds_cmass) {
 
 	// DESCRIPTION
 	// Calculates changes in C compartment sizes (leaves, roots, sapwood, heartwood)
@@ -1102,7 +1109,19 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 
 	// INPUT PARAMETERS
 	// bminc       = biomass increment this time period on individual basis (kgC)
+	// cmass_leaf  = leaf C biomass for last time period on individual basis (kgC)
+	// cmass_root  = root C biomass for last time period on individual basis (kgC)
+	// cmass_sap   = sapwood C biomass for last time period on individual basis (kgC)
+	// cmass_heart = heartwood C biomass for last time period on individual basis (kgC)
 	// ltor        = leaf to root mass ratio following allocation
+	// height      = individual height (m)
+	// sla         = specific leaf area (PFT-specific constant) (m2/kgC)
+	// wooddens    = wood density (PFT-specific constant) (kgC/m3)
+	// lifeform    = life form class (TREE or GRASS)
+	// k_latosa    = ratio of leaf area to sapwood cross-sectional area (PFT-specific
+	//               constant)
+	// k_allom2    = constant in allometry equations
+	// k_allom3    = constant in allometry equations
 
 	// OUTPUT PARAMETERS
 	// cmass_leaf_inc  = increment (may be negative) in leaf C biomass following
@@ -1505,7 +1524,7 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 			// Add killed roots to litter
 			litter_root_inc = max(-cmass_root_inc, 0.0);
 		}
-		else {
+		else if (bminc < 0) {
 
 			// Abnormal allocation: negative biomass increment
 
@@ -1549,7 +1568,7 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 	// maximum carbon mismatch
 	double EPS = 1.0e-12;
 
-	//assert(fabs(bminc + exceeds_cmass - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
+	assert(fabs(bminc + exceeds_cmass - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
 }
 
 double calc_creserve_opt_grote(const Individual &indiv) {
@@ -1805,8 +1824,10 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 			}
 		} else {
 			// TODO: make sure tree establishment uses the C:N ratio of the seeds
-			allocation(cmass_init, indiv, ltor, cmass_leaf_ind, cmass_root_ind, 
-			cmass_sap_ind, dval, dval, dval, dval, dval);
+			allocation(cmass_init, 0.0, 0.0, 0.0, 0.0, 0.0, ltor, 0.0, indiv.pft.sla, indiv.pft.wooddens,
+				indiv.pft.lifeform, indiv.pft.k_latosa, indiv.pft.k_allom2, indiv.pft.k_allom3,
+				cmass_leaf_ind, cmass_root_ind, cmass_sap_ind, dval, dval, dval, dval, dval);
+
 			cmass_leaf_ind *= indiv.densindiv;
 			cmass_root_ind *= indiv.densindiv;
 			cmass_sap_ind *= indiv.densindiv;
@@ -2261,18 +2282,33 @@ bool allometry(Individual& indiv) {
 
 			indiv.height = indiv.cmass_sap / indiv.cmass_leaf / indiv.sla() * indiv.pft.k_latosa / indiv.pft.wooddens;
 
+			// Previous years height
+			double height_prev = indiv.height;
+
 			// Stem diameter (Eqn 5)
 			indiv.diam = pow(indiv.height / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
 
 			// Stem volume
 			double vol = indiv.height * PI * indiv.diam * indiv.diam * 0.25;
 
-			if (indiv.age && (indiv.cmass_heart + indiv.cmass_sap) / indiv.densindiv / vol < indiv.pft.wooddens * 0.9) {
-				Patch& patch = indiv.vegetation.patch;
-				Patchpft& patchpft = patch.pft[indiv.pft.id];
+			// Stem density (kg C m-3)
+			double wooddens = (indiv.cmass_heart + indiv.cmass_sap) / indiv.densindiv / vol;
 
-				patchpft.cmass_mort += indiv.ccont();
-				return false;
+			// Calculated wood density is not within its limits due to strange tree height. 
+			// Keep last years tree height and recalculate stem diameter. This prevents cohort 
+			// from dying due to abnormal height, but will be affected by growth efficiency 
+			// mortality instead 
+			if (indiv.age && (wooddens < indiv.pft.wooddens * 0.9 || wooddens > indiv.pft.wooddens / 0.9)) {
+
+				double diam_prev = pow(height_prev / indiv.pft.k_allom2, 1.0 / indiv.pft.k_allom3);
+
+				double vol_prev = height_prev * PI * diam_prev * diam_prev * 0.25;
+
+				double vol_new = (indiv.cmass_heart + indiv.cmass_sap) / indiv.densindiv / indiv.pft.wooddens;
+
+				indiv.height = height_prev;
+
+				indiv.diam = diam_prev * sqrt(vol_new / vol_prev);
 			}
 		}
 		else {
@@ -2517,479 +2553,505 @@ void growth(Stand& stand, Patch& patch) {
 	double cton_root_bg;
 	// Sap C:N ratios before growth
 	double cton_sap_bg;
+	// Heart C:N ratios before growth
+	double cton_heart_bg;
 
 	double dval = 0.0;
 	int p;
 
 	// Obtain reference to Vegetation object for this patch
 	Vegetation& vegetation = patch.vegetation;
-	Gridcell& gridcell = vegetation.patch.stand.get_gridcell();
 
 	// On first call to function growth this year (patch #0), initialise stand-PFT
 	// record of summed allocation to reproduction
 
-	// Daily carbon allocation does this in growth_pasture_daily
-	flush_cmass_repr(patch);
+	if (!patch.id)
+		for (p=0; p<npft; p++)
+			stand.pft[p].cmass_repr = 0.0;
 
-	double total_ndemand = 0;
+	// Loop through individuals
+
 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
-		Patchpft& patchpft = patch.pft[indiv.pft.id];
+		Patchpft& ppft = patch.pft[indiv.pft.id];
 
 		if (indiv.pft.dave_allocation()) {
-			// This individual is using dave allocation.
-			// TODO: need to skip if it's a grass, and davegrowth is false but
-			// ifdailygrass is true (ie the DW version).
-			vegetation.nextobj();
 			continue;
 		}
 
+		// For this individual
+
+		cmass_excess = 0.0;
+
+		// Calculate vegetation carbon and nitrogen mass before growth to determine vegetation C:N ratios
+		indiv.cmass_veg = indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
+		indiv.nmass_veg = indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_wood();
+
+		// Save real compartment C:N ratios before growth
+		// phen is switched off for leaf and root
+		// Leaf
+		cton_leaf_bg = indiv.cton_leaf(false);
+
+		// Root
+		cton_root_bg = indiv.cton_root(false);
+
+		// Sapwood
+		cton_sap_bg = indiv.cton_sap();
+
+		// Heartwood
+		cton_heart_bg = indiv.cton_heart();
+
+		// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle and Friend 2010 SM eq 19)
+		nscal = ifnlim ? min(1.0, indiv.cton_leaf_aopt / indiv.cton_leaf_aavr) : 1.0;
+
+		// Set leaf:root mass ratio based on water stress parameter
+		// or nitrogen stress scalar
+		indiv.ltor = min(indiv.wscal_mean(), nscal) * indiv.pft.ltor_max;
+
+		// Move leftover compartment nitrogen storage to longterm storage
+		if(!indiv.has_daily_turnover())	{
+			indiv.nstore_longterm += indiv.nstore_labile;
+			indiv.nstore_labile = 0.0;
+		}
+
+		indiv.deltafpc = 0.0;
+
 		bool killed = false;
 
-		indiv.cmass_sap_yesterday = indiv.cmass_sap;
+		if (negligible(indiv.densindiv))
+			fail("growth: negligible densindiv for %s",(char*)indiv.pft.name);
+		else {
 
-		// Standard yearly growth functionalities
+			// Allocation to reproduction
+			if (!indiv.istruecrop_or_intercropgrass())
+				reproduction(indiv.pft.reprfrac, indiv.anpp, bminc, cmass_repr);
 
-		if (!(ifdailygrass && indiv.pft.is_grass()) || indiv.istruecrop_or_intercropgrass()) {
-	
-			// For this individual
-
-			// Calculate vegetation carbon and nitrogen mass before growth to determine vegetation C:N ratios
-			indiv.cmass_veg = indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
-			indiv.nmass_veg = indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_wood();
-
-			// Save real compartment C:N ratios before growth
-			// phen is switched off for leaf and root
-			// Leaf
-			cton_leaf_bg = indiv.cton_leaf(false);
-
-			// Root
-			cton_root_bg = indiv.cton_root(false);
-
-			// Sap
-			cton_sap_bg = indiv.cton_sap();
-
-			// Save leaf annual average C:N ratio
-			if (!negligible(indiv.nday_leafon))
-				indiv.cton_leaf_aavr /= indiv.nday_leafon;
-			else
-				indiv.cton_leaf_aavr = indiv.pft.cton_leaf_max;
-
-			// Nitrogen stress scalar for leaf to root allocation (adopted from Zaehle and Friend 2010 SM eq 19)
-			double cton_leaf_aopt = max(indiv.cton_leaf_aopt, indiv.pft.cton_leaf_avr);
-
-			if (ifnlim)
-				nscal = min(1.0, cton_leaf_aopt / indiv.cton_leaf_aavr);
-			else
-				nscal = 1.0;
-
-			// Set leaf:root mass ratio based on water stress parameter
-			// or nitrogen stress scalar
-			indiv.ltor = min(indiv.wscal_mean(), nscal) * indiv.pft.ltor_max;
-
-			// Move leftover compartment nitrogen storage to longterm storage
-			if(!indiv.has_daily_turnover())	{
-				indiv.nstore_longterm += indiv.nstore_labile;
-				indiv.nstore_labile = 0.0;
+			if(indiv.alive) {
+				ppft.cmass_repr += cmass_repr;
 			}
 
-			indiv.deltafpc = 0.0;
+			raingreen_ndemand = 0.0;
 
-			if (negligible(indiv.densindiv))
-				fail("growth: negligible densindiv for %s",(char*)indiv.pft.name);
-			else {
+			// added bminc check. Otherwise we get -ve litter_leaf for grasses when indiv.anpp < 0.
+			//
+			// cmass_excess-code inactivated for grass pft:s, due to frequent oscillations between high bminc and zero bminc in
+			// certain grasslands using updated leaflong-value for grass-pft:s (0.5)
+			if (bminc >= 0 && indiv.pft.phenology == RAINGREEN) {
 
-				// Allocation to reproduction
-				if(!indiv.istruecrop_or_intercropgrass())
-					reproduction(indiv.pft.reprfrac,indiv.anpp,bminc,cmass_repr);
+				// Raingreen PFTs: reduce biomass increment to account for NPP
+				// allocated to extra leaves during the past year.
+				// Excess allocation to leaves given by:
+				//   aphen_raingreen / ( leaf_longevity * year_length) * cmass_leaf -
+				//   cmass_leaf
 
-				indiv.acalloc_repr = cmass_repr;
-				if(indiv.alive)
-					patchpft.cmass_repr += cmass_repr;
+				// BLARP! excess allocation to roots now also included (assumes leaf longevity = root longevity)
 
-				raingreen_ndemand = 0.0;
+				cmass_excess = max((double)indiv.aphen_raingreen /
+					(indiv.pft.leaflong() * (double)date.year_length()) * (indiv.cmass_leaf + indiv.cmass_root) -
+					indiv.cmass_leaf - indiv.cmass_root, 0.0);
 
-				// added bminc check. Otherwise we get -ve litter_leaf for grasses when indiv.anpp < 0.
-				//
-				// cmass_excess-code inactivated for grass pft:s, due to frequent oscillations between high bminc and zero bminc in
-				// certain grasslands using updated leaflong-value for grass-pft:s (0.5)
-				if (bminc >= 0 && indiv.pft.phenology == RAINGREEN) {
+				if (cmass_excess > bminc) cmass_excess = bminc;
 
-					// Raingreen PFTs: reduce biomass increment to account for NPP
-					// allocated to extra leaves during the past year.
-					// Excess allocation to leaves given by:
-					//   aphen_raingreen / ( leaf_longevity * year_length) * cmass_leaf -
-					//   cmass_leaf
-					
-					// BLARP! excess allocation to roots now also included (assumes leaf longevity = root longevity)
+				// Transfer excess leaves to litter
+				// only for 'alive' individuals
+				if (indiv.alive) {
+					ppft.cmass_litter_leaf += cmass_excess;
+					if (!negligible(cton_leaf_bg))
+						raingreen_ndemand = min(indiv.nmass_leaf, cmass_excess / cton_leaf_bg);
+					else
+						raingreen_ndemand = 0.0;
 
-					cmass_excess = max((double)indiv.aphen_raingreen /
-							(indiv.pft.leaflong() * (double)date.year_length()) * (indiv.cmass_leaf + indiv.cmass_root) -
-							indiv.cmass_leaf - indiv.cmass_root, 0.0);
-
-					if (cmass_excess > bminc) cmass_excess = bminc;
-
-					// Transfer excess leaves to litter
-					// only for 'alive' individuals
-					if (indiv.alive) {
-						patch.pft[indiv.pft.id].cmass_litter_leaf += cmass_excess;
-						if (!negligible(cton_leaf_bg))
-							raingreen_ndemand = min(indiv.nmass_leaf, cmass_excess / cton_leaf_bg);
-						else
-							raingreen_ndemand = 0.0;
-
-						patch.pft[indiv.pft.id].nmass_litter_leaf += raingreen_ndemand * (1.0 - nrelocfrac);
-						indiv.nstore_longterm += raingreen_ndemand * nrelocfrac;
-						indiv.nmass_leaf -= raingreen_ndemand;
-						assert(indiv.nmass_leaf >= 0);
-					}
-
-					// Deduct from this year's C biomass increment
-					// added alive check
-					if (indiv.alive) bminc -= cmass_excess;
-					if (indiv.alive) patchpft.cmass_mort += cmass_excess;
+					double nreloc = max(0.0, min(indiv.max_n_storage - indiv.nstore(), raingreen_ndemand * nrelocfrac));
+					ppft.nmass_litter_leaf += raingreen_ndemand - nreloc;
+					indiv.nstore_longterm += nreloc;
+					indiv.nmass_leaf -= raingreen_ndemand;
 				}
 
-				// All yearly harvest events
-				killed = harvest_year(indiv);
+				// Deduct from this year's C biomass increment
+				// added alive check
+				if (indiv.alive) {
+					bminc -= cmass_excess;
+					ppft.cmass_mort += cmass_excess;
+				}
+			}
 
-				if (!killed) {
+			// All yearly harvest events
+			killed = harvest_year(indiv);
 
-					if(!indiv.has_daily_turnover()) {
-						// Tissue turnover and associated litter production
-						turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
-								indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
-								indiv.cmass_leaf, indiv.cmass_root, indiv.cmass_sap, indiv.cmass_heart,
-								indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap, indiv.nmass_heart,
-								patch.pft[indiv.pft.id].cmass_litter_leaf,
-								patch.pft[indiv.pft.id].cmass_litter_root, patch.pft[indiv.pft.id].cmass_leaf_root_turnover,
-								patch.pft[indiv.pft.id].nmass_litter_leaf,
-								patch.pft[indiv.pft.id].nmass_litter_root,
-								indiv.nstore_longterm,indiv.max_n_storage,
-								indiv.alive, indiv.cmass_sap_turnover);
+			if (!killed) {
+
+				if (!indiv.has_daily_turnover()) {
+					// Tissue turnover and associated litter production
+					turnover(indiv.pft.turnover_leaf, indiv.pft.turnover_root,
+						indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
+						indiv.cmass_leaf, indiv.cmass_root, indiv.cmass_sap, indiv.cmass_heart,
+						indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap, indiv.nmass_heart,
+						ppft.cmass_litter_leaf, ppft.cmass_litter_root, patch.pft[indiv.pft.id].cmass_leaf_root_turnover,
+						ppft.nmass_litter_leaf, ppft.nmass_litter_root,
+						indiv.nstore_longterm, indiv.max_n_storage,
+						indiv.alive, ppft.nmass_litter_NH4);
+				}
+				// Update stand record of reproduction by this PFT
+				stand.pft[indiv.pft.id].cmass_repr += cmass_repr / (double)stand.npatch();
+
+				// Transfer reproduction straight to litter
+				// only for 'alive' individuals
+				if (indiv.alive) {
+					ppft.cmass_litter_repr += cmass_repr;
+				}
+
+				if (indiv.pft.lifeform == TREE) {
+
+					// TREE GROWTH
+
+					// BLARP! Try and pay back part of cdebt
+
+					if (ifcdebt && bminc > 0.0) {
+						double cmass_payback = min(indiv.cmass_debt * CDEBT_PAYBACK_RATE, bminc);
+						bminc -= cmass_payback;
+						indiv.cmass_debt -= cmass_payback;
 					}
-					// Update stand record of reproduction by this PFT
-					stand.pft[indiv.pft.id].cmass_repr += cmass_repr / (double)stand.npatch();
 
-					// Transfer reproduction straight to litter
-					// only for 'alive' individuals
+					// Allocation: note conversion of mass values from grid cell area
+					// to individual basis
+
+					allocation(bminc / indiv.densindiv, indiv.cmass_leaf / indiv.densindiv,
+						indiv.cmass_root / indiv.densindiv, indiv.cmass_sap / indiv.densindiv,
+						indiv.cmass_debt / indiv.densindiv,
+						indiv.cmass_heart / indiv.densindiv, indiv.ltor,
+						indiv.height, indiv.pft.sla, indiv.pft.wooddens, TREE,
+						indiv.pft.k_latosa, indiv.pft.k_allom2, indiv.pft.k_allom3,
+						cmass_leaf_inc, cmass_root_inc, cmass_sap_inc, cmass_debt_inc,
+						cmass_heart_inc,
+						litter_leaf_inc, litter_root_inc, exceeds_cmass);
+
+					// Update carbon pools and litter (on area basis)
+					// (litter not accrued for not 'alive' individuals - Ben 2007-11-28)
+
+					// Leaves
+					indiv.cmass_leaf += cmass_leaf_inc * indiv.densindiv;
+
+					// Roots
+					indiv.cmass_root += cmass_root_inc * indiv.densindiv;
+
+					// Sapwood
+					indiv.cmass_sap += cmass_sap_inc * indiv.densindiv;
+
+					// Heartwood
+					indiv.cmass_heart += cmass_heart_inc * indiv.densindiv;
+
+					// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and
+					// (1.0 - nreloctrac) will go to storage
+					if (cmass_sap_inc < 0.0) {
+						double nmass_sap_dec = min(indiv.nmass_sap, -cmass_sap_inc * indiv.densindiv / cton_sap_bg);
+						indiv.nmass_sap -= nmass_sap_dec;
+						double nstore_add = max(0.0, min(indiv.max_n_storage - indiv.nstore(), nmass_sap_dec * nrelocfrac));
+						indiv.nmass_heart += nmass_sap_dec - nstore_add;
+						indiv.nstore_longterm += nstore_add;
+						assert(indiv.nmass_sap >= 0.0);
+					}
+
+					// C debt
+					indiv.cmass_debt += cmass_debt_inc * indiv.densindiv;
+
+					// alive check before ensuring C balance
 					if (indiv.alive) {
-						patch.pft[indiv.pft.id].cmass_litter_repr += cmass_repr;
+						ppft.cmass_litter_leaf += litter_leaf_inc * indiv.densindiv;
+						ppft.cmass_litter_root += litter_root_inc * indiv.densindiv;
+						ppft.cmass_mort += (litter_leaf_inc + litter_root_inc) * indiv.densindiv;
+
+						// C litter exceeding existing biomass
+						indiv.report_flux(Fluxes::NPP, exceeds_cmass * indiv.densindiv);
+						indiv.report_flux(Fluxes::RA, -exceeds_cmass * indiv.densindiv);
+					}
+					else {
+						litter_leaf_inc = 0.0;
+						litter_root_inc = 0.0;
 					}
 
-					if (indiv.pft.lifeform == TREE) {
+					// Nitrogen always return to soil litter and storage
+					// Leaf
+					double nmass_leaf = max(0.0, min(indiv.nmass_leaf, litter_leaf_inc * indiv.densindiv / cton_leaf_bg));
+					double nreloc_leaf = max(0.0, min(indiv.max_n_storage - indiv.nstore(), nmass_leaf * nrelocfrac));
+					ppft.nmass_litter_leaf += nmass_leaf - nreloc_leaf;
+					indiv.nstore_longterm += nreloc_leaf;
 
-						// TREE GROWTH
+					// Subtracting litter nitrogen from individuals
+					indiv.nmass_leaf -= nmass_leaf;
 
-						// BLARP! Try and pay back part of cdebt
+					// Root
+					double nmass_root = max(0.0, min(indiv.nmass_root, litter_root_inc * indiv.densindiv / cton_root_bg));
+					double nreloc_root = max(0.0, min(indiv.max_n_storage - indiv.nstore(), nmass_root * nrelocfrac));
+					ppft.nmass_litter_root += nmass_root - nreloc_root;
+					indiv.nstore_longterm += nreloc_root;
 
-						if (ifcdebt && bminc > 0.0) {
-							double cmass_payback = min(indiv.cmass_debt * CDEBT_PAYBACK_RATE, bminc);
-							bminc -= cmass_payback;
-							indiv.cmass_debt -= cmass_payback;
+					// Subtracting litter nitrogen from individuals
+					indiv.nmass_root -= nmass_root;
+
+					// Update individual age
+
+					indiv.age++;
+
+					// Kill individual and transfer biomass to litter if any biomass
+					// compartment negative
+
+					if (indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS ||
+						indiv.cmass_sap < MINCMASS) {
+
+						if(indiv.alive) {
+							ppft.cmass_mort += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
 						}
 
-						// Allocation: note conversion of mass values from grid cell area
-						// to individual basis
+						indiv.kill();
 
-						allocation(bminc / indiv.densindiv, indiv, indiv.ltor,
-								cmass_leaf_inc, cmass_root_inc, cmass_sap_inc, cmass_debt_inc,
-								cmass_heart_inc, litter_leaf_inc, litter_root_inc, exceeds_cmass);
+						vegetation.killobj();
+						killed = true;
+					}
+				}
+				else if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 
-						// Update carbon pools and litter (on area basis)
-						// (litter not accrued for not 'alive' individuals - Ben 2007-11-28)
+					// GRASS AND MOSS GROWTH
 
-						// Leaves
-						indiv.cmass_leaf += cmass_leaf_inc * indiv.densindiv;
-						indiv.acalloc_leaf = cmass_leaf_inc * indiv.densindiv;
+					//True crops do not use bminc.or cmass_leaf etc.
+					if (indiv.istruecrop_or_intercropgrass()) {
+						// transfer crop cmass increase values to common variables
+						growth_crop_year(indiv, cmass_leaf_inc, cmass_root_inc, cmass_ho_inc, cmass_agpool_inc, cmass_stem_inc);
 
-						// Roots
-						indiv.cmass_root += cmass_root_inc * indiv.densindiv;
-						indiv.acalloc_root = cmass_root_inc * indiv.densindiv;
+						exceeds_cmass = 0.0;	//exceeds_cmass not used for true crops
+					}
+					else {
+						allocation(bminc, indiv.cmass_leaf, indiv.cmass_root,
+							0.0, 0.0, 0.0, indiv.ltor, 0.0, 0.0, 0.0, indiv.pft.lifeform, 0.0,
+							0.0, 0.0, cmass_leaf_inc, cmass_root_inc, dval, dval, dval,
+							litter_leaf_inc, litter_root_inc, exceeds_cmass);
+					}
 
-						// Sapwood
-						indiv.cmass_sap += cmass_sap_inc * indiv.densindiv;
-						indiv.acalloc_sap = cmass_sap_inc * indiv.densindiv;
+					if (indiv.pft.landcover == CROPLAND) {
+						if (indiv.istruecrop_or_intercropgrass())
+							yield_crop(indiv);
+						else
+							yield_pasture(indiv, cmass_leaf_inc);
+					}
 
-						// Heartwood
-						indiv.cmass_heart += cmass_heart_inc * indiv.densindiv;
+					// Update carbon pools and litter (on area basis)
+					// only litter in the case of 'alive' individuals
 
-						indiv.cmass_wood_inc_5.add((cmass_sap_inc + cmass_heart_inc - cmass_debt_inc) * indiv.densindiv);
+					// Leaves
+					indiv.cmass_leaf += cmass_leaf_inc;
 
-						// If negative sap growth, then nrelocfrac of nitrogen will go to heart wood and
-						// (1.0 - nreloctrac) will go to storage
-						double nmass_sap_inc = cmass_sap_inc * indiv.densindiv / cton_sap_bg;
+					// Roots
+					indiv.cmass_root += cmass_root_inc;
 
-						if (cmass_sap_inc < 0.0 && indiv.nmass_sap >= -nmass_sap_inc){
-							indiv.nmass_sap += nmass_sap_inc;
-							indiv.nmass_heart -= nmass_sap_inc * nrelocfrac;
-							indiv.nstore_longterm -= nmass_sap_inc * (1.0 - nrelocfrac);
-							assert(indiv.nmass_sap >= 0.0);
-						}
+					if (indiv.pft.landcover == CROPLAND) {
+						indiv.cropindiv->cmass_ho += cmass_ho_inc;
+						indiv.cropindiv->cmass_agpool += cmass_agpool_inc;
+						indiv.cropindiv->cmass_stem += cmass_stem_inc;
+					}
 
-						// C debt
-						indiv.cmass_debt += cmass_debt_inc * indiv.densindiv;
+					if (indiv.pft.phenology != CROPGREEN && !(indiv.has_daily_turnover() && indiv.continous_grass())) {
 
 						// alive check before ensuring C balance
-						if (indiv.alive) {
-							patch.pft[indiv.pft.id].cmass_litter_leaf += litter_leaf_inc * indiv.densindiv;
-							patch.pft[indiv.pft.id].cmass_litter_root += litter_root_inc * indiv.densindiv;
-							patchpft.cmass_mort += (litter_leaf_inc + litter_root_inc) * indiv.densindiv;
+						if (indiv.alive && !indiv.istruecrop_or_intercropgrass()) {
+
+							ppft.cmass_litter_leaf += litter_leaf_inc;
+							ppft.cmass_litter_root += litter_root_inc;
+
+							ppft.cmass_mort += litter_leaf_inc + litter_root_inc;
 
 							// C litter exceeding existing biomass
 							indiv.report_flux(Fluxes::NPP, exceeds_cmass * indiv.densindiv);
 							indiv.report_flux(Fluxes::RA, -exceeds_cmass * indiv.densindiv);
 						}
+						else {
+							// Not alive, no litter created
+							litter_leaf_inc = 0.0;
+							litter_root_inc = 0.0;
+						}
 
-						double leaf_inc = min(indiv.nmass_leaf, litter_leaf_inc * indiv.densindiv / cton_leaf_bg);
-						double root_inc = min(indiv.nmass_root, litter_root_inc * indiv.densindiv / cton_root_bg);
-
-						// Nitrogen litter always return to soil litter and storage
+						// Nitrogen always return to soil litter and storage
 						// Leaf
-						patch.pft[indiv.pft.id].nmass_litter_leaf += leaf_inc * (1.0 - nrelocfrac);
-						indiv.nstore_longterm += leaf_inc * nrelocfrac;
+						if (indiv.nmass_leaf > 0.0) {
+							double nmass = min(indiv.nmass_leaf, litter_leaf_inc * indiv.densindiv / cton_leaf_bg);
+							double nreloc = max(0.0, min(indiv.max_n_storage - indiv.nstore(), nmass * nrelocfrac));
+							ppft.nmass_litter_leaf += nmass - nreloc;
+							indiv.nstore_longterm += nreloc;
+
+							// Subtracting litter nitrogen from individuals
+							indiv.nmass_leaf -= nmass;
+						}
 
 						// Root
-						patch.pft[indiv.pft.id].nmass_litter_root += root_inc * (1.0 - nrelocfrac);
-						indiv.nstore_longterm += root_inc * nrelocfrac;
+						if (indiv.nmass_root > 0.0) {
+							double nmass = min(indiv.nmass_root, litter_root_inc * indiv.densindiv / cton_root_bg);
+							double nreloc = max(0.0, min(indiv.max_n_storage - indiv.nstore(), nmass * nrelocfrac));
+							ppft.nmass_litter_root += nmass - nreloc;
+							indiv.nstore_longterm += nreloc;
 
-						// Subtracting litter nitrogen from individuals
-						indiv.nmass_leaf -= leaf_inc;
-						indiv.nmass_root -= root_inc;
-
-						assert(indiv.nmass_leaf >= 0);
-						assert(indiv.nmass_root >= 0);
-
-						// Update individual age
-
-						indiv.age++;
-
-						// Kill individual and transfer biomass to litter if any biomass
-						// compartment negative
-
-						if (indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS ||
-								indiv.cmass_sap < MINCMASS) {
-
-							if(indiv.alive)
-								patchpft.cmass_mort += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
-
-							log_info("%s killed by carbon starvation...", (const char *)indiv.pft.name);
-							indiv.kill();
-
-							vegetation.killobj();
-							killed = true;
+							// Subtracting litter nitrogen from individuals
+							indiv.nmass_root -= nmass;
 						}
 					}
-					else if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
+					// Kill individual and transfer biomass to litter if either biomass
+					// compartment negative
 
-					// GRASS AND MOSS GROWTH
 
-						//True crops do not use bminc.or cmass_leaf etc.
-						if(indiv.istruecrop_or_intercropgrass()) {
-							// transfer crop cmass increase values to common variables
-							growth_crop_year(indiv, cmass_leaf_inc, cmass_root_inc, cmass_ho_inc, cmass_agpool_inc, cmass_stem_inc);
+					// Note - what happens if cmass_root = 0?
+					if ((indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS) && !indiv.istruecrop_or_intercropgrass()) {
 
-							exceeds_cmass = 0.0;	//exceeds_cmass not used for true crops
-						}
-						else {
-							allocation(bminc, indiv, indiv.ltor, cmass_leaf_inc, cmass_root_inc, dval, dval, dval,
-									litter_leaf_inc, litter_root_inc, exceeds_cmass);
+						if(indiv.alive) {
+							ppft.cmass_mort += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
 						}
 
-						if(indiv.pft.landcover == CROPLAND) {
-							if(indiv.istruecrop_or_intercropgrass())
-								yield_crop(indiv);
-							else
-								yield_pasture(indiv, cmass_leaf_inc);
-						}
+						indiv.kill();
 
-						// Update carbon pools and litter (on area basis)
-						// only litter in the case of 'alive' individuals
-
-						// Leaves
-						indiv.cmass_leaf += cmass_leaf_inc;
-
-						// Roots
-						indiv.cmass_root += cmass_root_inc;
-
-						if(indiv.pft.landcover == CROPLAND)	{
-							indiv.cropindiv->cmass_ho += cmass_ho_inc;
-							indiv.cropindiv->cmass_agpool += cmass_agpool_inc;
-							indiv.cropindiv->cmass_stem += cmass_stem_inc;
-						}
-
-						if(indiv.pft.phenology != CROPGREEN && !(indiv.has_daily_turnover() && indiv.continous_grass())) {
-
-							// alive check before ensuring C balance
-							if (indiv.alive && !indiv.istruecrop_or_intercropgrass()) {
-
-								patch.pft[indiv.pft.id].cmass_litter_leaf += litter_leaf_inc;
-								patch.pft[indiv.pft.id].cmass_litter_root += litter_root_inc;
-
-								patchpft.cmass_mort += litter_leaf_inc + litter_root_inc;
-
-								// C litter exceeding existing biomass
-								indiv.report_flux(Fluxes::NPP, exceeds_cmass * indiv.densindiv);
-								indiv.report_flux(Fluxes::RA, -exceeds_cmass * indiv.densindiv);
-							}
-
-							// Nitrogen always return to soil litter and storage
-							// Leaf
-							if (indiv.nmass_leaf > 0.0){
-								double nmass = min(indiv.nmass_leaf, litter_leaf_inc * indiv.densindiv / cton_leaf_bg);
-
-								patch.pft[indiv.pft.id].nmass_litter_leaf += nmass * (1.0 - nrelocfrac);
-								indiv.nstore_longterm += nmass * nrelocfrac;
-
-								// Subtracting litter nitrogen from individuals
-								indiv.nmass_leaf -= nmass;
-							}
-							assert(indiv.nmass_leaf >= 0);
-
-							// Root
-							if (indiv.nmass_root > 0.0){
-								double nmass = min(indiv.nmass_root, litter_root_inc * indiv.densindiv / cton_root_bg);
-
-								patch.pft[indiv.pft.id].nmass_litter_root += nmass * (1.0 - nrelocfrac);
-								indiv.nstore_longterm += nmass * nrelocfrac;
-								// Subtracting litter nitrogen from individuals
-								indiv.nmass_root -= nmass;
-							}
-						}
-						// Kill individual and transfer biomass to litter if either biomass
-						// compartment negative
-
-						// Note - what happens if cmass_root = 0?
-						if ((indiv.cmass_leaf < MINCMASS || indiv.cmass_root < MINCMASS) && !indiv.istruecrop_or_intercropgrass()) {
-
-							if(indiv.alive)
-								patchpft.cmass_mort += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
-
-							log_info("%s killed by carbon starvation...", (const char *)indiv.pft.name);
-							indiv.kill();
-
-							vegetation.killobj();
-							killed = true;
-						}
-
-					} // grass or moss
-
-					if (!killed && indiv.pft.phenology != CROPGREEN && !(indiv.has_daily_turnover() && indiv.continous_grass())) {
-						// Update nitrogen longtime storage
-
-						// Nitrogen approx retranslocated next year
-						double retransn_nextyear = indiv.cmass_leaf * indiv.pft.turnover_leaf / cton_leaf_bg * nrelocfrac +
-								indiv.cmass_root * indiv.pft.turnover_root / cton_root_bg * nrelocfrac;
-
-						if (indiv.pft.lifeform == TREE)
-							retransn_nextyear += indiv.cmass_sap * indiv.pft.turnover_sap / cton_sap_bg * nrelocfrac;
-
-						// Assume that raingreen will lose same amount of N through extra leaves next year
-						if (indiv.alive && bminc >= 0 && (indiv.pft.phenology == RAINGREEN || indiv.pft.phenology == ANY))
-							retransn_nextyear -= min(raingreen_ndemand, retransn_nextyear);
-
-						// Max longterm nitrogen storage
-						if (indiv.pft.lifeform == TREE)
-							indiv.max_n_storage = max(0.0, max(indiv.cmass_sap * indiv.pft.fnstorage / cton_leaf_bg, retransn_nextyear));
-						else // GRASS
-							indiv.max_n_storage = max(0.0, max(indiv.cmass_root * indiv.pft.fnstorage / cton_leaf_bg, retransn_nextyear));
-
-						// Scale this year productivity to max storage
-						if (indiv.anpp > 0.0) {
-							indiv.scale_n_storage = max(indiv.max_n_storage * 0.1, indiv.max_n_storage - retransn_nextyear) * cton_leaf_bg / indiv.anpp;
-						} // else use last years scaling factor
-					}
-				} else if (ifdavephotosyn) {
-					// This tree was killed and newphotosyn is enabled. Let's reset
-					// ndemand variables just to be on the safe side.
-					indiv.ndemand = 0;
-					indiv.andemand = 0;
-					indiv.andemand_leaf = 0;
-					indiv.andemand_root = 0;
-					indiv.andemand_sap = 0;
-				}
-			}
-
-
-			if (!killed) {
-
-				if (!allometry(indiv)) {
-
-					log_info("%s killed by carbon starvation...", (const char *)indiv.pft.name);
-					indiv.kill();
-
-					vegetation.killobj();
-					killed = true;
-				}
-
-				if (!killed) {
-					if (!indiv.alive) {
-						// The individual has survived its first year...
-						indiv.alive = true;
-
-						// ...now we can start counting its fluxes,
-						// debit current biomass as establishment flux
-						if (!indiv.istruecrop_or_intercropgrass()) {
-							indiv.report_flux(Fluxes::ESTC,
-							              - (indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap +
-							              indiv.cmass_heart - indiv.cmass_debt));
-							indiv.report_flux(Fluxes::ESTN, -indiv.initialn);
-
-							patchpft.cmass_est -= (indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap +
-							              indiv.cmass_heart - indiv.cmass_debt);
-						}
+						vegetation.killobj();
+						killed = true;
 					}
 
-					// Move long-term nitrogen storage pool to labile storage pool for usage next year
-					if(!indiv.has_daily_turnover()) {
-						indiv.nstore_labile = indiv.nstore_longterm;
-						indiv.nstore_longterm = 0.0;
+				} // grass or moss
+
+				if (!killed && indiv.pft.phenology != CROPGREEN && !(indiv.has_daily_turnover() && indiv.continous_grass())) {
+
+					// Check so that C:N ratios of leaf, root, sap and heart are not above maximum content
+					if (indiv.nmass_leaf > indiv.cmass_leaf / indiv.pft.cton_leaf_min) {
+						double nmove = indiv.nmass_leaf - indiv.cmass_leaf / indiv.pft.cton_leaf_min;
+						indiv.nstore_longterm += nmove;
+						indiv.nmass_leaf -= nmove;
+					}
+					if (indiv.nmass_root > indiv.cmass_root / indiv.pft.cton_root_min) {
+						double nmove = indiv.nmass_root - indiv.cmass_root / indiv.pft.cton_root_min;
+						indiv.nstore_longterm += nmove;
+						indiv.nmass_root -= nmove;
+					}
+					if (indiv.nmass_sap > indiv.cmass_sap / indiv.pft.cton_sap_min) {
+						double nmove = indiv.nmass_sap - indiv.cmass_sap / indiv.pft.cton_sap_min;
+						indiv.nstore_longterm += nmove;
+						indiv.nmass_sap -= nmove;
+					}
+					if (indiv.nmass_heart > indiv.cmass_heart / indiv.pft.cton_heart_min) {
+						double nmove = indiv.nmass_heart - indiv.cmass_heart / indiv.pft.cton_heart_min;
+						indiv.nstore_longterm += nmove;
+						indiv.nmass_heart -= nmove;
+					}
+					
+					// Update N compartments to C:N ratios before growth by using N storage
+					double ndemand_leaf = max(0.0, indiv.cmass_leaf_today() / max(indiv.pft.cton_leaf_min, cton_leaf_bg) - indiv.nmass_leaf);
+					double ndemand_root = max(0.0, indiv.cmass_root_today() / max(indiv.pft.cton_root_min, cton_root_bg) - indiv.nmass_root);
+					//double ndemand_sap = max(0.0, indiv.cmass_sap / max(indiv.pft.cton_sap_min, cton_sap_bg) - indiv.nmass_sap);
+					//double ndemand_heart = max(0.0, indiv.cmass_heart / max(indiv.pft.cton_heart_min, cton_heart_bg) - indiv.nmass_heart);
+					double ndemand_tot = ndemand_leaf + ndemand_root;// +ndemand_sap + ndemand_heart;
+
+					// If N demand then add from storage
+					if (!negligible(ndemand_tot)) {
+
+						// Fraction of N demand that could be meet
+						double nfrac = min(1.0, indiv.nstore() / ndemand_tot);
+
+						// Add N to compartments
+						indiv.nmass_leaf += ndemand_leaf * nfrac;
+						indiv.nmass_root += ndemand_root * nfrac;
+						//indiv.nmass_sap += ndemand_sap * nfrac;
+						//indiv.nmass_heart += ndemand_heart * nfrac;
+
+						// Subtract N from storage
+						double ndemand_longterm = min(indiv.nstore_longterm, nfrac * ndemand_tot);
+						indiv.nstore_longterm -= ndemand_longterm;
+						indiv.nstore_labile -= nfrac * ndemand_tot - ndemand_longterm;
+
+						if (indiv.nstore_longterm < 0.0)
+							indiv.nstore_longterm = 0.0;
+						if (indiv.nstore_labile < 0.0)
+							indiv.nstore_labile = 0.0;
 					}
 
-					// ... on to next individual
-					vegetation.nextobj();
-				}
-			}
-		} 
-		else if (ifdailygrass && indiv.pft.is_grass()) {
-			
-			// Check daily grass in the end of the year after all processes has been completed
+					// Update nitrogen longtime storage
 
-			if (negligible(indiv.densindiv)) {
-				fail("growth: negligible densindiv for %s", (char*)indiv.pft.name);
-			}
-			else {
+					// Nitrogen approx retranslocated next year
+					double retransn_nextyear = max(0.0, indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.pft.cton_leaf_min * nrelocfrac +
+						indiv.cmass_root * indiv.pft.turnover_root / indiv.pft.cton_root_min * nrelocfrac);
 
-				// Kill individual and transfer biomass to litter if either biomass
-				// compartment negative or if yearly growth this year has been low
+					if (indiv.pft.lifeform == TREE)
+						retransn_nextyear += indiv.cmass_sap * indiv.pft.turnover_sap / indiv.pft.cton_sap_min * nrelocfrac;
 
-				if (indiv.cmass_leaf_ymax < MINCMASS || indiv.cmass_root_ymax < MINCMASS || indiv.cmass_leaf_ygrowth < MINCMASS) {
+					// Assume that raingreen will lose same amount of N through extra leaves next year
+					if (indiv.alive && bminc >= 0 && (indiv.pft.phenology == RAINGREEN || indiv.pft.phenology == ANY))
+						retransn_nextyear -= min(raingreen_ndemand, retransn_nextyear);
 
-					if (ifdavegrowth) {
-						indiv.flush_repr_litter_DAVE();
+					// Max longterm nitrogen storage
+					if (indiv.pft.lifeform == TREE)
+						indiv.max_n_storage = max(retransn_nextyear, max(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr,
+							indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root * indiv.pft.turnover_root / indiv.pft.cton_root_avr));
+					else // GRASS
+						indiv.max_n_storage = max(retransn_nextyear, max(indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr,
+							indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root * indiv.pft.turnover_root / indiv.pft.cton_root_avr));
+
+					// Check so N storage isn't above max level
+					if (indiv.nstore() > indiv.max_n_storage && !negligible(indiv.nstore())) {
+						double frac = indiv.max_n_storage / indiv.nstore();
+						patch.pft[indiv.pft.id].nmass_litter_NH4 += indiv.nstore() * (1.0 - frac);
+						indiv.nstore_longterm *= frac;
+						indiv.nstore_labile *= frac;
 					}
 
-					log_info("%s killed by carbon starvation...", (const char *)indiv.pft.name);
-					indiv.kill();
-
-					vegetation.killobj();
-					killed = true;
-				}
-				else {
-					// ... on to next individual
-					vegetation.nextobj();
+					// Scale this year productivity to max storage
+					if (indiv.agpp_no > 0.0) {
+						double nstore = max(0.0, indiv.nstore() - ((indiv.cmass_leaf / indiv.pft.cton_leaf_max - indiv.nmass_leaf) +
+							(indiv.cmass_root / indiv.pft.cton_root_max - indiv.nmass_root) + (indiv.cmass_sap / indiv.pft.cton_sap_max - indiv.nmass_sap)));
+						indiv.scale_n_storage = max(indiv.max_n_storage * 0.1, indiv.max_n_storage - retransn_nextyear * 0.5 - nstore) / indiv.agpp_no;
+					} // else use last years scaling factor
 				}
 			}
 		}
-		else {  // not tree and dcarb turned on
 
-			// ... on to next individual
+
+		if (!killed) {
+
+			if (!allometry(indiv)) {
+
+				indiv.kill();
+
+				vegetation.killobj();
+				killed = true;
+			}
+
 			if (!killed) {
+				if (!indiv.alive) {
+					// The individual has survived its first year...
+					indiv.alive = true;
+
+					// ...now we can start counting its fluxes,
+					// debit current biomass as establishment flux
+					if (!indiv.istruecrop_or_intercropgrass()) {
+						indiv.report_flux(Fluxes::ESTC,
+					                  - (indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap +
+									  indiv.cmass_heart - indiv.cmass_debt));
+
+						ppft.cmass_est -= (indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap +
+									  indiv.cmass_heart - indiv.cmass_debt);
+					}
+				}
+
+				// Move long-term nitrogen storage pool to labile storage pool for usage next year
+				if(!indiv.has_daily_turnover()) {
+					indiv.nstore_labile = indiv.nstore_longterm;
+					indiv.nstore_longterm = 0.0;
+
+					// Add N to leaf and roots to meet maximum C:N ratios
+					double demand_leaf = max(0.0, indiv.cmass_leaf_today() / indiv.pft.cton_leaf_max - indiv.nmass_leaf);
+					double demand_root = max(0.0, indiv.cmass_root_today() / indiv.pft.cton_root_max - indiv.nmass_root);
+					double frac = !negligible(demand_leaf + demand_root) ? min(1.0, indiv.nstore_labile / (demand_leaf + demand_root)) : 0.0;
+					indiv.nmass_leaf += demand_leaf * frac;
+					indiv.nmass_root += demand_root * frac;
+					indiv.nstore_labile -= (demand_leaf + demand_root) * frac;
+				}
+
+				// ... on to next individual
 				vegetation.nextobj();
 			}
 		}
+
 	}
 
 	// Flush nitrogen free litter from reproduction straight to atmosphere
@@ -3059,7 +3121,9 @@ void growth_daily_grass_warlind(Patch& patch) {
 	Gridcell& gridcell = vegetation.patch.stand.get_gridcell();
 
 	// Air temperature or bottom snow layer if snow present
-	double grass_temp = patch.soil.T_soil[6];
+	// double grass_temp = patch.soil.T_soil[6];
+	double grass_temp = 0;
+	fail("FIXME: figure out how to get surface soil temp here");
 
 	if (date.day == 0) {
 		flush_cmass_repr(patch);
@@ -3507,7 +3571,9 @@ double growth_demand(Individual& indiv) {
 	// Calculate ancillary metrics
 	// ------------------------------
 	// Air temperature or bottom snow layer if snow present
-	double grass_temp = veg.patch.soil.T_soil[6];
+	// double grass_temp = veg.patch.soil.T_soil[6];
+	double grass_temp = 0;
+	fail("FIXME: figure out how to get grass temperature here");
 
 	// Total biomass used for estimation of potential growth demand.
 	//double cmass_total  = indiv.cmass_root + indiv.cmass_crown + indiv.get_cmass_leaf() + indiv.cmass_storage;
@@ -4885,11 +4951,26 @@ void nuptake_dave(Vegetation& vegetation) {
 		double ntoc = (indiv.get_nmass_leaf() + indiv.nmass_root + indiv.nmass_crown + indiv.nmass_sap) / (indiv.get_cmass_leaf() + indiv.cmass_root + indiv.cmass_crown + indiv.cmass_sap);
 		double ntoc_max = 1.0 / indiv.pft.cton_leaf_min;
 		double ntoc_avr = 1.0 / indiv.pft.cton_leaf_avr;
-		indiv.cton_status = max(0.0, (ntoc - ntoc_max) / (ntoc_avr - ntoc_max));  // C:N relative to average. Input to nitrogen_uptake_strength()
+		indiv.cton_status = max(0.0, (ntoc - ntoc_max) / (ntoc_avr - ntoc_max));  // C:N relative to average. Input to nutrient_uptake_strength()
 		NCompetingIndividual competing_individual;
 		competing_individual.ndemand = indiv.ndemand;
 		competing_individual.fnuptake = 1;
-		competing_individual.strength = nitrogen_uptake_strength(indiv);
+
+		// N fraction per soil layer
+		double nfrac[NSOILLAYERS_MAX] = { 0.0 };
+
+		// Get N distribution in soil 
+		soil.get_nfrac(NO, nfrac, N_min);
+
+		competing_individual.strength = nutrient_uptake_strength(
+			indiv.cmass_root_today(),
+			indiv.cton_status,
+			indiv.densindiv,
+			indiv.rootdist,
+			nfrac, soil.nsoillayers);
+		// vegetation[i].cmass_root_today(), 
+		// 	vegetation[i].cton_status, vegetation[i].densindiv, 
+		// 	vegetation.patch.pft[vegetation[i].pft.id].rootdist, nfrac, nsoillayers
 		competing_individuals.push_back(competing_individual);
 	}
 
@@ -5266,7 +5347,10 @@ void update_pools_dave(Vegetation& vegetation) {
 				indiv.ntoavail += indiv.nmass_uptake;
 				indiv.antoavail += indiv.nmass_uptake;
 
-				vegetation.patch.soil.nmass_inc(indiv.nmass_uptake);
+				// TODO: decide how to partition between NO3 and NH4.
+				fail("FIXME: need to do this by layer now");
+				// vegetation.patch.soil.nmass_inc(indiv.nmass_uptake * 0.5, NO3);
+				// vegetation.patch.soil.nmass_inc(indiv.nmass_uptake * 0.5, NH4);
 				indiv.nmass_uptake = 0;
 			}
 		} else {
@@ -5348,7 +5432,9 @@ void senescence_dave_grass(Individual &indiv) {
 	// annual plants?
 
 	// Air temperature or bottom snow layer if snow present
-	double grass_temp = vegetation.patch.soil.T_soil[6];
+	// double grass_temp = vegetation.patch.soil.T_soil[6];
+	double grass_temp = 0;
+	fail("FIXME: figure out how to get tsoil in new soil scheme");
 
 	// Baseline (minimum) senescence rate from leaf longevity under unstressed conditions.
 	// double senesc_base = 1.0 / (indiv.pft.leaflong * date.year_length());
@@ -5564,13 +5650,17 @@ void turnover_seed(Vegetation& vegetation) {
 		// Turnover rate of seeds
 
 		// Air temperature or bottom snow layer if snow present and soil moisture of first soil layer.
-		double surf_temp = vegetation.patch.soil.T_soil[6];
-		double surf_water = patch.soil.get_layer_soil_water(0);
+		// double surf_temp = vegetation.patch.soil.T_soil[6];
+		double surf_temp = 0;
+		fail("FIXME: figure out how to get tsoil in new soil scheme");
+		// double surf_water = patch.soil.get_layer_soil_water(0);
+		double surf_water = 0;
+		fail("FIXME: figure out how to get soil water in new soil scheme");
 		
 		// Base turnover rate modified by temperature and water availability
 		double ftemp = 0.0, fwater = 0.0;
 		double base_turnover_seed = ppft.pft.turnover_repr_litter / date.year_length();
-		respiration_temperature_response(surf_temp, ftemp); 
+		respiration_temperature_response(surf_temp, ftemp, false); 
 		fwater = 1.0 / (1.0 + 30.0 * exp(-8.5 * surf_water));
 		double frac_turnover_seed = base_turnover_seed * ftemp * fwater;
 
@@ -5707,8 +5797,11 @@ void turnover_dave_grass(Individual &indiv) {
 	// Determine turnover rate (same for all individuals in a PFT).
 	// Assumed daily rates here (fraction d-1)!
 	// Air temperature or bottom snow layer if snow present and soil moisture of first soil layer.
-	double surf_temp = vegetation.patch.soil.T_soil[6];
-	double surf_water = patch.soil.get_layer_soil_water(0);
+	// double surf_temp = vegetation.patch.soil.T_soil[6];
+	// double surf_water = patch.soil.get_layer_soil_water(0);
+	double surf_temp = 0;
+	double surf_water = 0;
+	fail("FIXME: figure out how to get tsoil and soil water in new soil scheme");
 
 	// crown turnover relative to root turnover.
 	double scal_crown_turnover = 0.35;
@@ -5722,7 +5815,7 @@ void turnover_dave_grass(Individual &indiv) {
 	double ftemp = 0.0, fwater = 0.0;
 	double kleaf = 0.01;  // base respiration rate of brown shoots at 10degC
 	// Temperature response
-	respiration_temperature_response(surf_temp, ftemp);  // Lloyd & Taylor 1994
+	respiration_temperature_response(surf_temp, ftemp, false);  // Lloyd & Taylor 1994
 	// Soil moisture response (Parton et al. 2001). 
 	// Note that Parton et al. 2001 used PPT/PET instead of wcont.
 	//fwater = pow(surf_water,1.0);

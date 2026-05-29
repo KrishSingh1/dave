@@ -26,8 +26,11 @@ outputdirectory "./"
 ! Prefined yearly output
 ! These files may be outcommented if their output is not required.
 file_cmass "cmass.out"
+!file_cmass_agb "cmass_agb.out"
 file_anpp "anpp.out"
 file_agpp "agpp.out"
+file_agpp_no "agpp_no.out"
+file_agpp_ns "agpp_ns.out"
 file_fpc "fpc.out"
 file_aaet "aaet.out"
 file_lai "lai.out"
@@ -37,6 +40,23 @@ file_dens "dens.out"
 file_runoff "tot_runoff.out"
 file_cpool "cpool.out"
 !file_clitter "clitter.out"
+file_soildepth "soildepth.out"
+file_csoil "csoil.out"
+file_csoil_depth "csoil_depth.out"
+!file_csoillyr "csoillyr.out"
+!file_csoil_cm "csoil_cm.out"
+!file_csoilp_cm "csoilp_cm.out"
+!file_rh_cm "rh_cm.out"
+!file_flitter_cm "litterf_cm.out"
+!file_clitter_cm "litterc_cm.out"
+!file_csoil_cm_peat "csoil_cm_peat.out"
+!file_csoilp_cm_peat "csoilp_cm_peat.out"
+!file_rh_cm_peat "rh_cm_peat.out"
+!file_rh "rh.out"
+file_rh_depth "rh_depth.out"
+!file_tau_soil "tau_soil.out"
+!file_tau_soil_depth "tau_soil_depth.out"
+!file_clitterinput_depth "clitterinput_depth.out"
 !file_aburned_area_out "annual_burned_area.out"
 !file_simfireanalysis_out "simfireanalysis.out"
 !file_firert "firert.out"
@@ -52,10 +72,39 @@ file_cton_leaf "cton_leaf.out"
 file_ngases "ngases.out"
 file_nsources "nsources.out"
 file_npool "npool.out"
+file_nsoil_depth "nsoil_depth.out"
+file_netnminsoil_depth "netnminsoil_depth.out"
+!file_ctonsom "cton_som.out"
 !file_nlitter "nlitter.out"
 !file_nuptake "nuptake.out"
 file_nflux "nflux.out"
 !file_vmaxnlim "vmaxnlim.out"
+
+!file_soildeclim "soildeclim.out"
+!file_soilgrolim "soilgrolim.out"
+!file_soiltotlim "soiltotlim.out"
+!file_soilcuelim "soilcuelim.out"
+!file_clitterinput "clitterinput.out"
+!file_csomlitterinput "csomlitterinput.out"
+!file_soilcperma "soilc_permafrost.out"
+file_snowdays "snowdays.out"
+!file_csom "csom.out"
+file_volume_org_depth "volume_org_depth.out"
+file_volume_min_depth "volume_min_depth.out"
+file_volume_rock_depth "volume_rock_depth.out"
+file_volume_root_depth "volume_root_depth.out"
+!file_temp_mod "mod_temp.out"
+!file_moist_mod "mod_moist.out"
+!file_tot_mod "mod_total.out"
+!file_temp_mod_depth "mod_temp_depth.out"
+!file_moist_mod_depth "mod_moist_depth.out"
+!file_tot_mod_depth "mod_total_depth.out"
+
+file_wflux "wflux.out"
+file_wpool "wpool.out"
+!file_wsats "wsats.out"
+file_wsats_depth "wsats_depth.out"
+!file_lambda "lambda.out"
 
 ! Monthly outputs
 !file_mnpp "mnpp.out"
@@ -64,11 +113,17 @@ file_mlai "mlai.out"
 !file_mgpp "mgpp.out"
 !file_mra "mra.out"
 !file_mnee "mnee.out"
+!file_mnetmin "mnetmin.out"
+!file_mcton_leaf "mcton_leaf.out"
+!file_mvmaxnlim "mvmaxnlim.out"
+!file_mlambda "mlambda.out"
 !file_maet "maet.out"
 !file_mpet "mpet.out"
 !file_mevap "mevap.out"
 !file_mintercep "mintercep.out"
 !file_mrunoff "mrunoff.out"
+!file_mwmass "mwmass.out"
+!file_mimass "mimass.out"
 !file_mwcont_upper "mwcont_upper.out"
 !file_mwcont_lower "mwcont_lower.out"
 !file_miso "miso.out"
@@ -76,23 +131,44 @@ file_mlai "mlai.out"
 !file_mmon_mt1 "mmon_mt1.out"
 !file_mmon_mt2 "mmon_mt2.out"
 
-!file_msoiltempdepth25 "soiltemp25cm.out"	! Soil temperature at 25cm depth
+!file_msoiltempdepth25 "soiltemp25cm.out"
+file_mtemp "mtemp.out"
+!file_mwmasslyr "mwmasslyr.out"
+!file_mimasslyr "mimasslyr.out"
+!file_mwimasslyr "mwimasslyr.out"
+!file_mdrainlyr "mdrainlyr.out"
+file_mtemp_depth "mtemp_depth.out"
+file_mwmass_depth "mwmass_depth.out"
+!file_mimass_depth "mimass_depth.out"
+!file_mwimass_depth "mwimass_depth.out"
+file_mdrain_depth "mdrain_depth.out"
 !file_mch4 "mch4.out"
 !file_mch4diff "mch4_diffusion.out"
 !file_mch4plan "mch4_plant.out"
 !file_mch4ebull "mch4_ebullition.out"
 
 !file_msnow "msnowdepth.out"
+!file_msnowcover "msnowcover.out"
+!file_mwmass_ssw "mwmass_ssw.out"
 !file_mwtp "mwtp.out"
 !file_mald "mald.out"
 !file_wetland_water_added "wetland_water_added.out"
 
+!file_mald_peat "mald_peat.out"
+!file_peat_frac "peat_frac.out"
+
 !file_mburned_area_out "monthly_burned_area.out"
 
-! Daily outputs
-file_dlai "dlai.out"
-file_dflux "dflux.out"
-file_dcmass_grass "dcmass_grass.out"
+! Daily output
+!file_daily_climate "dclimate.out"
+!file_daily_snow_depth "dsnow_depth.out"
+!file_daily_snow_density "dsnow_density.out"
+!file_daily_snow_k "dsnow_k.out"
+!file_daily_snow_d "dsnow_d.out"
+!file_daily_snow_c "dsnow_c.out"
+!file_daily_temp "dtemp.out"
+!file_daily_wcont "dwcont.out"
+file_dtemp_depth "dtemp_depth.out"
 
 !///////////////////////////////////////////////////////////////////////////////////////
 !// RUN PARAMETERS AND OPTIONS
@@ -111,6 +187,8 @@ ifcalccton 1			! Whether to calculate leaf C:N min from leaf longevity
 				! (PFT-specific value can be specified in this file instead)
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
+hydrology "RICHARDS"		! GERTEN, MILLER, RICHARDS
+energy "CNSTEP_FULL"		! CNSTEP_FULL, CNSTEP, BELDA
 npatch 1			! Number of replicate patches to simulate
 patcharea 1000			! Patch area (m2)
 estinterval 5			! Years between establishment events in cohort mode
@@ -124,8 +202,6 @@ ifstochmort 1			! Whether mortality stochastic
 ifcdebt 1			! Whether to allow vegetation C storage (1) or not (0)
 wateruptake "rootdist"  	! "wcont", "rootdist", "smart" or "speciesspecific",
                         	! see documentation for water_uptake()
-rootdistribution "jackson"	! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
-textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype
 ifsmoothgreffmort 1		! Whether to vary mort_greff smoothly with growth efficiency (1)
 				! or to use the standard step-function (0)
 				! greff_min values below calibrated for the smooth (1) option
@@ -142,6 +218,7 @@ ifdailyoutput 1
 
 ifcentury 1			! Whether to use CENTURY SOM dynamics (mandatory for N cycling)
 ifnlim 1			! Whether plant growth limited by available N
+ifdailynretrans 1		! Whether daily leaf N retranslocation is allowed
 freenyears 100			! Number of years to spin up without N limitation (needed to build up a N pool)
 nfix_a 0.234			! First term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)
 nfix_b -0.172			! Second term in N fixation eqn (Conservative 0.524, Central -0.172, Upper -0.754)
@@ -149,27 +226,44 @@ nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 
 
 !///////////////////////////////////////////////////////////////////////////////////////
-! ARCTIC AND WETLAND SWITCHES
+! PROCESS SETTINGS SPECIFIC TO SOIL
 !///////////////////////////////////////////////////////////////////////////////////////
 
-iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
-				! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
-				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
-				! Furthermore, run_peatland must be 0 when using the two layer soil, and 
-				! rootdistribution must be "fixed"
-
+depth_soil 0			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
+textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype (1), or not (0)
+slope -1			! Whether to use fixed slope value (>=0 degree) or input data (<0)
+b_infilt 0.2			! Variable infiltration capacity parameter (Global value 0.2 (Schaperow et al. 2021), higher value gives lower infiltration and more surface runoff)
+C_dw 1.0			! Calibration parameter for lateral drainage
+ifbedrock 1			! Whether to consider bedrock as lower boundary condition (1), or not (0) for multilayer soil hydrology
+ifsupercooled 1			! Whether to consider supercooled soil water. 0 - not, 1 - Niu et al. 2006 (CLM, default), 2 - Jin et al. 2020
+homrootdistfrac 0.0		! Fraction of fine roots to be homogenously distributed in soil column. 0 - none, 0.5 - 50%, 1 - all 
+rootfrac_of_deep_soil 0.0	! Fraction of deep soil, beyond 1500 mm, that roots have access to
+receiver_frac 0.5 		! Fraction of organic matter to move from receiver layer
 ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
-iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 
-				! (applies only to non peatland, mineral stands not classified as organic)
+ifsoaksnow 1			! Whether to soak snowpack with melted water (1), or not (0)
+top_thickness 100.0		! Additional thickness ontop of snowpack to account for radiation energy
+iforganicsoilproperties 1	! Whether to update physical soil properties using soil carbon content (1), or not (0)
+ifeffvolume 1			! Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)
+ifdepthdecaymod 1               ! Whether to use depth soil organic matter decay rate modifier
 ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
+ifthawaffectrootdist 1          ! Whether thaw depth affects root distribution (1 by default), or not (0)
+moistdecay "YAN"		! FRIEND (standard), YAN
 
+surf_li_scalar 1.0 !0.4
+soil_om_scalar 2.0 !2.05 !2.5
+moist_mod_anaerobic 0.075
+
+!///////////////////////////////////////////////////////////////////////////////
 ! WETLAND SWITCHES (no effect when run_peatland 0)
+!///////////////////////////////////////////////////////////////////////////////
+
 ifinundationstress 1		! Whether to reduce daily GPP if there's inundation on peatlands (1), or not (0)
 wetland_runon 0			! Extra daily water input to (>0), or output from (<0), wetlands (mm/day). 
 				! 0 by default, non-zero for site specific studies.
 ifmethane 0			! Whether to run the methane model and calculate methane fluxes
 ifsaturatewetlands 1		! Whether to take water from runoff in association with the (default) 
 				! saturation of low latitude wetlands (1), or not (0)
+peat_age 0                      ! Age of peat (0 peatland will be spun up to equilibrium)
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! SERIALIZATION SETTINGS
@@ -225,6 +319,8 @@ group "common" (
 	harv_eff 0
 	res_outtake 0
 
+	ag_woody_frac 1.0
+
 	! Peatland parameters - for mosses
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time
 	harvest_slow_frac 0
@@ -241,6 +337,8 @@ group "common" (
 	has_aerenchyma 0		! PFTs do not have aerenchyma for gas transport by default
 	stem_frac 1
 	twig_frac 0
+	ligcfrac_root 0.25
+	ligcfrac_wood 0.25
 )
 
 group "tree" (
@@ -252,7 +350,7 @@ group "tree" (
 	crownarea_max 50
 	ltor_max 1
 	turnover_root 0.7
-	rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
+	root_dist 0.6 0.4
 	root_beta 0.982
 	k_allom2 60
 	k_allom3 0.67
@@ -261,7 +359,6 @@ group "tree" (
 	cton_root 29
 	cton_sap 330
 	nuptoroot 0.0028
-	km_volume 0.000001477
 	pathway "c3"
 	respcoeff 1.0
 	kest_repr 200
@@ -297,16 +394,16 @@ group "shrub" (
 	cton_root 29
 	cton_sap 330
 	nuptoroot 0.0028
-	km_volume 0.000001477
 	fnstorage 0.3
 	pathway "c3"
 	kest_repr 200
 	kest_bg 0.1
 	kest_pres 1
 	litterme 0.3
-	rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
+	root_dist 0.6 0.4
 	root_beta 0.982
 	longevity 100
+	ag_woody_frac 0.45
 
 	harv_eff 0.9		! Value for forestry
 	res_outtake 0.4		! Value for forestry
@@ -325,7 +422,7 @@ group "grass" (
 	lifeform "grass"
 	leafphysiognomy "broadleaf"
 	ltor_max 0.5
-	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
+	root_dist 0.9 0.1
 	root_beta 0.9555
 	gmin 0.5
 	phenology "any"
@@ -336,7 +433,6 @@ group "grass" (
 	!cton_leaf_min 16
 	cton_root 29
 	nuptoroot 0.00551
-	km_volume 0.000001876
 	fnstorage 0.3
 	litterme 0.2
 	parff_min 1000000
@@ -373,6 +469,8 @@ group "needleleaved" (
 	gmin 0.3
 	intc 0.06
 	ga 0.140
+	ligcfrac_root 0.35
+	ligcfrac_wood 0.3
 )
 
 group "evergreen" (
@@ -404,6 +502,7 @@ group "boreal" (
 	pstemp_high 25
 	pstemp_max 38
 	respcoeff 1.0
+	ag_woody_frac 0.75
 )
 
 group "temperate" (
@@ -556,6 +655,7 @@ pft "TeNE" (
 	twmin_est 5  		! low, since Hickler et al. (2012) have -1000 for Jun_oxy
 	gdd5min_est 2000 	! Changed 2013-04-30 from value 900. As TeBE, a little lower than Jun_oxy, Pin_hal in europe.ins
 	longevity 300  		! Hickler et al. (2012) have 350 for Pin_hal
+	ag_woody_frac 0.85
 	fireresist 0.3 		! Hickler et al. (2012) have 0.2 for Pin_hal and 0.4 for Jun_oxy
 	eps_iso 8.0		! Values set to be the same as those for BNE and BINE
 	seas_iso 0		! Values set to be the same as those for BNE and BINE
@@ -580,6 +680,7 @@ pft "TeBS" (
 	twmin_est 5
 	gdd5min_est 1100
 	longevity 400
+	ag_woody_frac 0.81
 	fireresist 0.1
 	eps_iso 45.0
 	seas_iso 1
@@ -632,6 +733,7 @@ pft "TeBE" (
 	twmin_est 5
 	gdd5min_est 2000
 	longevity 300 		! from TH 2010-04-07 was 350 AA
+	ag_woody_frac 0.81
 	fireresist 0.3
 	eps_iso 24.0
 	seas_iso 0
@@ -653,6 +755,7 @@ pft "TrBE" (
 	leaflong 2
 	turnover_leaf 0.5
 	longevity 500   	! from Thomas H 2010-03-30 new 500 instead of 600 2010-04-07
+	ag_woody_frac 0.84
 	fireresist 0.1
 	eps_iso 24.0
 	seas_iso 0
@@ -674,6 +777,7 @@ pft "TrIBE" (
 	leaflong 2
 	turnover_leaf 0.5
 	longevity 200
+	ag_woody_frac 0.84
 	fireresist 0.1
 	eps_iso 24.0
 	seas_iso 0
@@ -697,6 +801,7 @@ pft "TrBR" (
 	leaflong 0.5
 	turnover_leaf 1
 	longevity 400    	! from Thomas h 2010-03-30
+	ag_woody_frac 0.75
 	fireresist 0.3
 	eps_iso 45.0
 	seas_iso 0

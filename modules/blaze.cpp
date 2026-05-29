@@ -42,19 +42,19 @@
  *       <750|<3000|<7000| >=7000 (Sprouters|Seeders)
  */
 const double TURNOVERFRACT[13][5] = {
-	{ .0 ,  .0 ,  .05, .2 , .2 }, //   0 Stems       -> ATM
-	{ .0 ,  .0 ,  .15, .2 , .2 }, //   1 Branches    -> ATM
-	{ .03,  .13,  .25, .5 , .5 }, //   2 Bark	 -> ATM
-	{ .02,  .05,  .1 , .6 , .6 }, //   3 Leaves      -> ATM
-	{ .0 ,  .0 ,  .05, .2 , .8 }, //   4 Stems       -> Litter (DWD) !corrected*
-	{ .0 ,  .02,  .07, .2 , .8 }, //   5 Branches    -> Litter (CWD) !corrected*
-	{ .03,  .13,  .25, .5 , .5 }, //   6 Bark        -> Litter (str)
-	{ .05,  .1 ,  .15, .3 , .4 }, //   7 Leaves      -> Litter (str)
-	{ .0 ,  .02,  .02, .04, .04}, //   8 FDEAD roots -> ATM
-	{ .5 ,  .75,  .75, .8 , .8 }, //   9 CWD         -> ATM
-	{ .6 ,  .65,  .85, 1. , 1. }, //  10 Bark Litter -> ATM
-	{ .6 ,  .65,  .85, 1. , 1. }, //  11 Leaf Litter -> ATM*
-	{ .0 ,  .0 ,  .1 , .8 , .8 }, //  12 Deadwood    -> ATM
+	{ .0 , .0 , .05, .2 , .2 }, //   0 Stems       -> ATM
+	{ .0 , .0 , .15, .2 , .2 }, //   1 Branches    -> ATM
+	{ .03, .13, .25, .5 , .5 }, //   2 Bark	       -> ATM
+	{ .02, .05, .1 , .6 , .6 }, //   3 Leaves      -> ATM
+	{ .0 , .0 , .05, .2 , .8 }, //   4 Stems       -> Litter (DWD) !corrected*
+	{ .0 , .02, .07, .2 , .8 }, //   5 Branches    -> Litter (CWD) !corrected*
+	{ .03, .13, .25, .5 , .5 }, //   6 Bark        -> Litter (str)
+	{ .05, .1 , .15, .3 , .4 }, //   7 Leaves      -> Litter (str)
+	{ .0 , .02, .02, .04, .04}, //   8 FDEAD roots -> ATM
+	{ .5 , .75, .75, .8 , .8 }, //   9 CWD         -> ATM
+	{ .6 , .65, .85, 1. , 1. }, //  10 Bark Litter -> ATM
+	{ .6 , .65, .85, 1. , 1. }, //  11 Leaf Litter -> ATM*
+	{ .0 , .0 , .1 , .8 , .8 }, //  12 Deadwood    -> ATM
 };
 
 // Tuning factors for litter ready for combustion
@@ -81,11 +81,11 @@ const double RAINFALL_AVERAGING_SPAN = 3;
 	
 // Internal help function for splitting up nitrogen fire fluxes into components
 // Copy of report_fire_nfluxes() as used in fire() in vegdynam.cpp
-void report_fire_flux_n(Patch& patch, double nflux_fire) {
-	patch.fluxes.report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::NOx_FIRE, Fluxes::NOx_FIRERATIO * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
+void report_fire_flux_n(Fluxes& fluxes, double nflux_fire) {
+	fluxes.report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
+	fluxes.report_flux(Fluxes::NOx_FIRE, Fluxes::NOx_FIRERATIO * nflux_fire);
+	fluxes.report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
+	fluxes.report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
 }
 
 /* Compute area of Gridcell
@@ -136,21 +136,21 @@ void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
 
 
 	// relative fluxes from wood to atmosphere and litter pools
-	patch.wood_to_atm = (1.-F_BRANCH-F_BARK) * TURNOVERFRACT[ 0][fli_index] +
-		F_BRANCH * TURNOVERFRACT[ 1][fli_index] +
-		F_BARK   * TURNOVERFRACT[ 2][fli_index];
-	patch.wood_to_str = F_BARK               * TURNOVERFRACT[ 6][fli_index];
-	patch.wood_to_fwd = F_BRANCH             * TURNOVERFRACT[ 5][fli_index];
-	patch.wood_to_cwd = (1.-F_BRANCH-F_BARK) * TURNOVERFRACT[ 4][fli_index];
-	
+	patch.wood_to_atm = (1. - F_BRANCH - F_BARK) * TURNOVERFRACT[0][fli_index] +
+		F_BRANCH * TURNOVERFRACT[1][fli_index] +
+		F_BARK * TURNOVERFRACT[2][fli_index];
+	patch.wood_to_str = F_BARK * TURNOVERFRACT[6][fli_index];
+	patch.wood_to_fwd = F_BRANCH * TURNOVERFRACT[5][fli_index];
+	patch.wood_to_cwd = (1. - F_BRANCH - F_BARK) * TURNOVERFRACT[4][fli_index];
+
 	// relative fluxes from leaf to atmosphere and litter pools
-	patch.leaf_to_atm = TURNOVERFRACT[ 3][fli_index];
-	patch.leaf_to_lit = TURNOVERFRACT[ 7][fli_index];
+	patch.leaf_to_atm = TURNOVERFRACT[3][fli_index];
+	patch.leaf_to_lit = TURNOVERFRACT[7][fli_index];
 
 	// relative fluxes from litter pools to atmosphere
 	patch.litf_to_atm = TURNOVERFRACT[11][fli_index];
 	patch.lfwd_to_atm = TURNOVERFRACT[10][fli_index];
-	patch.lcwd_to_atm = TURNOVERFRACT[ 9][fli_index] * k_tun_litter;
+	patch.lcwd_to_atm = TURNOVERFRACT[9][fli_index] * k_tun_litter;
 	return;
 }
 
@@ -162,17 +162,17 @@ void get_combustion_rates(Patch& patch, int fli_index, double k_tun_litter) {
 int get_fire_line_intensity_index(double fire_line_intensity) {
 
 	// determine intensity category for combustion-lookup-tables
-	int fire_line_intensity_index; 
-	if ( fire_line_intensity > 7000. ) {
+	int fire_line_intensity_index;
+	if (fire_line_intensity > 7000.) {
 		fire_line_intensity_index = 4;
 	}
-	else if ( fire_line_intensity > 3000. ) {
+	else if (fire_line_intensity > 3000.) {
 		fire_line_intensity_index = 2;
 	}
-	else if ( fire_line_intensity > 750. ) {
+	else if (fire_line_intensity > 750.) {
 		fire_line_intensity_index = 1;
 	}
-	else if ( fire_line_intensity > 0. ) {
+	else if (fire_line_intensity > 0.) {
 		fire_line_intensity_index = 0;
 	} 
 	else {
@@ -182,32 +182,34 @@ int get_fire_line_intensity_index(double fire_line_intensity) {
 }
 
 // Compute the amount of fuel readily available to burn
-double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
-			
-	get_combustion_rates(patch,fli_index,k_tun_litter);
+double available_fuel(Patch& patch, int fli_index, double k_tun_litter) {
+
+	get_combustion_rates(patch, fli_index, k_tun_litter);
 
 	// Transitional-litter available to burn, 
 	// i.e. last year's litter that is still to fall.
-	double trans_litter_leaf  = 0.;
-	double trans_litter_sap   = 0.;
+	double trans_litter_leaf = 0.;
+	double trans_litter_sap = 0.;
 	double trans_litter_heart = 0.;
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {
-		Patchpft& patchpft = patch.pft.getobj();
-		trans_litter_leaf  += patchpft.cmass_litter_leaf;
-		trans_litter_sap   += patchpft.cmass_litter_sap;
-		trans_litter_heart += patchpft.cmass_litter_heart;
+		Patchpft& ppft = patch.pft.getobj();
+		trans_litter_leaf += ppft.cmass_litter_leaf;
+		trans_litter_sap += ppft.cmass_litter_sap;
+		trans_litter_heart += ppft.cmass_litter_heart;
 		patch.pft.nextobj();
 	}
 
+	Soillayer& surflayer = patch.soil.soillayers[0];
+
 	// compute readily available fuel load for given FLI-index in PATCH
-	double available_fuel = patch.litf_to_atm * (patch.soil.sompool[SURFSTRUCT].cmass + 
-						  patch.soil.sompool[SURFMETA].cmass +
-						  trans_litter_leaf)
-	+ patch.lfwd_to_atm * ( patch.soil.sompool[SURFFWD].cmass + trans_litter_sap )
-	+ patch.lcwd_to_atm * ( patch.soil.sompool[SURFCWD].cmass + trans_litter_heart) * k_tun_litter;
-	
-	Vegetation& vegetation=patch.vegetation;
+	double available_fuel = patch.litf_to_atm * (surflayer.sompool[SURFSTRUCT].cmass +
+		surflayer.sompool[SURFMETA].cmass +
+		trans_litter_leaf)
+		+ patch.lfwd_to_atm * (surflayer.sompool[SURFFWD].cmass + trans_litter_sap)
+		+ patch.lcwd_to_atm * (surflayer.sompool[SURFCWD].cmass + trans_litter_heart) * k_tun_litter;
+
+	Vegetation& vegetation = patch.vegetation;
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
@@ -223,17 +225,17 @@ double available_fuel (Patch& patch,int fli_index, double k_tun_litter)  {
  * Formulation following Noble 1980 derived from McArthur.
  */
 void get_fireline_intensity(Patch& patch, Climate& climate) {
-	
+
 	// Energy contents of fuel [MJ/kg] (Liedloff, 2007)
 	const double HEAT_YIELD = 20.;
 	// Empirical value
 	const double A = 3.3333e-05;
-	// Readily available fuel  [g/m2]
-	double avail_fuel;                      
+	// Readily available fuel [g/m2]
+	double avail_fuel;
 	// Rate of spread          [m/s]
-	double rate_of_spread;                    
+	double rate_of_spread;
 	// Fire-line intensity     [kW/m]
-	double fire_line_intensity;                  
+	double fire_line_intensity;
 	// Fire intensity category index
 	int fire_line_intensity_index = 0;
 
@@ -249,7 +251,7 @@ void get_fireline_intensity(Patch& patch, Climate& climate) {
 	else {
 		// Compute Rate-of-spread [m/s]
 		rate_of_spread = A * climate.mcarthur_forest_fire_index * avail_fuel;
-		
+
 		// Fire line intensity[W/m] (Pyne, 1996 derived from Byram, 1959)
 		fire_line_intensity = HEAT_YIELD * avail_fuel * rate_of_spread;
 	}
@@ -292,12 +294,13 @@ double survival_probability_temp_needleleaf(double diameter_at_breast_height, do
  * vegetation model to simulate vegetation dynamics in NE USA.
  */
 double survival_probability_temp_broadleaf(double diameter_at_breast_height, double fire_line_intensity, bool is_resprouter) {
-	
+
 	// Fire resiliance
 	double resilience;
-	if ( is_resprouter ) {
+	if (is_resprouter) {
 		resilience = 0.04;
-	} else {
+	}
+	else {
 		resilience = 0.07;
 	}
 
@@ -337,19 +340,19 @@ double survival_probability_tropics(double diameter_at_breast_height, double fir
 		survival_probability = exp(fire_line_intensity/3000. * log(survival_probability_3000));
 	}
 
-	survival_probability   = max(min(1.,survival_probability), 0.001);
-    	
+	survival_probability = max(min(1., survival_probability), 0.001);
+
 	return survival_probability;
 }
 
 // Survival probability for savannas following Bond 2008
 double survival_probability_savanna(double height, double fire_line_intensity) {
 
-	double intensity = fire_line_intensity / 1000. ;
-	double survival_probability = max(0.,1. - ( 1./(1. + exp(1.5*(height - 0.5 * intensity - 1. )))));
+	double intensity = fire_line_intensity / 1000.;
+	double survival_probability = max(0., 1. - (1. / (1. + exp(1.5*(height - 0.5 * intensity - 1.)))));
 
-	survival_probability = min (1.,survival_probability);
-	
+	survival_probability = min(1., survival_probability);
+
 	return survival_probability;
 }
 
@@ -364,7 +367,7 @@ double survival_probability_sprouter_savanna(double height, double fire_line_int
 	double intensity = fire_line_intensity / 1000.; // Conversion to MW/m 
 
 	// Minimum height for trees to survive [m]
-	double height_min = 3.7 * (1.-exp(-0.19 * intensity));
+	double height_min = 3.7 * (1. - exp(-0.19 * intensity));
 
 	// Survival probability [fract.]
 	double survival_probability;
@@ -372,17 +375,17 @@ double survival_probability_sprouter_savanna(double height, double fire_line_int
 	// Empirically generated functions by Vanessa Haverd
 	// based on observations from G. Cook.
 	if (height > MAX_PROB_HEIGHT && height > height_min) {
-		survival_probability = ( -.0011 * intensity - .00002) * height
-			+ .0075 * intensity + 1. ;
+		survival_probability = (-.0011 * intensity - .00002) * height
+			+ .0075 * intensity + 1.;
 	}
 	else if (height > height_min) {
-		survival_probability = ( .0178 * intensity + .0144) * height
-			+ ( -.1174 * intensity + 0.9158 );
+		survival_probability = (.0178 * intensity + .0144) * height
+			+ (-.1174 * intensity + 0.9158);
 	}
 	else {
 		survival_probability = 0.001;
 	}
-	survival_probability = max(1.e-3,min(1.,survival_probability));
+	survival_probability = max(1.e-3, min(1., survival_probability));
 	return survival_probability;
 }
 
@@ -391,13 +394,13 @@ double survival_probability_sprouter_savanna(double height, double fire_line_int
  * will be selected.
  */
 double survival_probability(Patch& patch, Individual& indiv) {
- 
 
-	const Gridcell& gridcell   = patch.stand.get_gridcell();
 
-	double height              = indiv.height;
+	const Gridcell& gridcell = patch.stand.get_gridcell();
+
+	double height = indiv.height;
 	double fire_line_intensity = patch.fire_line_intensity;
-	double lat                 = gridcell.get_lat();
+	double lat = gridcell.get_lat();
 
 	double survival_probability = 1.;
 
@@ -406,44 +409,46 @@ double survival_probability(Patch& patch, Individual& indiv) {
 
 	int biome = gridcell.simfire_biome;
 
-	if ( vegmode == POPULATION ) {
+	double cmass_cwd = patch.soil.soillayers[0].sompool[SURFCWD].cmass;
+
+	if (vegmode == POPULATION) {
 
 		// Temperate Needleleaf
-		if ( biome == SF_NEEDLELEAF) { 
-			survival_probability = survival_probability_temp_needleleaf(dbh, fire_line_intensity, patch.soil.sompool[SURFCWD].cmass);
+		if (biome == SF_NEEDLELEAF) {
+			survival_probability = survival_probability_temp_needleleaf(dbh, fire_line_intensity, cmass_cwd);
 		}
 		// Broadleaf and mixed
-		else if ( biome ==  SF_BROADLEAF || biome == SF_MIXED_FOREST ) {
+		else if (biome == SF_BROADLEAF || biome == SF_MIXED_FOREST) {
 
-			if  (lat > -30 && lat < 30 ) {
+			if (lat > -30 && lat < 30) {
 				// Tropical
-				survival_probability = survival_probability_tropics(dbh,fire_line_intensity);
-			} else {
+				survival_probability = survival_probability_tropics(dbh, fire_line_intensity);
+			}
+			else {
 				// Temperate 
 				survival_probability = survival_probability_temp_broadleaf(dbh, fire_line_intensity, 0);
 
 			}
 		}
 		// Savanna, shrubland, and sparsely vegetated
-		else if ( biome == SF_SHRUBS || biome == SF_SAVANNA || biome == SF_BARREN) {
+		else if (biome == SF_SHRUBS || biome == SF_SAVANNA || biome == SF_BARREN) {
 			survival_probability = survival_probability_savanna(height, fire_line_intensity);
 		}
 		// Tundra
-		else if ( biome == SF_TUNDRA ) {
+		else if (biome == SF_TUNDRA) {
 			survival_probability = survival_probability_boreal(fire_line_intensity);
-		} 
+		}
 		else {
 			return 1.;
 		}
 	}
-	else if ( vegmode == COHORT || vegmode == INDIVIDUAL ) {
+	else if (vegmode == COHORT || vegmode == INDIVIDUAL) {
 
 		// Needleleaf
-		if ( indiv.pft.leafphysiognomy == NEEDLELEAF ) {
+		if (indiv.pft.leafphysiognomy == NEEDLELEAF) {
 			// Temperate Needleleaf
-			if ( fabs(lat) < 50.) {
-				double mass_cwd = patch.soil.sompool[SURFCWD].cmass   ;   
-				survival_probability = survival_probability_temp_needleleaf(dbh, fire_line_intensity, mass_cwd);
+			if (fabs(lat) < 50.) {
+				survival_probability = survival_probability_temp_needleleaf(dbh, fire_line_intensity, cmass_cwd);
 			}
 			// Tundra
 			else {
@@ -452,26 +457,27 @@ double survival_probability(Patch& patch, Individual& indiv) {
 		}
 		
 		// Broadleaf
-		else if ( indiv.pft.leafphysiognomy == BROADLEAF ) {
+		else if (indiv.pft.leafphysiognomy == BROADLEAF) {
 			// Broadleaf, mixed Forest, and majorly needle-leaf biomes
-			if ( biome == SF_CROP || biome == SF_NEEDLELEAF || biome == SF_BROADLEAF || biome == SF_MIXED_FOREST || biome == SF_TUNDRA ) {
-				if  (lat > -30 && lat < 30 ) {
+			if (biome == SF_CROP || biome == SF_NEEDLELEAF || biome == SF_BROADLEAF || biome == SF_MIXED_FOREST || biome == SF_TUNDRA) {
+				if (lat > -30 && lat < 30) {
 					// Tropical 
-					survival_probability = survival_probability_tropics(dbh,fire_line_intensity);
-				} else {
+					survival_probability = survival_probability_tropics(dbh, fire_line_intensity);
+				}
+				else {
 					// Temperate 
 					survival_probability = survival_probability_temp_broadleaf(dbh, fire_line_intensity, 0);
 				}
 			}
 			// Savanna, shrubland, and sparsely vegetated
-			else if ( biome == SF_SHRUBS || biome == SF_SAVANNA || biome == SF_BARREN ) {
+			else if (biome == SF_SHRUBS || biome == SF_SAVANNA || biome == SF_BARREN) {
 				survival_probability = survival_probability_savanna(height, fire_line_intensity);
 			}
 			else {
-				dprintf("Biome %d not found in BLAZE\n",biome);
+				dprintf("Biome %d not found in BLAZE\n", biome);
 				survival_probability = 1.;
 			}
-		} 
+		}
 		else {
 			fail("Physiognomy unknown...");
 		}
@@ -482,7 +488,7 @@ double survival_probability(Patch& patch, Individual& indiv) {
 		fail("BLAZE: case not valid");
 	}
 
-	survival_probability = min(1. ,max(survival_probability,0.0001));
+	survival_probability = min(1., max(survival_probability, 0.0001));
 
 	return survival_probability;
 }
@@ -498,6 +504,7 @@ bool blaze(Patch& patch, Climate& climate) {
 
 	Gridcell& gridcell = climate.gridcell;
 	ManagementType& mt = patch.stand.get_current_management();
+	Fluxes& fluxes = patch.fluxes;
 	
 	// Flammable area witin gridcell
 	double flammable_area = gridcell.landcover.frac[PASTURE]+gridcell.landcover.frac[NATURAL];
@@ -529,63 +536,65 @@ bool blaze(Patch& patch, Climate& climate) {
 	if ( vegmode == POPULATION ) {
 		fab = max(area_burned * accumulated_fraction_burned,1.);
 	}
-		
+
 	get_combustion_rates(patch,fli_index,gridcell.k_tun_litter);
 
 	// Compute fluxes from soil litter pools to atmosphere first
 	// as they are patch-specific. The fluxes to 
 	// soil litter will be added in loop over individuals below.
-	double cmtb2atm = fab * patch.litf_to_atm * patch.soil.sompool[SURFMETA].cmass  ;
-	double cstr2atm = fab * patch.litf_to_atm * patch.soil.sompool[SURFSTRUCT].cmass;
-	double cfwd2atm = fab * patch.lfwd_to_atm * patch.soil.sompool[SURFFWD].cmass   ;
-	double ccwd2atm = fab * patch.lcwd_to_atm * patch.soil.sompool[SURFCWD].cmass   ;
+	Soillayer& surflayer = patch.soil.soillayers[0];
+	double cmtb2atm = fab * patch.litf_to_atm * surflayer.sompool[SURFMETA].cmass;
+	double cstr2atm = fab * patch.litf_to_atm * surflayer.sompool[SURFSTRUCT].cmass;
+	double cfwd2atm = fab * patch.lfwd_to_atm * surflayer.sompool[SURFFWD].cmass;
+	double ccwd2atm = fab * patch.lcwd_to_atm * surflayer.sompool[SURFCWD].cmass;
 
-	// Nitrogen proportional to cmass flux [kg(C)/m2]
-	double nmtb2atm = fab * patch.litf_to_atm * patch.soil.sompool[SURFMETA].nmass  ;
-	double nstr2atm = fab * patch.litf_to_atm * patch.soil.sompool[SURFSTRUCT].nmass;
-	double nfwd2atm = fab * patch.lfwd_to_atm * patch.soil.sompool[SURFFWD].nmass   ;
-	double ncwd2atm = fab * patch.lcwd_to_atm * patch.soil.sompool[SURFCWD].nmass   ;
+	// Nitrogen proportional to cmass flux [kg(N)/m2]
+	double nmtb2atm = fab * patch.litf_to_atm * surflayer.sompool[SURFMETA].nmass;
+	double nstr2atm = fab * patch.litf_to_atm * surflayer.sompool[SURFSTRUCT].nmass;
+	double nfwd2atm = fab * patch.lfwd_to_atm * surflayer.sompool[SURFFWD].nmass;
+	double ncwd2atm = fab * patch.lcwd_to_atm * surflayer.sompool[SURFCWD].nmass;
 
 	// Update soil-surface-litter pools
 	// Carbon
-	patch.soil.sompool[SURFMETA].cmass   -= cmtb2atm;
-	patch.soil.sompool[SURFSTRUCT].cmass -= cstr2atm;
-	patch.soil.sompool[SURFFWD].cmass    -= cfwd2atm;
-	patch.soil.sompool[SURFCWD].cmass    -= ccwd2atm;
+	surflayer.sompool[SURFMETA].cmass -= cmtb2atm;
+	surflayer.sompool[SURFSTRUCT].cmass -= cstr2atm;
+	surflayer.sompool[SURFFWD].cmass -= cfwd2atm;
+	surflayer.sompool[SURFCWD].cmass -= ccwd2atm;
+
 	// Nitrogen 
-	patch.soil.sompool[SURFMETA].nmass   -= nmtb2atm;
-	patch.soil.sompool[SURFSTRUCT].nmass -= nstr2atm;
-	patch.soil.sompool[SURFFWD].nmass    -= nfwd2atm;
-	patch.soil.sompool[SURFCWD].nmass    -= ncwd2atm;
+	surflayer.sompool[SURFMETA].nmass -= nmtb2atm;
+	surflayer.sompool[SURFSTRUCT].nmass -= nstr2atm;
+	surflayer.sompool[SURFFWD].nmass -= nfwd2atm;
+	surflayer.sompool[SURFCWD].nmass -= ncwd2atm;
 
 	// Report C litter -> atmosphere fluxes
-	patch.fluxes.report_flux(Fluxes::FIREC, cmtb2atm + cstr2atm + cfwd2atm + ccwd2atm);
+	fluxes.report_flux(Fluxes::FIREC, cmtb2atm + cstr2atm + cfwd2atm + ccwd2atm);
 
 	// Report N litter -> atmosphere fluxes
-	report_fire_flux_n(patch, nmtb2atm + nstr2atm + nfwd2atm + ncwd2atm );
-       
-	Vegetation& vegetation=patch.vegetation;
-       
+	report_fire_flux_n(fluxes, nmtb2atm + nstr2atm + nfwd2atm + ncwd2atm);
+
+	Vegetation& vegetation = patch.vegetation;
+
 	// Kill trees, grass, cohorts, and population fractions
 	bool killed = false;
 	double frac_survive;
-	if ( vegmode == POPULATION ) {
+	if (vegmode == POPULATION) {
 
 		vegetation.firstobj();
 		while (vegetation.isobj) {
-			Individual& indiv=vegetation.getobj();
+			Individual& indiv = vegetation.getobj();
 
 			// For this individual ...
-			killed=false;
+			killed = false;
 
 			// Apply fire by burned area
-			indiv.blaze_reduce_biomass(patch, (1.-fab));
+			indiv.blaze_reduce_biomass(patch, (1. - fab));
 
 			// Remove this cohort completely if all individuals killed
 			// (in individual mode: removes individual if killed)
 			if (negligible(indiv.densindiv)) {
 				vegetation.killobj();
-				killed=true;
+				killed = true;
 			}
 			if (!killed) {
 				vegetation.nextobj(); // ... on to next individual
@@ -599,18 +608,18 @@ bool blaze(Patch& patch, Climate& climate) {
 		 * Impose fire in this patch with probability=Area Burned as given in the top
 		 * of this routine.
 		 */
-		
+
 		// Loop through individuals
 		vegetation.firstobj();
 		while (vegetation.isobj) {
-			Individual& indiv=vegetation.getobj();
-			if ( !indiv.alive ) {
+			Individual& indiv = vegetation.getobj();
+			if (!indiv.alive) {
 				vegetation.nextobj();
 				continue;
 			}
 
 			// For this individual ...
-			killed=false;
+			killed = false;
 
 			if (indiv.pft.is_grass()) {
 				// Reduce individual live biomass and freshly created litter
@@ -622,14 +631,15 @@ bool blaze(Patch& patch, Climate& climate) {
 					patch.fluxes.report_flux(Fluxes::FIREC, indiv.anpp * MAX_GRASS_BURN);
 
 					indiv.anpp *= (1. - MAX_GRASS_BURN);
+					indiv.agpp *= (1. - MAX_GRASS_BURN);
 				}
 
 				// Kill object if burn is total
-				if ( MAX_GRASS_BURN == 1.0 ) {
+				if (MAX_GRASS_BURN == 1.0) {
 					indiv.kill();
 					vegetation.killobj();
-					killed=true;
-				} 
+					killed = true;
+				}
 				else {
 					// Update allometry
 					allometry(indiv);
@@ -645,14 +655,14 @@ bool blaze(Patch& patch, Climate& climate) {
 					 * (round up to be on the safe side).
 					 * In individual mode densindiv is 1!
 					 */
-					int nindiv=(int)(indiv.densindiv*patcharea+0.5);
-					int nindiv_prev=nindiv;
-					for (int i=0;i<nindiv_prev;i++) {
+					int nindiv = (int)(indiv.densindiv * patcharea + 0.5);
+					int nindiv_prev = nindiv;
+					for (int i = 0; i < nindiv_prev; i++) {
 						if (randfrac(patch.stand.seed) > survival_probability(patch, indiv)) {
 							nindiv--;
 						}
 					}
-					
+
 					if (nindiv_prev) {
 						frac_survive = (double)nindiv / (double)nindiv_prev;
 					}
@@ -660,22 +670,22 @@ bool blaze(Patch& patch, Climate& climate) {
 						frac_survive = 0.0;
 					}
 				}
-				else { 	
+				else {
 					// Deterministic mortality (cohort mode only)
 					frac_survive = survival_probability(patch, indiv);
 				}
 
 				// Reduce individual biomass on patch area basis
 				// to account for loss of killed individuals
-				indiv.blaze_reduce_biomass(patch,frac_survive);
-				
+				indiv.blaze_reduce_biomass(patch, frac_survive);
+
 				// Remove this cohort completely if all individuals killed
 				// (in individual mode: removes individual if killed)
 				if (negligible(indiv.densindiv)) {
 					indiv.kill();
 					vegetation.killobj();
-					killed=true;
-				} 
+					killed = true;
+				}
 				else {
 					// Update allometry 
 					allometry(indiv);
@@ -684,72 +694,73 @@ bool blaze(Patch& patch, Climate& climate) {
 			if (!killed) vegetation.nextobj(); // ... on to next individual
 		}
 	}
-		
+
 	// Transitional litter (last year's litter still to fall) removed by area burned (ab).
 	// Total fluxes out of patch
-	double cmtb2atm_t = 0.; 
-	double cstr2atm_t = 0.; 
-	double cfwd2atm_t = 0.; 
-	double ccwd2atm_t = 0.; 
-	double nmtb2atm_t = 0.; 
-	double nstr2atm_t = 0.; 
+	double cmtb2atm_t = 0.;
+	double cstr2atm_t = 0.;
+	double cfwd2atm_t = 0.;
+	double ccwd2atm_t = 0.;
+	double nmtb2atm_t = 0.;
+	double nstr2atm_t = 0.;
 	double nfwd2atm_t = 0.;
 	double ncwd2atm_t = 0.;
-	
+
 	patch.pft.firstobj();
 	while (patch.pft.isobj) {
-		Patchpft& patchpft = patch.pft.getobj();
-		
-		double lton = lignin_to_n_ratio(patchpft.cmass_litter_leaf, patchpft.nmass_litter_leaf,
-						LIGCFRAC_LEAF, patchpft.pft.cton_leaf_avr);
-		double fm_leaf = metabolic_litter_fraction(lton); 
-		
+		Patchpft& ppft = patch.pft.getobj();
+
+		double lton = lignin_to_n_ratio(ppft.cmass_litter_leaf, ppft.nmass_litter_leaf,
+			ppft.pft.ligcfrac_leaf, ppft.pft.cton_leaf_avr);
+		double fm_leaf = metabolic_litter_fraction(lton);
+
 		// Carbon transitional litter fluxes
-		double cmtb2atm = fab * patch.litf_to_atm * patchpft.cmass_litter_leaf * fm_leaf;
-		double cstr2atm = fab * patch.litf_to_atm * patchpft.cmass_litter_leaf * (1.-fm_leaf);
-		double cfwd2atm = fab * patch.lfwd_to_atm * patchpft.cmass_litter_sap;
-		double ccwd2atm = fab * patch.lcwd_to_atm * patchpft.cmass_litter_heart;
+		double cmtb2atm = fab * patch.litf_to_atm * ppft.cmass_litter_leaf * fm_leaf;
+		double cstr2atm = fab * patch.litf_to_atm * ppft.cmass_litter_leaf * (1. - fm_leaf);
+		double cfwd2atm = fab * patch.lfwd_to_atm * ppft.cmass_litter_sap;
+		double ccwd2atm = fab * patch.lcwd_to_atm * ppft.cmass_litter_heart;
 
 		// Nitrogen transitional litter fluxes
-		double nmtb2atm = fab * patch.litf_to_atm * patchpft.nmass_litter_leaf * fm_leaf;
-		double nstr2atm = fab * patch.litf_to_atm * patchpft.nmass_litter_leaf * (1.-fm_leaf);
-		double nfwd2atm = fab * patch.lfwd_to_atm * patchpft.nmass_litter_sap;
-		double ncwd2atm = fab * patch.lcwd_to_atm * patchpft.nmass_litter_heart;
-		
+		double nmtb2atm = fab * patch.litf_to_atm * ppft.nmass_litter_leaf * fm_leaf;
+		double nstr2atm = fab * patch.litf_to_atm * ppft.nmass_litter_leaf * (1. - fm_leaf);
+		double nfwd2atm = fab * patch.lfwd_to_atm * ppft.nmass_litter_sap;
+		double ncwd2atm = fab * patch.lcwd_to_atm * ppft.nmass_litter_heart;
+
 		// Update transitional rest-of-year litter pools
 		// Carbon
-		patchpft.cmass_litter_leaf             -= (cmtb2atm + cstr2atm);
-		patchpft.cmass_litter_sap              -= cfwd2atm;
-		patchpft.cmass_litter_heart            -= ccwd2atm;
+		ppft.cmass_litter_leaf  -= (cmtb2atm + cstr2atm);
+		ppft.cmass_litter_sap   -= cfwd2atm;
+		ppft.cmass_litter_heart -= ccwd2atm;
+
 		// Nitrogen
-		patchpft.nmass_litter_leaf       -= (nmtb2atm + nstr2atm);
-		patchpft.nmass_litter_sap        -= nfwd2atm; 
-		patchpft.nmass_litter_heart      -= ncwd2atm; 
-		
+		ppft.nmass_litter_leaf  -= (nmtb2atm + nstr2atm);
+		ppft.nmass_litter_sap   -= nfwd2atm;
+		ppft.nmass_litter_heart -= ncwd2atm;
+
 		// Calculate total fluxes to atmosphere within patch
 		// Carbon
-		cmtb2atm_t += cmtb2atm; 
-		cstr2atm_t += cstr2atm; 
-		cfwd2atm_t += cfwd2atm; 
-		ccwd2atm_t += ccwd2atm; 
+		cmtb2atm_t += cmtb2atm;
+		cstr2atm_t += cstr2atm;
+		cfwd2atm_t += cfwd2atm;
+		ccwd2atm_t += ccwd2atm;
 		// Nitrogen
-		nmtb2atm_t += nmtb2atm; 
-		nstr2atm_t += nstr2atm; 
+		nmtb2atm_t += nmtb2atm;
+		nstr2atm_t += nstr2atm;
 		nfwd2atm_t += nfwd2atm;
 		ncwd2atm_t += ncwd2atm;
-		
+
 		patch.pft.nextobj();
 	}
-	
+
 	// Report C litter -> atmosphere flux from transitional pools
-	patch.fluxes.report_flux(Fluxes::FIREC, cmtb2atm_t + cstr2atm_t + cfwd2atm_t + ccwd2atm_t);
+	fluxes.report_flux(Fluxes::FIREC, cmtb2atm_t + cstr2atm_t + cfwd2atm_t + ccwd2atm_t);
 
 	// Report N litter -> atmosphere flux from transitional pools
-	report_fire_flux_n(patch, nmtb2atm_t + nstr2atm_t + nfwd2atm_t + ncwd2atm_t );
+	report_fire_flux_n(fluxes, nmtb2atm_t + nstr2atm_t + nfwd2atm_t + ncwd2atm_t);
 	
 	return true;
-	
-}  
+
+}
 
 /// Update C/N - Pools due to fire
 /** Applies the fluxes computed in blaze on the class::Individual
@@ -769,13 +780,13 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	double const DEFAULT_WOOD_TO_ATM = 0.10;
 	double const DEFAULT_WOOD_TO_STR = 0.03;
 	double const DEFAULT_WOOD_TO_FWD = 0.07;
-	double const DEFAULT_WOOD_TO_CWD = 0.80;	
+	double const DEFAULT_WOOD_TO_CWD = 0.80;
 	double const DEFAULT_LEAF_TO_ATM = 0.75;
 	double const DEFAULT_LEAF_TO_LIT = 0.25;
 
 	double frac_killed = 1. - frac_survive;
 
-	if ( negligible(frac_killed) ) return;
+	if (negligible(frac_killed)) return;
 
 	// local copies of live fluxes
 	double wood_to_atm = patch.wood_to_atm;
@@ -787,14 +798,14 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 
 	double fab = 1.0;
 
-	if ( vegmode == INDIVIDUAL || vegmode == COHORT ) {
-		double wtotw = patch.wood_to_atm + patch.wood_to_str + patch.wood_to_fwd + patch.wood_to_cwd ;
+	if (vegmode == INDIVIDUAL || vegmode == COHORT) {
+		double wtotw = patch.wood_to_atm + patch.wood_to_str + patch.wood_to_fwd + patch.wood_to_cwd;
 		// Adjust relative fluxes from wood when stochastic killing has occured
-		if ( wtotw > 0.0 ) {
+		if (wtotw > 0.0) {
 			wood_to_atm = patch.wood_to_atm * frac_killed;
-			wood_to_str = (1. - patch.wood_to_atm ) * F_BARK               * frac_killed;
-			wood_to_fwd = (1. - patch.wood_to_atm ) * F_BRANCH             * frac_killed;
-			wood_to_cwd = (1. - patch.wood_to_atm ) * (1.-F_BARK-F_BRANCH) * frac_killed;
+			wood_to_str = (1. - patch.wood_to_atm) * F_BARK               * frac_killed;
+			wood_to_fwd = (1. - patch.wood_to_atm) * F_BRANCH             * frac_killed;
+			wood_to_cwd = (1. - patch.wood_to_atm) * (1. - F_BARK - F_BRANCH) * frac_killed;
 		}
 		else {
 			wood_to_atm = frac_killed * DEFAULT_WOOD_TO_ATM;
@@ -804,17 +815,17 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 		}
 		// Adjust relative fluxes from leaves
 		double ltotw = patch.leaf_to_atm + patch.leaf_to_lit;
-		if ( ltotw > 0.0 ) {
-			leaf_to_atm = patch.leaf_to_atm * frac_killed ;
-			leaf_to_lit = (1. - patch.leaf_to_atm) * frac_killed ;
-		}			               
-		else {			               
+		if (ltotw > 0.0) {
+			leaf_to_atm = patch.leaf_to_atm * frac_killed;
+			leaf_to_lit = (1. - patch.leaf_to_atm) * frac_killed;
+		}
+		else {
 			leaf_to_atm = frac_killed * DEFAULT_LEAF_TO_ATM;
 			leaf_to_lit = frac_killed * DEFAULT_LEAF_TO_LIT;
 		}
 		fab = 1.0;
-	} 
-	else if ( vegmode == POPULATION ) {
+	}
+	else if (vegmode == POPULATION) {
 		fab = frac_killed;
 		fail("BLAZE does not run in POPULATION-mode");
 	}
@@ -822,229 +833,208 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 	// Compute mass per area fluxes from live pools
 
 	Patchpft& ppft = patchpft();
-	double lton = lignin_to_n_ratio(ppft.cmass_litter_leaf, ppft.nmass_litter_leaf, LIGCFRAC_LEAF,
-					ppft.pft.cton_leaf_avr);
+	double lton = lignin_to_n_ratio(ppft.cmass_litter_leaf, ppft.nmass_litter_leaf, ppft.pft.ligcfrac_leaf,
+		ppft.pft.cton_leaf_avr);
 
 
 	// Metabolic litter fraction for litter
 	double fm_leaf = metabolic_litter_fraction(lton);
+	
+	// Above and belowground wood fraction
+	const double AG_WOOD_FRAC = pft.ag_woody_frac;
+	const double BG_WOOD_FRAC = 1.0 - AG_WOOD_FRAC;
 
 	// Leaves
-	double cleaf2atm, cleaf2met, cleaf2str, nleaf2atm, nleaf2met, nleaf2str;
-	if (!(ifdailygrass && pft.is_grass())) {
-		cleaf2atm = fab * leaf_to_atm * cmass_leaf_today();
-		cleaf2met = fab * leaf_to_lit * cmass_leaf_today() * fm_leaf;
-		cleaf2str = fab * leaf_to_lit * cmass_leaf_today() * (1. - fm_leaf);
-		nleaf2atm = fab * leaf_to_atm * nmass_leaf;
-		nleaf2met = fab * leaf_to_lit * nmass_leaf * fm_leaf;
-		nleaf2str = fab * leaf_to_lit * nmass_leaf * (1. - fm_leaf);
-	}
-	else {
-		// Daily grass - dry leaves is burned first then fresh alive leaves
-		double cleaf_burned = fab * (leaf_to_atm * leaf_to_lit) * (cmass_leaf_today() + cmass_leafs[3]);
-		
-		// Dry leaves burned
-		double cleaf_dry = min(cleaf_burned, cmass_leafs[3]);
-
-		// Dry leaves burned fraction
-		double fleaf_dry = cmass_leafs[3] > 0.0 ? cleaf_dry / cmass_leafs[3] : 0.0;
-
-		// Remaining leaves to burn
-		cleaf_burned -= cleaf_dry;
-
-		// Fresh leaves burned fraction
-		double fleaf_fresh = cmass_leaf_today() > 0.0 ? cleaf_burned / cmass_leaf_today() : 0.0;
-
-		// Burn dry leaves
-		cleaf2atm = fleaf_fresh * cmass_leaf_today() + fleaf_dry * cmass_leafs[3];
-		cleaf2met = (fleaf_fresh * cmass_leaf_today() + fleaf_dry * cmass_leafs[3]) * fm_leaf;
-		cleaf2str = (fleaf_fresh * cmass_leaf_today() + fleaf_dry * cmass_leafs[3]) * (1.0 - fm_leaf);
-		nleaf2atm = fleaf_fresh * get_nmass_leaf() + fleaf_dry * nmass_leafs[3];
-		nleaf2met = (fleaf_fresh * get_nmass_leaf() + fleaf_dry * nmass_leafs[3]) * fm_leaf;
-		nleaf2str = (fleaf_fresh * get_nmass_leaf() + fleaf_dry * nmass_leafs[3]) * (1.0 - fm_leaf);
-
-		// Reduce leaves
-		cmass_leafs[0] *= 1.0 - fleaf_fresh;
-		cmass_leafs[1] *= 1.0 - fleaf_fresh;
-		cmass_leafs[2] *= 1.0 - fleaf_fresh;
-		cmass_leafs[3] *= 1.0 - fleaf_dry;
-		nmass_leafs[0] *= 1.0 - fleaf_fresh;
-		nmass_leafs[1] *= 1.0 - fleaf_fresh;
-		nmass_leafs[2] *= 1.0 - fleaf_fresh;
-		nmass_leafs[3] *= 1.0 - fleaf_dry;
-	}
+	double cleaf2atm = fab * leaf_to_atm * cmass_leaf_today();
+	double cleaf2met = fab * leaf_to_lit * cmass_leaf_today() * fm_leaf;
+	double cleaf2str = fab * leaf_to_lit * cmass_leaf_today() * (1. - fm_leaf);
+	double nleaf2atm = fab * leaf_to_atm * nmass_leaf;
+	double nleaf2met = fab * leaf_to_lit * nmass_leaf * fm_leaf;
+	double nleaf2str = fab * leaf_to_lit * nmass_leaf * (1. - fm_leaf);
 
 	// Sap-wood
-	double csapw2atm = fab * wood_to_atm * cmass_sap ; 
-	double csapw2str = fab * wood_to_str * cmass_sap ;
-	double csapw2fwd = fab * (wood_to_fwd + wood_to_cwd) * cmass_sap ;
-	double nsapw2atm = fab * wood_to_atm * nmass_sap ; 
-	double nsapw2str = fab * wood_to_str * nmass_sap ;
-	double nsapw2fwd = fab * (wood_to_fwd + wood_to_cwd) * nmass_sap ;
+	double csapw2atm = fab * AG_WOOD_FRAC * wood_to_atm * cmass_sap;
+	double csapw2str = fab * AG_WOOD_FRAC * wood_to_str * cmass_sap;
+	double csapw2fwd = fab * AG_WOOD_FRAC * (wood_to_fwd + wood_to_cwd) * cmass_sap;
+	double nsapw2atm = fab * AG_WOOD_FRAC * wood_to_atm * nmass_sap;
+	double nsapw2str = fab * AG_WOOD_FRAC * wood_to_str * nmass_sap;
+	double nsapw2fwd = fab * AG_WOOD_FRAC * (wood_to_fwd + wood_to_cwd) * nmass_sap;
 
 	// Heart-wood
-	double chrtw2atm = fab * wood_to_atm * cmass_heart; 
-	double chrtw2str = fab * wood_to_str * cmass_heart;
-	double chrtw2cwd = fab * (wood_to_fwd + wood_to_cwd) * cmass_heart;
-	double nhrtw2atm = fab * wood_to_atm * nmass_heart; 
-	double nhrtw2str = fab * wood_to_str * nmass_heart;
-	double nhrtw2cwd = fab * (wood_to_fwd + wood_to_cwd) * nmass_heart;
+	double chrtw2atm = fab * AG_WOOD_FRAC * wood_to_atm * cmass_heart;
+	double chrtw2str = fab * AG_WOOD_FRAC * wood_to_str * cmass_heart;
+	double chrtw2cwd = fab * AG_WOOD_FRAC * (wood_to_fwd + wood_to_cwd) * cmass_heart;
+	double nhrtw2atm = fab * AG_WOOD_FRAC * wood_to_atm * nmass_heart;
+	double nhrtw2str = fab * AG_WOOD_FRAC * wood_to_str * nmass_heart;
+	double nhrtw2cwd = fab * AG_WOOD_FRAC * (wood_to_fwd + wood_to_cwd) * nmass_heart;
 
 	// Roots
 	// Assume the same percentage of root biomass killed as for total
 	// above ground woody biomass.
 
 	double lossratio = 0.;
-	if ( cmass_sap + cmass_heart > 0. ) {
+	if (cmass_sap + cmass_heart > 0.) {
 		lossratio = (csapw2atm + csapw2str + csapw2fwd +
-			     chrtw2atm + chrtw2str + chrtw2cwd ) / (cmass_sap + cmass_heart);
+			chrtw2atm + chrtw2str + chrtw2cwd) / (cmass_sap + cmass_heart);
 	}
 
-	// Root litter lignin:N ratio
-	lton = lignin_to_n_ratio(ppft.cmass_litter_root, ppft.nmass_litter_root, LIGCFRAC_ROOT,
-					ppft.pft.cton_root_avr);
+	// Fine root litter lignin:N ratio
+	lton = lignin_to_n_ratio(ppft.cmass_litter_root, ppft.nmass_litter_root, ppft.pft.ligcfrac_root,
+		ppft.pft.cton_root_avr);
 
 	// Metabolic litter fraction for root 
 	double fm_root = metabolic_litter_fraction(lton);
-	
+
 	double croot2met = fm_root        * lossratio * cmass_root;
 	double croot2str = (1. - fm_root) * lossratio * cmass_root;
 	double nroot2met = fm_root        * lossratio * nmass_root;
 	double nroot2str = (1. - fm_root) * lossratio * nmass_root;
 
-	// Update pools
-	
-	// Live carbon
-	if (!(ifdailygrass && pft.is_grass())) {
-		cmass_leaf  -= (cleaf2atm + cleaf2met + cleaf2str);
-		cmass_sap   -= (csapw2atm + csapw2str + csapw2fwd);
-		cmass_heart -= (chrtw2atm + chrtw2str + chrtw2cwd);
-		cmass_root  -= (croot2met + croot2str);
-	}
-	
-	// Deal with c-debt before asserting to litter & atm pool
-	double saploss = csapw2atm + csapw2str + csapw2fwd;
-	double hrtloss = chrtw2atm + chrtw2str + chrtw2cwd;
+	// Coarse root
+	double csapr2fwd = fab * BG_WOOD_FRAC * cmass_sap;
+	double nsapr2fwd = fab * BG_WOOD_FRAC * nmass_sap;
+	double chrtr2cwd = fab * BG_WOOD_FRAC * cmass_heart;
+	double nhrtr2cwd = fab * BG_WOOD_FRAC * nmass_heart;
 
-	if ( cmass_debt > 0. ) { 
-		if ( cmass_debt <= saploss + hrtloss ) {
-			if ( cmass_debt <= hrtloss ) {
+	// Update pools
+
+	// live carbon
+	cmass_leaf  -= (cleaf2atm + cleaf2met + cleaf2str);
+	cmass_sap   -= (csapw2atm + csapw2str + csapw2fwd + csapr2fwd);
+	cmass_heart -= (chrtw2atm + chrtw2str + chrtw2cwd + chrtr2cwd);
+	cmass_root  -= (croot2met + croot2str);
+
+	// Deal with c-debt before asserting to litter & atm pool
+	double saploss = csapw2atm + csapw2str + csapw2fwd + csapr2fwd;
+	double hrtloss = chrtw2atm + chrtw2str + chrtw2cwd + chrtr2cwd;
+
+	if (cmass_debt > 0.) {
+		if (cmass_debt <= saploss + hrtloss) {
+			if (cmass_debt <= hrtloss) {
 				double scalefac = (hrtloss - cmass_debt) / hrtloss;
-				chrtw2str  *= scalefac;
-				chrtw2cwd  *= scalefac; 
-				chrtw2atm  *= scalefac;
-				cmass_debt  = 0.;
+				chrtw2str *= scalefac;
+				chrtw2cwd *= scalefac;
+				chrtw2atm *= scalefac;
+				chrtr2cwd *= scalefac;
+				cmass_debt = 0.;
 			}
 			else {
-				chrtw2str  = 0.;
-				chrtw2cwd  = 0.; 
-				chrtw2atm  = 0.;
+				chrtw2str = 0.;
+				chrtw2cwd = 0.;
+				chrtw2atm = 0.;
+				chrtr2cwd = 0.;
 				double scalefac = (saploss - (cmass_debt - hrtloss)) / saploss;
-				csapw2str  *= scalefac;
-				csapw2fwd  *= scalefac; 
-				csapw2atm  *= scalefac;
-				cmass_debt  = 0.;
+				csapw2str *= scalefac;
+				csapw2fwd *= scalefac;
+				csapw2atm *= scalefac;
+				csapr2fwd *= scalefac;
+				cmass_debt = 0.;
 			}
 		}
 		else {
-			chrtw2str  = 0.;
-			chrtw2cwd  = 0.;
-			chrtw2atm  = 0.;
-			csapw2str  = 0.;
-			csapw2fwd  = 0.;
-			csapw2atm  = 0.;
+			chrtw2str = 0.;
+			chrtw2cwd = 0.;
+			chrtw2atm = 0.;
+			chrtr2cwd = 0.;
+			csapw2str = 0.;
+			csapw2fwd = 0.;
+			csapw2atm = 0.;
+			csapr2fwd = 0.;
 			cmass_debt -= (saploss + hrtloss);
 		}
 	}
 
 	// Live nitrogen
-	if (!(ifdailygrass && pft.is_grass())) {
-		nmass_leaf  -= (nleaf2atm + nleaf2met + nleaf2str);
-		nmass_sap   -= (nsapw2atm + nsapw2str + nsapw2fwd);
-		nmass_heart -= (nhrtw2atm + nhrtw2str + nhrtw2cwd);
-		nmass_root  -= (nroot2met + nroot2str);
-	}
-	
+	nmass_leaf  -= (nleaf2atm + nleaf2met + nleaf2str);
+	nmass_sap   -= (nsapw2atm + nsapw2str + nsapw2fwd + nsapr2fwd);
+	nmass_heart -= (nhrtw2atm + nhrtw2str + nhrtw2cwd + nhrtr2cwd);
+	nmass_root  -= (nroot2met + nroot2str);
+
 	// C storage
 	double d_cstore = cmass_storage * (1.0 - frac_survive);
 	cmass_storage *= frac_survive;
 
-	// N storage
-    double d_nstore = (nstore_longterm + nstore_labile + nmass_storage) * (1.0 - frac_survive);
-	nstore_longterm *= frac_survive; 
-	nstore_labile   *= frac_survive; 
-	nmass_storage   *= frac_survive;
-
-	// Report C live -> atm flux 
-	patch.fluxes.report_flux(Fluxes::FIREC, cleaf2atm + csapw2atm + chrtw2atm + d_cstore);
-
-	// Report N live -> atm flux 
-	report_fire_flux_n(patch, nleaf2atm + nsapw2atm + nhrtw2atm + d_nstore);
-
-	// Soil-surface-litter carbon
-	patch.soil.sompool[SURFMETA].cmass += cleaf2met;
-	patch.soil.sompool[SURFSTRUCT].cmass += cleaf2str + csapw2str + chrtw2str;
-	patch.soil.sompool[SURFFWD].cmass += csapw2fwd;
-	patch.soil.sompool[SURFCWD].cmass += chrtw2cwd;
-
-	// Deep soil litter carbon
-	patch.soil.sompool[SOILMETA].cmass += croot2met;
-	patch.soil.sompool[SOILSTRUCT].cmass += croot2str;
-
-	// Soil-surface-litter nitrogen 
-	patch.soil.sompool[SURFMETA].nmass += nleaf2met;
-	patch.soil.sompool[SURFSTRUCT].nmass += nleaf2str + nsapw2str + nhrtw2str;
-	patch.soil.sompool[SURFFWD].nmass += nsapw2fwd;
-	patch.soil.sompool[SURFCWD].nmass += nhrtw2cwd;
-
-	// Deep soil litter nitrogen
-	patch.soil.sompool[SOILMETA].nmass += nroot2met;
-	patch.soil.sompool[SOILSTRUCT].nmass += nroot2str;
+	double d_nstore = (nstore_longterm + nstore_labile + nmass_storage) * (1. - frac_survive);
+	nstore_longterm *= frac_survive;
+	nstore_labile   *= frac_survive;
 
 	// Deal with accumulated NPP 
-	if (!(ifdailygrass && pft.is_grass())) {
-		double loss_anpp = anpp * (1. - frac_survive);
-		double loss_tot = cleaf2atm + csapw2atm + chrtw2atm + cleaf2met +
-			cleaf2str + csapw2str + chrtw2str + csapw2fwd + chrtw2cwd +
-			croot2met + croot2str;
-		double anpp2atm = 0.;
-		double anpp2met = 0.;
-		double anpp2str = 0.;
-		double anpp2fwd = 0.;
-		double anpp2cwd = 0.;
-		double anpp2smtb = 0.;
-		double anpp2sstr = 0.;
-		if (loss_tot > 0.) {
-			anpp2atm = loss_anpp * (cleaf2atm + csapw2atm + chrtw2atm) / loss_tot;
-			anpp2met = loss_anpp * cleaf2met / loss_tot;
-			anpp2str = loss_anpp * (cleaf2str + csapw2str + chrtw2str) / loss_tot;
-			anpp2fwd = loss_anpp * csapw2fwd / loss_tot;
-			anpp2cwd = loss_anpp * chrtw2cwd / loss_tot;
-			anpp2smtb = loss_anpp * croot2met / loss_tot;
-			anpp2sstr = loss_anpp * croot2str / loss_tot;
-			anpp -= loss_anpp;
+	double loss_anpp = anpp * (1. - frac_survive);
+	double loss_tot  = cleaf2atm + csapw2atm + chrtw2atm + cleaf2met + 
+		cleaf2str + csapw2str + chrtw2str + csapw2fwd + chrtw2cwd +
+		croot2met + croot2str;
+	double anpp2atm  =  0.;
+	double anpp2met  =  0.;
+	double anpp2str  =  0.;
+	double anpp2fwd  =  0.;
+	double anpp2cwd  =  0.;
+	double anpp2smtb =  0.;
+	double anpp2sstr =  0.;
+	if ( loss_tot > 0. ) {
+		anpp2atm  = loss_anpp * ( cleaf2atm + csapw2atm + chrtw2atm ) / loss_tot;
+		anpp2met  = loss_anpp *                           cleaf2met   / loss_tot;
+		anpp2str  = loss_anpp * ( cleaf2str + csapw2str + chrtw2str ) / loss_tot;
+		anpp2fwd  = loss_anpp *                           csapw2fwd   / loss_tot;
+		anpp2cwd  = loss_anpp *                           chrtw2cwd   / loss_tot;
+		anpp2smtb = loss_anpp *                           croot2met   / loss_tot;
+		anpp2sstr = loss_anpp *                           croot2str   / loss_tot;
+		anpp     -= loss_anpp;
+	}
+
+	ppft.cmass_fire += loss_anpp + loss_tot;
+
+	Fluxes& fluxes = patch.fluxes;
+
+	// Report C live -> atm flux 
+	fluxes.report_flux(Fluxes::FIREC, cleaf2atm + csapw2atm + chrtw2atm + anpp2atm + d_cstore);
+
+	// Report N live -> atm flux 
+	report_fire_flux_n(fluxes, nleaf2atm + nsapw2atm + nhrtw2atm + d_nstore);
+ 
+	// Transfer litter
+	Soil& soil = patch.soil;
+
+	for (int lyr = 0; lyr < soil.nsoillayers; lyr++) {
+
+		Soillayer& soillayer = soil.soillayers[lyr];
+
+		// Surface litter
+		if (lyr == 0) {
+			// Carbon
+			soillayer.sompool[SURFMETA].cmass   += anpp2met + cleaf2met;
+			soillayer.sompool[SURFSTRUCT].cmass += anpp2str + cleaf2str + csapw2str + chrtw2str;
+			soillayer.sompool[SURFFWD].cmass    += anpp2fwd + csapw2fwd;
+			soillayer.sompool[SURFCWD].cmass    += anpp2cwd + chrtw2cwd;
+
+			// Nitrogen 
+			soillayer.sompool[SURFMETA].nmass   += nleaf2met;
+			soillayer.sompool[SURFSTRUCT].nmass += nleaf2str + nsapw2str + nhrtw2str;
+			soillayer.sompool[SURFFWD].nmass    += nsapw2fwd;
+			soillayer.sompool[SURFCWD].nmass    += nhrtw2cwd;
 		}
 
-		ppft.cmass_fire += loss_anpp + loss_tot;
+		// Root litter
 
-		// Report C live -> atm flux 
-		patch.fluxes.report_flux(Fluxes::FIREC, anpp2atm);
+		// Root fraction in this soil layer
+		double rootdist_frac = ppft.rootdist[lyr];
 
-		// Soil-surface-litter carbon
-		patch.soil.sompool[SURFMETA].cmass += anpp2met;
-		patch.soil.sompool[SURFSTRUCT].cmass += anpp2str;
-		patch.soil.sompool[SURFFWD].cmass += anpp2fwd;
-		patch.soil.sompool[SURFCWD].cmass += anpp2cwd;
+		// Carbon
+		soillayer.sompool[SOILMETA].cmass   += rootdist_frac * (anpp2smtb + croot2met);
+		soillayer.sompool[SOILSTRUCT].cmass += rootdist_frac * (anpp2sstr + croot2str);
+		soillayer.sompool[SOILFWD].cmass    += rootdist_frac * csapr2fwd;
+		soillayer.sompool[SOILCWD].cmass    += rootdist_frac * chrtr2cwd;
 
-		// Deep soil litter carbon
-		patch.soil.sompool[SOILMETA].cmass += anpp2smtb;
-		patch.soil.sompool[SOILSTRUCT].cmass += anpp2sstr;
+		// Nitrogen
+		soillayer.sompool[SOILMETA].nmass   += rootdist_frac * nroot2met;
+		soillayer.sompool[SOILSTRUCT].nmass += rootdist_frac * nroot2str;
+		soillayer.sompool[SOILFWD].nmass    += rootdist_frac * nsapr2fwd;
+		soillayer.sompool[SOILCWD].nmass    += rootdist_frac * nhrtr2cwd;
 	}
 
 	if (!pft.is_grass()) {
 		densindiv *= frac_survive;
 
-		if ( negligible(densindiv) && cmass_debt > 0.) {
+		if (negligible(densindiv) && cmass_debt > 0.) {
 			// Excess c_debt shifted from RA to NPP
 			report_flux(Fluxes::NPP, cmass_debt);
 			report_flux(Fluxes::RA, -cmass_debt);
@@ -1064,7 +1054,7 @@ void blaze_accounting_gridcell(Climate& climate) {
 
 	// To keep track of burned area over the year
 	// reset accumulated area_burned to 0 on begining of year
-	if (date.day == 0 ) {
+	if (date.day == 0) {
 		gridcell.annual_burned_area         = 0.0;
 		gridcell.simfire_annual_burned_area = 0.0;
 		climate.rainfall_cur                = 0.0;
@@ -1076,10 +1066,10 @@ void blaze_accounting_gridcell(Climate& climate) {
 		double lat = climate.gridcell.get_lat();
 
 		// Latitude depending tuning values mortality
-		if ( fabs(lat) >= 50.) {
+		if (fabs(lat) >= 50.) {
 			gridcell.k_tun_litter = K_LITTER_BOREAL;
 		}
-		else if ( fabs(lat) >= 30. && fabs(lat) < 50.) {
+		else if (fabs(lat) >= 30. && fabs(lat) < 50.) {
 			gridcell.k_tun_litter = K_LITTER_TEMPERATE;
 		}
 		else if ( gridcell.simfire_biome == SF_SAVANNA ) {
@@ -1124,16 +1114,16 @@ void blaze_accounting_gridcell(Climate& climate) {
 	// Update the Keetch-Byram-Drought-Index (Keetch et al. 1968)
 	double v  = climate.u10    * KMH_PER_MS;       // Wind speed at 10m height [km/h] (for FFDI)
 	double rh = climate.relhum * FRACT_TO_PERCENT; // relative humidity [%] (for FFDI)
-	double t  = climate.tmax  ;                    // day's max temperature [deg C] (for KBDI) 
+	double t  = climate.tmax;                      // day's max temperature [deg C] (for KBDI)
 
 	// Gust parameterisation
-	v = ( 214.7 * pow(  v + 10. ,-1.6968)  + 1. ) * v;
+	v = (214.7 * pow(v + 10., -1.6968) + 1.) * v;
 
 	double dkbdi; // change in Keetch-Byram-Drought-Index due to rainfall history
 	if (climate.days_since_last_rainfall == 0) {
 		if (climate.last_rainfall > 5.) {
 			dkbdi = 5. - climate.last_rainfall;
-		} 
+		}
 		else {
 			dkbdi = 0.0;
 		}
@@ -1143,17 +1133,17 @@ void blaze_accounting_gridcell(Climate& climate) {
 			 - 8.3) / 1000. / (1. + 10.88 * exp(-.0441 * 
 			 climate.rainfall_annual_avg/25.4)) * .254);
 	}
-	climate.kbdi = max(0.0,climate.kbdi + dkbdi);
+	climate.kbdi = max(0.0, climate.kbdi + dkbdi);
 
 	// ...and McArthur-Drought-Factor D ... (Noble, 1980)
-	double mcarthur_d = .191 * ( climate.kbdi + 104. ) * pow( climate.days_since_last_rainfall + 1.,1.5 ) / 
-		( 3.52 * pow( climate.days_since_last_rainfall + 1. ,1.5 ) + climate.last_rainfall - 1. );
-	mcarthur_d = max(0.0,min(10.0,mcarthur_d));
-	
+	double mcarthur_d = .191 * (climate.kbdi + 104.) * pow(climate.days_since_last_rainfall + 1., 1.5) /
+		(3.52 * pow(climate.days_since_last_rainfall + 1., 1.5) + climate.last_rainfall - 1.);
+	mcarthur_d = max(0.0, min(10.0, mcarthur_d));
+
 	// ... and finally: McArthur's Forest Fire Danger Index
-	double mcarthur_fire_index = 2. * exp( -.45 + .987 * log(mcarthur_d+.001) - 
-				     .03456 * rh + .0338 * t + .0234 * v );
-	mcarthur_fire_index = max(0.0,mcarthur_fire_index);
+	double mcarthur_fire_index = 2. * exp(-.45 + .987 * log(mcarthur_d + .001) -
+		.03456 * rh + .0338 * t + .0234 * v);
+	mcarthur_fire_index = max(0.0, mcarthur_fire_index);
 
 	// Monthly ffdi max
 	int dayx = date.day % 30;
@@ -1168,18 +1158,18 @@ void blaze_accounting_gridcell(Climate& climate) {
 
 	// Get burned area from SIMFIRE
 	gridcell.burned_area = simfire_burned_area(gridcell);
-	
+
 	// End of year clean-up
 	if (date.islastday && date.islastmonth) {
-		
+
 		double weighting; // used to compute running average of ann rainfall
-		
+
 		// Update running mean of average annual rainfall		
 		if (date.year < RAINFALL_AVERAGING_SPAN) {
-			weighting = date.year + 1;
+			weighting =(double)date.year + 1.;
 		}
 		else {
-			weighting = RAINFALL_AVERAGING_SPAN;
+			weighting = (double)RAINFALL_AVERAGING_SPAN;
 		}
 		
 		climate.rainfall_annual_avg = ((weighting - 1.) * climate.rainfall_annual_avg 
@@ -1192,17 +1182,17 @@ void blaze_accounting_gridcell(Climate& climate) {
 		const int AVERAGING_FFDI = 30;
 		double tmp[AVERAGING_FFDI];
 		int avg_shift = AVERAGING_FFDI - (365 % AVERAGING_FFDI);
-		
+
 		for (int i = 0; i < AVERAGING_FFDI; i++) {
 			int idx = (i + avg_shift) % AVERAGING_FFDI;
 			tmp[idx] = climate.ffdi_monthly[i];
 		}
-		
+
 		for (int i = 0; i < AVERAGING_FFDI; i++) {
 			climate.ffdi_monthly[i] = tmp[i];
 		}
 	}
-}		     
+}
 
 // The driver routine for BLAZE
 /* This is the driver routine for BLAZE. It retrieves potential Fire-Line-Intensity
@@ -1212,11 +1202,11 @@ void blaze_driver(Patch& patch, Climate& climate) {
 
 	// Check whether BLAZE should be called at all
 	// Has BLAZE been chosen as firemodel?
-	if (firemodel != BLAZE) { 
+	if (firemodel != BLAZE) {
 		return;
 	}
 
-	// Do not burn before century soil has started
+	// Do not burn before century soil has been spinned up
 	if (date.year < patch.soil.solvesomcent_beginyr) {
 		return;
 	}
@@ -1231,7 +1221,7 @@ void blaze_driver(Patch& patch, Climate& climate) {
 	}
 
 	Gridcell& gridcell = climate.gridcell;
-	
+
 	// Today's potential firelineintensity
 	get_fireline_intensity(patch, climate);
 

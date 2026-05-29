@@ -105,6 +105,16 @@ Calculate a mean.
 double mean(const double *array, size_t n);
 
 /*
+Sum a quantity across soil layers.
+*/
+double sum_layers(const Soil &soil, double (*read_layer)(const Soillayer &));
+
+/*
+Sum a quantity across soil layers.
+*/
+double mean_layers(const Soil &soil, double (*read_layer)(const Soillayer &));
+
+/*
 Get the columns used in the patch-level runoff output file.
 */
 std::vector<ColumnDefinition<Patch>> runoff_columns();

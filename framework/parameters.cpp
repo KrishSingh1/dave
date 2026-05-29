@@ -28,6 +28,9 @@ xtring title;
 vegmodetype vegmode;
 firemodeltype firemodel;
 weathergeneratortype weathergenerator;
+hydrologytype hydrology;
+energytype energy;
+moistdecaytype moistdecay;
 
 int npatch;
 int npatch_secondarystand;
@@ -49,9 +52,11 @@ double distinterval;
 disturbancetype disttype;
 xtring file_disturb;
 bool ifcdebt;
+double depth_soil;
 
 bool ifcentury;
 bool ifnlim;
+bool ifdailynretrans;
 int freenyears;
 double nrelocfrac;
 double nfix_a;
@@ -109,20 +114,36 @@ int energy_balance_maxiter;
 double energy_balance_eps;
 
 
-// Arctic and wetland options
-bool iftwolayersoil;			// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below. 
-bool ifmultilayersnow;			// Whether to use the simple multilayer snow scheme (1), or not (0)
-bool ifinundationstress;		// Whether to reduce GPP if there's inundation (1), or not (0)
-bool ifcarbonfreeze;			// Whether to limit soilC decomposition below 0degC in upland soils (1), or not (0)	
-double wetland_runon;			// Extra daily water input or output, in mm, to wetlands. Positive values are run ON, negative run OFF.
-bool ifmethane;					// Whether to run the methane model (for peatland only)
-bool iforganicsoilproperties;	// Whether soil C pool input is used to update soil properties
-bool ifsaturatewetlands;		// Whether to take water from runoff to saturate low latitide wetlands
+// Soil, arctic and wetland options
+double slope;						// Whether to use fixed slope value (>=0 degree) or input data (<0) 
+double b_infilt;					// Variable infiltration capacity parameter (Global value 0.2, higher value gives lower infiltration and more surface runoff)
+double C_dw;						// Calibration parameter for lateral drainage
+bool ifbedrock;						// Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)
+int ifsupercooled;					// Whether to consider supercooled soil water. 0 - not, 1 - Niuet al.2006 (CLM), 2 - Jin et al. 2020
+double homrootdistfrac;				// Fraction of fine roots to be homogenously distributed in soil column
+double rootfrac_of_deep_soil;		// Fraction of deep soil, beyond 1500mm, that roots have access to
+double receiver_frac;				// Fraction of organic matter to move from receiver layer
+bool ifmultilayersnow;				// Whether to use the simple multilayer snow scheme (1), or not (0)
+bool ifsoaksnow;					// Whether to soak snowpack with melted water (1), or not (0)
+double top_thickness;				// Additional thickness ontop of snowpack to account for radiation energy
+bool ifinundationstress;			// Whether to reduce GPP if there's inundation (1), or not (0)
+bool ifcarbonfreeze;				// Whether to limit soilC decomposition below 0degC in upland soils (1), or not (0)	
+double wetland_runon;				// Extra daily water input or output, in mm, to wetlands. Positive values are run ON, negative run OFF.
+bool ifmethane;						// Whether to run the methane model (for peatland only)
+int peat_age;
+bool iforganicsoilproperties;		// Whether to update physical soil properties using soil carbon content (1), or not (0)
+bool ifsaturatewetlands;			// Whether to take water from runoff to saturate low latitide wetlands
+bool ifeffvolume;					// Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)
+bool ifdepthdecaymod;               // Whether to use depth soil organic matter decay rate modifier
+bool ifthawaffectrootdist;          // Whether thaw depth affects root distribution
+
+double surf_li_scalar;
+double soil_om_scalar;
+double moist_mod_anaerobic;
 
 bool useClosestNdep;
 
 wateruptaketype wateruptake;
-rootdisttype rootdistribution;
 
 bool run_landcover;
 bool run[NLANDCOVERTYPES];
@@ -131,6 +152,7 @@ bool lcfrac_fixed;
 bool all_fracs_const = true;
 bool no_barren_frac_corr = true;
 bool no_peatland_frac_corr = true;
+bool peatduration;
 bool ifslowharvestpool;
 bool ifintercropgrass;
 bool ifcalcdynamic_phu;
@@ -235,12 +257,12 @@ bool Paramlist::isparam(xtring name) {
 // ENUM DECLARATIONS OF INTEGER CONSTANTS FOR PLIB INTERFACE
 
 enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM,BLOCK_ST,BLOCK_MT};
-enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,CB_SELECTION, CB_STLANDCOVER,
-	CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT, CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, 
-	CB_MTSELECTION, CB_MTPLANTDENSITY, CB_MTTARGETFRAC, CB_MTTARGETFRACFILENAME, CB_MTHYDROLOGY, CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM,
-	CB_PFT, CB_STSELECTION, CB_STPLANTDENSITY, CB_STTARGETFRAC, CB_STTARGETFRACFILENAME, CB_STHYDROLOGY, CB_MANAGEMENT1, 
-	CB_MANAGEMENT2, CB_MANAGEMENT3,	CB_PATHWAY, CB_ROOTDISTRIBUTION, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, 
-	CB_WATERUPTAKE, CB_MTCOMPOUND, CB_FIREMODEL,CB_WEATHERGENERATOR, CB_DISTTYPE};
+enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,CB_SELECTION, CB_STLANDCOVER, 
+	CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT, CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB,
+	CB_MTSELECTION, CB_MTPLANTDENSITY, CB_MTTARGETFRAC, CB_MTTARGETFRACFILENAME, CB_MTWATERUSE, CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, 
+	CB_PFT, CB_STSELECTION, CB_STPLANTDENSITY, CB_STTARGETFRAC, CB_STTARGETFRACFILENAME, CB_STWATERUSE, CB_MANAGEMENT1, 
+	CB_MANAGEMENT2, CB_MANAGEMENT3, CB_PATHWAY, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, 
+	CB_WATERUPTAKE, CB_MTCOMPOUND, CB_FIREMODEL, CB_WEATHERGENERATOR, CB_DISTTYPE, CB_HYDROLOGY, CB_ENERGY, CB_MOISTDECAY};
 
 // File local variables
 namespace {
@@ -283,6 +305,9 @@ void initsettings() {
 
 	firemodel=BLAZE;
 	weathergenerator=GWGEN;
+	hydrology=GERTEN;
+	energy=CNSTEP_FULL;
+	moistdecay=FRIEND;
 	ifcalcsla=true;
 	ifdailycstarvmort=false;
 	iftreephen=false;
@@ -310,6 +335,7 @@ void initsettings() {
 	restart = false;
 	verbosity=WARNING;
 	lcfrac_fixed = true;
+	peatduration = false;
 	for(int lc=0; lc<NLANDCOVERTYPES; lc++)
 		frac_fixed[lc] = true;
 	textured_soil = true;
@@ -327,6 +353,7 @@ void initsettings() {
 	epsiresolution = 100;
 	energy_balance_maxiter = 1;
 	energy_balance_eps = 1;
+	depth_soil = SOILDEPTH_UPPER + SOILDEPTH_LOWER;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -561,11 +588,15 @@ void plib_declarations(int id,xtring setname) {
 			"Patch area (m2)");
 		declareitem("wateruptake", &strparam, 20, CB_WATERUPTAKE,
 			"Water uptake mode (\"WCONT\", \"ROOTDIST\", \"SMART\", \"SPECIESSPECIFIC\")");
-		declareitem("rootdistribution", &strparam, 20, CB_ROOTDISTRIBUTION,
-			"Parameterisation of root distribution (\"FIXED\", \"JACKSON\")");
-			
+
 		declareitem("weathergenerator", &strparam, 20, CB_WEATHERGENERATOR,
-				"Weather Generator (\"INTERP\", \"GWGEN\")");
+			"Weather Generator (\"INTERP\", \"GWGEN\")");
+		declareitem("hydrology", &strparam, 20, CB_HYDROLOGY,
+			"Hydrology schemes (\"GERTEN\", \"MILLER\", \"RICHARDS\")");
+		declareitem("energy", &strparam, 20, CB_ENERGY,
+			"Energy calculation schemes (\"CNSTEP_FULL\", \"CNSTEP\", \"BELDA\")");
+		declareitem("moistdecay", &strparam, 20, CB_MOISTDECAY,
+			"Moisture SOM decay function (\"FRIEND\", \"YAN\")");
 
 		declareitem("nrelocfrac",&nrelocfrac,0.0,0.99,1,CB_NONE,
 			"Fractional nitrogen relocation from shed leaves & roots");
@@ -576,8 +607,10 @@ void plib_declarations(int id,xtring setname) {
 
 		declareitem("ifcentury",&ifcentury,1,CB_NONE,
 			"Whether to use CENTURY SOM dynamics (default standard LPJ)");
-		declareitem("ifnlim",&ifnlim,1,CB_NONE,
+		declareitem("ifnlim", &ifnlim, 1, CB_NONE,
 			"Whether plant growth limited by available nitrogen");
+		declareitem("ifdailynretrans", &ifdailynretrans, 1, CB_NONE,
+			"Whether daily leaf N retranslocation is allowed");
 		declareitem("freenyears",&freenyears,0,1000,1,CB_NONE,
 			"Number of years to spinup without nitrogen limitation");
 		declareitem("ifntransform",&ifntransform,1,CB_NONE,
@@ -587,8 +620,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("pH_soil",&pH_soil,3.5,8.5,1,CB_NONE, "Soil pH");
 		declareitem("f_nitri_max",  &f_nitri_max,  0.01,   1.0, 1,CB_NONE, "Maximum amount of NH4 nitrified");
 
-		declareitem("k_N",    &k_N,    0.0001, 1.0, 1,CB_NONE, "Constant in denitrification");
-		declareitem("k_C",    &k_C,    0.00001, 1.0, 1,CB_NONE, "Constant in denitrification");
+		declareitem("k_N",    &k_N,    0.0000001, 1.0, 1,CB_NONE, "Denitrification Michaelis–Menten constant for N oxides [kg N kg H2O-1]");
+		declareitem("k_C",    &k_C,    0.00000001, 1.0, 1,CB_NONE, "Denitrification Michaelis–Menten constant for labile carbon [kg C kg H2O-1]");
 
 		declareitem("f_denitri_max",    &f_denitri_max,    0.0001, 1.0, 1,CB_NONE, "Maximum amount of NO3 conv. to NO2");
 		declareitem("f_denitri_gas_max",    &f_denitri_gas_max,    0.00001, 1.0, 1,CB_NONE, "Maximum gaseus losses in denitrification");
@@ -604,10 +637,28 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifbvoc",&ifbvoc,1,CB_NONE,
 			"Whether or not BVOC calculations are performed (0,1)");
 
-		declareitem("iftwolayersoil", &iftwolayersoil, 1, CB_NONE,
-			"Use the original LPJ-GUESS v4 soil scheme, or not (0,1)");
+		declareitem("slope", &slope, -1.0, 90.0, 1, CB_NONE,
+			"Whether to use fixed slope value (>=0 degree) or input data (<0)");
+		declareitem("b_infilt", &b_infilt, 0.0001, 0.4, 1, CB_NONE,
+			"Variable infiltration capacity parameter (Global value 0.2, higher value gives lower infiltration and more surface runoff)");
+		declareitem("C_dw", &C_dw, 0.00001, 1.0, 1, CB_NONE,
+			"Calibration parameter for lateral drainage");
+		declareitem("ifbedrock", &ifbedrock, 1, CB_NONE,
+			"Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)");
+		declareitem("ifsupercooled", &ifsupercooled, 0, 2, 1, CB_NONE,
+			"Whether to consider supercooled soil water. 0 - not, 1 - Niuet al.2006 (CLM), 2 - Jin et al. 2020");
+		declareitem("homrootdistfrac", &homrootdistfrac, 0.0, 1.0, 1, CB_NONE,
+			"Fraction of fine roots to be homogenously distributed in soil column");
+		declareitem("rootfrac_of_deep_soil", &rootfrac_of_deep_soil, 0.0, 1.0, 1, CB_NONE,
+			"Fraction of deep soil, beyond 1500mm, that roots have access to");
+		declareitem("receiver_frac", &receiver_frac, 0.0, 1.0, 1, CB_NONE,
+			"Fraction of organic matter to move from receiver layer");
 		declareitem("ifmultilayersnow", &ifmultilayersnow, 1, CB_NONE,
 			"Whether or not multilayer snow calculations are performed (0,1)");
+		declareitem("ifsoaksnow", &ifsoaksnow, 1, CB_NONE,
+			"Whether or not snowpack is soaked by melting water (0,1)");
+		declareitem("top_thickness", &top_thickness, 0.0, 1000.0, 1, CB_NONE,
+			"Additional thickness ontop of snowpack to account for radiation energy");
 		declareitem("ifinundationstress",&ifinundationstress,1,CB_NONE,
 			"Whether to reduce NPP if there's inundation (1), or not (0)");
 		declareitem("ifcarbonfreeze",&ifcarbonfreeze,1,CB_NONE,
@@ -616,10 +667,24 @@ void plib_declarations(int id,xtring setname) {
 			"Optional additional wetland run-on (mm/day)");
 		declareitem("ifmethane",&ifmethane,1,CB_NONE,
 			"Whether to run the methane model (1), or not (0)");
+		declareitem("peat_age", &peat_age, 0, 100000, 1, CB_NONE, "Age of peat (0 peatland will be spun up to equilibrium)");
 		declareitem("iforganicsoilproperties", &iforganicsoilproperties, 1, CB_NONE,
-			"Whether soil C pool input is used to update soil properties (1), or not (0)");
+			"Whether to update physical soil properties using soil carbon content (1), or not (0)");
 		declareitem("ifsaturatewetlands", &ifsaturatewetlands, 1, CB_NONE,
 			"Whether to take water from runoff to saturate low latitide wetlands (1), or not (0)");
+		declareitem("ifeffvolume", &ifeffvolume, 1, CB_NONE,
+			"Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)");
+		declareitem("ifdepthdecaymod", &ifdepthdecaymod, 1, CB_NONE,
+			"Whether to use depth soil organic matter decay rate modifier (1), or not (0)");
+		declareitem("ifthawaffectrootdist", &ifthawaffectrootdist, 1, CB_NONE,
+			"Whether thaw depth affects root distribution (1 by default), or not (0)");
+
+		declareitem("surf_li_scalar", &surf_li_scalar, 0.0, 10.0, 1, CB_NONE,
+			"Cali");
+		declareitem("soil_om_scalar", &soil_om_scalar, 0.0, 10.0, 1, CB_NONE,
+			"Cali");
+		declareitem("moist_mod_anaerobic", &moist_mod_anaerobic, 0.0, 1.0, 1, CB_NONE,
+			"Cali");
 
 		declareitem("run_landcover",&run_landcover,1,CB_NONE,"Landcover version");
 		declareitem("run_urban",&run[URBAN],1,CB_NONE,"Whether urban land is to be simulated");
@@ -658,6 +723,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("harvest_burn_thin_trees",&harvest_burn_thin_trees,1,CB_NONE,
 			"Whether to burn thin trees during tree harvest (ignoring pft.harvest_slow_frac)");
 		declareitem("textured_soil",&textured_soil,1,CB_NONE,"Use silt/sand fractions specific to soiltype");
+		declareitem("depth_soil", &depth_soil, 0, 100000, 1, CB_NONE, "Soil depth (mm)");
 		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");
 		declareitem("grassforcrop",&grassforcrop,1,CB_NONE,"grassforcrop");
 		declareitem("map_text_file", &map_text_file, 1, CB_NONE, "Whether to map text input file data in index file");
@@ -784,9 +850,9 @@ void plib_declarations(int id,xtring setname) {
 			"Maximum temperature limit for photosynthesis (deg C)");
 		declareitem("lambda_max",&ppft->lambda_max,0.1,0.99,1,CB_NONE,
 			"Non-water-stressed ratio of intercellular to ambient CO2 pp");
-		declareitem("root_beta", &ppft->root_beta, 0.0,1.0,1,CB_ROOTFRAC,
+		declareitem("root_beta", &ppft->root_beta, 0.0, 1.0, 1, CB_ROOTFRAC,
 			"Shape parameter to determine fraction of roots in each soil layer");
- 		declareitem("rootdist",ppft->input_rootdist,0.0,1.0,NSOILLAYER,CB_ROOTFRAC,
+ 		declareitem("rootdist",ppft->input_rootdist,0.0,1.0,NSOILLAYERS_MAX,CB_ROOTFRAC,
 			"Fraction of roots in each soil layer (first value=upper layer)");
 		declareitem("emax",&ppft->emax,0.0,50.0,1,CB_NONE,
 			"Maximum evapotranspiration rate (mm/day)");
@@ -822,14 +888,18 @@ void plib_declarations(int id,xtring setname) {
 			"Reference value at which Vcmax or Jmax is half it's non-water-stresed value (Zhou 2014)");
 		declareitem("ifcalcvcmax",&ppft->ifcalcvcmax,1,CB_NONE,
 			"Whether Vcmax calculated from leaf nutrient content");
+
+		declareitem("ligcfrac_root", &ppft->ligcfrac_root, 0.0, 0.5, 1, CB_NONE,
+			"Lignin fraction in root (0-0.5)");
+		declareitem("ligcfrac_wood", &ppft->ligcfrac_wood, 0.0, 0.5, 1, CB_NONE,
+			"Lignin fraction in wood (0-0.5)");
+
 		declareitem("cton_root",&ppft->cton_root,1.0,1.0e4,1,CB_NONE,
 			"Reference Fine root C:N mass ratio");
 		declareitem("cton_sap",&ppft->cton_sap,1.0,1.0e4,1,CB_NONE,
 			"Reference Sapwood C:N mass ratio");
 		declareitem("nuptoroot",&ppft->nuptoroot,0.0,1.0,1,CB_NONE,
 			"Maximum nitrogen uptake per fine root");
-		declareitem("km_volume",&ppft->km_volume,0.0,10.0,1,CB_NONE,
-			"Michaelis-Menten kinetic parameters for nitrogen uptake");
 		declareitem("fnstorage",&ppft->fnstorage,0.0,10.0,1,CB_NONE,
 			"fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen storage scalar");
 		declareitem("extkn",&ppft->extkn,-0.5,2.0,1,CB_NONE,
@@ -990,6 +1060,8 @@ void plib_declarations(int id,xtring setname) {
 			"Constant in equation for tree estab rate");
 		declareitem("longevity",&ppft->longevity,0.0,3000.0,1,CB_NONE,
 			"Expected longevity under lifetime non-stressed conditions (yr)");
+		declareitem("ag_woody_frac", &ppft->ag_woody_frac,0.0,1.0,1,CB_NONE,
+			"Above ground woody biomass fraction");
 		declareitem("greff_min",&ppft->greff_min,0.0,1.0,1,CB_NONE,
 			"Threshold for growth suppression mortality (kgC/m2 leaf/yr)");
 		declareitem("intc",&ppft->intc,0.0,1.0,1,CB_NONE,"Interception coefficient");
@@ -1194,7 +1266,7 @@ void plib_declarations(int id,xtring setname) {
 			"Whether patch (1) or stand (2,3) deviations from pft cmass fraction targets used");
 		declareitem("suppress_second_target",&pmt->suppress_second_target,1,CB_NONE,
 			"Whether to stop cutting to reach pft fraction targets when the second (continuous) period starts");
-		declareitem("hydrology",&strparam,16,CB_MTHYDROLOGY, "Hydrology of crop (\"RAINFED\" or \"IRRIGATED\")");
+		declareitem("wateruse",&strparam,16,CB_MTWATERUSE, "water use of crop (\"RAINFED\" or \"IRRIGATED\")");
 //		declareitem("irrigation",&pmt->firr,0.0,1.0,1,CB_NONE,"Irrigation of crop");
 		declareitem("sdate",&pmt->sdate,0,364,1,CB_NONE,"Sowing date of crop");
 		declareitem("hdate",&pmt->hdate,0,364,1,CB_NONE,"Harvest date of crop");
@@ -1343,7 +1415,7 @@ void plib_declarations(int id,xtring setname) {
 					"Whether patch (1) or stand (2,3) deviations from pft cmass fraction targets used");
 				declareitem("suppress_second_target",&pst->management.suppress_second_target,1,CB_NONE,
 					"Whether to stop cutting to reach pft fraction targets when the second (continuous) period starts");
-				declareitem("hydrology",&strparam,16,CB_STHYDROLOGY, "Hydrology of crop 1 (\"RAINFED\" or \"IRRIGATED\")");
+				declareitem("wateruse",&strparam,16,CB_STWATERUSE, "Water use of crop 1 (\"RAINFED\" or \"IRRIGATED\")");
 //				declareitem("irrigation",&pst->management.firr,0.0,1.0,1,CB_NONE,"Irrigation of crop 1");
 				declareitem("sdate",&pst->management.sdate,0,364,1,CB_NONE,"Sowing date of crop 1");
 				declareitem("hdate",&pst->management.hdate,0,364,1,CB_NONE,"Harvest date of crop 1");
@@ -1473,8 +1545,6 @@ void badins(xtring missing) {
 void plib_callback(int callback) {
 
 	xtring message;
-	int i;
-	double numval;
 
 	switch (callback) {
 
@@ -1518,6 +1588,36 @@ void plib_callback(int callback) {
 			disttype = DETERMINISTIC;
 		} else {
 			sendmessage("Error", "Unknown disttype (valid types: \"NONE\", \"STOCHASTIC\", \"DETERMINISTIC\")");
+			plibabort();
+		}
+		break;
+	case CB_HYDROLOGY:
+		if (strparam.upper() == "GERTEN") hydrology = GERTEN;
+		else if (strparam.upper() == "MILLER") hydrology = MILLER;
+		else if (strparam.upper() == "RICHARDS") hydrology = RICHARDS;
+		else {
+			sendmessage("Error",
+				"Unknown hydrology scheme (valid types: \"GERTEN\", \"MILLER\", \"RICHARDS\")");
+			plibabort();
+		}
+		break;
+	case CB_ENERGY:
+		if (strparam.upper() == "CNSTEP_FULL") energy = CNSTEP_FULL;
+		else if (strparam.upper() == "CNSTEP") energy = CNSTEP;
+		else if (strparam.upper() == "BELDA") energy = BELDA;
+		else {
+			sendmessage("Error",
+				"Unknown energy calculation scheme (valid types: \"CNSTEP_FULL\", \"CNSTEP\", \"BELDA\")");
+			plibabort();
+		}
+		break;
+	case CB_MOISTDECAY:
+		if (strparam.upper() == "FRIEND") moistdecay = FRIEND;
+		else if (strparam.upper() == "YAN") moistdecay = YAN;
+		else {
+			sendmessage("Error",
+				"Unknown moistdecay function (valid types: \"FRIEND\", \"YAN\")");
+			plibabort();
 		}
 		break;
 	case CB_FIREMODEL:
@@ -1530,15 +1630,6 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
-	case CB_ROOTDISTRIBUTION:
-		if (strparam.upper() == "FIXED") rootdistribution = ROOTDIST_FIXED;
-		else if (strparam.upper() == "JACKSON") rootdistribution = ROOTDIST_JACKSON;
-		else {
-			sendmessage("Error",
-				"Unknown mode for root parameterisation (valid types: (\"FIXED\", \"JACKSON\")");
-			plibabort();
-		}
-			break;
 	case CB_LIFEFORM:
 		if (strparam.upper()=="TREE") ppft->lifeform=TREE;
 		else if (strparam.upper() == "GRASS_PERENNIAL") ppft->lifeform = GRASS_PERENNIAL;
@@ -1617,13 +1708,13 @@ void plib_callback(int callback) {
 	case CB_MTTARGETFRACFILENAME:
 		pmt->file_targetfrac_pft_mt = strparam;
 		break;
-	case CB_MTHYDROLOGY:
-		if (strparam.upper()=="RAINFED") pmt->hydrology = RAINFED;
-		else if (strparam.upper()=="IRRIGATED") pmt->hydrology = IRRIGATED;
+	case CB_MTWATERUSE:
+		if (strparam.upper()=="RAINFED") pmt->wateruse = RAINFED;
+		else if (strparam.upper()=="IRRIGATED") pmt->wateruse = IRRIGATED;
 		else 
 		{
 			sendmessage("Error",
-				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
+				"Unknown water use type (valid types: \"RAINFED\", \"IRRIGATED\")");
 			plibabort();
 		}
 		break;
@@ -1657,13 +1748,13 @@ void plib_callback(int callback) {
 	case CB_STTARGETFRACFILENAME:
 		pst->management.file_targetfrac_pft_mt = strparam;
 		break;
-	case CB_STHYDROLOGY:
-		if (strparam.upper()=="RAINFED") pst->management.hydrology = RAINFED;
-		else if (strparam.upper()=="IRRIGATED") pst->management.hydrology = IRRIGATED;
-		else 
+	case CB_STWATERUSE:
+		if (strparam.upper()=="RAINFED") pst->management.wateruse = RAINFED;
+		else if (strparam.upper()=="IRRIGATED") pst->management.wateruse = IRRIGATED;
+		else
 		{
 			sendmessage("Error",
-				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
+				"Unknown water use type (valid types: \"RAINFED\", \"IRRIGATED\")");
 			plibabort();
 		}
 		break;
@@ -1698,8 +1789,10 @@ void plib_callback(int callback) {
 		}
 		break;
 	case CB_ROOTFRAC:
-		numval = 0.0;
-		if (rootdistribution == ROOTDIST_JACKSON) ppft->init_rootdist();
+		sendmessage("FIXME", "Verify that this is not needed");
+		plibabort();
+		// numval = 0.0;
+		// if (rootdistribution == ROOTDIST_JACKSON) ppft->init_rootdist();
 		break;
 	case CB_MTCOMPOUND:
 		  // bvoc. Can include some checks for the monoterpene parameters given per compound
@@ -1716,6 +1809,9 @@ void plib_callback(int callback) {
 		if (!itemparsed("vegmode")) badins("vegmode");
 
 		if (!itemparsed("weathergenerator")) badins("weathergenerator");
+		if (!itemparsed("hydrology")) badins("hydrology");
+		if (!itemparsed("energy")) badins("energy");
+		if (!itemparsed("moistdecay")) badins("moistdecay");
 		if (!itemparsed("firemodel")) badins("firemodel");
 		if (firemodel==BLAZE){
 			if (weathergenerator!=GWGEN) {
@@ -1731,14 +1827,18 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifcalccton")) badins("ifcalccton");
 		if (!itemparsed("ifcdebt")) badins("ifcdebt");
 		if (!itemparsed("wateruptake")) badins("wateruptake");
-		if (!itemparsed("rootdistribution")) badins("rootdistribution");
-
+		if (!itemparsed("depth_soil")) badins("depth_soil");
+		if (hydrology != RICHARDS && depth_soil != (SOILDEPTH_UPPER + SOILDEPTH_LOWER)) {
+			sendmessage("Error", "Soil depth must be set to 1500mm with GERTEN or MILLER hydrology. Soil depth SET to 1500mm!");
+			depth_soil = SOILDEPTH_UPPER + SOILDEPTH_LOWER;
+		}
 		if (!itemparsed("nrelocfrac")) badins("nrelocfrac");
 		if (!itemparsed("nfix_a")) badins("nfix_a");
 		if (!itemparsed("nfix_b")) badins("nfix_b");
 
 		if (!itemparsed("ifcentury")) badins("ifcentury");
 		if (!itemparsed("ifnlim")) badins("ifnlim");
+		if (!itemparsed("ifdailynretrans")) badins("ifdailynretrans");
 		if (!itemparsed("freenyears")) badins("freenyears");
 		if (!itemparsed("ifdailygrass")) badins("ifdailygrass");
 		if (!itemparsed("ifdailytree")) badins("ifdailytree");
@@ -1771,16 +1871,130 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifrainonwetdaysonly")) badins("ifrainonwetdaysonly");
 		
 		if (!itemparsed("ifbvoc")) badins("ifbvoc");
-		
 
-		if (!itemparsed("iftwolayersoil")) badins("iftwolayersoil");
-		if (!itemparsed("ifmultilayersnow")) badins("ifmultilayersnow");
-		if (!itemparsed("ifinundationstress")) badins("ifinundationstress");
-		if (!itemparsed("ifcarbonfreeze")) badins("ifcarbonfreeze");
 		if (!itemparsed("wetland_runon")) badins("wetland_runon");
 		if (!itemparsed("ifmethane")) badins("ifmethane");
+		
+		if (!itemparsed("slope")) badins("slope");
+		if (!itemparsed("b_infilt")) badins("b_infilt");
+		if (!itemparsed("C_dw")) badins("C_dw");
+		if (!itemparsed("ifbedrock")) badins("ifbedrock");
+		if (!itemparsed("ifsupercooled")) badins("ifsupercooled");
+		if (!itemparsed("homrootdistfrac")) badins("homrootdistfrac");
+		if (!itemparsed("rootfrac_of_deep_soil")) badins("rootfrac_of_deep_soil");
+		if (!itemparsed("receiver_frac")) badins("receiver_frac");
+		if (!itemparsed("ifmultilayersnow")) badins("ifmultilayersnow");
+		if (!itemparsed("ifsoaksnow")) badins("ifsoaksnow");
+		if (!itemparsed("top_thickness")) badins("top_thickness");
+		if (!itemparsed("ifinundationstress")) badins("ifinundationstress");
+		if (!itemparsed("ifcarbonfreeze")) badins("ifcarbonfreeze");
+		if (!itemparsed("peat_age")) badins("peat_age");
 		if (!itemparsed("iforganicsoilproperties")) badins("iforganicsoilproperties");
-		if (!itemparsed("ifsaturatewetlands")) badins("ifsaturatewetlands");
+		if (!itemparsed("ifsaturatewetlands")) badins("ifsaturatewetlands"); 
+		if (!itemparsed("ifeffvolume")) badins("ifeffvolume");
+		if (!itemparsed("ifdepthdecaymod")) badins("ifdepthdecaymod");
+		if (!itemparsed("ifthawaffectrootdist")) badins("ifthawaffectrootdist");
+
+		if (!itemparsed("surf_li_scalar")) badins("surf_li_scalar");
+		if (!itemparsed("soil_om_scalar")) badins("soil_om_scalar");
+		if (!itemparsed("moist_mod_anaerobic")) badins("moist_mod_anaerobic");
+
+		if (hydrology == GERTEN) {
+			if (ifbedrock) {
+				dprintf("Bedrock: Can't account for bedrock with GERTEN hydrology! ifbedrock set to false\n");
+				ifbedrock = false;
+			}
+			if (ifmultilayersnow) {
+				dprintf("Multilayer snow scheme: Can't have multilayer snow scheme together with GERTEN hydrology! ifmultilayersnow set to false\n");
+				ifmultilayersnow = false;
+			}
+			if (ifinundationstress) {
+				dprintf("Inundation stress: Can't have inundation stress together with GERTEN hydrology! ifinundationstress set to false\n");
+				ifinundationstress = false;
+			}
+			if (wetland_runon != 0.0) {
+				dprintf("Wetland runon: Can't have wetland runon together with GERTEN hydrology! wetland_runon set to zero\n");
+				wetland_runon = 0.0;
+			}
+			if (ifmethane) {
+				dprintf("Methane: Can't have methane together with GERTEN hydrology! ifmethane set to false\n");
+				ifmethane = false;
+			}
+			if (ifsaturatewetlands) {
+				dprintf("Saturated Wetland: Can't have saturated wetland together with GERTEN hydrology! ifsaturatewetlands set to false\n");
+				ifsaturatewetlands = false;
+			}
+			if (ifcarbonfreeze) {
+				dprintf("Carbon freeze: Can't have carbon freeze together with GERTEN hydrology! ifcarbonfreeze set to false\n");
+				ifcarbonfreeze = false;
+			}
+			if (ifsupercooled) {
+				dprintf("Supercooled water: Can't have supercooled water together with GERTEN hydrology! ifsupercooled set to false\n");
+				ifsupercooled = false;
+			}
+			if (ifsoaksnow) {
+				dprintf("Soak snow: Can't have soak snow together with GERTEN hydrology! ifsoaksnow set to false\n");
+				ifsoaksnow = false;
+			}
+			if (iforganicsoilproperties) {
+				dprintf("Organic soil properties: Can't have organic soil properties together with GERTEN hydrology! iforganicsoilproperties set to false\n");
+				iforganicsoilproperties = false;
+			}
+			if (ifeffvolume) {
+				dprintf("Effective volume: Can't have effective volume together with GERTEN hydrology! ifeffvolume set to false\n");
+				ifeffvolume = false;
+			}
+			if (ifdepthdecaymod) {
+				dprintf("Depth decay mod: Can't have depth decay mod together with GERTEN hydrology! ifdepthdecaymod set to false\n");
+				ifdepthdecaymod = false;
+			}
+			if (ifthawaffectrootdist) {
+				dprintf("Thaw affect root distribution: Can't have that thaw affect root distribution together with GERTEN hydrology! ifthawaffectrootdist set to false\n");
+				ifthawaffectrootdist = false;
+			}
+			if (rootfrac_of_deep_soil) {
+				dprintf("Roots in deep soil: Can't have deep roots together with GERTEN hydrology! rootfrac_of_deep_soil set to 0\n");
+				rootfrac_of_deep_soil = 0.0;
+			}
+			if (moistdecay == YAN) {
+				dprintf("Moistdecay: GERTEN hydrology uses the standard moisture SOM decay function! Moistdecay set to FRIEND\n");
+				moistdecay = FRIEND;
+			}
+		}
+
+		if (hydrology == MILLER) {
+			if (ifbedrock == 1) {
+				dprintf("Bedrock: Can't account for bedrock with MILLER hydrology! ifbedrock set to false\n");
+				ifbedrock = false;
+			}
+			if (iforganicsoilproperties) {
+				dprintf("Organic soil properties: Can't have organic soil properties together with MILLER hydrology! iforganicsoilproperties set to false\n");
+				iforganicsoilproperties = false;
+			}
+			if (ifeffvolume) {
+				dprintf("Effective volume: Can't have effective volume together with MILLER hydrology! ifeffvolume set to false\n");
+				ifeffvolume = false;
+			}
+			if (ifdepthdecaymod) {
+				dprintf("Depth decay mod: Can't have depth decay mod together with MILLER hydrology! ifdepthdecaymod set to false\n");
+				ifdepthdecaymod = false;
+			}
+			if (rootfrac_of_deep_soil) {
+				dprintf("Roots in deep soil: Can't have deep roots together with MILLER hydrology! rootfrac_of_deep_soil set to 0\n");
+				rootfrac_of_deep_soil = 0.0;
+			}
+			if (moistdecay == YAN) {
+				dprintf("Moistdecay: MILLER hydrology uses the standard moisture SOM decay function! Moistdecay set to FRIEND\n");
+				moistdecay = FRIEND;
+			}
+		}
+
+		if (hydrology == RICHARDS) {
+			if (!ifmultilayersnow) {
+				dprintf("Multilayer snow scheme: Can't have simple snow scheme together with RICHARDS hydrology! ifmultilayersnow set to true\n");
+				ifmultilayersnow = true;
+			}
+		}
 
 		if (!itemparsed("run_landcover")) badins("run_landcover");
 		if (run_landcover) {
@@ -2157,8 +2371,8 @@ void plib_callback(int callback) {
 			// Calculate C:N ratio limits
 			ppft->init_cton_limits();
 
-			// Calculate nitrogen uptake strength dependency on root distribution
-			ppft->init_nupscoeff();
+			// Calculate leaf lignin fraction
+			ppft->init_ligcfrac_leaf();
 
 			// Calculate regeneration characteristics for population mode
 			ppft->initregen();
@@ -2174,17 +2388,6 @@ void plib_callback(int callback) {
 			}
 
 			pftlist.nextobj();
-		}
-
-
-		// No peatland allowed when using the two layer soil so treat the peatland fraction as natural
-		if (iftwolayersoil && run[PEATLAND]) {
-			fail("LandcoverInput::init(): do not set run_peatland to 1 in landcover.ins if iftwolayersoil = 1");
-		}
-
-		// Must use fixed root distribution when using the two layer soil 
-		if (iftwolayersoil && rootdistribution == ROOTDIST_JACKSON) {
-			fail("LandcoverInput::init(): rootdistribution must be fixed, not jackson, if iftwolayersoil = 1");
 		}
 
 		break;
@@ -2208,17 +2411,14 @@ void plib_callback(int callback) {
 				if (!itemparsed("pstemp_max")) badins("pstemp_max");
 			}
 			if (!itemparsed("lambda_max") && !ifdavephotosyn) badins("lambda_max");
-			if (rootdistribution == ROOTDIST_FIXED) {
-				if (!itemparsed("rootdist")) badins("rootdist");
-				// if (itemparsed("root_beta")) badins("root_beta given but rootdistribution is fixed. This does not make sense.");
-			}
-			if (rootdistribution == ROOTDIST_JACKSON) {
-				if (!itemparsed("root_beta")) badins("root_beta");
-				// if (itemparsed("rootdist")) badins("rootdist given but root distribution is jackson. This does not make sense.");
-			}
+			if (!itemparsed("rootdist") && !itemparsed("root_beta")) badins("rootdist or root_beta");
+			sendmessage("FIXME", "Figure out which one of these parameters is needed and verify that one specifically");
+			plibabort();
 			if (!ifdavephotosyn && !itemparsed("gmin")) badins("gmin");
 			if (!itemparsed("emax")) badins("emax");
 			if (!itemparsed("respcoeff")) badins("respcoeff");
+			if (!itemparsed("ligcfrac_root")) badins("ligcfrac_root");
+			if (!itemparsed("ligcfrac_wood")) badins("ligcfrac_wood");
 
 			if (!ifcalcsla || (ppft->phenology == CROPGREEN && run_landcover && ifnlim))
 				if (!itemparsed("sla")) badins("sla");
@@ -2563,7 +2763,7 @@ void plib_callback(int callback) {
 		}
 
 		break;
-	}
+	} // switch
 }
 
 void plib_receivemessage(xtring text) {

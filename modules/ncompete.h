@@ -1,6 +1,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 /// \file ncompete.h
-/// \brief Distribution of N among individuals according to supply, demand and
+/// \brief Distribution of nutrients among individuals according to supply, demand and
 ///        the individuals' uptake strength
 ///
 /// \author David Wårlind
@@ -12,12 +12,12 @@
 
 #include <vector>
 
-/// Represents an individual competing for nitrogen uptake
+/// Represents an individual competing for nutrient uptake
 /** Contains what the ncompete function below needs to know about
- *  an individual in order to do the distribution of N.
+ *  an individual in order to do the distribution of nutrient.
  */
 struct NCompetingIndividual {
-	/// This individual's N demand (input)
+	/// This individual's nutrient demand
 	double ndemand;
 
 	/// A meassure of this individual's uptake strength (input)
@@ -27,11 +27,11 @@ struct NCompetingIndividual {
 	double fnuptake;
 };
 
-/// Distributes N among individuals according to supply, demand and uptake strength
+/// Distributes nutrients among individuals according to supply, demand and uptake strength
 /** Grasses should get at least 5% and no
- *  individual should get more than 100% of its nitrogen demand. 
+ *  individual should get more than 100% of its nutrient demand. 
  */
 void ncompete(std::vector<NCompetingIndividual>& individuals, 
-              double nmass_avail);
+              double nutrient_mass);
 
 #endif // LPJ_GUESS_NCOMPETE_H

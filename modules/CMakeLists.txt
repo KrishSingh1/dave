@@ -9,7 +9,8 @@ set(headers
   bvoc.h 
   blaze.h
   simfire.h
-  q10.h 
+  lookup.h
+  q10.h
   globalco2file.h
   ncompete.h
   commonoutput.h

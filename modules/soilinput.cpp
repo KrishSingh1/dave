@@ -1,4 +1,4 @@
-///////////////////////////////////////////////////////////////////////////////////////
+﻿///////////////////////////////////////////////////////////////////////////////////////
 /// \file soilinput.cpp
 /// \brief Implementation of soil input from text files, soil codes or soil physical properties.
 ///
@@ -133,14 +133,194 @@ void SoilInput::init(const char* fname, const std::vector<coord>& gridlist) {
 
 	std::set<coord> coords(gridlist.begin(), gridlist.end());
 
-	soil_code = format_input_header(fname);
+	xtring soilClay = param["file_soilclay"].str;
+	xtring soilSand = param["file_soilsand"].str;
 
-	if (soil_code) {
-		load_lpj_soilcodes(fname, coords);
+	// Have soil depth varying properties
+	if (soilClay.len() && soilSand.len()) {
+
+		soil_varying = true;
+
+		init_depth_varying(coords);
 	} 
 	else {
-		load_mineral_soils(fname, coords);
+
+		soil_varying = false;
+
+		soil_code = format_input_header(fname);
+
+		if (soil_code) {
+			load_lpj_soilcodes(fname, coords);
+		}
+		else {
+			load_mineral_soils(fname, coords);
+		}
 	}
+}
+
+// Helper: extract depths from header
+std::vector<double> SoilInput::extract_layer_depths(std::ifstream& prop) {
+
+	std::string line;
+	getline(prop, line);
+	std::transform(line.begin(), line.end(), line.begin(), ::tolower);
+
+	const int nr_coord = 2; // lon + lat
+	std::istringstream ss(line);
+	std::istream_iterator<std::string> begin(ss), end;
+	std::vector<std::string> header(begin, end);
+	const int nr_layers = static_cast<int>(header.size()) - nr_coord;
+
+	std::vector<double> lyr_depth(nr_layers);
+	for (int h = nr_coord; h < static_cast<int>(header.size()); ++h) {
+		size_t dashPos = header[h].find('-');
+		std::string lastNumberStr = header[h].substr(dashPos + 1);
+		lyr_depth[h - nr_coord] = std::stod(lastNumberStr);
+	}
+
+	return lyr_depth;
+}
+
+void SoilInput::get_depth_varying_prop(
+	const std::set<coord>& coords,
+	std::ifstream& prop,
+	std::map<coord, SoilDataMineral>& mineral_map,
+	std::vector<double> SoilDataMineral::* member) {
+	if (!prop.is_open())
+		return;
+
+	// Read and parse header to extract layer depths
+	std::vector<double> lyr_depth = extract_layer_depths(prop);
+	const int nr_layers = static_cast<int>(lyr_depth.size());
+
+	std::vector<double> T(nr_layers);
+	std::string line;
+
+	int sites = 0;
+
+	while (getline(prop, line)) {
+		std::istringstream iss(line);
+		double lon, lat;
+		if (!(iss >> lon >> lat))
+			continue;
+
+		coord c(lon, lat);
+		if (!coords.empty() && coords.count(c) == 0)
+			continue;
+
+		for (double& val : T)
+			iss >> val;
+
+		SoilDataMineral& soildata = mineral_map[c];
+		(soildata.*member).resize(nr_layers);
+		for (int lyr = 0; lyr < nr_layers; ++lyr)
+			(soildata.*member)[lyr] = T[lyr];
+
+		sites++;
+
+		if (sites == (int)coords.size())
+			break;
+	}
+}
+
+void SoilInput::assign_depths(
+	const std::set<coord>& coords,
+	std::map<coord, SoilDataMineral>& mineral_map,
+	const std::vector<double>& depths)
+{
+	for (const auto& c : coords) {
+		SoilDataMineral& soildata = mineral_map[c];
+		soildata.depth_lyr = depths;
+	}
+}
+
+// Initialises the soil input class and determines the format of the supplied input file.
+void SoilInput::init_depth_varying(const std::set<coord>& coords) {
+
+	soil_varying = true;
+
+	// Assign depths once
+	std::ifstream clayHeader(param["file_soilclay"].str);
+	std::vector<double> depths = extract_layer_depths(clayHeader);
+	assign_depths(coords, mineral_map, depths);
+
+	std::ifstream clayFile(param["file_soilclay"].str);
+	get_depth_varying_prop(coords, clayFile, mineral_map, &SoilDataMineral::clay_lyr);
+
+	std::ifstream sandFile(param["file_soilsand"].str);
+	get_depth_varying_prop(coords, sandFile, mineral_map, &SoilDataMineral::sand_lyr);
+
+	std::ifstream coarseFile(param["file_soilcoarse"].str);
+	if (coarseFile) {
+		get_depth_varying_prop(coords, coarseFile, mineral_map, &SoilDataMineral::coarse_lyr);
+	}
+	else {
+		dprintf("Using soil depth varying properties, but not coarse fragments!\n");
+	}
+
+	std::ifstream pHFile(param["file_soilpH"].str);
+	if (pHFile) {
+		get_depth_varying_prop(coords, pHFile, mineral_map, &SoilDataMineral::pH_lyr);
+	}
+	else {
+		dprintf("Using soil depth varying properties, but not pH!\n");
+	}
+}
+
+// Initialises the soil input class and determines the format of the supplied input file.
+void SoilInput::init_depth(const char* fname, const std::vector<coord>& gridlist) {
+
+	std::set<coord> coords(gridlist.begin(), gridlist.end());
+
+	std::ifstream ifs(fname, std::ifstream::in);
+
+	std::string line;
+
+	while (getline(ifs, line)) {
+		std::istringstream iss(line);
+
+		double lon, lat;
+		double depth;
+		if (iss >> lon >> lat >> depth) {
+			coord c(lon, lat);
+			if (!coords.empty() && coords.count(c) == 0) {
+				continue;
+			}
+			depth_map[c] = depth;
+			if (depth_map.size() == coords.size()) {
+				break;
+			}
+		}
+	}
+	ifs.close();
+}
+
+// Initialises the soil input class and determines the format of the supplied input file.
+void SoilInput::init_slope(const char* fname, const std::vector<coord>& gridlist) {
+
+	std::set<coord> coords(gridlist.begin(), gridlist.end());
+
+	std::ifstream ifs(fname, std::ifstream::in);
+
+	std::string line;
+
+	while (getline(ifs, line)) {
+		std::istringstream iss(line);
+
+		double lon, lat;
+		double slope_mean, slope_median, slope_max, slope_min, slope_std;
+		if (iss >> lon >> lat >> slope_mean >> slope_median >> slope_max >> slope_min >> slope_std) {
+			coord c(lon, lat);
+			if (!coords.empty() && coords.count(c) == 0) {
+				continue;
+			}
+			slope_map[c] = slope_median;
+			if (slope_map.size() == coords.size()) {
+				break;
+			}
+		}
+	}
+	ifs.close();
 }
 
 // Read in routine for text file with LPJ soil codes.
@@ -199,7 +379,7 @@ void SoilInput::load_mineral_soils(const char* fname, const std::set<coord>& coo
 	int orgc_i = -1;
 	int ph_i = -1;
 	int bd_i = -1;
-	int cn_i = -1; 
+	int cn_i = -1;
 	int soilc_i = -1;
 
 	for (int i = 0; it != header.end(); ++it, ++i) {
@@ -227,9 +407,6 @@ void SoilInput::load_mineral_soils(const char* fname, const std::set<coord>& coo
 		else if (*it == "soilc") {
 			soilc_i = i;
 		}
-	}
-	if (soilc_i == -1 && iforganicsoilproperties) {
-		fail("Error! No Soil C column found in %s. \nTip: do not use iforganicsoilproperties 1 together with a soilmap file without a SoilC column\n", fname);
 	}
 
 	// Create a empty vector T with header.size-2 elements
@@ -290,15 +467,22 @@ SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 	int soilcode = lpj_map[C];
 	
 	SoilProperties soiltype;
+
+	// Mineral fractions
 	soiltype.sand = data[soilcode][7];
 	soiltype.clay = data[soilcode][8];
 
 	soiltype.K = data[soilcode][0];
 	soiltype.volumetric_whc_field_capacity = data[soilcode][1];
+	// Percolation coefficient
+	soiltype.b = data[soilcode][0];
+
+	// Thermal diffusivity
 	soiltype.thermal_wilting_point = data[soilcode][2];
 	soiltype.thermal_15_whc = data[soilcode][3];
 	soiltype.thermal_field_capacity = data[soilcode][4];
-	soiltype.wilting_point = data[soilcode][5];
+
+	// Water holding capacities
 	soiltype.saturation_capacity = data[soilcode][6];
 	soiltype.pH = 6.5;
 	soiltype.soil_OC = 0.05;
@@ -323,21 +507,25 @@ SoilInput::SoilProperties SoilInput::get_lpj_organic_soil() {
 
 	soiltype.K = data[soilcode][0];
 	soiltype.volumetric_whc_field_capacity = data[soilcode][1];
-	soiltype.thermal_wilting_point = data[soilcode][2];
-	soiltype.thermal_15_whc = data[soilcode][3];
-	soiltype.thermal_field_capacity = data[soilcode][4];
 	soiltype.wilting_point = data[soilcode][5];
-	soiltype.saturation_capacity = data[soilcode][6];
+
+	// Soil pH
 	soiltype.pH = 6.5;
+
+	// Porosity fractions
 	soiltype.soil_OC = 0.05;
+
+	// Soil carbon
 	soiltype.soilC = 0.0; // default value (kgC/m2)
-	soiltype.porosity = data[soilcode][11];
+
 	return soiltype;
 }
 
 // Get and set soil properties based on mineral soil input.
 SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
+
 	coord C = find_closest_point(searchradius_soil, c);
+
 	SoilDataMineral& soil = mineral_map[C];
 
 	// soil.sand = 0.7; ! Testing sandier soil at Calperum, reduced soil evap but didn't change LAI much
@@ -398,17 +586,14 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 	soiltype.Ksat = 2.778e-6 * exp(12.012 - 0.0755 * soil.sand*100.0 + (-3.895 + 0.03671 * soil.sand*100.0 - 0.1103 * 
 					soil.clay*100.0 + 8.7546e-4 * soil.clay*100.0) * 1.0/Theta_s);
 
+	// Mineral fractions
 	soiltype.sand = soil.sand;
 	soiltype.clay = soil.clay;
 
-	soiltype.volumetric_whc_field_capacity = (Theta_whc - Theta_wilt);
-	soiltype.thermal_wilting_point = 0.2;
-	soiltype.thermal_15_whc = 0.15 * b + 0.05;
-	soiltype.thermal_field_capacity = 0.4;
-	soiltype.wilting_point = Theta_wilt;
-	soiltype.saturation_capacity = Theta_s;
+	// Soil pH
 	soiltype.pH = soil.pH;
-	soiltype.soil_OC = soil.orgc;
+
+	// Soil carbon content
 	soiltype.soilC = soil.soilC;
 	soiltype.Psi_s = Psi_s;
 	soiltype.b = b;
@@ -416,321 +601,161 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 	soiltype.Psi_wp = Psi_wilt;
 	soiltype.Psi_whc = Psi_whc;
 
-	if (iforganicsoilproperties) { // Avoid rescaling of porosity twice.
-		soiltype.porosity = (1 - soil.orgc) * Theta_s + soil.orgc * organic_porosity; // Eq. 3 Lawrence and Slater, 2008
-	}
-	else {
-		soiltype.porosity = Theta_s;
-	}
+	// Soil carbon fraction
+	soiltype.soil_OC = soil.orgc;
 	
 	return soiltype;
 }
 
+
 void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
-	
-	// Special case if soil properties are presumed to be influenced by the amount of soil carbon. Only valid if not using soil codes.
-	if (iforganicsoilproperties) {
-		get_soil_organic(lon, lat, gridcell);
-	} 
-	else {
-		get_soil_mineral(lon, lat, gridcell);
-	}
-}
-
-void SoilInput::get_soil_mineral(double lon, double lat, Gridcell& gridcell) {
 
 	Soiltype& soiltype = gridcell.soiltype;
 
 	coord c(lon, lat);
-	SoilProperties soilprop = soil_code ? get_lpj(c) : get_mineral(c);
 
-	soiltype.soilcode = lpj_map[c];
-	soiltype.sand_frac = soilprop.sand;
-	soiltype.clay_frac = soilprop.clay;
-	soiltype.silt_frac = 1.0 - soiltype.sand_frac - soiltype.clay_frac;
-	soiltype.perc_base = soilprop.K;
-	soiltype.perc_base_evap = soilprop.K;
+	// Organic properties
+	int organic_soilcode = 8;
+
+	// Percolation coefficients
 	soiltype.perc_exp = ifdavehydrology ? PERC_EXP_DAVE : 2;
-	soiltype.gawc[0] = SOILDEPTH_UPPER * soilprop.volumetric_whc_field_capacity;
-	soiltype.gawc[1] = SOILDEPTH_LOWER * soilprop.volumetric_whc_field_capacity;
-	soiltype.thermdiff_0 = soilprop.thermal_wilting_point;
-	soiltype.thermdiff_15 = soilprop.thermal_15_whc;
-	soiltype.thermdiff_100 = soilprop.thermal_field_capacity;
-	soiltype.gwp[0] = SOILDEPTH_UPPER * soilprop.wilting_point;
-	soiltype.gwp[1] = SOILDEPTH_LOWER * soilprop.wilting_point;
-	soiltype.gwsats[0] = SOILDEPTH_UPPER * soilprop.saturation_capacity;
-	soiltype.gwsats[1] = SOILDEPTH_LOWER *  soilprop.saturation_capacity;
-	soiltype.wtot = (soilprop.volumetric_whc_field_capacity + soilprop.wilting_point) * (SOILDEPTH_UPPER + SOILDEPTH_LOWER);
+	soiltype.perc_base_org = data[organic_soilcode][0];
 
-	// Populate the arrays in a more general way
-	for (int s = 0; s<NSOILLAYER_UPPER; s++) {
-		soiltype.awc[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * soilprop.volumetric_whc_field_capacity;
-		soiltype.wp[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * soilprop.wilting_point;
-		soiltype.wsats[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * soilprop.saturation_capacity;
+	// Thermal diffusivity for organic soil
+	soiltype.thermdiff_0_org = data[organic_soilcode][2];
+	soiltype.thermdiff_15_org = data[organic_soilcode][3];
+	soiltype.thermdiff_100_org = data[organic_soilcode][4];
+
+	if (!soil_varying) {
+		SoilProperties soilprop = soil_code ? get_lpj(c) : get_mineral(c);
+
+		// Homogeneous soil profile when it comes to minerals and pH
+		soiltype.soil_input = soil_code ? LPJ : MINERAL;
+
+		int nr_lyr = 1;
+
+		soiltype.sand_frac.resize(nr_lyr);
+		soiltype.clay_frac.resize(nr_lyr);
+		soiltype.coarse_frac.resize(nr_lyr);
+		soiltype.organic_frac.resize(nr_lyr);
+		soiltype.soilC.resize(nr_lyr);
+		soiltype.pH.resize(nr_lyr);
+		soiltype.text_depths.resize(nr_lyr);
+
+		// Mineral fractions
+		soiltype.sand_frac[0] = soilprop.sand;
+		soiltype.clay_frac[0] = soilprop.clay;
+
+		// Organic fraction
+		soiltype.organic_frac[0] = soilprop.soil_OC;
+
+		if (soiltype.soil_input == LPJ) {
+
+			// Percolation coefficients
+			soiltype.perc_base = soilprop.K;			
+
+			// Thermal diffusivity for mineral soil
+			soiltype.thermdiff_0 = soilprop.thermal_wilting_point;
+			soiltype.thermdiff_15 = soilprop.thermal_15_whc;
+			soiltype.thermdiff_100 = soilprop.thermal_field_capacity;
+
+			// Water holding capacities for mineral and organic soil
+			soiltype.wsats_min = soilprop.saturation_capacity;
+			soiltype.awc_min = soilprop.volumetric_whc_field_capacity;
+			soiltype.wp_min = soilprop.wilting_point;
+		}
+
+		// Soil pH
+		soiltype.pH[0] = soilprop.pH;
+
+		// Soil carbon content
+		soiltype.soilC[0] = soilprop.soilC;
+
+		// Texture depth set to 100 mm
+		soiltype.text_depths[0] = 100.0;
 	}
+	else {
+		// Inhomogeneous soil profile when it comes to minerals and pH
+		soiltype.soil_input = VARYING;
 
-	for (int s = NSOILLAYER_UPPER; s<NSOILLAYER; s++) {
-		soiltype.awc[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * soilprop.volumetric_whc_field_capacity;
-		soiltype.wp[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * soilprop.wilting_point;
-		soiltype.wsats[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * soilprop.saturation_capacity;
-	}
+		SoilDataMineral& soil = mineral_map[c];
 
-	// Store the soilcode and new soil properties
-	soiltype.runon = wetland_runon;
-	soiltype.organic_frac = soilprop.soil_OC;
-	soiltype.water_below_wp = soilprop.wilting_point;
-	soiltype.porosity = soilprop.porosity;
-	soiltype.mineral_frac = 1.0 - soiltype.organic_frac - soiltype.porosity;
-	soiltype.Psi_s = soilprop.Psi_s;
-	soiltype.Psi_wp = soilprop.Psi_wp;
-	soiltype.Psi_whc = soilprop.Psi_whc;
-	soiltype.b = soilprop.b;
-	soiltype.K = soilprop.K;
-	soiltype.Theta_s = soilprop.Theta_s;
-	soiltype.Ksat = soilprop.Ksat;
+		int nr_lyr = (int)soil.depth_lyr.size();
 
-	if (!ifcentury) {
-		// override the default SOM years with 70-80% of the spin-up period
-		soiltype.updateSolveSOMvalues(nyear_spinup);
-	}
-}
+		soiltype.sand_frac.resize(nr_lyr);
+		soiltype.clay_frac.resize(nr_lyr);
+		soiltype.coarse_frac.resize(nr_lyr);
+		soiltype.organic_frac.resize(nr_lyr);
+		soiltype.soilC.resize(nr_lyr);
+		soiltype.pH.resize(nr_lyr);
+		soiltype.text_depths.resize(nr_lyr);
 
+		for (int lyr = 0; lyr < nr_lyr; lyr++) {
 
-void SoilInput::get_soil_organic(double lon, double lat, Gridcell& gridcell) {
+			// Mineral fractions
+			soiltype.sand_frac[lyr] = soil.sand_lyr[lyr] * PERCENT_TO_FRACT;
+			soiltype.clay_frac[lyr] = soil.clay_lyr[lyr] * PERCENT_TO_FRACT;
 
-	// Use the basic properties of organic soil to update the mineral soil properties, depending on
-	// SOC amount and vertical SOC distribution.
-	// Scales linearly between pure mineral and organic soils when activated. 
+			// Coarse fragmnets
+			soiltype.coarse_frac[lyr] = soil.coarse_lyr[lyr] * PERCENT_TO_FRACT;
 
-	Soiltype& soiltype = gridcell.soiltype;
-	coord c(lon, lat);
-
-	// Get the properties of the mineral soil
-	SoilProperties soilpropmineral = soil_code ? get_lpj(c) : get_mineral(c);
-
-	// Determine the soil code, if there is one. If not, set the soilcode to -1.
-	int soilcode = soil_code ? lpj_map[c] : -1;
-
-	if (soil_code) { 
-		
-		// There is no need to update the soil properties below if this already classified as an organic soil type.
-		if (soilcode==8) {
-			for (int ii = IDX_STD; ii<NLAYERS; ii++) {
-				// Save these values for later before updating the thermal properties
-				soiltype.org_frac_gridcell[ii - IDX_STD] = 1.0 - organic_porosity;
-				soiltype.min_frac_gridcell[ii - IDX_STD] = 0.0;
-				soiltype.porosity_gridcell[ii - IDX_STD] = organic_porosity;
+			// pH
+			if (!negligible(soil.pH_lyr[lyr])) {
+				soiltype.pH[lyr] = soil.pH_lyr[lyr];
+			}
+			else {
+				soiltype.pH[lyr] = 6.5;
 			}
 
-			return; 
+			// Depths to bottom (mm)
+			soiltype.text_depths[lyr] = soil.depth_lyr[lyr] * MM_PER_CM;
 		}
 	}
 
-	// Get the properties of organic soil, i.e. with a soilcode of 8 
-	SoilProperties soilproporganic = get_lpj_organic_soil();
-
-	soiltype.sand_frac = soilpropmineral.sand;
-	soiltype.clay_frac = soilpropmineral.clay;
-	soiltype.silt_frac = 1.0 - soiltype.sand_frac - soiltype.clay_frac;
-
-	//
-	// Now update the following properties based on the weighted average of organic properties in the soil.
-	//
-
-	// SOC fraction per layer
-	double socfrac[NLAYERS];
-	// Porosity of each soil layer	
-	double porosity[NLAYERS];
-	// Organic fraction of the material in each soil layer
-	double org_frac[NLAYERS];
-
-	// Total SOC (kgC/m2)
-	double soil_tot_soc = 0.0;
-	
-	// Determine socfrac[NLAYERS] values
-	if (!soil_code) {
-
-		soil_tot_soc = soilpropmineral.soilC;
-
-		// Use a beta value to reproduce the global vertical SOC profile shown in Fig 4 of Jobbagy & Jackson (2010)
-		const double beta_SOC = 0.976;
-		// This value gives SOC fractions as a fraction of the total in the top 100 cm in this Table:
-		// Depth range	:	Calculated fraction	:	Jobbagy & Jackson (2000), Fig 4
-		// 00 - 20cm	:	0.42				:	0.42
-		// 20 - 40cm	:	0.26				:	0.22
-		// 40 - 60cm	:	0.16				:	0.16
-		// 60 - 80cm	:	0.10				:	0.11
-		// 80 - 100cm	:	0.06				:	0.09
-
-		double depth = Dz_soil * CM_PER_MM; // [mm]
-
-		socfrac[IDX_STD] = 1.0 - pow(beta_SOC, depth); // init first layer
-		double soc_frac_total = socfrac[IDX_STD];
-
-		for (int ii = IDX_STD+1; ii<NLAYERS; ii++) {
-			depth += Dz_soil * CM_PER_MM;
-			socfrac[ii] = 1.0 - pow(beta_SOC, depth) - (1.0 - pow(beta_SOC, depth - Dz_soil * CM_PER_MM));
-			soc_frac_total += socfrac[ii];
-		}
-
-		// Put the residual SOC fraction in lowest soil layer
-		socfrac[NLAYERS - 1] += 1.0 - min(soc_frac_total,1.0);
-	}
-
-	double carbon_previous_layer = 0.0;
-	double soil_c_layer_max = maxSOCdensity * (Dz_soil / MM_PER_M); // kgC m-2 (Dz_soil = 100.0 mm) = 13 kgC m-2
-
-	double mineral_porosity = 0.489 - 0.00126 * 100 * soiltype.sand_frac;	// Eqn 2 (Lawrence & Slater 2008)
-	double org_frac_avg = 0.0;
-	double org_frac_avg_evap = 0.0;
-
-	double material_min_avg = 0.0; // max = 1.0 - mineral_porosity
-	double material_org_avg = 0.0; // max = 0.2
-
-	// Evap layers 
-	int num_evaplayers = 2; 
-
-	for (int ii = IDX_STD; ii < NLAYERS; ii++) {
-
-		if (!soil_code) {
-
-			double soil_c_layer = soil_tot_soc * socfrac[ii] + carbon_previous_layer; // kgC m-2
-			if (soil_c_layer > soil_c_layer_max) {
-				carbon_previous_layer = soil_c_layer - soil_c_layer_max;
-				soil_c_layer = soil_c_layer_max; // excess carbon saved for the next layer
-			}
-			else
-				carbon_previous_layer = 0.0;
-
-			// Soil C density (kgC/m3) in this soil layer 
-			double soil_density_layer = soil_c_layer / (Dz_soil / MM_PER_M); // kgC m-3 (Dz_soil = 100.0 mm)
-
-			// Calculate organic fraction per soil layer using the Lawrence and Slater (2008) approach
-			// This is the fraction of the material (i.e. 1 - porosity) that is organic
-			org_frac[ii] = soil_density_layer / maxSOCdensity;
-			org_frac_avg += org_frac[ii];
-			if (ii < IDX_STD + num_evaplayers) {
-				org_frac_avg_evap += org_frac[ii];
-			}
+	// Slope of soil
+	if (slope < 0.0) {
+		if (slope_map.size()) {
+			slope = slope_map[c];
 		}
 		else {
-			// Use soilpropmineral.soil_OC
-			org_frac[ii] = soilpropmineral.soil_OC;
+			// No input data for slope. Set it to 2 degree as default
+			slope = 2.0;
 		}
-
-		// Organic fractions > 0 increase the porosity above the mineral value
-		porosity[ii] = (1.0 - org_frac[ii]) * mineral_porosity + org_frac[ii] * organic_porosity;
-
-		double material = 1.0 - porosity[ii]; // min value is 0.2
-
-		double material_min = (1.0 - org_frac[ii]) * (1.0 - mineral_porosity); // max = 1.0 - mineral_porosity
-		double material_org = org_frac[ii] * (1.0 - organic_porosity); // max = 0.2
-
-		material_min_avg += material_min;
-		material_org_avg += material_org;
-
-		// Save these values for later before updating the thermal properties
-		soiltype.org_frac_gridcell[ii - IDX_STD] = material_org;
-		soiltype.min_frac_gridcell[ii - IDX_STD] = material_min;
-		soiltype.porosity_gridcell[ii - IDX_STD] = porosity[ii];
 	}
 
-	if (soil_code) {
-		org_frac_avg = soilpropmineral.soil_OC;
-		org_frac_avg_evap = soilpropmineral.soil_OC;
+	// Slope [degree] limits
+	slope = min(90.0, max(0.0, slope));
+
+	// Soil depth
+	// soil_depth is defined in global.ins
+	// if zero then use input map of soil depth
+	if (hydrology == RICHARDS) {
+		if (negligible(depth_soil)) {
+			gridcell.soil_depth = depth_map[c] * MM_PER_M;
+		}
+		else {
+			gridcell.soil_depth = depth_soil;
+		}
 	}
 	else {
-		org_frac_avg /= (NLAYERS - IDX_STD);
-		org_frac_avg_evap /= (double)num_evaplayers;
+		gridcell.soil_depth = SOILDEPTH_UPPER + SOILDEPTH_LOWER;
 	}
 
-	double min_frac_avg = 1.0 - org_frac_avg;
-	double min_frac_avg_evap = 1.0 - org_frac_avg_evap;
+	// Make sure soil depth is within ranges (mm)
+	gridcell.soil_depth = min(SOILDEPTH_MAX, max(SOILDEPTH_MIN, gridcell.soil_depth));
 
-	material_min_avg /= (NLAYERS-IDX_STD);
-	material_org_avg /= (NLAYERS-IDX_STD);
+	// Soil depth need to be of 100mm intervals
+	double soil_depth_interval = round(gridcell.soil_depth / 100.0) * 100.0;
 
-	// First calculate the organic fractions in the top and the bottom layers
-	double org_frac_upper = 0.0;
-	for (int s = 0; s < NSOILLAYER_UPPER; s++) {
-		org_frac_upper += org_frac[IDX_STD + s] / NSOILLAYER_UPPER;
-	}
-	double min_frac_upper = 1.0 - org_frac_upper;
-
-	double org_frac_lower = 0.0;
-	for (int s = NSOILLAYER_UPPER; s<NSOILLAYER; s++) {
-		org_frac_lower += org_frac[IDX_STD + s] / NSOILLAYER_LOWER;
-	}
-	double min_frac_lower = 1.0 - org_frac_lower;
-
-	soiltype.perc_base = org_frac_avg * soilproporganic.K + min_frac_avg * soilpropmineral.K;
-	soiltype.perc_base_evap = org_frac_avg_evap * soilproporganic.K + min_frac_avg_evap * soilpropmineral.K;
-	soiltype.perc_exp = ifdavehydrology ? PERC_EXP_DAVE : 2;
-
-	soiltype.gawc[0] = SOILDEPTH_UPPER * (min_frac_upper * soilpropmineral.volumetric_whc_field_capacity + 
-		org_frac_upper * soilproporganic.volumetric_whc_field_capacity);
-	soiltype.gawc[1] = SOILDEPTH_LOWER * (min_frac_lower * soilpropmineral.volumetric_whc_field_capacity + 
-		org_frac_lower * soilproporganic.volumetric_whc_field_capacity);
-	
-	soiltype.thermdiff_0 = org_frac_avg * soilproporganic.thermal_wilting_point + min_frac_avg * soilpropmineral.thermal_wilting_point;
-	soiltype.thermdiff_15 = org_frac_avg * soilproporganic.thermal_15_whc + min_frac_avg* soilpropmineral.thermal_15_whc;
-	soiltype.thermdiff_100 = org_frac_avg * soilproporganic.thermal_field_capacity + min_frac_avg * soilpropmineral.thermal_field_capacity;
-
-	soiltype.gwp[0] = SOILDEPTH_UPPER * (min_frac_upper * soilpropmineral.wilting_point + 
-		org_frac_upper * soilproporganic.wilting_point);
-	
-	soiltype.gwp[1] = SOILDEPTH_LOWER * (min_frac_lower * soilpropmineral.wilting_point + 
-		org_frac_lower * soilproporganic.wilting_point);
-
-	soiltype.gwsats[0] = SOILDEPTH_UPPER * (min_frac_upper * soilpropmineral.saturation_capacity + 
-		org_frac_upper * soilproporganic.saturation_capacity);
-
-	soiltype.gwsats[1] = SOILDEPTH_LOWER * (min_frac_lower * soilpropmineral.saturation_capacity + 
-		org_frac_lower * soilproporganic.saturation_capacity);
-
-	soiltype.wtot = soiltype.gawc[0] + soiltype.gawc[1] + soiltype.gwp[0] + soiltype.gwp[1];
-
-	// Populate the arrays in a more general way
-	for (int s = 0; s < NSOILLAYER_UPPER; s++) {
-		soiltype.awc[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * ((1.0 - org_frac[IDX_STD + s]) * soilpropmineral.volumetric_whc_field_capacity + 
-			org_frac[IDX_STD + s] * soilproporganic.volumetric_whc_field_capacity);
-
-		soiltype.wp[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * ((1.0 - org_frac[IDX_STD + s]) * soilpropmineral.wilting_point + 
-			org_frac[IDX_STD + s] * soilproporganic.wilting_point);
-
-		soiltype.wsats[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * ((1.0 - org_frac[IDX_STD + s]) * soilpropmineral.saturation_capacity + 
-			org_frac[IDX_STD + s] * soilproporganic.saturation_capacity);
+	if (!negligible(fabs(gridcell.soil_depth-soil_depth_interval))) {
+		dprintf("Soil depth needs to be of 100mm intervals. Input %g Used %g\n", gridcell.soil_depth, soil_depth_interval);
+		gridcell.soil_depth = soil_depth_interval;
 	}
 
-	for (int s = NSOILLAYER_UPPER; s < NSOILLAYER; s++) {
-		soiltype.awc[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * ((1.0 - org_frac[IDX_STD + s]) * soilpropmineral.volumetric_whc_field_capacity + 
-			org_frac[IDX_STD + s] * soilproporganic.volumetric_whc_field_capacity);
-
-		soiltype.wp[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * ((1.0 - org_frac[IDX_STD + s]) * soilpropmineral.wilting_point + 
-			org_frac[IDX_STD + s] * soilproporganic.wilting_point);
-
-		soiltype.wsats[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * ((1.0 - org_frac[IDX_STD + s]) * soilpropmineral.saturation_capacity + 
-			org_frac[IDX_STD + s] * soilproporganic.saturation_capacity);
-	}
-
-	// Store the soilcode and new soil properties
-	soiltype.runon = wetland_runon;
-	soiltype.soilcode = soilcode -1;								// -1 if soil_code is false
-	soiltype.water_below_wp = soilpropmineral.wilting_point;
-	// These values are not used when we use the organic fraction to determine soil properties
-	// However, here we update them with the average values
-	soiltype.organic_frac = material_org_avg;
-	soiltype.mineral_frac = material_min_avg;
-	soiltype.porosity = 1.0 - soiltype.organic_frac - soiltype.mineral_frac;
-
-	if (!ifcentury) {
-		// override the default SOM years with 70-80% of the spin-up period
-		soiltype.updateSolveSOMvalues(nyear_spinup);
-	}
-
-	soiltype.K = soilpropmineral.K;
-	soiltype.b = soilpropmineral.b;
-	soiltype.Psi_s = soilpropmineral.Psi_s;
+	fail("FIXME: figure out what K, b, and Psi_s are, and add to new type if necessary");
+	// soiltype.K = soilpropmineral.K;
+	// soiltype.b = soilpropmineral.b;
+	// soiltype.Psi_s = soilpropmineral.Psi_s;
 
 }
 
@@ -746,65 +771,54 @@ void soil_parameters(Soiltype& soiltype, int soilcode) {
 	// INPUT AND OUTPUT PARAMETER
 	// soil = patch soil
 
+	int nr_lyr = 1;
+
+	soiltype.sand_frac.resize(nr_lyr);
+	soiltype.clay_frac.resize(nr_lyr);
+	soiltype.coarse_frac.resize(nr_lyr);
+	soiltype.pH.resize(nr_lyr);
+	soiltype.text_depths.resize(nr_lyr);
+
 	// exponent in percolation equation [k2; LPJF]
 	// (Eqn 31, Haxeltine & Prentice 1996)
 	// Changed from 4 to 2 (Sitch, Thonicke, pers comm 26/11/01)
 	const double PERC_EXP = 2.0;
+
+	int organic_soilcode = 8;
 
 	if (soilcode<0 || soilcode>9) {
 		fail("soil_parameters: invalid LPJ soil code (%d)", soilcode);
 	}
 
 	if (textured_soil) {
-		soiltype.sand_frac = data[soilcode][7];
-		soiltype.clay_frac = data[soilcode][8];
+		soiltype.sand_frac[0] = data[soilcode][7];
+		soiltype.clay_frac[0] = data[soilcode][8];
 	}
 	else {
 		// Using fixed values from Parton et al. (2010)
-		soiltype.sand_frac = 0.28;
-		soiltype.clay_frac = 0.12;
+		soiltype.sand_frac[0] = 0.28;
+		soiltype.clay_frac[0] = 0.12;
 	}
 
-	soiltype.silt_frac = 1.0 - soiltype.sand_frac - soiltype.clay_frac;
 	soiltype.perc_base = data[soilcode][0];
 	soiltype.perc_base_evap = data[soilcode][0];
 	soiltype.perc_exp = ifdavehydrology ? PERC_EXP_DAVE : PERC_EXP;
-	soiltype.gawc[0] = SOILDEPTH_UPPER * data[soilcode][1];
-	soiltype.gawc[1] = SOILDEPTH_LOWER * data[soilcode][1];
+	soiltype.perc_base_org = data[organic_soilcode][0];
+
 	soiltype.thermdiff_0 = data[soilcode][2];
 	soiltype.thermdiff_15 = data[soilcode][3];
 	soiltype.thermdiff_100 = data[soilcode][4];
-	soiltype.gwp[0] = SOILDEPTH_UPPER * data[soilcode][5];
-	soiltype.gwp[1] = SOILDEPTH_LOWER * data[soilcode][5];
-	soiltype.gwsats[0] = SOILDEPTH_UPPER * data[soilcode][6];
-	soiltype.gwsats[1] = SOILDEPTH_LOWER * data[soilcode][6];
-	soiltype.wtot = (data[soilcode - 1][1] + data[soilcode][5]) * (SOILDEPTH_UPPER + SOILDEPTH_LOWER);
+	soiltype.thermdiff_0_org = data[organic_soilcode][2];
+	soiltype.thermdiff_15_org = data[organic_soilcode][3];
+	soiltype.thermdiff_100_org = data[organic_soilcode][4];
 
-	// Populate the arrays in a more general way
-	for (int s = 0; s < NSOILLAYER_UPPER; s++) {
-		soiltype.awc[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * data[soilcode][1];
-		soiltype.wp[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * data[soilcode][5];
-		soiltype.wsats[s] = SOILDEPTH_UPPER / NSOILLAYER_UPPER * data[soilcode][6];
-	}
-
-	for (int s = NSOILLAYER_UPPER; s < NSOILLAYER; s++) {
-		soiltype.awc[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * data[soilcode][1];
-		soiltype.wp[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * data[soilcode][5];
-		soiltype.wsats[s] = SOILDEPTH_LOWER / NSOILLAYER_LOWER * data[soilcode][6];
-	}
+	soiltype.awc_min = data[soilcode][1];
+	soiltype.wp_min = data[soilcode][5];
+	soiltype.wsats_min = data[soilcode][6];
 
 	// Store the soilcode and new soil properties
-	soiltype.runon = wetland_runon;
 	soiltype.soilcode = soilcode;
-	soiltype.organic_frac = data[soilcode][9];
-	soiltype.water_below_wp = data[soilcode][5];
-	soiltype.porosity = data[soilcode][11];
-	soiltype.mineral_frac = 1.0 - soiltype.organic_frac - soiltype.porosity;
-
-	if (!ifcentury) {
-		// override the default SOM years with 70-80% of the spin-up period
-		soiltype.updateSolveSOMvalues(nyear_spinup);
-	}
+	soiltype.organic_frac[0] = data[soilcode][9];
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -815,3 +829,5 @@ void soil_parameters(Soiltype& soiltype, int soilcode) {
 // Cosby, B. J., Hornberger, C. M., Clapp, R. B., & Ginn, T. R. 1984 A statistical exploration
 //   of the relationships of soil moisture characteristic to the physical properties of soil.
 //   Water Resources Research, 20: 682-690.
+// Carsel, R.F. and Parrish, R.S. 1988 Developing joint probability distributions of soil 
+//   water retention characteristics. Water Resources Research, 24: 755-769.

@@ -251,15 +251,16 @@ void store_vcmax_values(Vegetation &vegetation) {
 Calculate water stress factor [0-1] in the root zone. This is calculated as a
 weighted mean of wcont / wcont_crit (clamped to [0, 1]) across soil layers.
 */
-double calc_water_stress_dave(const Soil &soil, const double weight[NSOILLAYER], size_t max_layers = NSOILLAYER) {
-	if (max_layers > NSOILLAYER) {
-		fail("calc_water_stress_dave(): max_layers cannot be greater than NSOILLAYER");
+double calc_water_stress_dave(const Soil &soil, const double weight[NSOILLAYERS_MAX], size_t max_layers = 0) {
+	if (max_layers > soil.nsoillayers) {
+		fail("calc_water_stress_dave(): max_layers (%d) cannot be greater than nsoillayers (%d)",
+			 max_layers, soil.nsoillayers);
 	}
 
 	double wstress = 0;
 	double total_weight = 0;
 	for (size_t i = 0; i < max_layers; i++) {
-		double stress_base = soil.get_layer_soil_water(i) / wcont_crit;
+		double stress_base = soil.soillayers[i].wcont() / wcont_crit;
 
 		// Clamp to [0, 1].
 		stress_base = max(min(stress_base, 1.0), 0.0);
@@ -292,11 +293,11 @@ void water_stress_dave(Patch &patch) {
 		// Water stress factor [0-1] in the root zone.
 		// With zhou enabled, weight by inverse of root resistance.
 		// With zhou disabled, weight by root distribution.
-		double weight[NSOILLAYER];
-		for (size_t j = 0; j < NSOILLAYER; j++) {
+		double weight[NSOILLAYERS_MAX];
+		for (size_t j = 0; j < soil.nsoillayers; j++) {
 			weight[j] = ifzhou ? 1.0 / indiv.Rs_r[j] : indiv.rootdist[j];
 		}
-		double wstress = calc_water_stress_dave(soil, weight);
+		double wstress = calc_water_stress_dave(soil, weight, soil.nsoillayers);
 
 		// Mean daily water stress value.
 		indiv.set_wscal(wstress);
@@ -1474,13 +1475,13 @@ void photosynthesis_gs(Patch& patch) {
 		// indiv.photosynthesis.vm          = indiv.ps_subdaily.vcmax25 / UMOL_PER_MOL * MOL2G_C * SECS_PER_DAY;  // umol m-2 s-1; not used
 		indiv.photosynthesis.vm          = max(indiv.ps_subdaily.vcmax) * MOL2G_C * SECS_PER_DAY;
 		indiv.photosynthesis.adtmm       = 0.0;    // not used
-		indiv.photosynthesis.nactive_opt = 0.0;    // not used
 		indiv.photosynthesis.vmaxnlim    = 0.0;    // not used 
 	} // end cohort loop
 }
 
 double calc_water_uptake_dave(Individual &indiv) {
     Patch &patch = indiv.vegetation.patch;
+	const Soil &soil = patch.soil;
     Pft &pft = indiv.pft;
     const Standpft& spft = patch.stand.pft[indiv.pft.id];
 
@@ -1491,20 +1492,17 @@ double calc_water_uptake_dave(Individual &indiv) {
 
     // Available water in each layer, as a fraction of water holding
     // capacity.
-    double wcont_local[NSOILLAYER];
-    for (int i = 0; i<NSOILLAYER; i++) {
-        wcont_local[i] = patch.soil.get_layer_soil_water(i);
+    double wcont_local[NSOILLAYERS_MAX];
+	double awc[NSOILLAYERS_MAX];
+    for (int i = 0; i<soil.nsoillayers; i++) {
+        wcont_local[i] = soil.soillayers[i].wcont();
+		awc[i] = soil.soillayers[i].awc;
     }
 
-    if (iftwolayersoil) {
-        return water_uptake_twolayer(wcont_local, patch.soil.soiltype.awc,
-                    indiv.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
-                    pft.lifeform == TREE, pft.drought_tolerance);
-    }
-
-    return water_uptake(wcont_local, patch.soil.soiltype.awc,
-                indiv.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
-                pft.lifeform == TREE, pft.drought_tolerance, indiv.Rs_r);
+    return water_uptake(wcont_local, awc, indiv.rootdist, pft.emax,
+		                patch.fpc_rescale, indiv.fwuptake,
+                        pft.lifeform == TREE, pft.drought_tolerance, indiv.Rs_r,
+				        soil.nsoillayers);
 }
 
 /*
@@ -1561,7 +1559,7 @@ void water_uptake_dave(Patch &patch) {
 		double wr = calc_water_uptake_dave(indiv);
 
         if (ifdavehydraulics && !indiv.stomata_open) {
-            for (int i = 0; i<NSOILLAYER; i++) {
+            for (int i = 0; i < NSOILLAYERS_MAX; i++) {
                 // If the stomata are closed, we assume roots are hydraulically
                 // isolated from the soil.
                 indiv.fwuptake[i] = 0;
@@ -1570,15 +1568,15 @@ void water_uptake_dave(Patch &patch) {
 	} // end cohort loop
 
 	// Ensure water uptake doesn't exceed availability in any layer.
-	for (int i = 0; i < NSOILLAYER; i++) {
+	for (int i = 0; i < patch.soil.nsoillayers; i++) {
 		double uptake = 0;
 		for (int j = 0; j < vegetation.nobj; j++) {
 			const Individual &indiv = vegetation[j];
 			uptake += indiv.aet * indiv.fwuptake[i]; 
 		}
 
-		double wcont = patch.soil.get_layer_soil_water(i);
-		double awc = patch.soil.soiltype.awc[i];
+		double wcont = patch.soil.soillayers[i].wcont();
+		double awc = patch.soil.soillayers[i].awc;
 		double wsupply = wcont * awc;
 
 		if (uptake > wsupply) {
@@ -1698,13 +1696,14 @@ void npp_dave(Patch& patch) {
 		// Respiration coefficient is reduced based on temperature acclimation.
         double respcoeff = pft.respcoeff * scalar;
 
+		double gtemp = patch.soil.gtemp_rootdist(ppft.rootdist);
+
 		double resp = 0;
-		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-			respcoeff, cton.sap, cton.root, cton.crown, indiv.cmass_sap,
-			cmass_root, cmass_crown, cmass_repr, indiv.cgrow, indiv.fphen_activity,
-			assim, indiv.resp_leaf, resp, indiv.resp_maintenance,
-			indiv.resp_growth, indiv.resp_repr, indiv.resp_crown,
-			indiv.resp_root, indiv.resp_sap);
+		respiration(gtemp, gtemp, indiv.pft.lifeform, respcoeff, cton.sap,
+			cton.root, cton.crown, indiv.cmass_sap, cmass_root, cmass_crown,
+			cmass_repr, indiv.cgrow, indiv.fphen_activity, assim,
+			indiv.resp_leaf, resp, indiv.resp_maintenance, indiv.resp_growth,
+			indiv.resp_repr, indiv.resp_crown, indiv.resp_root, indiv.resp_sap);
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux
 		// Note that resp does not include leaf day respiration.
@@ -1749,7 +1748,11 @@ void forest_floor_dave(Patch &patch) {
 
 			// Since the seedlings don't have access to deep layers, only look
 			// at the top few layers' SWP.
-			double lwp = mean(patch.soil.psi_layer, NLAYER_FOREST_FLOOR);
+			double lwp = 0;
+			for (size_t i = 0; i < NLAYER_FOREST_FLOOR; i++) {
+				lwp += patch.soil.soillayers[i].psi;
+			}
+			lwp /= NLAYER_FOREST_FLOOR;
 
 			// No soil water on first day of simulation - this results in wscal
 			// of 0, which results in a division by zero. We can just skip this

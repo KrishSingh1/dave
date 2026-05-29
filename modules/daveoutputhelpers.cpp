@@ -50,7 +50,7 @@ double get_et(const Patch &patch) {
 	double transpiration = 0;
 	for (int i = 0; i < vegetation.nobj; i++)
 		transpiration += vegetation[i].aet;
-	return transpiration + patch.soil.get_layer_soil_water_evap();
+	return transpiration + patch.fluxes.get_daily_flux(Fluxes::WEVAP, date.day);
 }
 
 double get_patch_ba(const Patch &patch) {
@@ -197,7 +197,8 @@ double get_soil_moisture(const Soil &soil, int start_layer, int end_layer) {
 	assert(start_layer < end_layer);
 	double swmm = 0;
 	for (size_t i = start_layer; i < end_layer; i++) {
-		swmm += soil.get_layer_soil_water(i) * soil.soiltype.awc[i] + soil.soiltype.wp[i];
+		const Soillayer &layer = soil.soillayers[i];
+		swmm += layer.wcont() * layer.awc + layer.wp;
 	}
 	return swmm;
 }
@@ -206,7 +207,8 @@ double get_available_soil_moisture(const Soil &soil, int start_layer, int end_la
 	assert(start_layer < end_layer);
 	double swmm = 0;
 	for (size_t i = start_layer; i < end_layer; i++) {
-		swmm += soil.get_layer_soil_water(i) * soil.soiltype.awc[i];
+		const Soillayer &layer = soil.soillayers[i];
+		swmm += layer.wcont() * layer.awc;
 	}
 	return swmm;
 }
@@ -216,7 +218,12 @@ double get_6m_soil_moisture_estimate(const Soil &soil) {
 	// 1m-1.5m), then multiply this 0.5m by 12 to get an esimate of water
 	// content to 6m.
 	// TODO: need to double check this. Does this even make physical sense?
-	return get_soil_moisture(soil, 10, NSOILLAYER) * 12;
+	if (soil.nsoillayers < NSOILLAYERS_MAX) {
+		// Not supported.
+		return 0;
+	}
+
+	return get_soil_moisture(soil, 10, NSOILLAYERS_MAX) * 12;
 }
 
 void compute_stats(std::vector<double> data, double *mean, double *sd, double *median) {
@@ -319,8 +326,11 @@ double get_standing_n(const Patch &patch) {
 double get_cmass_century(const Patch &patch) {
 	double centuryc = 0;
 	for (int i = 0; i < NSOMPOOL; i++) {
-		if (i != SURFMETA && i != SURFSTRUCT && i != SURFFWD && i != SURFCWD)
-			centuryc += patch.soil.sompool[i].cmass;
+		if (i != SURFMETA && i != SURFSTRUCT && i != SURFFWD && i != SURFCWD) {
+			for (size_t j = 0; j < patch.soil.nsoillayers; j++) {
+				centuryc += patch.soil.soillayers[j].sompool[i].cmass;
+			}
+		}
 	}
 	return centuryc;
 }
@@ -328,8 +338,11 @@ double get_cmass_century(const Patch &patch) {
 double get_nmass_century(const Patch &patch) {
 	double centuryn = 0;
 	for (int i = 0; i < NSOMPOOL; i++) {
-		if (i != SURFMETA && i != SURFSTRUCT && i != SOILMETA && i != SOILSTRUCT && i != SURFFWD && i != SURFCWD)
-		centuryn += patch.soil.sompool[i].nmass;
+		if (i != SURFMETA && i != SURFSTRUCT && i != SOILMETA && i != SOILSTRUCT && i != SURFFWD && i != SURFCWD) {
+			for (size_t j = 0; j < patch.soil.nsoillayers; j++) {
+				centuryn += patch.soil.soillayers[j].sompool[i].nmass;
+			}
+		}
 	}
 	return centuryn;
 }
@@ -347,17 +360,25 @@ double get_cflux_veg(const Patch &patch) {
 }
 
 double get_litter_n(const Patch &patch) {
-	return patch.soil.sompool[SURFMETA].nmass +
-		   patch.soil.sompool[SURFSTRUCT].nmass +
-           patch.soil.sompool[SURFFWD].nmass +
-           patch.soil.sompool[SURFCWD].nmass;
+	double litter_n = 0;
+	for (size_t j = 0; j < patch.soil.nsoillayers; j++) {
+		litter_n += patch.soil.soillayers[j].sompool[SURFMETA].nmass +
+					patch.soil.soillayers[j].sompool[SURFSTRUCT].nmass +
+					patch.soil.soillayers[j].sompool[SURFFWD].nmass +
+					patch.soil.soillayers[j].sompool[SURFCWD].nmass;
+	}
+	return litter_n;
 }
 
 double get_litter_c(const Patch &patch) {
-	return patch.soil.sompool[SURFMETA].cmass +
-	       patch.soil.sompool[SURFSTRUCT].cmass +
-	       patch.soil.sompool[SURFFWD].cmass +
-	       patch.soil.sompool[SURFCWD].cmass;
+	double litter_c = 0;
+	for (size_t j = 0; j < patch.soil.nsoillayers; j++) {
+		litter_c += patch.soil.soillayers[j].sompool[SURFMETA].cmass +
+					patch.soil.soillayers[j].sompool[SURFSTRUCT].cmass +
+					patch.soil.soillayers[j].sompool[SURFFWD].cmass +
+					patch.soil.soillayers[j].sompool[SURFCWD].cmass;
+	}
+	return litter_c;
 }
 
 double get_nmass_litter(const Patch &patch) {
@@ -382,7 +403,7 @@ double get_nmass_patch(const Patch &patch) {
 }
 
 double get_avail_n(const Patch &patch) {
-	return patch.soil.NH4_mass + patch.soil.NO3_mass + patch.soil.snowpack_NH4_mass + patch.soil.snowpack_NO3_mass;
+	return patch.soil.NH4_mass + patch.soil.NO3_mass + patch.soil.snow.NH4_mass + patch.soil.snow.NO3_mass;
 }
 
 double get_centuryn(const Patch &patch) {
@@ -450,13 +471,24 @@ double sum_indiv(const Patch &patch, double (*read_indiv)(const Individual &)) {
 	return aggregate_indiv(patch, read_indiv, sum_array);
 }
 
+double sum_layers(const Soil &soil, double (*read_layer)(const Soillayer &)) {
+	double sum = 0;
+	for (size_t i = 0; i < soil.nsoillayers; i++) {
+		sum += read_layer(soil.soillayers[i]);
+	}
+	return sum;
+}
+
+double mean_layers(const Soil &soil, double (*read_layer)(const Soillayer &)) {
+	return soil.nsoillayers ? sum_layers(soil, read_layer) / soil.nsoillayers : 0;
+}
+
 double get_fine_litter(const Patch &patch) {
 	if (patch.avail_fuel == 0) {
 		return 0;
 	}
 	double litter = sum_ppft(patch, [](const Patchpft &ppft) { return ppft.cmass_litter_leaf; });
-	const Sompool *sompool = patch.soil.sompool;
-	double som = sompool[SURFSTRUCT].cmass + sompool[SURFMETA].cmass;
+	double som = sum_layers(patch.soil, [](const Soillayer &l) { return l.sompool[SURFSTRUCT].cmass + l.sompool[SURFMETA].cmass; });
 	double fine_litter = som + litter;
 	return TURNOVERFRACT[11][0] * fine_litter * G_PER_KG;
 }
@@ -466,8 +498,8 @@ double get_fine_woody_debris(const Patch &patch) {
 		return 0;
 	}
 	double trans_litter_sap = sum_ppft(patch, [](const Patchpft &ppft) { return ppft.cmass_litter_sap; });
-	const Sompool *sompool = patch.soil.sompool;
-	return TURNOVERFRACT[10][0] * (sompool[SURFFWD].cmass + trans_litter_sap) * G_PER_KG;
+	double som = sum_layers(patch.soil, [](const Soillayer &l) { return l.sompool[SURFFWD].cmass; });
+	return TURNOVERFRACT[10][0] * (som + trans_litter_sap) * G_PER_KG;
 }
 
 const Gridcell &get_gridcell(const Patch &p) {
@@ -479,9 +511,9 @@ double get_coarse_woody_debris(const Patch &patch) {
 		return 0;
 	}
 	double trans_litter_heart = sum_ppft(patch, [](const Patchpft &ppft) { return ppft.cmass_litter_heart; });
-	const Sompool *sompool = patch.soil.sompool;
 	double k = get_gridcell(patch).k_tun_litter;
-	return TURNOVERFRACT[ 9][0] * k * (sompool[SURFCWD].cmass + trans_litter_heart) * k * G_PER_KG;
+	double som = sum_layers(patch.soil, [](const Soillayer &l) { return l.sompool[SURFCWD].cmass; });
+	return TURNOVERFRACT[ 9][0] * k * (som + trans_litter_heart) * k * G_PER_KG;
 }
 
 double get_half_cmass_grass(const Patch &patch) {
@@ -502,7 +534,7 @@ double get_heartwood_litter(const Patch &patch) {
 
 double get_coarse_woody_som(const Patch &patch) {
 	double k = get_gridcell(patch).k_tun_litter;
-	double som = patch.soil.sompool[SURFCWD].cmass;
+	double som = sum_layers(patch.soil, [](const Soillayer &l) { return l.sompool[SURFCWD].cmass; });
 	// som *= k * TURNOVERFRACT[ 9][0] * k;
 	return som * G_PER_KG;
 }
@@ -515,8 +547,8 @@ std::vector<ColumnDefinition<Patch>> cpool_columns() {
 	if (!ifcentury) {
 		columns.push_back(ColumnDefinition<Patch>("StandingC", get_standing_c));
 		columns.push_back(ColumnDefinition<Patch>("LittC", get_litter_c));
-		columns.push_back(ColumnDefinition<Patch>("SoilfC", [](const Patch &p) { return p.soil.cpool_fast; }));
-		columns.push_back(ColumnDefinition<Patch>("SoilsC", [](const Patch &p) { return p.soil.cpool_slow; }));
+		columns.push_back(ColumnDefinition<Patch>("SoilfC", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.cpool_fast; }); }));
+		columns.push_back(ColumnDefinition<Patch>("SoilsC", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.cpool_slow; }); }));
 	} else {
 		columns.push_back(ColumnDefinition<Patch>("StandingC", get_standing_c));
 		columns.push_back(ColumnDefinition<Patch>("LitterC", get_litter_c));
@@ -637,7 +669,7 @@ std::vector<ColumnDefinition<Patch>> npool_columns() {
 	if (run_landcover && ifslowharvestpool) {
 		columns.push_back(ColumnDefinition<Patch>("HarvSlowN", get_nmass_harv_slowc));
 	}
-	columns.push_back(ColumnDefinition<Patch>("AvailN", [](const Patch &p) { return p.soil.get_nmass_avail(); }));
+	columns.push_back(ColumnDefinition<Patch>("AvailN", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.NO3_mass + l.NH4_mass; }); }));
 
 	// tbi: total
 
@@ -697,18 +729,18 @@ std::vector<ColumnDefinition<Individual>> indiv_lai_columns() {
 std::vector<ColumnDefinition<Patch>> mwcont_upper_columns() {
 	std::vector<ColumnDefinition<Patch>> columns;
 
-	columns.push_back(ColumnDefinition<Patch>("Jan", [](const Patch &p) { return p.soil.mwcont[0][0]; }));
-	columns.push_back(ColumnDefinition<Patch>("Feb", [](const Patch &p) { return p.soil.mwcont[1][0]; }));
-	columns.push_back(ColumnDefinition<Patch>("Mar", [](const Patch &p) { return p.soil.mwcont[2][0]; }));
-	columns.push_back(ColumnDefinition<Patch>("Apr", [](const Patch &p) { return p.soil.mwcont[3][0]; }));
-	columns.push_back(ColumnDefinition<Patch>("May", [](const Patch &p) { return p.soil.mwcont[4][0]; }));
-	columns.push_back(ColumnDefinition<Patch>("Jun", [](const Patch &p) { return p.soil.mwcont[5][0]; }));
-	columns.push_back(ColumnDefinition<Patch>("Jul", [](const Patch &p) { return p.soil.mwcont[6][0]; }));
-	columns.push_back(ColumnDefinition<Patch>("Aug", [](const Patch &p) { return p.soil.mwcont[7][0]; }));
-	columns.push_back(ColumnDefinition<Patch>("Sep", [](const Patch &p) { return p.soil.mwcont[8][0]; }));
-	columns.push_back(ColumnDefinition<Patch>("Oct", [](const Patch &p) { return p.soil.mwcont[9][0]; }));
-	columns.push_back(ColumnDefinition<Patch>("Nov", [](const Patch &p) { return p.soil.mwcont[10][0]; }));
-	columns.push_back(ColumnDefinition<Patch>("Dec", [](const Patch &p) { return p.soil.mwcont[11][0]; }));
+	columns.push_back(ColumnDefinition<Patch>("Jan", [](const Patch &p) { return p.soil.var_depth(0, SOILDEPTH_UPPER, &Soillayer::mwcont, &Soillayer::awc, 0); }));
+	columns.push_back(ColumnDefinition<Patch>("Feb", [](const Patch &p) { return p.soil.var_depth(0, SOILDEPTH_UPPER, &Soillayer::mwcont, &Soillayer::awc, 1); }));
+	columns.push_back(ColumnDefinition<Patch>("Mar", [](const Patch &p) { return p.soil.var_depth(0, SOILDEPTH_UPPER, &Soillayer::mwcont, &Soillayer::awc, 2); }));
+	columns.push_back(ColumnDefinition<Patch>("Apr", [](const Patch &p) { return p.soil.var_depth(0, SOILDEPTH_UPPER, &Soillayer::mwcont, &Soillayer::awc, 3); }));
+	columns.push_back(ColumnDefinition<Patch>("May", [](const Patch &p) { return p.soil.var_depth(0, SOILDEPTH_UPPER, &Soillayer::mwcont, &Soillayer::awc, 4); }));
+	columns.push_back(ColumnDefinition<Patch>("Jun", [](const Patch &p) { return p.soil.var_depth(0, SOILDEPTH_UPPER, &Soillayer::mwcont, &Soillayer::awc, 5); }));
+	columns.push_back(ColumnDefinition<Patch>("Jul", [](const Patch &p) { return p.soil.var_depth(0, SOILDEPTH_UPPER, &Soillayer::mwcont, &Soillayer::awc, 6); }));
+	columns.push_back(ColumnDefinition<Patch>("Aug", [](const Patch &p) { return p.soil.var_depth(0, SOILDEPTH_UPPER, &Soillayer::mwcont, &Soillayer::awc, 7); }));
+	columns.push_back(ColumnDefinition<Patch>("Sep", [](const Patch &p) { return p.soil.var_depth(0, SOILDEPTH_UPPER, &Soillayer::mwcont, &Soillayer::awc, 8); }));
+	columns.push_back(ColumnDefinition<Patch>("Oct", [](const Patch &p) { return p.soil.var_depth(0, SOILDEPTH_UPPER, &Soillayer::mwcont, &Soillayer::awc, 9); }));
+	columns.push_back(ColumnDefinition<Patch>("Nov", [](const Patch &p) { return p.soil.var_depth(0, SOILDEPTH_UPPER, &Soillayer::mwcont, &Soillayer::awc, 10); }));
+	columns.push_back(ColumnDefinition<Patch>("Dec", [](const Patch &p) { return p.soil.var_depth(0, SOILDEPTH_UPPER, &Soillayer::mwcont, &Soillayer::awc, 11); }));
 
 	return columns;
 }
@@ -716,18 +748,18 @@ std::vector<ColumnDefinition<Patch>> mwcont_upper_columns() {
 std::vector<ColumnDefinition<Patch>> mwcont_lower_columns() {
 	std::vector<ColumnDefinition<Patch>> columns;
 
-	columns.push_back(ColumnDefinition<Patch>("Jan", [](const Patch &p) { return p.soil.mwcont[0][1]; }));
-	columns.push_back(ColumnDefinition<Patch>("Feb", [](const Patch &p) { return p.soil.mwcont[1][1]; }));
-	columns.push_back(ColumnDefinition<Patch>("Mar", [](const Patch &p) { return p.soil.mwcont[2][1]; }));
-	columns.push_back(ColumnDefinition<Patch>("Apr", [](const Patch &p) { return p.soil.mwcont[3][1]; }));
-	columns.push_back(ColumnDefinition<Patch>("May", [](const Patch &p) { return p.soil.mwcont[4][1]; }));
-	columns.push_back(ColumnDefinition<Patch>("Jun", [](const Patch &p) { return p.soil.mwcont[5][1]; }));
-	columns.push_back(ColumnDefinition<Patch>("Jul", [](const Patch &p) { return p.soil.mwcont[6][1]; }));
-	columns.push_back(ColumnDefinition<Patch>("Aug", [](const Patch &p) { return p.soil.mwcont[7][1]; }));
-	columns.push_back(ColumnDefinition<Patch>("Sep", [](const Patch &p) { return p.soil.mwcont[8][1]; }));
-	columns.push_back(ColumnDefinition<Patch>("Oct", [](const Patch &p) { return p.soil.mwcont[9][1]; }));
-	columns.push_back(ColumnDefinition<Patch>("Nov", [](const Patch &p) { return p.soil.mwcont[10][1]; }));
-	columns.push_back(ColumnDefinition<Patch>("Dec", [](const Patch &p) { return p.soil.mwcont[11][1]; }));
+	columns.push_back(ColumnDefinition<Patch>("Jan", [](const Patch &p) { return p.soil.var_depth(SOILDEPTH_UPPER, p.soil.depth, &Soillayer::mwcont, &Soillayer::awc, 0); }));
+	columns.push_back(ColumnDefinition<Patch>("Feb", [](const Patch &p) { return p.soil.var_depth(SOILDEPTH_UPPER, p.soil.depth, &Soillayer::mwcont, &Soillayer::awc, 1); }));
+	columns.push_back(ColumnDefinition<Patch>("Mar", [](const Patch &p) { return p.soil.var_depth(SOILDEPTH_UPPER, p.soil.depth, &Soillayer::mwcont, &Soillayer::awc, 2); }));
+	columns.push_back(ColumnDefinition<Patch>("Apr", [](const Patch &p) { return p.soil.var_depth(SOILDEPTH_UPPER, p.soil.depth, &Soillayer::mwcont, &Soillayer::awc, 3); }));
+	columns.push_back(ColumnDefinition<Patch>("May", [](const Patch &p) { return p.soil.var_depth(SOILDEPTH_UPPER, p.soil.depth, &Soillayer::mwcont, &Soillayer::awc, 4); }));
+	columns.push_back(ColumnDefinition<Patch>("Jun", [](const Patch &p) { return p.soil.var_depth(SOILDEPTH_UPPER, p.soil.depth, &Soillayer::mwcont, &Soillayer::awc, 5); }));
+	columns.push_back(ColumnDefinition<Patch>("Jul", [](const Patch &p) { return p.soil.var_depth(SOILDEPTH_UPPER, p.soil.depth, &Soillayer::mwcont, &Soillayer::awc, 6); }));
+	columns.push_back(ColumnDefinition<Patch>("Aug", [](const Patch &p) { return p.soil.var_depth(SOILDEPTH_UPPER, p.soil.depth, &Soillayer::mwcont, &Soillayer::awc, 7); }));
+	columns.push_back(ColumnDefinition<Patch>("Sep", [](const Patch &p) { return p.soil.var_depth(SOILDEPTH_UPPER, p.soil.depth, &Soillayer::mwcont, &Soillayer::awc, 8); }));
+	columns.push_back(ColumnDefinition<Patch>("Oct", [](const Patch &p) { return p.soil.var_depth(SOILDEPTH_UPPER, p.soil.depth, &Soillayer::mwcont, &Soillayer::awc, 9); }));
+	columns.push_back(ColumnDefinition<Patch>("Nov", [](const Patch &p) { return p.soil.var_depth(SOILDEPTH_UPPER, p.soil.depth, &Soillayer::mwcont, &Soillayer::awc, 10); }));
+	columns.push_back(ColumnDefinition<Patch>("Dec", [](const Patch &p) { return p.soil.var_depth(SOILDEPTH_UPPER, p.soil.depth, &Soillayer::mwcont, &Soillayer::awc, 11); }));
 
 	return columns;
 }
@@ -825,33 +857,33 @@ std::vector<ColumnDefinition<Patch>> fevap_columns() {
 
 std::vector<ColumnDefinition<Patch>> sompool_cmass_columns() {
 	std::vector<ColumnDefinition<Patch>> columns;
-	columns.push_back(ColumnDefinition<Patch>("SURFSTRUCT", [](const Patch &p) { return p.soil.sompool[SURFSTRUCT].cmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SOILSTRUCT", [](const Patch &p) { return p.soil.sompool[SOILSTRUCT].cmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SOILMICRO", [](const Patch &p) { return p.soil.sompool[SOILMICRO].cmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFHUMUS", [](const Patch &p) { return p.soil.sompool[SURFHUMUS].cmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFMICRO", [](const Patch &p) { return p.soil.sompool[SURFMICRO].cmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFMETA", [](const Patch &p) { return p.soil.sompool[SURFMETA].cmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFFWD", [](const Patch &p) { return p.soil.sompool[SURFFWD].cmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFCWD", [](const Patch &p) { return p.soil.sompool[SURFCWD].cmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SOILMETA", [](const Patch &p) { return p.soil.sompool[SOILMETA].cmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SLOWSOM", [](const Patch &p) { return p.soil.sompool[SLOWSOM].cmass; }));
-	columns.push_back(ColumnDefinition<Patch>("PASSIVESOM", [](const Patch &p) { return p.soil.sompool[PASSIVESOM].cmass; }));
+	columns.push_back(ColumnDefinition<Patch>("SURFSTRUCT", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFSTRUCT].cmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SOILSTRUCT", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SOILSTRUCT].cmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SOILMICRO", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SOILMICRO].cmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFHUMUS", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFHUMUS].cmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFMICRO", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFMICRO].cmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFMETA", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFMETA].cmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFFWD", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFFWD].cmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFCWD", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFCWD].cmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SOILMETA", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SOILMETA].cmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SLOWSOM", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SLOWSOM].cmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("PASSIVESOM", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[PASSIVESOM].cmass; }); }));
 	return columns;
 }
 
 std::vector<ColumnDefinition<Patch>> sompool_nmass_columns() {
 	std::vector<ColumnDefinition<Patch>> columns;
-	columns.push_back(ColumnDefinition<Patch>("SURFSTRUCT", [](const Patch &p) { return p.soil.sompool[SURFSTRUCT].nmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SOILSTRUCT", [](const Patch &p) { return p.soil.sompool[SOILSTRUCT].nmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SOILMICRO", [](const Patch &p) { return p.soil.sompool[SOILMICRO].nmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFHUMUS", [](const Patch &p) { return p.soil.sompool[SURFHUMUS].nmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFMICRO", [](const Patch &p) { return p.soil.sompool[SURFMICRO].nmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFMETA", [](const Patch &p) { return p.soil.sompool[SURFMETA].nmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFFWD", [](const Patch &p) { return p.soil.sompool[SURFFWD].nmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFCWD", [](const Patch &p) { return p.soil.sompool[SURFCWD].nmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SOILMETA", [](const Patch &p) { return p.soil.sompool[SOILMETA].nmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SLOWSOM", [](const Patch &p) { return p.soil.sompool[SLOWSOM].nmass; }));
-	columns.push_back(ColumnDefinition<Patch>("PASSIVESOM", [](const Patch &p) { return p.soil.sompool[PASSIVESOM].nmass; }));
+	columns.push_back(ColumnDefinition<Patch>("SURFSTRUCT", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFSTRUCT].nmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SOILSTRUCT", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SOILSTRUCT].nmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SOILMICRO", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SOILMICRO].nmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFHUMUS", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFHUMUS].nmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFMICRO", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFMICRO].nmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFMETA", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFMETA].nmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFFWD", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFFWD].nmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFCWD", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFCWD].nmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SOILMETA", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SOILMETA].nmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SLOWSOM", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[SLOWSOM].nmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("PASSIVESOM", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.sompool[PASSIVESOM].nmass; }); }));
 	return columns;
 }
 
@@ -924,63 +956,52 @@ for (int r = 0; r < NSOMPOOL; r++) {
 */
 
 double get_soilc_surfsoillitterc(const Patch &patch) {
-	double cmass = 0;
-	for (int r = 0; r < NSOMPOOL; r++) {
-		if(r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
-			cmass += patch.soil.sompool[r].cmass;
-		}
-	}
-	return cmass;
+	return sum_layers(patch.soil, [](const Soillayer &l) { return
+		l.sompool[SURFMETA].cmass +
+		l.sompool[SURFSTRUCT].cmass +
+		l.sompool[SOILMETA].cmass +
+		l.sompool[SOILSTRUCT].cmass; });
 }
 
 double get_soilc_cwdc(const Patch &patch) {
-	double cmass = 0;
-	for (int r = 0; r < NSOMPOOL; r++) {
-		if (r == SURFFWD || r == SURFCWD) {
-			cmass += patch.soil.sompool[r].cmass;
-		}
-	}
-	return cmass;
+	return sum_layers(patch.soil, [](const Soillayer &l) { return l.sompool[SURFFWD].cmass + l.sompool[SURFCWD].cmass; });
 }
 
 double get_soilc_centuryc(const Patch &patch) {
-	double cmass = 0;
-	for (int r = 0; r < NSOMPOOL; r++) {
-		if(r != SURFMETA && r != SURFSTRUCT && r != SOILMETA && r != SOILSTRUCT && r != SURFFWD && r != SURFCWD){
-			cmass += patch.soil.sompool[r].cmass;
+	return sum_layers(patch.soil, [](const Soillayer &l) {
+		double cmass = 0;
+		for (int r = 0; r < NSOMPOOL; r++) {
+			if(r != SURFMETA && r != SURFSTRUCT && r != SOILMETA && r != SOILSTRUCT && r != SURFFWD && r != SURFCWD){
+				cmass += l.sompool[r].cmass;
+			}
 		}
-	}
-	return cmass;
+		return cmass;
+	});
 }
 
 double get_soiln_surfsoillittern(const Patch &patch) {
-	double nmass = 0;
-	for (int r = 0; r < NSOMPOOL; r++) {
-		if(r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
-			nmass += patch.soil.sompool[r].nmass;
-		}
-	}
-	return nmass;
+	return sum_layers(patch.soil, [](const Soillayer &l) { return
+		l.sompool[SURFMETA].nmass +
+		l.sompool[SURFSTRUCT].nmass +
+		l.sompool[SOILMETA].nmass +
+		l.sompool[SOILSTRUCT].nmass; });
 }
 
 double get_soiln_cwdn(const Patch &patch) {
-	double nmass = 0;
-	for (int r = 0; r < NSOMPOOL; r++) {
-		if (r == SURFFWD || r == SURFCWD) {
-			nmass += patch.soil.sompool[r].nmass;
-		}
-	}
-	return nmass;
+	return sum_layers(patch.soil, [](const Soillayer &l) { return
+		l.sompool[SURFFWD].nmass + l.sompool[SURFCWD].nmass; });
 }
 
 double get_soiln_centuryn(const Patch &patch) {
-	double nmass = 0;
-	for (int r = 0; r < NSOMPOOL; r++) {
-		if(r != SURFMETA && r != SURFSTRUCT && r != SOILMETA && r != SOILSTRUCT && r != SURFFWD && r != SURFCWD){
-			nmass += patch.soil.sompool[r].nmass;
+	return sum_layers(patch.soil, [](const Soillayer &l) {
+		double nmass = 0;
+		for (int r = 0; r < NSOMPOOL; r++) {
+			if(r != SURFMETA && r != SURFSTRUCT && r != SOILMETA && r != SOILSTRUCT && r != SURFFWD && r != SURFCWD){
+				nmass += l.sompool[r].nmass;
+			}
 		}
-	}
-	return nmass;
+		return nmass;
+	});
 }
 
 std::vector<ColumnDefinition<Patch>> soil_cmass_columns() {
@@ -1108,11 +1129,17 @@ std::vector<ColumnDefinition<Patch>> water_budget_cols_daily() {
 	columns.push_back(ColumnDefinition<Patch>("evap", [](const Patch &p) { return p.evap; }));
 	columns.push_back(ColumnDefinition<Patch>("transp", [](const Patch &p) { return p.transp; }));
 	columns.push_back(ColumnDefinition<Patch>("interception", [](const Patch &p) { return p.intercep; }));
-	columns.push_back(ColumnDefinition<Patch>("surfrunoff", [](const Patch &p) { return p.soil.surfrunoff; }));
-	columns.push_back(ColumnDefinition<Patch>("drainrunoff", [](const Patch &p) { return p.soil.drainrunoff; }));
-	columns.push_back(ColumnDefinition<Patch>("baserunoff", [](const Patch &p) { return p.soil.baserunoff; }));
-	columns.push_back(ColumnDefinition<Patch>("totrunoff", [](const Patch &p) { return p.soil.runoff; }));
-	columns.push_back(ColumnDefinition<Patch>("flux", [](const Patch &p) { return p.get_climate().prec - p.evap - p.transp - p.intercep - p.soil.runoff; }));
+	columns.push_back(ColumnDefinition<Patch>("surfrunoff", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WRUNOFF_SURF, date.day); }));
+	columns.push_back(ColumnDefinition<Patch>("drainrunoff", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WRUNOFF_DRAIN, date.day); }));
+	columns.push_back(ColumnDefinition<Patch>("baserunoff", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WRUNOFF_BASE, date.day); }));
+	columns.push_back(ColumnDefinition<Patch>("totrunoff", [](const Patch &p) { return
+		p.fluxes.get_daily_flux(Fluxes::WRUNOFF_SURF, date.day) +
+		p.fluxes.get_daily_flux(Fluxes::WRUNOFF_DRAIN, date.day) +
+		p.fluxes.get_daily_flux(Fluxes::WRUNOFF_BASE, date.day); }));
+	columns.push_back(ColumnDefinition<Patch>("flux", [](const Patch &p) { return p.get_climate().prec - p.evap - p.transp - p.intercep - (
+		p.fluxes.get_daily_flux(Fluxes::WRUNOFF_SURF, date.day) +
+        p.fluxes.get_daily_flux(Fluxes::WRUNOFF_DRAIN, date.day) +
+        p.fluxes.get_daily_flux(Fluxes::WRUNOFF_BASE, date.day)); }));
 	return columns;
 }
 
@@ -1126,13 +1153,13 @@ std::vector<ColumnDefinition<Patch>> nitrogen_budget_cols_annual() {
 	columns.push_back(ColumnDefinition<Patch>("immobilisation", [](const Patch &p) { return p.soil.animmob; }));
 	columns.push_back(ColumnDefinition<Patch>("min_leach", [](const Patch &p) { return p.soil.aminleach; }));
 	columns.push_back(ColumnDefinition<Patch>("org_leach", [](const Patch &p) { return p.soil.aorgNleach; }));
-	columns.push_back(ColumnDefinition<Patch>("volatilisation", [](const Patch &p) { return p.soil.anvol; }));
+	columns.push_back(ColumnDefinition<Patch>("volatilisation", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::NH3_SOIL); }));
 	columns.push_back(ColumnDefinition<Patch>("gas_emissions", [](const Patch &p) { return p.soil.anloss_gas; }));
 	// Annual flux in available N: deposition + fixation + mineralisation - uptake - leaching - volatilisation - gas emissions
-	columns.push_back(ColumnDefinition<Patch>("flux_avail", [](const Patch &p) { return p.stand.get_gridcell().aNO3dep + p.stand.get_gridcell().aNH4dep + p.soil.anfix + p.soil.anmin - p.soil.animmob - get_anuptake(p) - p.soil.aminleach - p.soil.anvol - p.soil.anloss_gas; }));
+	columns.push_back(ColumnDefinition<Patch>("flux_avail", [](const Patch &p) { return p.stand.get_gridcell().aNO3dep + p.stand.get_gridcell().aNH4dep + p.soil.anfix + p.soil.anmin - p.soil.animmob - get_anuptake(p) - p.soil.aminleach - p.fluxes.get_annual_flux(Fluxes::NH3_SOIL) - p.soil.anloss_gas; }));
 	// Annual flux in total N: deposition + fixation - gas emissions
 	columns.push_back(ColumnDefinition<Patch>("flux", [](const Patch &p) { return p.stand.get_gridcell().aNO3dep + p.stand.get_gridcell().aNH4dep + p.soil.anfix - p.soil.anloss_gas; }));
-	columns.push_back(ColumnDefinition<Patch>("avail", [](const Patch &p) { return p.soil.get_nmass_avail(); }));
+	columns.push_back(ColumnDefinition<Patch>("avail", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &layer) { return layer.NO3_mass + layer.NH4_mass; }); }));
 	columns.push_back(ColumnDefinition<Patch>("totaln", [](const Patch &p) { return p.ncont(); }));
 	return columns;
 }
@@ -1147,13 +1174,13 @@ std::vector<ColumnDefinition<Patch>> nitrogen_budget_cols_daily() {
 	columns.push_back(ColumnDefinition<Patch>("immobilisation", [](const Patch &p) { return p.soil.nimmob; }));
 	columns.push_back(ColumnDefinition<Patch>("min_leach", [](const Patch &p) { return p.soil.dminleach; }));
 	columns.push_back(ColumnDefinition<Patch>("org_leach", [](const Patch &p) { return p.soil.dorgNleach; }));
-	columns.push_back(ColumnDefinition<Patch>("volatilisation", [](const Patch &p) { return p.soil.nvol; }));
+	columns.push_back(ColumnDefinition<Patch>("volatilisation", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::NH3_SOIL, date.day); }));
 	columns.push_back(ColumnDefinition<Patch>("gas_emissions", [](const Patch &p) { return p.soil.nloss_gas; }));
 	// flux in available N
-	columns.push_back(ColumnDefinition<Patch>("flux_avail", [](const Patch &p) { return p.stand.get_gridcell().dNO3dep + p.stand.get_gridcell().dNH4dep + p.soil.dnfix + p.soil.net_mineralisation - get_nuptake(p) - p.soil.dminleach - p.soil.nvol - p.soil.nloss_gas; }));
+	columns.push_back(ColumnDefinition<Patch>("flux_avail", [](const Patch &p) { return p.stand.get_gridcell().dNO3dep + p.stand.get_gridcell().dNH4dep + p.soil.dnfix + p.soil.net_mineralisation - get_nuptake(p) - p.soil.dminleach - p.fluxes.get_daily_flux(Fluxes::NH3_SOIL, date.day) - p.soil.nloss_gas; }));
 	// flux in total N
 	columns.push_back(ColumnDefinition<Patch>("flux", [](const Patch &p) { return p.stand.get_gridcell().dNO3dep + p.stand.get_gridcell().dNH4dep + p.soil.dnfix - p.soil.nloss_gas; }));
-	columns.push_back(ColumnDefinition<Patch>("avail", [](const Patch &p) { return p.soil.get_nmass_avail(); }));
+	columns.push_back(ColumnDefinition<Patch>("avail", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &layer) { return layer.NO3_mass + layer.NH4_mass; }); }));
 	columns.push_back(ColumnDefinition<Patch>("totaln", [](const Patch &p) { return p.ncont(); }));
 	return columns;
 }
@@ -1184,52 +1211,52 @@ std::vector<ColumnDefinition<Patch>> sompool_decay_reduction_columns() {
 
 std::vector<ColumnDefinition<Patch>> sompool_frac_remaining_columns() {
 	std::vector<ColumnDefinition<Patch>> columns;
-	columns.push_back(ColumnDefinition<Patch>("SURFSTRUCT", [](const Patch &p) { return p.soil.sompool[SURFSTRUCT].fracremain; }));
-	columns.push_back(ColumnDefinition<Patch>("SOILSTRUCT", [](const Patch &p) { return p.soil.sompool[SOILSTRUCT].fracremain; }));
-	columns.push_back(ColumnDefinition<Patch>("SOILMICRO", [](const Patch &p) { return p.soil.sompool[SOILMICRO].fracremain; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFHUMUS", [](const Patch &p) { return p.soil.sompool[SURFHUMUS].fracremain; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFMICRO", [](const Patch &p) { return p.soil.sompool[SURFMICRO].fracremain; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFMETA", [](const Patch &p) { return p.soil.sompool[SURFMETA].fracremain; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFFWD", [](const Patch &p) { return p.soil.sompool[SURFFWD].fracremain; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFCWD", [](const Patch &p) { return p.soil.sompool[SURFCWD].fracremain; }));
-	columns.push_back(ColumnDefinition<Patch>("SOILMETA", [](const Patch &p) { return p.soil.sompool[SOILMETA].fracremain; }));
-	columns.push_back(ColumnDefinition<Patch>("SLOWSOM", [](const Patch &p) { return p.soil.sompool[SLOWSOM].fracremain; }));
-	columns.push_back(ColumnDefinition<Patch>("PASSIVESOM", [](const Patch &p) { return p.soil.sompool[PASSIVESOM].fracremain; }));
+	columns.push_back(ColumnDefinition<Patch>("SURFSTRUCT", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFSTRUCT].fracremain; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SOILSTRUCT", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SOILSTRUCT].fracremain; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SOILMICRO", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SOILMICRO].fracremain; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFHUMUS", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFHUMUS].fracremain; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFMICRO", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFMICRO].fracremain; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFMETA", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFMETA].fracremain; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFFWD", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFFWD].fracremain; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFCWD", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFCWD].fracremain; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SOILMETA", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SOILMETA].fracremain; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SLOWSOM", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SLOWSOM].fracremain; }); }));
+	columns.push_back(ColumnDefinition<Patch>("PASSIVESOM", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[PASSIVESOM].fracremain; }); }));
 	return columns;
 }
 
 std::vector<ColumnDefinition<Patch>> sompool_ntoc_columns() {
 	std::vector<ColumnDefinition<Patch>> columns;
-	columns.push_back(ColumnDefinition<Patch>("SURFSTRUCT", [](const Patch &p) { return p.soil.sompool[SURFSTRUCT].ntoc; }));
-	columns.push_back(ColumnDefinition<Patch>("SOILSTRUCT", [](const Patch &p) { return p.soil.sompool[SOILSTRUCT].ntoc; }));
-	columns.push_back(ColumnDefinition<Patch>("SOILMICRO", [](const Patch &p) { return p.soil.sompool[SOILMICRO].ntoc; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFHUMUS", [](const Patch &p) { return p.soil.sompool[SURFHUMUS].ntoc; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFMICRO", [](const Patch &p) { return p.soil.sompool[SURFMICRO].ntoc; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFMETA", [](const Patch &p) { return p.soil.sompool[SURFMETA].ntoc; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFFWD", [](const Patch &p) { return p.soil.sompool[SURFFWD].ntoc; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFCWD", [](const Patch &p) { return p.soil.sompool[SURFCWD].ntoc; }));
-	columns.push_back(ColumnDefinition<Patch>("SOILMETA", [](const Patch &p) { return p.soil.sompool[SOILMETA].ntoc; }));
-	columns.push_back(ColumnDefinition<Patch>("SLOWSOM", [](const Patch &p) { return p.soil.sompool[SLOWSOM].ntoc; }));
-	columns.push_back(ColumnDefinition<Patch>("PASSIVESOM", [](const Patch &p) { return p.soil.sompool[PASSIVESOM].ntoc; }));
+	columns.push_back(ColumnDefinition<Patch>("SURFSTRUCT", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFSTRUCT].ntoc; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SOILSTRUCT", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SOILSTRUCT].ntoc; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SOILMICRO", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SOILMICRO].ntoc; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFHUMUS", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFHUMUS].ntoc; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFMICRO", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFMICRO].ntoc; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFMETA", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFMETA].ntoc; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFFWD", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFFWD].ntoc; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFCWD", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFCWD].ntoc; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SOILMETA", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SOILMETA].ntoc; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SLOWSOM", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SLOWSOM].ntoc; }); }));
+	columns.push_back(ColumnDefinition<Patch>("PASSIVESOM", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[PASSIVESOM].ntoc; }); }));
 	return columns;
 }
 
 std::vector<ColumnDefinition<Patch>> clitter_columns() {
 	std::vector<ColumnDefinition<Patch>> columns;
-	columns.push_back(ColumnDefinition<Patch>("SURFSTRUCT", [](const Patch &p) { return p.soil.sompool[SURFSTRUCT].cmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFMETA", [](const Patch &p) { return p.soil.sompool[SURFMETA].cmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFFWD", [](const Patch &p) { return p.soil.sompool[SURFFWD].cmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFCWD", [](const Patch &p) { return p.soil.sompool[SURFCWD].cmass; }));
+	columns.push_back(ColumnDefinition<Patch>("SURFSTRUCT", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFSTRUCT].cmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFMETA", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFMETA].cmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFFWD", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFFWD].cmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFCWD", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFCWD].cmass; }); }));
 	return columns;
 }
 
 
 std::vector<ColumnDefinition<Patch>> nlitter_columns() {
 	std::vector<ColumnDefinition<Patch>> columns;
-	columns.push_back(ColumnDefinition<Patch>("SURFSTRUCT", [](const Patch &p) { return p.soil.sompool[SURFSTRUCT].nmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFMETA", [](const Patch &p) { return p.soil.sompool[SURFMETA].nmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFFWD", [](const Patch &p) { return p.soil.sompool[SURFFWD].nmass; }));
-	columns.push_back(ColumnDefinition<Patch>("SURFCWD", [](const Patch &p) { return p.soil.sompool[SURFCWD].nmass; }));
+	columns.push_back(ColumnDefinition<Patch>("SURFSTRUCT", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFSTRUCT].nmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFMETA", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFMETA].nmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFFWD", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFFWD].nmass; }); }));
+	columns.push_back(ColumnDefinition<Patch>("SURFCWD", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.sompool[SURFCWD].nmass; }); }));
 	return columns;
 }
 

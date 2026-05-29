@@ -51,12 +51,15 @@ const double MORT_FRAC = 0.01;
 // PAR threshold between predawn and postdawn (J/m2).
 const double PAR_DAWN = 10;
 
+/// water density [kg m-3]
+const double WATER_DENSITY = 1000.0;
+
 double calc_weighted_psi_rootdist(Soil & soil, Pft& pft, Individual &indiv){
 
     double weighted_psi = 0.0;
 
-    for (int j=0; j<NSOILLAYER; j++){
-        double psi_layer = soil.psi_layer[j];
+    for (int j = 0; j < soil.nsoillayers; j++){
+        double psi_layer = soil.soillayers[j].psi;
         double rootfrac_layer = indiv.rootdist[j];
         // Weight soil water potential by root fraction in each layer.
         weighted_psi = weighted_psi + psi_layer * rootfrac_layer;
@@ -80,13 +83,13 @@ double calc_weighted_psi(Soil &soil, Pft &pft, Individual &indiv) {
     // Root resistivity in MPa*s*g/mmol, see Table 3 in Bonan et al (2014).
     double root_resist =  25;
 
-    for (int j = 0; j < NSOILLAYER; j++) {
+    for (int i = 0; i < soil.nsoillayers; i++) {
         // Soil layer depth in m, note that we skip the 6 snow layers and layer
         // of air in betwen (7 total).
-        double thickness_lyr = soil.Dz[j+7] / 1000.0;
+        double thickness_lyr = soil.soillayers[i].thickness / MM_PER_M;
 
         // kgC/m2
-        double rootc_layer = indiv.rootdist[j] * indiv.cmass_root;
+        double rootc_layer = indiv.rootdist[i] * indiv.cmass_root;
 
         // UPDATE THIS - WHAT CONVERSION FACTOR IS SENSIBLE FOR ROOTS?????
         double root_biomass = rootc_layer * 2.0; // kg/m2
@@ -99,23 +102,23 @@ double calc_weighted_psi(Soil &soil, Pft &pft, Individual &indiv) {
 
         // Convert from m/s to m2/s/MPa by dividing by head of pressure in
         // MPa/m, then convert to mmol/m/s/MPa.
-        double Ksoil = soil.K_actual[j] / 0.009807 * MMOL_PER_MOL / MOL2G_H2O * G_PER_KG * water_density;
+        double Ksoil = soil.soillayers[i].k_actual / 0.009807 * MMOL_PER_MOL / MOL2G_H2O * G_PER_KG * WATER_DENSITY;
 
         if (root_biomass > 0.0){
             // Soil-root resistance + root resistance, see Williams et al.
             // (2001). Note we don't multiply root biomass by D because it's
             // already in kg/m2 (equation assumes kg/m3).
-            indiv.Rs_r[j] = log(rs / rr) / (2.0 * PI * lr * thickness_lyr * Ksoil) + root_resist / (root_biomass);
+            indiv.Rs_r[i] = log(rs / rr) / (2.0 * PI * lr * thickness_lyr * Ksoil) + root_resist / (root_biomass);
         } else {
             // Conductivity is effectively zero if there are no roots.
-            indiv.Rs_r[j] = pow(10.0,10.0);
+            indiv.Rs_r[i] = pow(10.0,10.0);
         }
 
-        double psi_layer = soil.psi_layer[j];
+        double psi_layer = soil.soillayers[i].psi;
 
         // Weight soil water potential by root fraction in each layer.
-        weighted_psi = weighted_psi + psi_layer * (1.0 / indiv.Rs_r[j]);
-        Rs_inv_sum += 1.0 / indiv.Rs_r[j];
+        weighted_psi = weighted_psi + psi_layer * (1.0 / indiv.Rs_r[i]);
+        Rs_inv_sum += 1.0 / indiv.Rs_r[i];
 
     }
 
@@ -135,28 +138,32 @@ void calc_soil_water_potenial_dave(Soil &soil) {
         fail("ifdavehydrology must be enabled to calculate soil water potential");
     }
 
-    // Sand content, as percentage.
-    double sand_perc = soil.soiltype.sand_frac * 100.0;
+    double psi_sum = 0;
+    for (int i = 0; i < soil.nsoillayers; i++) {
+        Soillayer &layer = soil.soillayers[i];
 
-    // Clay content, as percentage.
-    double clay_perc = soil.soiltype.clay_frac * 100.0;
+        // Sand content, as percentage.
+        double sand_perc = layer.sand_frac * 100.0;
 
-    for (int i = 0; i < NSOILLAYER; i++) {
+        // Clay content, as percentage.
+        double clay_perc = layer.clay_frac * 100.0;
 
-	    double wcont = soil.get_layer_soil_water(i);
+	    double wcont = layer.wcont();
 
         // Wilting point in mm.
-		double wilting_point_wc = soil.soiltype.wp[i];
+		double wilting_point_wc = layer.wp;
 
         // Fixed available water holding capacity of this layer in mm.
-		double awc = soil.soiltype.awc[i];
+		double awc = layer.awc;
 
 		double tot_wcont = wcont * awc + wilting_point_wc;
 
         // Saturation point in mm.
-		double sat_wcont = soil.soiltype.wsats[i];
+		double sat_wcont = layer.wsats;
 
         // Saturated pressure head in cm (Cosby 1984).
+        // TODO: is this the same as layer.Psi_max_min? That is described as
+        // "Saturated mineral matter water suction (matrix potential) (mm)".
 		double Psi_s = soil.soiltype.Psi_s;
 
         // Slope of soil water retention curve (Cosby 1984).
@@ -169,20 +176,21 @@ void calc_soil_water_potenial_dave(Soil &soil) {
         // no negative sign in Cosby 1984 but parameters seem to be the same.
 
         // Cosby 1984 uses Psi_s in cm, convert to MPa.
-		soil.psi_layer[i] = Psi_s * pow((tot_wcont / sat_wcont), -b) / 100 * 1000 * 9.81 * 1e-6;
+		layer.psi = Psi_s * pow((tot_wcont / sat_wcont), -b) / 100 * 1000 * 9.81 * 1e-6;
 
+        psi_sum += layer.psi;
         // double Ksoil_sat = soil.soiltype.Ksat; // saturated hydraulic conductivity in m/s
         // double k = pow(tot_wcont / sat_wcont, 2 * b + 3); // Equation 2 from Clapp & Hornberger 1978
         // soil.K_actual[i] = k * Ksoil_sat; // one way of converting Ksat to Kactual, but can also use method below
 
-        double theta = tot_wcont / soil.Dz[i+7]; // convert from mm to m3/m3
+        double theta = tot_wcont / layer.thickness; // convert from mm to m3/m3
 
         // hydraulic conductivity (m/s) based on equation 10 from Saxton et al (1986)
-        soil.K_actual[i] = 2.778e-6 * exp(12.012 - 0.0755 * sand_perc + (-3.895 + 0.03671 *
+        layer.k_actual = 2.778e-6 * exp(12.012 - 0.0755 * sand_perc + (-3.895 + 0.03671 *
                             sand_perc - 0.1103 * clay_perc + 8.7546e-4 * pow(clay_perc, 2.0)) * 1.0 / theta);
     }
 
-    soil.soil_psi = mean(soil.psi_layer, NSOILLAYER);
+    soil.soil_psi = psi_sum / soil.nsoillayers;
 
     for (int i = 0; i < soil.patch.vegetation.nobj; i++) {
 		Individual &indiv = soil.patch.vegetation[i];
@@ -336,9 +344,9 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
             double frac_prec_this_indiv = indiv.cmass_root / cmass_root_tot; // this indiv gets an amount based on its root carbon
 
             // How much rain this individual gets to refill stem, convert from mm to mmol/m2/s.
-            // 1 mm water = 1e-3 m * water_density kg/m3 = kg/m2, then kg -> g -> mol -> mmol.
+            // 1 mm water = 1e-3 m * WATER_DENSITY kg/m3 = kg/m2, then kg -> g -> mol -> mmol.
             double seconds_per_timestep = (24.0 / date.subdaily) * 3600.0;
-            double stem_refill = prec_avail * frac_prec_this_indiv * (1e-3 * water_density) * G_PER_KG / MOL2G_H2O * MMOL_PER_MOL / seconds_per_timestep;
+            double stem_refill = prec_avail * frac_prec_this_indiv * (1e-3 * WATER_DENSITY) * G_PER_KG / MOL2G_H2O * MMOL_PER_MOL / seconds_per_timestep;
 
             // Total volume under hydraulic curve up to current lwp, then subtract rainfall refill.
             // This will tell us the 'transpiration under the curve' value we need to read off the 

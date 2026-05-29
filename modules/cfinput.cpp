@@ -315,6 +315,18 @@ double calc_relative_humidity(double temp, double specific_humidity, double pres
 
 }
 
+std::vector<std::pair<double, double> > CFInput::translate_gridlist_to_coord(std::vector<Coord>& gridlist) { // DW_COMMENT not needed in trunk
+
+	std::vector<std::pair<double, double> > output;
+	for (int i = 0; i < gridlist.size(); i++) {
+		Coord& c = gridlist[i];
+		double center_lon = floor(c.lon * (1 / soilinput.STEP)) * soilinput.STEP + soilinput.STEP / 2.0;
+		double center_lat = floor(c.lat * (1 / soilinput.STEP)) * soilinput.STEP + soilinput.STEP / 2.0;
+		output.push_back(std::make_pair(center_lon, center_lat));
+	}
+	return output;
+}
+
 CFInput::CFInput()
 	: cf_temp(0),
 	  cf_prec(0),
@@ -512,8 +524,13 @@ void CFInput::init() {
 
 	date.set_first_calendar_year(cf_temp->get_date_time(0).get_year() - nyear_spinup);
 
+	//soilinput.init(param["file_soildata"].str); // DW_COMMENT TRUNK HAS IT LIKE THIS!!!
+	soilinput.init(param["file_soildata"].str, translate_gridlist_to_coord(gridlist));
 
-	soilinput.init(param["file_soildata"].str);
+	if (hydrology == RICHARDS) {
+		soilinput.init_depth(param["file_soildepth"].str, translate_gridlist_to_coord(gridlist));
+		soilinput.init_slope(param["file_soilslope"].str, translate_gridlist_to_coord(gridlist));
+	}
 
 	if (state_year>0) {
 		state_calendar_year = (state_year-1) + date.first_calendar_year;

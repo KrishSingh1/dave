@@ -25,10 +25,12 @@ group "moss"(
 	emax 1.0
 	intc 0.01
 	nuptoroot 0.00551
-	rootdist 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	root_dist 1.0 0.0
 	root_beta 0.0
-	km_volume 0.000001876
 	fnstorage 0.3
+	ligcfrac_root 0.0
+	ligcfrac_wood 0.0
+	ag_woody_frac 0.0
 	eps_mon 0.37 0.2 0.23 0.1 0.1 0.09 0.1 0.22 0.19 	! C3G values
 	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5 	! C3G values
 )
@@ -44,7 +46,7 @@ pft "Np_moss" (
 	shade_tolerant
 	parff_min 2000000
 	pathway "c3"
-	rootdist 1.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0 0.0
+	root_dist 1.0 0.0
 	root_beta 0.0
 	phenology "any"
 	leaflong 1
@@ -162,7 +164,9 @@ pft "WetGRS" (
 	landcover "peatland"
 
 	pathway "c3"
-	turnover_root 0.5 	! Override grass value
+	root_dist 0.8 0.2
+	root_beta 0.97 ! 60% roots in acrotelm Wania et al 2010
+	turnover_root 0.5 ! Override grass value
 
 	! Wania et al. values
 	pstemp_min -5

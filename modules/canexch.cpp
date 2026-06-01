@@ -2503,21 +2503,23 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 		if (ifdavegrowth) {
 
 			// Handle respiration differently in DAVE: 
-			// -> scale down resp_root during dormancy
+			// -> scale down resp_root during dormancy (fphen_activitiy)
 
 			// Root respiration
-			// Reduction factor of resp_root during dormancy (fphen_activity)
 			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_activity;
 
-			// TODO: at some point, replace respiration functions here!
+			// Crown respiration
+			// TODO: could replace gtemp_soil (at 25cm) with gtemp at surface (as done for turnover of brown shoots).
+			// Alternatively we might want to take gtemp_air here.
 			resp_crown = (0.75 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
 
+			// Reproductive respiration
 			// TODO: reduce resp_repr with senescence.
-			// TODO: replace cton_root with cton_repr if necessary. 
-			resp_repr = (respcoeff * K * cmass_repr / cton_root * gtemp_soil) * fphen_activity;
+			// TODO: replace cton_root with cton_repr. 
+			resp_repr = (respcoeff * K * cmass_repr / cton_root * gtemp_air) * fphen_activity;
 			
 			// Growth respiration
-			if (ifdavegrowth && ifdailygrass) {
+			if (ifdailygrass) {
 				// In the DAVE version, growth respiration depends on growth.
 				resp_growth = 0;
 			} else {
@@ -2546,6 +2548,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	// Maintenance respiration the same for all pfts.
 	// resp_sap will be 0 for grasses.
 	// resp_crown will be 0 for trees.
+	// resp_leaf is an input (calculated in photosynthesis routine)
 	resp_maintenance = resp_leaf + resp_root + resp_repr + resp_crown + resp_sap;
 	
 	if (lifeform == TREE) {

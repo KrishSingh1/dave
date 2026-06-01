@@ -3731,8 +3731,9 @@ public:
 	double growth_demand;
 	/// development factor used for calculating growth demand.
 	double fdev_growth;
-	/// LAI at flowering (vegetative - reproductive switch).
-	double lai_flowering;
+	/// cmass_crown at flowering (vegetative - reproductive switch).
+	double cmass_crown_flowering;
+	double lai_trend_max;
 	/// fraction of reproductive biomass to storage capacity.
 	double frepr_cstorage;
 	/// development factor used for calculating senescence.
@@ -3929,11 +3930,13 @@ public:
 	/// mean root age of the individual (y)
 	double meanrootage;
 
+	/// 20-day record of LAI (0-1)
+	Historic<double, 20> lai_20;
 	/// 20-day record of NSC pool (kgC/m2/d)
 	Historic<double, 20> cmass_storage_20;
 	/// 10-day record of daily reproduction pool (kgC/m2/d)
 	Historic<double, 10> cmass_repr_10;
-	/// 20-day record of daaily cgrow reporduction (kgC/m2/d)
+	/// 20-day record of daily cgrow reproduction (kgC/m2/d)
 	Historic<double, 20> cgrow_repr_20;
 	/// 14-day record of storage dynamics (kgC/m2/d)
 	Historic<double, 14> cstorage_dynam_14;

@@ -1885,7 +1885,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	growth_stage      = 0.0;
 	frepr_cstorage    = 0.0;
 	fdev_growth       = 1.0;
-	lai_flowering	  = 0.0;
+	cmass_crown_flowering = 0.0;
 	fdev_senesc       = 1.0;
 	senesc_root       = 0.0;
 	growth_stage_days = 0;
@@ -2216,10 +2216,11 @@ void Individual::serialize(ArchiveStream& arch) {
 		& nmass_leafs
 		& cmass_storage
 		& cmass_storage_dynam
-		&ftemp
-		&fwater
-		&fstorage
-		&cgrow_pot
+		& ftemp
+		& fwater
+		& fstorage
+		& cgrow_pot
+		& lai_20
 		& cmass_storage_20
 		& cstorage_dynam_14
 		& cstorage_max
@@ -2243,6 +2244,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& lai_brown_indiv
 		& lai_daily
 		& lai_indiv_daily
+		& lai_trend_max
 		& greff_5
 		& cmass_wood_inc_5
 		& age

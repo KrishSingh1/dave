@@ -384,14 +384,10 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstorage) {
 
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
-		double a1 = 3.0;
-		double seed_target = a1 * indiv.pft.reprfrac;
-		double fillfrac = Cstorage_fillfrac(indiv);
+		double k_repr = 2;
+		double seed_target = k_repr * indiv.pft.reprfrac * indiv.cmass_crown_flowering;
 
-		indiv.fdev_growth = max(0.0, min(1.0, (1.0 - frepr_cstorage/seed_target)));
-		//indiv.fdev_growth *= (1.0 + (-0.3 + fillfrac * 0.6) * (1-indiv.fdev_growth));
-		//indiv.fdev_growth *= (1.0 + (-0.3 + fillfrac * 0.6));
-
+		indiv.fdev_growth = max(0.0, min(1.0, (1.0 - indiv.cmass_repr/seed_target)));
 
 	} else if (indiv.growth_stage == vegetative && indiv.fdev_growth < 1.0) {
 
@@ -550,16 +546,17 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				indiv.fdev_growth = 1.0;
 				indiv.growth_stage_days = 0;
 				indiv.cmass_struct = 0.0;
+				indiv.lai_trend_max = 0.0;
 			}
 			else if (indiv.growth_stage == vegetative) {
 				if (indiv.cmass_storage_20.size() > 5 && indiv.cmass_storage_20.periodictrend(20) > 0.0 &&
-				    is_zero(1.0 - indiv.fdev_growth) && indiv.lai > 0.0 &&
-				    indiv.growth_stage_days > 20 && Cstorage_fillfrac(indiv) < 0.9){  
+				    is_zero(1.0 - indiv.fdev_growth) && Cstorage_fillfrac(indiv) < 0.9 &&
+				    indiv.growth_stage_days > 20 && indiv.lai_20.periodictrend(5) > 0.05 * indiv.lai_trend_max){  
 					// last two conditions above are there to prevent too early flowering.
 					if (indiv.lai > lai_min) {
 						indiv.growth_stage = reproductive;
 						indiv.growth_stage_days = 0;
-						indiv.lai_flowering = indiv.lai;
+						indiv.cmass_crown_flowering = indiv.cmass_crown;
 					} else {
 						indiv.kill();
 						vegetation.killobj();
@@ -2339,7 +2336,7 @@ bool allometry(Individual& indiv) {
 			// guess2008 - bugfix - added if
 			if (!negligible(indiv.get_cmass_leaf())) {
 
-				// Grass "individual" LAI (Eqn 11). Green LAI only!
+				// Grass "individual" LAI (Eqn 11).
 				indiv.lai_indiv = indiv.get_cmass_leaf() * indiv.sla();
 				if (ifdavegrowth) {
 					lai_leaf = indiv.get_cmass_leaf() * (1.0 - indiv.pft.culmfrac) * indiv.sla();
@@ -2348,6 +2345,10 @@ bool allometry(Individual& indiv) {
 					lai_culm_brown = indiv.get_cmass_leaf_brown() * indiv.pft.culmfrac * (indiv.sla() * frac_sla_culm);
 					indiv.lai_indiv = lai_leaf + lai_culm;
 					indiv.lai_brown_indiv = lai_leaf_brown + lai_culm_brown;
+					indiv.lai_20.add(indiv.lai_indiv);
+					if (indiv.lai_20.periodictrend(5) > indiv.lai_trend_max){
+						indiv.lai_trend_max = indiv.lai_20.periodictrend(5);
+					}
 					// indiv.lai_indiv *= (1.0 - indiv.pft.culmfrac);
 				}
 				
@@ -3564,7 +3565,7 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 	// C source: Potential growth rate (kgC m-2 d-1)
 	double Gpot = max(0.0, indiv.pft.max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
 
-	// C sink: growth demand (kgC m-2 d-1).
+	// C sink: growth demand (0-1).
 	indiv.growth_demand = growth_demand(indiv);
 
 	if (indiv.dnpp >= 0.0) {

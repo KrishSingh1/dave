@@ -474,10 +474,10 @@ group "perennial" (
 	qdev_senesc 2
 
 	! Exponent shaping water stress-driven senescence for DAVE grasses. q = 1
-	! gives a linear response. q > 1 increases senescence at moderate stress;
-	! 0 < q < 1 reduces it. No effect at the extremes (wscal = 0 or 1).
+	! gives a linear response. q > 1 decreases senescence at low stress;
+	! 0 < q < 1 increases it (not recommend). No effect at the extremes (wscal = 0 or 1).
 	! Unitless.
-	qwater_senesc 0.5
+	qwater_senesc 2.0
 )
 
 group "annual" (

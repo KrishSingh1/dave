@@ -5373,16 +5373,16 @@ void senescence_dave_grass(Individual &indiv) {
 		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
 		//indiv.fdev_senesc  = min(25.0, pow(indiv.fdev_growth, -0.1));
 		//indiv.fdev_senesc = senesc_scal_repr * (1.0 - indiv.fdev_growth);  // senescing too early
+		// Note: multiplied by fphen_activity as fdev_senesc transitions to senesc_fdorm during dormancy
 		indiv.fdev_senesc = pft.senesc_scal_repr * pow((1.0 - indiv.fdev_growth),
-													   pft.qdev_senesc);
+													   pft.qdev_senesc) * indiv.fphen_activity;
 	} else {
 		indiv.fdev_senesc = 0.0;
 	}
 
 	// Stress factors increase senescence
 	// Soil moisture
-	double senesc_fwater = pft.senesc_scal_water * (1.0 - pow(indiv.get_wscal(),
-															  pft.qwater_senesc));
+	double senesc_fwater = pft.senesc_scal_water * pow(1.0 - indiv.get_wscal(),pft.qwater_senesc);
 	
 	// Senescence due to freezing temperatures (could be extended to extreme hot temperatures)
 	double senesc_ftemp = 0.0;
@@ -5394,13 +5394,13 @@ void senescence_dave_grass(Individual &indiv) {
 	// Dormancy-induced
 	double senesc_fdorm = 0.0;
 	if (indiv.fphen_activity < 1.0 && indiv.dphen_activity < 0.0) {
-		senesc_fdorm = pft.senesc_scal_dorm * abs(indiv.dphen_activity / dphen_activity_max);
-        //senesc_fdorm = senesc_scal_dorm * (1.0 - ((indiv.fphen_activity - fphen_activity_min) / (1.0 - fphen_activity_min)));
+		// could include dphen_activity here (i.e. stronger senescence with more stress)
+        senesc_fdorm = pft.senesc_scal_dorm * (1.0 - ((indiv.fphen_activity - fphen_activity_min) / (1.0 - fphen_activity_min)));
 	}
 
 	// Total senescence rate
 	//senesc *= ((1.0 + max(indiv.fdev_senesc,senesc_fdorm)) * (1.0 + senesc_fwater) * (1.0 + senesc_ftemp));
-	senesc *= (1.0 + max(indiv.fdev_senesc,senesc_fdorm) + senesc_fwater) * (1.0 + senesc_ftemp);
+	senesc *= (1.0 + indiv.fdev_senesc + senesc_fdorm + senesc_fwater) * (1.0 + senesc_ftemp);
 	senesc = min(1.0, senesc);
 	indiv.senesc_root = pft.senesc_base;
 

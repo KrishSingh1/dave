@@ -890,6 +890,8 @@ void plib_declarations(int id,xtring setname) {
 			"Fraction of senesced carbon retranslocated back to storage.");
 		declareitem("senesc_base", &ppft->senesc_base, 0.0, 1e10, 1, CB_NONE,
 			"Baseline senescence rate for dave grasses (d-1).");
+		declareitem("senesc_scal_temp", &ppft->senesc_scal_temp, 0.0, 1e10, 1, CB_NONE,
+			"Senescence coefficient for freezing temperature stress in dave grasses.");
 		declareitem("senesc_scal_dorm", &ppft->senesc_scal_dorm, 0.0, 1e10, 1, CB_NONE,
 			"Senescence coefficient for dormancy in dave grasses. Senescence rate is increased by this factor when phenology is changing at the maximum rate.");
 		declareitem("senesc_scal_water", &ppft->senesc_scal_water, 0.0, 1e10, 1, CB_NONE,
@@ -900,10 +902,6 @@ void plib_declarations(int id,xtring setname) {
 			"Exponent shaping development-driven senescence for dave grasses. Higher values delay senescence (less early, more late in the reproductive phase). Unitless.");
 		declareitem("qwater_senesc", &ppft->qwater_senesc, 0.0, 1e10, 1, CB_NONE,
 			"Exponent shaping water stress-driven senescence for dave grasses. q = 1 gives a linear response. q > 1 increases senescence at moderate stress; 0 < q < 1 reduces it. No effect at the extremes (wscal = 0 or 1). Unitless.");
-		declareitem("temp_senesc1", &ppft->temp_senesc1, 0.0, 1e10, 1, CB_NONE,
-			"Increase in senescence rate per 1℃, for temperatures below 0 ℃ (Johnson & Thornley 1983).");
-		declareitem("temp_senesc2", &ppft->temp_senesc2, 0.0, 1e10, 1, CB_NONE,
-			"Increase in senescence rate per 1℃, for temperatures above 0 ℃ (Johnson & Thornley 1983).");
 		declareitem("turnover_leaf",&ppft->turnover_leaf,0.0,1.0,1,CB_NONE,
 			"Leaf turnover (fraction/year)");
 		declareitem("turnover_root",&ppft->turnover_root,0.0,1.0,1,CB_NONE,
@@ -2274,13 +2272,12 @@ void plib_callback(int callback) {
 					if (!itemparsed("culmfrac")) badins("culmfrac");
 					if (!itemparsed("crelocfrac")) badins("crelocfrac");
 					if (!itemparsed("senesc_base")) badins("senesc_base");
+					if (!itemparsed("senesc_scal_temp")) badins("senesc_scal_temp");
 					if (!itemparsed("senesc_scal_dorm")) badins("senesc_scal_dorm");
 					if (!itemparsed("senesc_scal_water")) badins("senesc_scal_water");
 					if (!itemparsed("senesc_scal_repr")) badins("senesc_scal_repr");
 					if (!itemparsed("qdev_senesc")) badins("qdev_senesc");
 					if (!itemparsed("qwater_senesc")) badins("qwater_senesc");
-					if (!itemparsed("temp_senesc1")) badins("temp_senesc1");
-					if (!itemparsed("temp_senesc2")) badins("temp_senesc2");
 				}
 				if (ppft->lifeform == TREE) {
 					if (!itemparsed("boleht_frac")) badins("boleht_frac");

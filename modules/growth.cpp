@@ -362,15 +362,15 @@ double dphen_activity(Individual &indiv, Climate& climate) {
 	// TODO: interactions with tscal and pscal?
 	double pscal = 1.0;
 
-	if (climate.mtemp_min20 < (indiv.pft.temp_dormancy - 5.0) &&
-	    ppft.daylength_10.periodictrend(1) < 0.0 && indiv.growth_stage != dormant) {
+	// (climate.mtemp_min20 < (indiv.pft.temp_dormancy - 5.0) &&
+	//  ppft.daylength_10.periodictrend(1) < 0.0 && indiv.growth_stage != dormant) {
 			
-			double daylength_crit = 0.9;
-			double daylength_min  = 0.6;
+	//double daylength_crit = 0.9;
+	//double daylength_min  = 0.6;
 
-			pscal = 2.0 * min(1.0,max(0.0,(ppft.reldaylength - daylength_min) / 
-				    				      (daylength_crit - daylength_min))) - 1.0;
-	}
+	//pscal = 2.0 * min(1.0,max(0.0,(ppft.reldaylength - daylength_min) / 
+	//	    				      (daylength_crit - daylength_min))) - 1.0;
+	//
 
 	return min(min(tscal,pscal),wscal) * dphen_activity_max;
 }
@@ -5384,14 +5384,12 @@ void senescence_dave_grass(Individual &indiv) {
 	double senesc_fwater = pft.senesc_scal_water * (1.0 - pow(indiv.get_wscal(),
 															  pft.qwater_senesc));
 	
-	// High and low temperatures
-	// linear increase as in Johnson & Thornley 1983.
+	// Senescence due to freezing temperatures (could be extended to extreme hot temperatures)
 	double senesc_ftemp = 0.0;
-	if (grass_temp < 0.0){
-		senesc_ftemp = -pft.temp_senesc1 * grass_temp;
-	} else if (grass_temp >= indiv.pft.temp_dormancy) {		
-		senesc_ftemp = pft.temp_senesc2 * (grass_temp - indiv.pft.temp_dormancy);
-	} 
+    if (grass_temp < 0.0){
+      double Tc = -grass_temp;
+      senesc_ftemp = pft.senesc_scal_temp * (1.0 - exp(-Tc / 2.0));
+	}
 
 	// Dormancy-induced
 	double senesc_fdorm = 0.0;

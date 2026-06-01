@@ -2544,6 +2544,8 @@ public:
 	double crelocfrac;
 	/// Baseline senescence rate for dave grasses (d-1).
 	double senesc_base;
+	/// Senescence coefficient for freezing temperatures in dave greasses
+	double senesc_scal_temp;
 	/// Senescence coefficient for dormancy in dave grasses. Senescence rate is
 	/// increased by this factor when phenology is changing at the maximum rate.
 	double senesc_scal_dorm;
@@ -2562,12 +2564,6 @@ public:
 	/// 0 < q < 1 reduces it. No effect at the extremes (wscal = 0 or 1).
 	/// Unitless.
 	double qwater_senesc;
-	/// Increase in senescence rate per 1℃, for temperatures below 0 ℃
-	/// (Johnson & Thornley 1983).
-	double temp_senesc1;
-	/// Increase in senescence rate per 1℃, for temperatures above 0 ℃
-	/// (Johnson & Thornley 1983).
-	double temp_senesc2;
 
 	// Maximum NSC concentration in leaves.
 	double max_leaf_nsc_conc;
@@ -3045,13 +3041,12 @@ public:
 		turnover_repr = 0.0;
 		crelocfrac = 0.0;
 		senesc_base = 0;
+		senesc_scal_temp = 0;
 		senesc_scal_dorm = 0;
 		senesc_scal_water = 0;
 		senesc_scal_repr = 0;
 		qdev_senesc = 0;
 		qwater_senesc = 0;
-		temp_senesc1 = 0;
-		temp_senesc2 = 0;
 
 		extkn = 0;
 		racclim = 0;

@@ -171,7 +171,7 @@ group "tree" (
 	! Biochemical pathway for photosynthesis (C3 or C4).
 	pathway "c3"
 
-	! Maintenance respiration coefficient (0-1).
+	! Maintenance respiration coefficient.
 	respcoeff 1.0
 
 	! Constant used in calculation of sapling establishment rate when spatial
@@ -361,7 +361,8 @@ group "grass" (
 	! <0.6 (the base threshold). Units are wscal (0-1).
 	wscal_min 0.4
 
-	! Juergen's grass parameters
+	! Maintenance respiration coefficient.
+	respcoeff 1.4
 
 	! Turgor loss point (MPa). Only used with davehydraulics.
 	tlp -1.0
@@ -370,7 +371,7 @@ group "grass" (
 	crelocfrac 0
 
 	! Baseline senescence rate for dave grasses (d-1).
-	senesc_base 0.00035
+	senesc_base 0.0003
 
 	! Senescence coefficient for dormancy in dave grasses. Senescence rate is
 	! increased by this factor when phenology is changing at the maximum rate.
@@ -380,13 +381,8 @@ group "grass" (
 	! is increased by this factor under max water stress.
 	senesc_scal_water 50
 
-	! Increase in senescence rate per 1℃, for temperatures below 0 ℃
-	! (Johnson & Thornley 1983).
-	temp_senesc1 1.0
-
-	! Increase in senescence rate per 1℃, for temperatures above 0 ℃
-	! (Johnson & Thornley 1983).
-	temp_senesc2 0.05
+	! senescence coefficient for freezing temperatures.
+	senesc_scal_temp 2
 )
 
 group "no_bioclimatic_limits" (
@@ -439,9 +435,6 @@ group "C3G" (
 	! Cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma
 	! et al. (2019)) (mol m-2 s-1).
 	gcutic 0.0012
-
-	! Maintenance respiration coefficient (0-1).
-	respcoeff 1.0
 
 	! Activation energy for growth temperature relationship (kJ mol-1)
 	! (Parent & Tardieu 2012).
@@ -580,9 +573,6 @@ group "C4G" (
 	! Cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma
 	! et al. (2019)) (mol m-2 s-1).
 	gcutic 0.0012
-
-	! Maintenance respiration coefficient (0-1).
-	respcoeff 1.0
 
 	! Activation energy for growth temperature relationship (kJ mol-1)
 	! (Parent & Tardieu 2012).

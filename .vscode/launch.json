@@ -1541,17 +1541,17 @@
             "preLaunchTask": "build"
         },
         {
-            "name": "YarCon",
+            "name": "YarramundiControl",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/guess",
             "args": [
                 "-input",
                 "nc",
-                "YarCon.ins"
+                "YarramundiControl.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/fluxnet/YarCon",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/YarramundiControl",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1579,17 +1579,17 @@
             "preLaunchTask": "build"
         },
         {
-            "name": "YarIrr",
+            "name": "YarramundiIrrigated",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/guess",
             "args": [
                 "-input",
                 "nc",
-                "YarIrr.ins"
+                "YarramundiIrrigated.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/fluxnet/YarIrr",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/YarramundiIrrigated",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -4215,8 +4215,8 @@
                     "Whroo",
                     "WombatStateForest",
                     "Yanco",
-                    "YarCon",
-                    "YarIrr",
+                    "YarramundiControl",
+                    "YarramundiIrrigated",
                     "CG-Tch",
                     "PA-SPs",
                     "RU-Ha1",

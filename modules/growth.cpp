@@ -72,9 +72,10 @@ const double frac_cstorage_res = 0.15;
 
 // Minimum physiological activity during dormancy (fraction)
 const double fphen_activity_min = 0.1;
+const double fphys_activity_min = 0.3;
 
 // Maximum physiological up/down-regulation in and out of dormancy (fraction d-1)
-const double dphen_activity_max = 0.4;
+const double dphen_activity_max = 0.2;
 
 // SLA of culms relative to leaves in grasses
 const double frac_sla_culm = 0.2;
@@ -372,7 +373,20 @@ double dphen_activity(Individual &indiv, Climate& climate) {
 	//	    				      (daylength_crit - daylength_min))) - 1.0;
 	//
 
-	return min(min(tscal,pscal),wscal) * dphen_activity_max;
+	
+	//return min(min(tscal,pscal),wscal) * dphen_activity_max;
+	double dphen_wscal = wscal * dphen_activity_max;
+	double dphen_tscal = tscal * dphen_activity_max;
+
+    if (indiv.fphen_activity <= fphys_activity_min){
+      if (dphen_wscal > 0.0){
+        dphen_tscal = max(dphen_tscal,0.5 * (fphys_activity_min - indiv.fphen_activity));
+      } else {
+		dphen_tscal = 0.0;
+	  }
+	}
+
+	return min(dphen_wscal,dphen_tscal);
 }
 
 
@@ -5395,7 +5409,8 @@ void senescence_dave_grass(Individual &indiv) {
 	double senesc_fdorm = 0.0;
 	if (indiv.fphen_activity < 1.0 && indiv.dphen_activity < 0.0) {
 		// could include dphen_activity here (i.e. stronger senescence with more stress)
-        senesc_fdorm = pft.senesc_scal_dorm * (1.0 - ((indiv.fphen_activity - fphen_activity_min) / (1.0 - fphen_activity_min)));
+        // senesc_fdorm = pft.senesc_scal_dorm * (1.0 - ((indiv.fphen_activity - fphen_activity_min) / (1.0 - fphen_activity_min)));
+		senesc_fdorm = pft.senesc_scal_dorm * (1.0 - indiv.fphen_activity);
 	}
 
 	// Total senescence rate

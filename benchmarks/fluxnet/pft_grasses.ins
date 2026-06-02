@@ -371,7 +371,7 @@ group "grass" (
 	crelocfrac 0
 
 	! Baseline senescence rate for dave grasses (d-1).
-	senesc_base 0.00028
+	senesc_base 0.00026
 
 	! Senescence coefficient for dormancy in dave grasses. Senescence rate is
 	! increased by this factor when phenology is changing at the maximum rate.
@@ -382,7 +382,7 @@ group "grass" (
 	senesc_scal_water 50
 
 	! senescence coefficient for freezing temperatures.
-	senesc_scal_temp 2
+	senesc_scal_temp 5
 )
 
 group "no_bioclimatic_limits" (
@@ -466,7 +466,7 @@ group "perennial" (
 
 	! Senescence coefficient for reproductive phase in dave grasses.
 	! Senescence rate is increased by this factor during reproductive phase.
-	senesc_scal_repr 30
+	senesc_scal_repr 40
 
 	! Exponent shaping development-driven senescence for dave grasses. Higher
 	! values delay senescence (less early, more late in the reproductive

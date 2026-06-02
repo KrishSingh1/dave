@@ -549,7 +549,7 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	double jmax25_mol  = inputs.jmax25  / UMOL_PER_MOL;
 	double resp_scalar = resp_temp_acclimation_scalar(inputs.tgrowth, inputs.racclim);
 
-	double rd = inputs.fphen_activity * pow(inputs.wscal, qb) * BC3 * vcmax25_mol * inputs.nscal *
+	double rd = pow(inputs.wscal, qb) * BC3 * vcmax25_mol * inputs.nscal *
 			respiration_temp_response(inputs.tleaf) * light_inhibition(inputs.ipar()) * resp_scalar;
 
 	if (is_zero(inputs.ipar())) {
@@ -563,7 +563,7 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	double gamstar = Arrhenius_temp_response(GAMSTAR25, inputs.tleaf, HA_GS, 0.0, 0.0);
 
 	// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax.
-	double pslim = inputs.fphen_activity * inputs.ps_sink_lim * inputs.nscal;
+	double pslim = inputs.ps_sink_lim * inputs.nscal;
 
 	// apply water stress scaling to vcmax / jmax
 	if (ifzhou) {
@@ -876,7 +876,7 @@ C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
 	double resp_scalar = resp_temp_acclimation_scalar(inputs.tgrowth, inputs.racclim);
 
 	// Daytime (mitochondrial) leaf respiration (mol m-2 s-1).
-	result.rd = inputs.fphen_activity * pow(inputs.wscal, qb) * BC4 * vcmax25_c4 * inputs.nscal *
+	result.rd = pow(inputs.wscal, qb) * BC4 * vcmax25_c4 * inputs.nscal *
 			respiration_temp_response(inputs.tleaf) * light_inhibition(inputs.ipar()) * resp_scalar;
 
 	// Rd in the mesophyll cells.
@@ -886,7 +886,7 @@ C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
 	result.rs = result.rd - result.rm;
 
 	// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
-	double pslim = inputs.fphen_activity * inputs.ps_sink_lim * inputs.nscal;
+	double pslim = inputs.ps_sink_lim * inputs.nscal;
 
 	// apply water stress scaling to vcmax / jmax
 	if (ifzhou) {

@@ -1923,7 +1923,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 			for (int lyr = soil.nsoillayers; lyr < NSOILLAYERS_MAX; lyr++) {
 				// Soil layer depths
-				soildepth[lyr] += soil.soillayers[lyr].depth_bot * to_gridcell_average;
+				soildepth[lyr] += soil.soillayers[soil.nsoillayers - 1].depth_bot * to_gridcell_average;
 			}
 
 			// Soil depths total C mass excluding surface litter C mass and heteorotrophic respiration down to depth

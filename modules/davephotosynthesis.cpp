@@ -1603,6 +1603,7 @@ void water_uptake_dave(Patch &patch) {
 
 struct CtonRatios {
 	double sap;
+	double leaf;
 	double root;
 	double crown;
 };
@@ -1622,11 +1623,13 @@ CtonRatios cton_effective(const Individual &indiv) {
 
 	if (ifnlim) {
 		cton.sap   = indiv.cton_sap();
+		cton.leaf  = indiv.cton_leaf();
 		cton.root  = indiv.cton_root();
 		cton.crown = indiv.cton_crown();
 	} else {
 		cton.sap   = indiv.pft.cton_sap_avr;
 		cton.root  = indiv.pft.cton_root_avr;
+		cton.leaf  = indiv.pft.cton_leaf_avr;
 		// Crowns use root stoichiometric limits.
 		cton.crown = indiv.pft.cton_root_avr;
 	}
@@ -1634,6 +1637,7 @@ CtonRatios cton_effective(const Individual &indiv) {
 	if (!indiv.pft.dave_allocation()) {
 		// Set C:N ratios if not using DAVE allocation (since trunk
 		// allocation + DAVE photosynthesis can give unrealistic values).
+		cton.leaf  = min(cton.leaf, indiv.pft.cton_leaf_max);
 		cton.sap   = min(cton.sap, indiv.pft.cton_sap_max);
 		cton.root  = min(cton.root, indiv.pft.cton_root_max);
 		// Non-DAVE allocated PFTs don't have crowns.
@@ -1676,6 +1680,9 @@ void npp_dave(Patch& patch) {
 		double cmass_root = indiv.cmass_root_today();
 
 		// 0 for trees
+		double cmass_culm = indiv.get_cmass_leaf() * pft.culmfrac;
+
+		// 0 for trees
 		double cmass_crown = indiv.get_cmass_crown();
 
 		// 0 for PFTs using annual (trunk) allocation
@@ -1699,10 +1706,10 @@ void npp_dave(Patch& patch) {
 
 		double resp = 0;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-			respcoeff, cton.sap, cton.root, cton.crown, indiv.cmass_sap,
-			cmass_root, cmass_crown, cmass_repr, indiv.cgrow, indiv.fphen_activity,
+			respcoeff, cton.sap, cton.leaf, cton.root, cton.crown, indiv.cmass_sap,
+			cmass_culm, cmass_root, cmass_crown, cmass_repr, indiv.cgrow, indiv.fphen_activity,
 			assim, indiv.resp_leaf, resp, indiv.resp_maintenance,
-			indiv.resp_growth, indiv.resp_repr, indiv.resp_crown,
+			indiv.resp_growth, indiv.resp_repr, indiv.resp_culm, indiv.resp_crown,
 			indiv.resp_root, indiv.resp_sap);
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux

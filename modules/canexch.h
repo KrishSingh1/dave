@@ -48,11 +48,11 @@ void nstore_usage(Vegetation& vegetation);
 double get_co2(const Patch& p, const Climate& climate, const Pft& pft);
 
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
-	double respcoeff, double cton_sap, double cton_root, double cton_crown,
-	double cmass_sap, double cmass_root_today, double cmass_crown, double cmass_repr, 
+	double respcoeff, double cton_sap, double cton_shoot, double cton_root, double cton_crown,
+	double cmass_sap, double cmass_culm, double cmass_root_today, double cmass_crown, double cmass_repr, 
 	double growth, double fphen_activity, double assim, double resp_leaf,
 	double& resp, double &resp_maintenance, double &resp_growth,
-	double &resp_repr, double &resp_crown, double &resp_root, double &resp_sap);
+	double &resp_repr, double &resp_culm, double &resp_crown, double &resp_root, double &resp_sap);
 
 /// Leaf senescence for crops Eqs. 8,9,13 and 14 in Olin 2015
 void leaf_senescence(Vegetation& vegetation);
@@ -103,7 +103,7 @@ const double LAMBDA_SC4 = 0.4;
 const double BC3 = 0.015;
 
 /// leaf respiration as fraction of maximum carboxylation rate, C4 plants
-const double BC4 = 0.025;
+const double BC4 = 0.035;
 
 // Maximum number of iterations that the C4 photosynthesis solver can use to
 // find An, gs, and ci.

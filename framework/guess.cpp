@@ -2136,6 +2136,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	resp_maintenance  = 0.0;
 	resp_growth       = 0.0;
 	resp_leaf         = 0.0;
+	resp_culm         = 0.0;
 	resp_sap          = 0.0;
 	resp_root         = 0.0;
 	resp_repr         = 0.0;
@@ -2311,6 +2312,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& andemand_sap
 		& andemand
 		& resp_leaf
+		& resp_culm
 		& resp_sap
 		& resp_root
 		& resp_repr

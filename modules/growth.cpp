@@ -398,7 +398,7 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstorage) {
 
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
-		double k_repr = 2;
+		double k_repr = 3;
 		double seed_target = k_repr * indiv.pft.reprfrac * indiv.cmass_crown_flowering;
 
 		indiv.fdev_growth = max(0.0, min(1.0, (1.0 - indiv.cmass_repr/seed_target)));
@@ -4164,12 +4164,12 @@ void carbon_allocation_grass(Individual &indiv) {
 	if (!negligible(indiv.cgrow)) {
 		
 		// 1) Crowns
-		if (indiv.age < 1.0 && indiv.pft.lifeform != GRASS_ANNUAL) {
-			calloc_crown = 2.0 * indiv.pft.crownfrac;
-		} else if (indiv.pft.lifeform == GRASS_ANNUAL && indiv.growth_stage == reproductive) {
+		//if (indiv.age < 1.0 && indiv.pft.lifeform != GRASS_ANNUAL) {
+		//	calloc_crown = 2.0 * indiv.pft.crownfrac;
+		if (indiv.pft.lifeform == GRASS_ANNUAL && indiv.growth_stage == reproductive) {
 			calloc_crown = 0.0;
 		} else {
-			calloc_crown = indiv.pft.crownfrac;
+			calloc_crown = 1.25 / (1.0 + indiv.cmass_crown/max(indiv.cmass_leafs[green],1.0e-9)) * indiv.pft.crownfrac;
 		}
 		
 		// 2) Reproduction
@@ -5739,7 +5739,7 @@ void turnover_dave_grass(Individual &indiv) {
 
 	// Turnover of living tissues (root and crown)
 	// senesc_root equals the baseline senescence rate of leaves.
-	double frac_turnover_root = 40.0 * indiv.senesc_root * indiv.fphen_activity;	
+	double frac_turnover_root = 30.0 * indiv.senesc_root * indiv.fphen_activity;	
 	double frac_turnover_crown = scal_crown_turnover * frac_turnover_root;
 
 	// Turnover of brown shoots (same temperature and moisture responses as for seeds)

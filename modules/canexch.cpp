@@ -2364,11 +2364,11 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 // Internal function (do not call directly from framework)
 
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
-	double respcoeff, double cton_sap, double cton_root, double cton_crown,
-	double cmass_sap, double cmass_root_today, double cmass_crown, double cmass_repr, 
-	double growth, double fphen_activity, double assim, double resp_leaf,
-	double& resp, double &resp_maintenance, double &resp_growth,
-	double &resp_repr, double &resp_crown, double &resp_root, double &resp_sap) {
+	double respcoeff, double cton_sap, double cton_shoot, double cton_root, double cton_crown,
+	double cmass_sap, double cmass_culm, double cmass_root_today,
+	double cmass_crown, double cmass_repr, double growth, double fphen_activity, 
+	double assim, double resp_leaf, double& resp, double &resp_maintenance, double &resp_growth, 
+	double &resp_repr, double &resp_culm, double &resp_crown, double &resp_root, double &resp_sap) {
 
 	// DESCRIPTION
 	// Calculation of daily maintenance and growth respiration for individual with
@@ -2412,6 +2412,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	const double base_resp = 0.000001;
 	// const double base_resp = 0.0;
 	resp_sap = 0;    // sapwood respiration (kg/m2/day)
+	resp_culm = 0;   // culm respiration (kg/m2/day)
 	resp_root = 0;   // root respiration (kg/m2/day)
 	resp_crown = 0;  // crown respiration (kg/m2/day)
 	resp_repr = 0;   // reproductive respiration (kg/m2/day)
@@ -2503,7 +2504,11 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 		if (ifdavegrowth) {
 
 			// Handle respiration differently in DAVE: 
-			// -> scale down resp_root during dormancy (fphen_activitiy)
+			// -> scale down maintenance respiration during dormancy using fphen_activitiy
+
+			// Culm respiration
+			// TODO: might overestimate this one because we partly account for it through leaf Rd 
+			resp_culm = (respcoeff * K * cmass_culm / cton_shoot * gtemp_air) * fphen_activity;
 
 			// Root respiration
 			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_activity;
@@ -2511,7 +2516,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			// Crown respiration
 			// TODO: could replace gtemp_soil (at 25cm) with gtemp at surface (as done for turnover of brown shoots).
 			// Alternatively we might want to take gtemp_air here.
-			resp_crown = (0.75 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
+			resp_crown = (0.85 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
 
 			// Reproductive respiration
 			// TODO: reduce resp_repr with senescence.
@@ -2523,7 +2528,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 				// In the DAVE version, growth respiration depends on growth.
 				resp_growth = 0;
 			} else {
-				resp_growth = (assim - resp_leaf - resp_root - resp_crown - resp_repr) * 0.25;
+				resp_growth = (assim - resp_leaf - resp_culm - resp_root - resp_crown - resp_repr) * 0.25;
 			}
 		} else {
 			
@@ -2547,9 +2552,9 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 	// Maintenance respiration the same for all pfts.
 	// resp_sap will be 0 for grasses.
-	// resp_crown will be 0 for trees.
+	// resp_crown and resp_culm will be 0 for trees.
 	// resp_leaf is an input (calculated in photosynthesis routine)
-	resp_maintenance = resp_leaf + resp_root + resp_repr + resp_crown + resp_sap;
+	resp_maintenance = resp_leaf + resp_culm + resp_root + resp_repr + resp_crown + resp_sap;
 	
 	if (lifeform == TREE) {
 		// always have a minimum respiration rate. Reason: so small cohorts (with 
@@ -2669,10 +2674,10 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		// only treated differently in dave photosynthesis.
 		indiv.resp_leaf = phot.rd_g * KG_PER_G;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-			indiv.pft.respcoeff, cton_sap, cton_root, 0.0,
-			indiv.cmass_sap, cmass_root, 0.0, 0.0, 0.0, 0.0,
+			indiv.pft.respcoeff, cton_sap, 0.0, cton_root, 0.0,
+			indiv.cmass_sap, 0.0, cmass_root, 0.0, 0.0, 0.0, 0.0,
 			assim, 0.0, resp, indiv.resp_maintenance,
-			indiv.resp_growth, indiv.resp_repr, indiv.resp_crown,
+			indiv.resp_growth, indiv.resp_repr, indiv.resp_culm, indiv.resp_crown,
 			indiv.resp_root, indiv.resp_sap);
 
 		// Convert to averages for this period for accounting purposes

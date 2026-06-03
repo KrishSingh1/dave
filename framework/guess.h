@@ -4197,6 +4197,9 @@ public:
 	// Leaf respiration today (kgC/m2)
 	double resp_leaf;
 
+	// Culm respiration today (kgC/m2)
+	double resp_culm;
+
 	// Sapwood respiration today (kgC/m2)
 	double resp_sap;
 

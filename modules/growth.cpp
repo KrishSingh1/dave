@@ -2574,6 +2574,7 @@ void growth(Stand& stand, Patch& patch) {
 		Patchpft& ppft = patch.pft[indiv.pft.id];
 
 		if (indiv.pft.dave_allocation()) {
+			vegetation.nextobj();
 			continue;
 		}
 

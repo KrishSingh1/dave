@@ -912,15 +912,16 @@ public:
 class EnergyBalance {
 public:
 	EnergyBalance(double tleaf, size_t niter, double delta_tleaf,
-						bool converged, double transp) :
+						bool converged, double transp, double rnet) :
 		tleaf(tleaf), niter(niter), delta_tleaf(delta_tleaf),
-		converged(converged), transp(transp) {
+		converged(converged), transp(transp), rnet(rnet) {
 	}
 	double get_tleaf() const { return tleaf; }
 	size_t get_niter() const { return niter; }
 	double get_delta_tleaf() const { return delta_tleaf; }
 	bool get_converged() const { return converged; }
 	double get_transp() const { return transp; }
+	double get_rnet() const { return rnet; }
 private:
 	// Leaf temperature (degC).
 	double tleaf;
@@ -932,6 +933,8 @@ private:
 	bool converged;
 	// Transpiration rate (mol H2O m-2 s-1).
 	double transp;
+	// Net radiation (W m-2).
+	double rnet;
 };
 
 /*

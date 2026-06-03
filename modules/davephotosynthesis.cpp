@@ -11,8 +11,8 @@
 // Average leaf N:P ratio for C3 grasses from Thum et al. 2019 (SI Table 8).
 const double C3_LEAF_NTOP = 10.7;
 
-// Number of soil layers to use for calculating PFT-level water stress scalar.
-const int NLAYER_FOREST_FLOOR = 5;
+// Depth (m) to which forest-floor photosynthesis has access to water.
+const double FOREST_FLOOR_WSCAL_DEPTH = 0.5;
 
 // Scaling parameter for gcutic (Cochard 2021 Eq 13 & 14).
 const double Q10A = 1.2;
@@ -251,15 +251,20 @@ void store_vcmax_values(Vegetation &vegetation) {
 Calculate water stress factor [0-1] in the root zone. This is calculated as a
 weighted mean of wcont / wcont_crit (clamped to [0, 1]) across soil layers.
 */
-double calc_water_stress_dave(const Soil &soil, const double weight[NSOILLAYERS_MAX], size_t max_layers = 0) {
-	if (max_layers > soil.nsoillayers) {
-		fail("calc_water_stress_dave(): max_layers (%d) cannot be greater than nsoillayers (%d)",
-			 max_layers, soil.nsoillayers);
+double calc_water_stress_dave(const Soil &soil, const double weight[NSOILLAYERS_MAX], double max_depth = -1) {
+	if (max_depth < 0) {
+		max_depth = soil.depth;
+	}
+
+	if (max_depth > soil.depth) {
+		fail("calc_water_stress_dave(): max_depth (%d) cannot be greater than soil depth (%d)",
+			 max_depth, soil.depth);
 	}
 
 	double wstress = 0;
 	double total_weight = 0;
-	for (size_t i = 0; i < max_layers; i++) {
+	double depth_cum = 0;
+	for (size_t i = 0; i < soil.nsoillayers && depth_cum < max_depth; i++) {
 		double stress_base = soil.soillayers[i].wcont() / wcont_crit;
 
 		// Clamp to [0, 1].
@@ -269,6 +274,8 @@ double calc_water_stress_dave(const Soil &soil, const double weight[NSOILLAYERS_
 
 		// Root distribution should add up to 1 but summed here just in case.
 		total_weight += weight[i];
+
+		depth_cum += soil.soillayers[i].thickness;
 	}
 
 	// Normalise by sum of weights.
@@ -310,7 +317,7 @@ void water_stress_dave(Patch &patch) {
 	for (int i = 0; i < pftlist.nobj; i++) {
 		Patchpft &ppft = patch.pft[i];
 		double wstress = calc_water_stress_dave(soil, ppft.pft.input_rootdist,
-												NLAYER_FOREST_FLOOR);
+												FOREST_FLOOR_WSCAL_DEPTH);
 		ppft.set_wscal(wstress);
 	}
 }
@@ -1748,11 +1755,7 @@ void forest_floor_dave(Patch &patch) {
 
 			// Since the seedlings don't have access to deep layers, only look
 			// at the top few layers' SWP.
-			double lwp = 0;
-			for (size_t i = 0; i < NLAYER_FOREST_FLOOR; i++) {
-				lwp += patch.soil.soillayers[i].psi;
-			}
-			lwp /= NLAYER_FOREST_FLOOR;
+			double lwp = patch.soil.var_depth(0, FOREST_FLOOR_WSCAL_DEPTH, &Soillayer::psi);
 
 			// No soil water on first day of simulation - this results in wscal
 			// of 0, which results in a division by zero. We can just skip this

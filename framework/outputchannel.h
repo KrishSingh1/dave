@@ -325,6 +325,7 @@ inline double limited_cton(double cmass, double nmass, double cton_max = 999.999
 	if (nmass > 0.0) {
 		return std::min(cton_max, cmass / nmass);
 	}
+	return cton_max;
 }
 
 } // namespace GuessOutput

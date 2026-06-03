@@ -1222,7 +1222,7 @@ void leaf_to_litter(Soil &soil,
 	// Calculate inputs to surface structural and metabolic litter
 
 	// Leaf litter lignin:N ratio
-	double leaf_lton = lignin_to_n_ratio(cmass_litter_leaf, nmass_litter_leaf, LIGCFRAC_LEAF, pft.cton_leaf_avr);
+	double leaf_lton = lignin_to_n_ratio(cmass_litter_leaf, nmass_litter_leaf, pft.ligcfrac_leaf, pft.cton_leaf_avr);
 
 	// Metabolic litter fraction for leaf litter
 	double fm = metabolic_litter_fraction(leaf_lton);
@@ -1253,7 +1253,7 @@ void leaf_to_litter(Soil &soil,
 
 	// NB: reproduction litter cannot contain nitrogen!!
 
-	double ligcmass_new = c2litter_struct * LIGCFRAC_LEAF;
+	double ligcmass_new = c2litter_struct * pft.ligcfrac_leaf;
 
 	if (negligible(soillayer.sompool[SURFSTRUCT].cmass)) {
 		soillayer.sompool[SURFSTRUCT].ligcfrac = 0.0;
@@ -1276,7 +1276,7 @@ void root_to_litter(Soil &soil,
 	// Calculate inputs to soil structural and metabolic litter
 
 	// Root litter lignin:N ratio
-	double root_lton = lignin_to_n_ratio(cmass_litter_root, nmass_litter_root, LIGCFRAC_ROOT, pft.cton_root_avr);
+	double root_lton = lignin_to_n_ratio(cmass_litter_root, nmass_litter_root, pft.ligcfrac_root, pft.cton_root_avr);
 
 	// Metabolic litter fraction for root litter
 	double fm = metabolic_litter_fraction(root_lton);
@@ -1288,7 +1288,7 @@ void root_to_litter(Soil &soil,
 		double cmass_layer = cmass_litter_root * root_frac;
 		double nmass_layer = nmass_litter_root * root_frac;
 
-		double ligcmass_new = cmass_layer * (1.0 - fm) * LIGCFRAC_ROOT;
+		double ligcmass_new = cmass_layer * (1.0 - fm) * pft.ligcfrac_root;
 		double ligcmass_old = layer.sompool[SOILSTRUCT].cmass * layer.sompool[SOILSTRUCT].ligcfrac;
 
 		// Add to pools and update lignin fraction in structural pool
@@ -1332,7 +1332,7 @@ void sap_to_litter(Soil &soil,
 		double cmass_layer = cmass_litter_sap * layer_frac;
 		double nmass_layer = nmass_litter_sap * layer_frac;
 
-		double ligcmass_new = cmass_layer * LIGCFRAC_WOOD;
+		double ligcmass_new = cmass_layer * pft.ligcfrac_wood;
 		double ligcmass_old = layer.sompool[SURFFWD].cmass * layer.sompool[SURFFWD].ligcfrac;
 
 		// Add to fine woody pool and update lignin fraction in pool
@@ -1378,7 +1378,7 @@ void heart_to_litter(Soil &soil,
 
 		// Coarse woody debris
 
-		double ligcmass_new = cmass_layer * LIGCFRAC_WOOD;
+		double ligcmass_new = cmass_layer * pft.ligcfrac_wood;
 		double ligcmass_old = layer.sompool[SURFCWD].cmass * layer.sompool[SURFCWD].ligcfrac;
 
 		// Add to coarse woody pool and update lignin fraction in pool

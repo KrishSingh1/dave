@@ -1509,6 +1509,33 @@ double calc_water_uptake_dave(Individual &indiv) {
                 pft.lifeform == TREE, pft.drought_tolerance, indiv.Rs_r);
 }
 
+double calc_transp_old(const Individual &indiv) {
+	const Climate &climate = indiv.vegetation.patch.get_climate();
+	double transp = 0;
+
+	// Loop over time steps per day
+	for (Day day; day.period != date.subdaily; day.next()) {	
+
+		// T = Gc / (pressure/VPD)
+		// Gc in mol m-2 s-1
+		// VPD and pressure in Pa
+		double patmos = climate.pressure[day.period];
+		double vpd = climate.vpds[day.period];
+		double gsw = indiv.ps_subdaily.gsw[day.period];
+		if (vpd > 0 && patmos > 0) {
+			transp += gsw / (patmos / (vpd * 1000.0));
+		}
+
+	} // end sub-daily loop
+	
+	// daily transpiration rate in mol m-2 s-1
+	transp /= date.subdaily;
+
+	// daily transpiration rate in mm d-1
+	// Limiting transpiration to the actual supply is handled later.
+	return transp * MOL2G_H2O * KG_PER_G * SECS_PER_DAY;
+}
+
 /*
 Aggregate transpiration across canopy layers and timesteps to get a total daily
 transpiration in mm day-1 for this cohort.
@@ -1551,6 +1578,7 @@ void water_uptake_dave(Patch &patch) {
 		Individual &indiv = vegetation[i];
 
 		indiv.aet = transpiration_dave(indiv);
+		// indiv.aet = calc_transp_old(indiv);
 
 		// Note: aet may be further limited by the water supply (see below).
 		// This also means that we can't update aaet here (also see below).

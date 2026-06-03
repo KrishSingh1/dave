@@ -1788,12 +1788,6 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
-	case CB_ROOTFRAC:
-		sendmessage("FIXME", "Verify that this is not needed");
-		plibabort();
-		// numval = 0.0;
-		// if (rootdistribution == ROOTDIST_JACKSON) ppft->init_rootdist();
-		break;
 	case CB_MTCOMPOUND:
 		  // bvoc. Can include some checks for the monoterpene parameters given per compound
 	break;
@@ -2411,9 +2405,7 @@ void plib_callback(int callback) {
 				if (!itemparsed("pstemp_max")) badins("pstemp_max");
 			}
 			if (!itemparsed("lambda_max") && !ifdavephotosyn) badins("lambda_max");
-			if (!itemparsed("rootdist") && !itemparsed("root_beta")) badins("rootdist or root_beta");
-			sendmessage("FIXME", "Figure out which one of these parameters is needed and verify that one specifically");
-			plibabort();
+			if (!itemparsed("root_dist") && !itemparsed("root_beta")) badins("rootdist or root_beta");
 			if (!ifdavephotosyn && !itemparsed("gmin")) badins("gmin");
 			if (!itemparsed("emax")) badins("emax");
 			if (!itemparsed("respcoeff")) badins("respcoeff");

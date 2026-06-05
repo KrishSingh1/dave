@@ -5413,9 +5413,16 @@ void senescence_dave_grass(Individual &indiv) {
 		senesc_fdorm = pft.senesc_scal_dorm * (1.0 - indiv.fphen_activity);
 	}
 
+	// Self-shading
+	double kshade = 6.5;
+	double senesc_fshade = kshade * indiv.fpc;
+	double senesc_fshade_norm = senesc_fshade / (1.0 + senesc_fshade);
+
 	// Total senescence rate
 	//senesc *= ((1.0 + max(indiv.fdev_senesc,senesc_fdorm)) * (1.0 + senesc_fwater) * (1.0 + senesc_ftemp));
-	senesc *= (1.0 + indiv.fdev_senesc + senesc_fdorm + senesc_fwater) * (1.0 + senesc_ftemp);
+	senesc *= (1.0 + indiv.fdev_senesc * (1.0 - 0.9 * senesc_fshade_norm) + senesc_fdorm + senesc_fwater) 
+	           * (1.0 + senesc_ftemp) 
+			   * (1.0 + senesc_fshade);
 	senesc = min(1.0, senesc);
 	indiv.senesc_root = pft.senesc_base;
 

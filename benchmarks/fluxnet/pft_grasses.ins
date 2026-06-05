@@ -371,7 +371,7 @@ group "grass" (
 	crelocfrac 0
 
 	! Baseline senescence rate for dave grasses (d-1).
-	senesc_base 0.00028
+	senesc_base 0.00022
 
 	! Senescence coefficient for dormancy in dave grasses. Senescence rate is
 	! increased by this factor when phenology is changing at the maximum rate.
@@ -466,12 +466,12 @@ group "perennial" (
 
 	! Senescence coefficient for reproductive phase in dave grasses.
 	! Senescence rate is increased by this factor during reproductive phase.
-	senesc_scal_repr 40
+	senesc_scal_repr 30
 
 	! Exponent shaping development-driven senescence for dave grasses. Higher
 	! values delay senescence (less early, more late in the reproductive
 	! phase). Unitless.
-	qdev_senesc 2
+	qdev_senesc 3
 
 	! Exponent shaping water stress-driven senescence for DAVE grasses. q = 1
 	! gives a linear response. q > 1 decreases senescence at low stress;

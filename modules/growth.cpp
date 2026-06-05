@@ -162,7 +162,7 @@ double get_cflux(const Individual &indiv) {
 }
 
 double get_nflux(const Individual &indiv) {
-	return indiv.nmass_missing - indiv.ntolitter - indiv.ntoavail;
+	return indiv.dnuptake + indiv.nmass_missing - indiv.ntolitter - indiv.ntoavail;
 }
 
 DaveMassBalance::IndivState::IndivState(const Individual &indiv) {

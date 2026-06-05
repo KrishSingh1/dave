@@ -630,10 +630,10 @@ double SoilInput::get_soil_depth(const coord &c) {
 	point<double, 2> closest = depth_kdtree->nearest({c.first, c.second});
 	double distance = closest.distance({c.first, c.second});
 	if (distance > searchradius_soil) {
-		fail("Coordinate at %f, %f could not be found in the soil depth map within search radius %f.\n", c.first, c.second, searchradius_soil);
+		fail("Coordinate at %f, %f could not be found in the soil depth map within search radius %f.", c.first, c.second, searchradius_soil);
 	}
 	double depth = depth_map[std::make_pair(closest.get(0), closest.get(1))];
-	log_info("Gridcell (%f, %f): Found closest soil depth %f from (%f, %f) with distance %f.\n", c.first, c.second, depth, closest.get(0), closest.get(1), distance);
+	log_info("Gridcell (%f, %f): Found closest soil depth %f m from (%f, %f) with distance %f.", c.first, c.second, depth, closest.get(0), closest.get(1), distance);
 	return depth;
 }
 
@@ -654,10 +654,10 @@ double SoilInput::get_soil_slope(const coord &c) {
 	point<double, 2> closest = slope_kdtree->nearest({c.first, c.second});
 	double distance = closest.distance({c.first, c.second});
 	if (distance > searchradius_soil) {
-		fail("Coordinate at %f, %f could not be found in the soil slope map within search radius %f.\n", c.first, c.second, searchradius_soil);
+		fail("Coordinate at %f, %f could not be found in the soil slope map within search radius %f.", c.first, c.second, searchradius_soil);
 	}
 	double slope = slope_map[std::make_pair(closest.get(0), closest.get(1))];
-	log_info("Gridcell (%f, %f): Found closest soil slope %f from (%f, %f) with distance %f.\n", c.first, c.second, slope, closest.get(0), closest.get(1), distance);
+	log_info("Gridcell (%f, %f): Found closest soil slope %f degrees from (%f, %f) with distance %f.", c.first, c.second, slope, closest.get(0), closest.get(1), distance);
 	return slope;
 }
 

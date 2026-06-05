@@ -17,6 +17,8 @@
 #include <vector>
 #include <map>
 #include <set>
+#include <memory>
+#include "kdtree.h"
 
 typedef std::pair<double, double> coord;
 
@@ -149,6 +151,10 @@ private:
 	std::map<coord, double> depth_map;
 	std::map<coord, double> slope_map;
 	std::map<coord, SoilDataMineral> mineral_map;
+	std::unique_ptr<kdtree<double, 2>> depth_kdtree;
+	std::unique_ptr<kdtree<double, 2>> slope_kdtree;
+	double get_soil_depth(const coord &c);
+	double get_soil_slope(const coord &c);
 
 	void get_depth_varying_prop(
 		const std::set<coord>& coords,

@@ -125,6 +125,13 @@ group "common" (
 	! changes with temperature; smaller values produce a steeper damage response
 	! curve.
 	z 5
+
+	! Lignin fraction in root (0 - 0.5). Value from Comins & McMurtrie 1993.
+	! TODO: verify these with the team.
+	ligcfrac_root 0.16
+
+	! Lignin fraction in wood (0 - 0.5). Value from Friend et al 1997.
+	ligcfrac_wood 0.3
 )
 
 group "tree" (

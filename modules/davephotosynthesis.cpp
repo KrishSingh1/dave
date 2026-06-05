@@ -542,15 +542,14 @@ timestep.
 */
 void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOutputs &outputs) {
 
-	// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
-	// Note: fphen_activity is always 1 for trees.
-
 	// vcmax25/jmax25 are input in μmol m-2 s-1, but the equations expect them
 	// in mol m-2 s-1.
 	double vcmax25_mol = inputs.vcmax25 / UMOL_PER_MOL;
 	double jmax25_mol  = inputs.jmax25  / UMOL_PER_MOL;
 	double resp_scalar = resp_temp_acclimation_scalar(inputs.tgrowth, inputs.racclim);
 
+	// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
+	// Note: fphen_activity is always 1 for trees.
 	double rd = inputs.fphen_activity * pow(inputs.wscal, qb) * BC3 * vcmax25_mol * inputs.nscal *
 			respiration_temp_response(inputs.tleaf) * light_inhibition(inputs.ipar()) * resp_scalar;
 

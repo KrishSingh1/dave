@@ -475,15 +475,6 @@ extern bool ifevenlaidist;
 /// (Number of dormant+dead days)
 extern bool ifadaptive_rootdist;
 
-/// Whether DAVE mass balance diagnostics are enabled. This value is checked set
-/// to false at all times except during mass balance checks. This is the value
-/// which is checked in ccont(), ncont(), etc.
-extern bool ifdavediagnostics;
-
-/// Whether DAVE mass balance diagnostics are enabled. This parameter is bound
-/// to the instruction file parameter.
-extern bool _ifdavediagnostics;
-
 /// Whether tree N uptake should go into long-term storage pool.
 extern bool ifstoreuptake;
 

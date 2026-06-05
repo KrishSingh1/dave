@@ -94,8 +94,6 @@ bool ifdavehydrology;
 int soildepth_evap;
 bool ifzhou;
 bool ifdavehydraulics;
-bool ifdavediagnostics = false;
-bool _ifdavediagnostics;
 double epsiresolution;
 bool ifevenlaidist;
 bool ifadaptive_rootdist;
@@ -756,7 +754,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifadaptive_rootdist", &ifadaptive_rootdist, 1, CB_NONE, "Whether root distribution and response windows of dormancy are adaptive to the environment (default: off).");
 		declareitem("gzip_output", &gzip_output, 1, CB_NONE, "Whether to compress output files");
 		declareitem("spinup_output", &spinup_output, 1, CB_NONE, "True to write DAVE outputs during the spinup, false otherwise.");
-		declareitem("ifdavediagnostics", &_ifdavediagnostics, 1, CB_NONE, "Whether DAVE mass balance diagnostics are enabled.");
 		declareitem("epsiresolution", &epsiresolution, 1, 1e6, 1, CB_NONE, "Resolution for splines used to calculate psi from transpiration. This is the number of control points used for the integration. Default: 100.");
 		declareitem("energy_balance_maxiter", &energy_balance_maxiter, 1, 1000, 1, CB_NONE, "Maximum number of iterations for energy balance convergence in DAVE photosynthesis (default: 1, i.e. single iteration).");
 		declareitem("energy_balance_eps", &energy_balance_eps, 0, 20, 1, CB_NONE, "Convergence criterion for DAVE energy balance (K). Iteration for tleaf will cease when the change in tleaf between iterations is less than this value.");

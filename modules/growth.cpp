@@ -377,13 +377,16 @@ double dphen_activity(Individual &indiv, Climate& climate) {
 	//return min(min(tscal,pscal),wscal) * dphen_activity_max;
 	double dphen_wscal = wscal * dphen_activity_max;
 	double dphen_tscal = tscal * dphen_activity_max;
-
-    if (indiv.fphen_activity <= fphys_activity_min){
-      if (dphen_wscal > 0.0){
-        dphen_tscal = max(dphen_tscal,0.5 * (fphys_activity_min - indiv.fphen_activity));
-      } else {
-		dphen_tscal = 0.0;
-	  }
+    double dphen_tmp   = min(dphen_wscal,dphen_tscal);
+	
+	double fphen_new = indiv.fphen_activity + dphen_tmp;
+	
+	if (fphen_new < fphys_activity_min){
+		if (dphen_wscal > 0.0 && indiv.fphen_activity > fphys_activity_min){
+			dphen_tscal = fphys_activity_min - indiv.fphen_activity;
+		} else if (indiv.fphen_activity < fphys_activity_min){  // complete water control
+			dphen_tscal = dphen_wscal;
+		}
 	}
 
 	return min(dphen_wscal,dphen_tscal);

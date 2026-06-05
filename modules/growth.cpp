@@ -5018,6 +5018,9 @@ void nuptake_dave(Vegetation& vegetation) {
 	if (!ifdailytree || !ifdailygrass) {
 		nstore_usage(vegetation);
 	}
+
+	// Take N up from soil.
+	vegetation_n_uptake(vegetation.patch);
 }
 
 /*

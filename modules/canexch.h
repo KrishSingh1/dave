@@ -73,6 +73,8 @@ double water_uptake(double wcont[NSOILLAYERS_MAX], double awc[NSOILLAYERS_MAX],
 
 double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual &indiv);
 
+void vegetation_n_uptake(Patch& patch);
+
 // Constants for photosynthesis calculations
 
 // atmospheric pressure (Pa)

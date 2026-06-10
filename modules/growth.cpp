@@ -5376,6 +5376,9 @@ void senescence_dave_grass(Individual &indiv) {
 	// annual plants?
 
 	// Air temperature or bottom snow layer if snow present
+	// Note that grass_temp is daily, not half-hourly. 
+	// At the moment, we account for that (imperfectly) by introducing Tfreeze below.
+	// TODO: replace with actual minimimum subdaily T_soil[6].
 	double grass_temp = vegetation.patch.soil.T_soil[6];
 
 	// Baseline (minimum) senescence rate from leaf longevity under unstressed conditions.
@@ -5401,12 +5404,12 @@ void senescence_dave_grass(Individual &indiv) {
 	// Soil moisture
 	double senesc_fwater = pft.senesc_scal_water * pow(1.0 - indiv.get_wscal(),pft.qwater_senesc);
 	
-	// Senescence due to freezing temperatures (could be extended to extreme hot temperatures)
+	// Senescence due to freezing and hot temperatures 
 	double senesc_ftemp = 0.0;
-    if (grass_temp < 0.0){
-      double Tc = -grass_temp;
-      senesc_ftemp = pft.senesc_scal_temp * (1.0 - exp(-Tc / 2.0));
-	}
+	double Tfreeze = 2.0;
+    double Tcold = max(0.0, Tfreeze - grass_temp);               // freezing stress
+	double Theat = max(0.0, grass_temp - indiv.pft.T0_growth);   // heat stress
+    senesc_ftemp = pft.senesc_scal_temp * ((1.0 - exp(-Tcold / 3.0)) + (1.0 - exp(-pow(Theat / 12.0, 2.5))));
 
 	// Dormancy-induced
 	double senesc_fdorm = 0.0;

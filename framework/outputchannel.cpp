@@ -322,7 +322,7 @@ void OutputChannel::clear_current_row(const Table& table) {
 			column_type_t type = column.get_type();
 
 			if (type == NUMERIC) {
-				fprintf(file, format(table, (int)i), row[i]);
+				fprintf(file, format(table, (int)i, row[i]), row[i]);
 			} else if (type == TEXT) {
 				char fmt[16];
 				sprintf(fmt, "%%%ds", column.width());
@@ -338,15 +338,38 @@ void OutputChannel::clear_current_row(const Table& table) {
 		clear_current_row(table);
 	}
 
+	/*
+	Check if the given value can be printed in the given width and precision
+	using fixed-point notation %{width}.{precision}f.
+	*/
+	bool fixed_fits(double value, int width, int precision) {
+		if (!std::isfinite(value)) {
+			return true; // "nan", "inf", etc are short
+		}
 
-	const char* FileOutputChannel::format(const Table& table, int column) {
+		double abs_value = fabs(value);
+		int digits_before_decimal = abs_value < 1.0 ? 1 : (int)floor(log10(abs_value)) + 1;
+		int chars_needed = digits_before_decimal + 1 + precision; // decimal point + decimals
+
+		if (value < 0) {
+			chars_needed++; // minus sign
+		}
+
+		return chars_needed <= width;
+	}
+
+	const char* FileOutputChannel::format(const Table& table, int column, double value) {
 		const TableDescriptor& td = get_table_descriptor(table);
 		const ColumnDescriptor& cd = td.columns()[column];
 
 		// NB: not thread safe
 		static char buf[100];
 
-		sprintf(buf, "%%%d.%df", cd.width(), cd.precision());
+		// Print using scientific notation if the value won't fit in the
+		// specified width using fixed-point notation.
+		char fmt = fixed_fits(value, cd.width(), cd.precision()) ? 'f' : 'e';
+
+		sprintf(buf, "%%%d.%d%c", cd.width(), cd.precision(), fmt);
 
 		return buf;
 	}
@@ -588,7 +611,7 @@ void GZFileOutputChannel::finish_row(const Table& table,
         column_type_t type = column.get_type();
 
         if (type == NUMERIC) {
-            gzprintf(gzfile, format(table, (int)i), row[i]);
+            gzprintf(gzfile, format(table, (int)i, row[i]), row[i]);
         } else if (type == TEXT) {
             char fmt[16];
             sprintf(fmt, "%%%ds", column.width());

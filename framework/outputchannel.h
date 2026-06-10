@@ -212,7 +212,7 @@ protected:
 						int year, int day, bool print_day);
 
 		/// Returns the printf style format string to be used for a column
-		const char* format(const Table& table, int column);
+		const char* format(const Table& table, int column, double value);
 
 		/// Formats a column title
 		const char* format_header(const Table& table, int column);

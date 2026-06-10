@@ -558,7 +558,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 			double repr_trend = 0.0;  // relative trend in repr. tissue
 
 			// TODO: get rid of growth_stage_days when they aren't needed anymore.
-		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphen_activity_min) {
+		   	if (indiv.growth_stage == dormant && indiv.fphen_activity > fphys_activity_min) {
 				indiv.growth_stage = vegetative;
 				indiv.fdev_growth = 1.0;
 				indiv.growth_stage_days = 0;
@@ -581,7 +581,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 						continue;
 					}
 				}
-				if (equal(indiv.fphen_activity, fphen_activity_min)) {		
+				if (less_than_or_equal(indiv.fphen_activity, fphys_activity_min)) {		
 					indiv.growth_stage = dormant;
 					indiv.growth_stage_days = 0;
 				}
@@ -593,7 +593,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
                 repr_trend = indiv.cmass_repr_10.size() > 9 ? indiv.cmass_repr_10.periodictrend(10)/indiv.cmass_repr_10.mean() : 1.0;
 
                 // dormancy
-                if (equal(indiv.fphen_activity, fphen_activity_min)) {
+                if (less_than_or_equal(indiv.fphen_activity, fphys_activity_min)) {
                     indiv.growth_stage = dormant;
                     indiv.growth_stage_days = 0;
                 }

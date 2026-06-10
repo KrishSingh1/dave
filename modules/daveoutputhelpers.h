@@ -299,6 +299,17 @@ Get the columns used to evaluate the hydraulics model.
 std::vector<ColumnDefinition<Individual>> indiv_resp_columns();
 
 /*
+Get the columns in the soil state output file.
+*/
+std::vector<ArrayColumnDefinition<Patch>> soil_state_cols();
+
+/*
+Get the columns in the soil properties output file.
+*/
+std::vector<ArrayColumnDefinition<Patch>> soil_properties_cols();
+
+
+/*
 Get the total standing dead biomass for the given PFT.
 */
 double get_pft_standing_dead_cmass(const Patch &patch, const Pft &pft);

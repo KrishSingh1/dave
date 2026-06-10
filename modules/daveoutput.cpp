@@ -429,21 +429,25 @@ DaveOutput::DaveOutput() {
 	add_indiv_layer_timestep_output("file_dave_energy_balance", energy_balance_cols(), "Subdaily layered cohort-level energy balance outputs");
 
 	// Daily patch-level array outputs.
-	add_patch_array_output("file_dave_sw"                       , DAILY, "sw_", NSOILLAYERS_MAX, [](const Patch &p, int i) { return p.soil.soillayers[i].wcont(); }, "Soil water content as fraction of available water holding capacity", true, false);
-	add_patch_array_output("file_dave_swmm"                     , DAILY, "swmm_", NSOILLAYERS_MAX, [](const Patch &p, int i) { return p.soil.soillayers[i].wmass; }, "Soil water content (mm)", true, false);
-	add_patch_array_output("file_dave_swvol"                    , DAILY, "swvol_", NSOILLAYERS_MAX, [](const Patch &p, int i) { return p.soil.soillayers[i].wmass / p.soil.soillayers[i].thickness; }, "Volumetric soil water content (m3/m3)", false, true);
-	add_patch_array_output("file_dave_soil_psi_layer"           , DAILY, "soil_psi", NSOILLAYERS_MAX, [](const Patch &p, int i) { return p.soil.soillayers[i].psi; }, "Soil water potential (MPa) in each layer", false, false);
-	add_patch_array_output("file_dave_ksoil_layer"              , DAILY, "ksoil_", NSOILLAYERS_MAX, [](const Patch &p, int i) { return p.soil.soillayers[i].k_actual / 2.778e-6; }, "Soil hydraulic conductivity (cm/hr)", false, true);
+	// One row per array element per patch per timestep, multiple data columns (tall/long table).
+	add_tall_patch_array_output("file_dave_soil_state"               , DAILY, "layer", [](const Patch &p) { return (size_t)p.soil.nsoillayers; }, soil_state_cols(), "Soil water content as fraction of available water holding capacity");
+	add_tall_patch_array_output("file_dave_soil_properties"          , DAILY, "layer", [](const Patch &p) { return (size_t)p.soil.nsoillayers; }, soil_properties_cols(), "Soil layer thickness (m)");
+
+	// One row per patch per timestep, one column per array element (wide table).
+	add_wide_patch_array_output("file_dave_sw"                       , DAILY, "sw_", NSOILLAYERS_MAX, [](const Patch &p, int i) { return i >= p.soil.nsoillayers ? 0.0 : p.soil.soillayers[i].wcont(); }, "Soil water fraction full (0-1)", true, false);
+	add_wide_patch_array_output("file_dave_swmm"                     , DAILY, "swmm_", NSOILLAYERS_MAX, [](const Patch &p, int i) { return i >= p.soil.nsoillayers ? 0.0 : p.soil.soillayers[i].wmass; }, "Soil water content (mm)", true, false);
+	add_wide_patch_array_output("file_dave_swvol"                    , DAILY, "swvol_", NSOILLAYERS_MAX, [](const Patch &p, int i) { return i >= p.soil.nsoillayers ? 0.0 : p.soil.soillayers[i].wmass / p.soil.soillayers[i].thickness; }, "Volumetric soil water content (m3/m3)", false, true);
+	add_wide_patch_array_output("file_dave_soil_psi_layer"           , DAILY, "soil_psi", NSOILLAYERS_MAX, [](const Patch &p, int i) { return i >= p.soil.nsoillayers ? 0.0 : p.soil.soillayers[i].psi; }, "Soil water potential (MPa) in each layer", false, false);
+	add_wide_patch_array_output("file_dave_ksoil_layer"              , DAILY, "ksoil_", NSOILLAYERS_MAX, [](const Patch &p, int i) { return i >= p.soil.nsoillayers ? 0.0 : p.soil.soillayers[i].k_actual / 2.778e-6; }, "Soil hydraulic conductivity (cm/hr)", false, true);
 
 	// Subdaily patch-level outputs.
-	//                                               column name              function which gets number of array elems     function which returns the i-th output value
-	add_patch_array_output("file_dave_met_subdaily_temp"        , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.temps[i];    }, "Subdaily temperature (°C)", false, true);
-	add_patch_array_output("file_dave_met_subdaily_par"         , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.pars[i] * 0.001;     }, "Subdaily PAR (kJ/m2/timestep)", true, false);
-	add_patch_array_output("file_dave_met_subdaily_vpd"         , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.vpds[i];     }, "Subdaily VPD (kPa)", false, true);
-	add_patch_array_output("file_dave_met_subdaily_insol"       , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.insols[i];   }, "Subdaily insolation (units depend on instype)", true, false);
-	add_patch_array_output("file_dave_met_subdaily_precip"      , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.precs[i];    }, "Subdaily precipitation (mm)", true, false);
-	add_patch_array_output("file_dave_met_subdaily_pressure"    , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.pressure[i] * 0.001; }, "Subdaily air pressure (kPa)", false, true);
-	add_patch_array_output("file_dave_met_subdaily_co2"         , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.co2;         }, "Subdaily atmospheric co2 concentration (ppm)", false, true);
+	add_wide_patch_array_output("file_dave_met_subdaily_temp"        , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.temps[i];    }, "Subdaily temperature (°C)", false, true);
+	add_wide_patch_array_output("file_dave_met_subdaily_par"         , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.pars[i] * 0.001;     }, "Subdaily PAR (kJ/m2/timestep)", true, false);
+	add_wide_patch_array_output("file_dave_met_subdaily_vpd"         , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.vpds[i];     }, "Subdaily VPD (kPa)", false, true);
+	add_wide_patch_array_output("file_dave_met_subdaily_insol"       , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.insols[i];   }, "Subdaily insolation (units depend on instype)", true, false);
+	add_wide_patch_array_output("file_dave_met_subdaily_precip"      , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.precs[i];    }, "Subdaily precipitation (mm)", true, false);
+	add_wide_patch_array_output("file_dave_met_subdaily_pressure"    , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.pressure[i] * 0.001; }, "Subdaily air pressure (kPa)", false, true);
+	add_wide_patch_array_output("file_dave_met_subdaily_co2"         , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.co2;         }, "Subdaily atmospheric co2 concentration (ppm)", false, true);
 
 	// Standpft-level outputs.
 	add_spft_output("file_dave_spft_cmass_repr"                 , DAILY, [](const Standpft &spft) { return spft.cmass_repr; }, "Daily reproductive cmass at standpft-level (gC/m2)");
@@ -516,7 +520,7 @@ void DaveOutput::add_patch_output(
 	std::vector<std::string> colnames;
 	colnames.push_back(colname);
 	ArrayOutputReader<Patch> *reader = new ArrayOutputReader<Patch>(read_output);
-	PatchLevelArrayOutput *output = new PatchLevelArrayOutput(name, colnames, 1, reader, description, sum, mean);
+	PatchLevelArrayOutput *output = new PatchLevelArrayOutput(name, colname, []() { return 1; }, reader, description, sum, mean);
 	register_output(output, timestep);
 }
 
@@ -634,20 +638,7 @@ void DaveOutput::add_gridcell_aggregated_tree_output(
 	register_output(output, timestep);
 }
 
-void DaveOutput::add_patch_array_output(
-		std::string name,
-		timestep_t timestep,
-		std::vector<std::string> colnames,
-		double (*read_output)(const Patch&, int),
-		std::string description,
-		bool sum,
-		bool mean) {
-	ArrayOutputReader<Patch> *reader = new ArrayOutputReader<Patch>(read_output);
-	PatchLevelArrayOutput *output = new PatchLevelArrayOutput(name, colnames, colnames.size(), reader, description, sum, mean);
-	register_output(output, timestep);
-}
-
-void DaveOutput::add_patch_array_output(
+void DaveOutput::add_wide_patch_array_output(
 		std::string name,
 		timestep_t timestep,
 		std::string colname,
@@ -657,11 +648,11 @@ void DaveOutput::add_patch_array_output(
 		bool sum,
 		bool mean) {
 	ArrayOutputReader<Patch> *reader = new ArrayOutputReader<Patch>(read_output);
-	PatchLevelArrayOutput *output = new PatchLevelArrayOutput(name, colname, nelem, reader, description, sum, mean);
+	PatchLevelArrayOutput *output = new PatchLevelArrayOutput(name, colname, [nelem]() { return nelem; }, reader, description, sum, mean);
 	register_output(output, timestep);
 }
 
-void DaveOutput::add_patch_array_output(
+void DaveOutput::add_wide_patch_array_output(
 		std::string name,
 		timestep_t timestep,
 		std::string colname,
@@ -673,6 +664,16 @@ void DaveOutput::add_patch_array_output(
 	ArrayOutputReader<Patch> *reader = new ArrayOutputReader<Patch>(read_output);
 	PatchLevelArrayOutput *output = new PatchLevelArrayOutput(name, colname, get_nelem, reader, description, sum, mean);
 	register_output(output, timestep);
+}
+
+void DaveOutput::add_tall_patch_array_output(std::string name,
+									         timestep_t timestep,
+											 std::string index_col_name,
+											 std::function<size_t(const Patch &)> get_nelem,
+											 std::vector<ArrayColumnDefinition<Patch>> columns,
+											 std::string description) {
+    DynamicPatchLevelArrayOutput *output = new DynamicPatchLevelArrayOutput(name, index_col_name, get_nelem, columns, description);
+    register_output(output, timestep);
 }
 
 void DaveOutput::add_aggregated_indiv_output(std::string name, timestep_t timestep, double (*read_output)(const Individual&), std::string description, double (*aggregator)(const double*, size_t), bool sum, bool mean) {
@@ -1613,50 +1614,14 @@ ColumnDescriptors DaveOutput::StandPftOutput::get_columns() {
 DaveOutput::PatchLevelArrayOutput::PatchLevelArrayOutput(
 		std::string param_name,
 		std::string col_name,
-		int n,
+		std::function<int()> get_n,
 		ArrayOutputReader<Patch> *get_output,
 		std::string description,
 		bool sum,
 		bool mean) : PatchLevelOutput(param_name, description, sum, mean) {
 
-	nelem = n;
-	read_output = std::unique_ptr<ArrayOutputReader<Patch>>(get_output);
-	get_nelem = NULL;
-
-	for (int i = 0; i < n; i++) {
-		if (n == 1) {
-			column_names.push_back(col_name);
-		} else {
-			column_names.push_back(col_name + std::to_string(i));
-		}
-	}
-}
-
-DaveOutput::PatchLevelArrayOutput::PatchLevelArrayOutput(
-	std::string param_name,
-	std::vector<std::string> col_names,
-	int n,
-	ArrayOutputReader<Patch> *get_output,
-	std::string description,
-	bool sum,
-	bool mean)
- : PatchLevelOutput(param_name, description, sum, mean) {
-	column_names = col_names;
-	nelem = n;
-	get_nelem = NULL;
-	read_output = std::unique_ptr<ArrayOutputReader<Patch>>(get_output);
-}
-DaveOutput::PatchLevelArrayOutput::PatchLevelArrayOutput(
-		std::string param_name,
-		std::string col_name,
-		int (*get_nelem)(),
-		ArrayOutputReader<Patch> *get_output,
-		std::string description,
-		bool sum,
-		bool mean) : PatchLevelOutput(param_name, description, sum, mean) {
-	this->get_nelem = get_nelem;
-	column_names.push_back(col_name);
-	read_output = std::unique_ptr<ArrayOutputReader<Patch>>(get_output);
+	get_nelem = get_n;
+	col_name_prefix = col_name;
 }
 
 DaveOutput::PatchLevelArrayOutput::~PatchLevelArrayOutput() { }
@@ -1664,7 +1629,7 @@ DaveOutput::PatchLevelArrayOutput::~PatchLevelArrayOutput() { }
 std::vector<double> DaveOutput::PatchLevelArrayOutput::write_patch(
 		Patch &patch, OutputChannel *channel) {
 	std::vector<double> results;
-	for (int i = 0; i < nelem; i++) {
+	for (int i = 0; i < get_nelem(); i++) {
 		double value = read_output->read(patch, i);
 		results.push_back(value);
 	}
@@ -1674,25 +1639,78 @@ std::vector<double> DaveOutput::PatchLevelArrayOutput::write_patch(
 ColumnDescriptors DaveOutput::PatchLevelArrayOutput::get_columns() {
 	ColumnDescriptors columns = create_column_descriptors();
 
-	if (get_nelem) {
-		nelem = get_nelem();
-		std::string basename = column_names[0];
-		column_names.clear();
-		for (int i = 0; i < nelem; i++) {
-			if (nelem == 1) {
-				column_names.push_back(basename);
-			} else {
-				column_names.push_back(basename + std::to_string(i));
-			}
-		}
-	}
-
+	int nelem = get_nelem();
 	for (int i = 0; i < nelem; i++) {
-		std::string name = column_names[i];
+		std::string name = nelem == 1 ? col_name_prefix : col_name_prefix + std::to_string(i);
 		int width = max((size_t)COLUMN_WIDTH, name.length() + 1);
 		add_column(columns, name.c_str(), width, NUMERIC_PRECISION);
 	}
+
 	return columns;
+}
+
+// #############################################################################
+// DynamicPatchLevelArrayOutput implementation.
+// #############################################################################
+
+DaveOutput::DynamicPatchLevelArrayOutput::DynamicPatchLevelArrayOutput(
+		std::string param_name,
+		std::string index_col_name,
+		std::function<size_t(const Patch &)> get_nelem,
+		std::vector<ArrayColumnDefinition<Patch>> columns,
+		std::string description) : OutputFile(param_name, description) {
+	this->index_col_name = index_col_name;
+	this->columns = columns;
+	this->get_nelem = get_nelem;
+}
+
+DaveOutput::DynamicPatchLevelArrayOutput::~DynamicPatchLevelArrayOutput() {
+
+}
+
+void DaveOutput::DynamicPatchLevelArrayOutput::write_rows(OutputChannel *channel, Gridcell &gridcell) {
+	double lon = gridcell.get_lon();
+	double lat = gridcell.get_lat();
+	int year = date.get_calendar_year();
+	int day = date.day;
+
+	GuessContainer<Stand>::iterator gc_itr = gridcell.begin();
+	for (size_t i = 0; i < gridcell.size(); i++) {
+		const Stand &stand = gridcell[i];
+		for (size_t j = 0; j < stand.nobj; j++) {
+			const Patch &patch = stand[j];
+
+			int nelem = get_nelem(patch);
+			for (size_t k = 0; k < nelem; k++) {
+				write_output(channel, stand.id);
+
+				if (!write_stats()) {
+					write_output(channel, patch.id);
+				}
+
+				write_output(channel, (int)k);
+				for (const ArrayColumnDefinition<Patch> &column : columns) {
+					double value = column.read_value(patch, k);
+					write_output(channel, value);
+				}
+				finish_row(channel, lon, lat, year, day);
+			}
+		}
+	}
+}
+
+ColumnDescriptors DaveOutput::DynamicPatchLevelArrayOutput::get_cols() {
+	ColumnDescriptors descriptors = create_column_descriptors();
+
+	add_column(descriptors, index_col_name.c_str(), COLUMN_WIDTH, 0);
+
+	for (const ArrayColumnDefinition<Patch> &column : columns) {
+		std::string name = column.get_name();
+		int width = max((size_t)COLUMN_WIDTH, name.length() + 1);
+		add_column(descriptors, name.c_str(), width, NUMERIC_PRECISION);
+	}
+
+	return descriptors;
 }
 
 // #############################################################################

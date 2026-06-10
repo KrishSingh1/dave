@@ -1782,12 +1782,16 @@ void forest_floor_dave(Patch &patch) {
 			// Convert from mol/m2/s to kgC/m2/day.
 			double secs_per_timestep = SECS_PER_DAY / date.subdaily;
 			ppft.anetps_ff += outputs.an * MOL2G_C / 1000 * secs_per_timestep;
+		}
+	}
 
-			Standpft &spft = patch.stand.pft[pft.id];
-			if (day.isend && date.islastday && date.islastmonth) {
-				spft.anetps_ff_max = max(spft.anetps_ff_max, ppft.anetps_ff);
-				ppft.anetps_ff = max(0.0, ppft.anetps_ff);
-			}
+	for (size_t i = 0; i < pftlist.nobj; i++) {
+		const Pft &pft = pftlist[i];
+		Patchpft &ppft = patch.pft[i];
+		Standpft &spft = patch.stand.pft[pft.id];
+		if (date.islastday && date.islastmonth) {
+			spft.anetps_ff_max = max(spft.anetps_ff_max, ppft.anetps_ff);
+			ppft.anetps_ff = max(0.0, ppft.anetps_ff);
 		}
 	}
 }

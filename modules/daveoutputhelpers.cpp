@@ -283,14 +283,20 @@ double get_patch_nee(const Patch &patch) {
 	flux_seed + flux_charvest + lc.acflux_landuse_change + lc.acflux_harvest_slow;
 }
 
-std::vector<ColumnDefinition<Patch>> runoff_columns() {
+std::vector<ColumnDefinition<Patch>> annual_runoff_columns() {
 	std::vector<ColumnDefinition<Patch>> columns;
 
-	columns.push_back(ColumnDefinition<Patch>("Surf", [](const Patch &p) { return p.asurfrunoff; }));
-	columns.push_back(ColumnDefinition<Patch>("Drain", [](const Patch &p) { return p.adrainrunoff; }));
-	columns.push_back(ColumnDefinition<Patch>("Base", [](const Patch &p) { return p.abaserunoff; }));
+	columns.push_back(ColumnDefinition<Patch>("Surf", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::WRUNOFF_SURF); }));
+	columns.push_back(ColumnDefinition<Patch>("Drain", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::WRUNOFF_DRAIN); }));
+	columns.push_back(ColumnDefinition<Patch>("Base", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::WRUNOFF_BASE); }));
+	columns.push_back(ColumnDefinition<Patch>("Ssw", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::WRUNOFF_SSW); }));
 	columns.push_back(ColumnDefinition<Patch>("Precip", [](const Patch &p) { return p.get_climate().aprec; }));
-	columns.push_back(ColumnDefinition<Patch>("NetInf", [](const Patch &p) { return p.stand.get_gridcell().climate.aprec - (p.asurfrunoff + p.adrainrunoff + p.abaserunoff); }));
+	columns.push_back(ColumnDefinition<Patch>("NetInf", [](const Patch &p) { return
+		p.stand.get_gridcell().climate.aprec + p.fluxes.get_annual_flux(Fluxes::WADDED) -
+		(p.fluxes.get_annual_flux(Fluxes::WRUNOFF_SURF)  +
+		 p.fluxes.get_annual_flux(Fluxes::WRUNOFF_DRAIN) +
+		 p.fluxes.get_annual_flux(Fluxes::WRUNOFF_BASE)  +
+		 p.fluxes.get_annual_flux(Fluxes::WRUNOFF_SSW)); }));
 
 	return columns;
 }
@@ -827,10 +833,10 @@ std::vector<ColumnDefinition<Patch>> met_year_columns() {
 	return columns;
 }
 
-std::vector<ColumnDefinition<Patch>> aet_columns() {
+std::vector<ColumnDefinition<Patch>> daily_aet_columns() {
 	std::vector<ColumnDefinition<Patch>> columns;
-	columns.push_back(ColumnDefinition<Patch>("evap", [](const Patch &p) { return p.evap; }));
-	columns.push_back(ColumnDefinition<Patch>("transp", [](const Patch &p) { return p.transp; }));
+	columns.push_back(ColumnDefinition<Patch>("evap", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WEVAP, date.day); }));
+	columns.push_back(ColumnDefinition<Patch>("transp", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WTRAN, date.day); }));
 	return columns;
 }
 
@@ -928,12 +934,12 @@ std::vector<ColumnDefinition<Patch>> ninput_columns() {
 	return columns;
 }
 
-std::vector<ColumnDefinition<Patch>> evap_columns() {
+std::vector<ColumnDefinition<Patch>> daily_evap_columns() {
 	std::vector<ColumnDefinition<Patch>> columns;
-	columns.push_back(ColumnDefinition<Patch>("evaporation", [](const Patch &p) { return p.evap; }));
-	columns.push_back(ColumnDefinition<Patch>("interception", [](const Patch &p) { return p.intercep; }));
-	columns.push_back(ColumnDefinition<Patch>("transpiration", [](const Patch &p) { return p.transp; }));
-	columns.push_back(ColumnDefinition<Patch>("evapotranspiration", [](const Patch &p) { return p.evap + p.transp; }));
+	columns.push_back(ColumnDefinition<Patch>("evaporation", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WEVAP, date.day); }));
+	columns.push_back(ColumnDefinition<Patch>("interception", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WINTERCEP, date.day); }));
+	columns.push_back(ColumnDefinition<Patch>("transpiration", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WTRAN, date.day); }));
+	columns.push_back(ColumnDefinition<Patch>("evapotranspiration", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WEVAP, date.day) + p.fluxes.get_daily_flux(Fluxes::WTRAN, date.day); }));
 	return columns;
 }
 
@@ -1112,41 +1118,41 @@ std::vector<ColumnDefinition<Individual>> indiv_resp_columns() {
 std::vector<ColumnDefinition<Patch>> water_budget_cols_annual() {
 	std::vector<ColumnDefinition<Patch>> columns;
 	columns.push_back(ColumnDefinition<Patch>("precip", [](const Patch &p) { return p.get_climate().aprec; }));
-	columns.push_back(ColumnDefinition<Patch>("evap", [](const Patch &p) { return p.aevap; }));
-	columns.push_back(ColumnDefinition<Patch>("transp", [](const Patch &p) { return p.aaet; }));
-	columns.push_back(ColumnDefinition<Patch>("interception", [](const Patch &p) { return p.aintercep; }));
-	columns.push_back(ColumnDefinition<Patch>("surfrunoff", [](const Patch &p) { return p.asurfrunoff; }));
-	columns.push_back(ColumnDefinition<Patch>("drainrunoff", [](const Patch &p) { return p.adrainrunoff; }));
-	columns.push_back(ColumnDefinition<Patch>("baserunoff", [](const Patch &p) { return p.abaserunoff; }));
-	columns.push_back(ColumnDefinition<Patch>("totrunoff", [](const Patch &p) { return p.arunoff; }));
-	columns.push_back(ColumnDefinition<Patch>("flux", [](const Patch &p) { return p.get_climate().aprec - p.aevap - p.aaet - p.aintercep - p.arunoff; }));
+	columns.push_back(ColumnDefinition<Patch>("irrigation", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::WIRRI); }));
+	// runon, (Gerten/Miller: water added to bring wmass up to wilting point), acrotelm initial saturation, etc
+	columns.push_back(ColumnDefinition<Patch>("added", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::WADDED); }));
+	columns.push_back(ColumnDefinition<Patch>("evap", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::WEVAP); }));
+	columns.push_back(ColumnDefinition<Patch>("transp", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::WTRAN); }));
+	columns.push_back(ColumnDefinition<Patch>("interception", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::WINTERCEP); }));
+	columns.push_back(ColumnDefinition<Patch>("surfrunoff", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::WRUNOFF_SURF); }));
+	columns.push_back(ColumnDefinition<Patch>("drainrunoff", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::WRUNOFF_DRAIN); }));
+	columns.push_back(ColumnDefinition<Patch>("baserunoff", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::WRUNOFF_BASE); }));
+	columns.push_back(ColumnDefinition<Patch>("sswrunoff", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::WRUNOFF_SSW); }));
+	columns.push_back(ColumnDefinition<Patch>("flux", [](const Patch &p) { return p.water_flux(Period::YEAR); }));
 	return columns;
 }
 
 std::vector<ColumnDefinition<Patch>> water_budget_cols_daily() {
 	std::vector<ColumnDefinition<Patch>> columns;
 	columns.push_back(ColumnDefinition<Patch>("precip", [](const Patch &p) { return p.get_climate().prec; }));
-	columns.push_back(ColumnDefinition<Patch>("evap", [](const Patch &p) { return p.evap; }));
-	columns.push_back(ColumnDefinition<Patch>("transp", [](const Patch &p) { return p.transp; }));
-	columns.push_back(ColumnDefinition<Patch>("interception", [](const Patch &p) { return p.intercep; }));
+	columns.push_back(ColumnDefinition<Patch>("irrigation", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WIRRI, date.day); }));
+	// runon, (Gerten/Miller: water added to bring wmass up to wilting point), acrotelm initial saturation, etc
+	columns.push_back(ColumnDefinition<Patch>("added", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WADDED, date.day); }));
+	columns.push_back(ColumnDefinition<Patch>("evap", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WEVAP, date.day); }));
+	columns.push_back(ColumnDefinition<Patch>("transp", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WTRAN, date.day); }));
+	columns.push_back(ColumnDefinition<Patch>("interception", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WINTERCEP, date.day); }));
 	columns.push_back(ColumnDefinition<Patch>("surfrunoff", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WRUNOFF_SURF, date.day); }));
 	columns.push_back(ColumnDefinition<Patch>("drainrunoff", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WRUNOFF_DRAIN, date.day); }));
 	columns.push_back(ColumnDefinition<Patch>("baserunoff", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WRUNOFF_BASE, date.day); }));
-	columns.push_back(ColumnDefinition<Patch>("totrunoff", [](const Patch &p) { return
-		p.fluxes.get_daily_flux(Fluxes::WRUNOFF_SURF, date.day) +
-		p.fluxes.get_daily_flux(Fluxes::WRUNOFF_DRAIN, date.day) +
-		p.fluxes.get_daily_flux(Fluxes::WRUNOFF_BASE, date.day); }));
-	columns.push_back(ColumnDefinition<Patch>("flux", [](const Patch &p) { return p.get_climate().prec - p.evap - p.transp - p.intercep - (
-		p.fluxes.get_daily_flux(Fluxes::WRUNOFF_SURF, date.day) +
-        p.fluxes.get_daily_flux(Fluxes::WRUNOFF_DRAIN, date.day) +
-        p.fluxes.get_daily_flux(Fluxes::WRUNOFF_BASE, date.day)); }));
+	columns.push_back(ColumnDefinition<Patch>("sswrunoff", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::WRUNOFF_SSW, date.day); }));
+	columns.push_back(ColumnDefinition<Patch>("flux", [](const Patch &p) { return p.water_flux(Period::DAY); }));
 	return columns;
 }
 
 std::vector<ColumnDefinition<Patch>> nitrogen_budget_cols_annual() {
 	std::vector<ColumnDefinition<Patch>> columns;
 	columns.push_back(ColumnDefinition<Patch>("deposition", [](const Patch &p) { return p.stand.get_gridcell().aNO3dep + p.stand.get_gridcell().aNH4dep; }));
-	columns.push_back(ColumnDefinition<Patch>("fixation", [](const Patch &p) { return p.soil.anfix; }));
+	columns.push_back(ColumnDefinition<Patch>("fixation", [](const Patch &p) { return p.fluxes.get_annual_flux(Fluxes::NFIX); }));
 	columns.push_back(ColumnDefinition<Patch>("uptake", get_anuptake));
 	columns.push_back(ColumnDefinition<Patch>("net_mineralisation", [](const Patch &p) { return p.soil.anmin - p.soil.animmob; }));
 	columns.push_back(ColumnDefinition<Patch>("gross_mineralisation", [](const Patch &p) { return p.soil.anmin; }));

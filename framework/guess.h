@@ -6747,26 +6747,10 @@ public:
 
 	/// interception by vegetation today on patch basis (mm)
 	double intercep;
-	/// annual sum of AET (mm/year)
-	double aaet;
 	/// annual sum of AET (mm/year) for each of the last five simulation years
 	Historic<double, NYEARAAET> aaet_5;
-	/// annual sum of soil evaporation (mm/year)
-	double aevap;
-	/// daily evaporation (mm/day)
-	double evap;
 	/// daily transpiration (mm/day)
 	double transp;
-	/// annual sum of interception (mm/year)
-	double aintercep;
-	/// annual sum of runoff (mm/year)
-	double asurfrunoff;
-	/// annual sum of runoff (mm/year)
-	double adrainrunoff;
-	/// annual sum of runoff (mm/year)
-	double abaserunoff;
-	/// annual sum of runoff (mm/year)
-	double arunoff;
 	/// water added to wetlands today (mm)
 	double wetland_water_added_today;
 	/// annual sum of water added to wetlands (mm/year)

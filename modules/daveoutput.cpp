@@ -46,7 +46,7 @@ DaveOutput::DaveOutput() {
 
 	// Annual patch-level outputs.
 	add_patch_output("file_dave_patch_age"                      , ANNUAL, "age", [](const Patch &p) { return 1.0 * p.age; }, "Annual patch-level age since last disturbance (years)");
-	add_patch_output("file_dave_arunoff"                        , ANNUAL, runoff_columns, "Annual runoff (mm)");
+	add_patch_output("file_dave_arunoff"                        , ANNUAL, annual_runoff_columns, "Annual runoff (mm)");
 	add_patch_output("file_dave_acpool"                         , ANNUAL, cpool_columns, "Annual C pools (kgC/m2)", true);
 	add_patch_output("file_dave_anpool"                         , ANNUAL, npool_columns, "Annual N pools (kgN/m2)");
 	add_patch_output("file_dave_acflux"                         , ANNUAL, cflux_columns, "Annual C flux (kgC/m2)");
@@ -166,14 +166,14 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_sompool_ntoc"                   , DAILY, sompool_ntoc_columns, "Daily SOM pool N to C ratio (kgN/kgC)");
 	add_patch_output("file_dave_ninput"                         , DAILY, ninput_columns, "Daily nitrogen deposition (kgN/m2)");
 	add_patch_output("file_dave_fpar_ff"                        , DAILY, "fpar_ff", [](const Patch &p) { return p.fpar_ff; }, "Forest floor fpar (0-1)");
-	add_patch_output("file_dave_aet"                            , DAILY, aet_columns, "Daily patch-level evaporation (mm)", true);
+	add_patch_output("file_dave_aet"                            , DAILY, daily_aet_columns, "Daily patch-level evaporation (mm)", true);
 	add_patch_output("file_dave_fevap"                          , DAILY, fevap_columns, "Daily patch-level fraction of patch subject to soil evap", true);
 	add_patch_output("file_dave_resp_heterotrophic"             , DAILY, "resp_heterotrophic", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::SOILC, date.day) * G_PER_KG; }, "Daily carbon flux to atmosphere from soil respiration (gC/m2/day)");
 	add_patch_output("file_dave_resp"                           , DAILY, "resp", get_er, "Daily patch-level ecosystem respiration (gC/m2/day)");
 	add_patch_output("file_dave_gpp"                            , DAILY, "gpp", get_gpp, "Daily patch-level GPP (gC/m2/day)");
 	add_patch_output("file_dave_npp"                            , DAILY, "npp", get_npp, "Daily patch-level NPP (gC/m2/day)");
 	add_patch_output("file_dave_nee"                            , DAILY, "nee", get_nee, "Daily patch-level NEE (gC/m2/day)");
-	add_patch_output("file_dave_evaporation"                    , DAILY, evap_columns, "Daily patch-level evaporation (mm/day)");
+	add_patch_output("file_dave_evaporation"                    , DAILY, daily_evap_columns, "Daily patch-level evaporation (mm/day)");
 	add_patch_output("file_dave_soilc"                          , DAILY, soil_cmass_columns, "Daily soil carbon content (kgC/m2)", true);
 	add_patch_output("file_dave_soiln"                          , DAILY, soil_nmass_columns, "Daily soil nitrogen content (kgN/m2)", true);
 	add_patch_output("file_dave_soil_psi"                       , DAILY,"soil_psi", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.psi; }); }, "Soil psi (MPa)");

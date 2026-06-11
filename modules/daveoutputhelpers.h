@@ -117,7 +117,7 @@ double mean_layers(const Soil &soil, double (*read_layer)(const Soillayer &));
 /*
 Get the columns used in the patch-level runoff output file.
 */
-std::vector<ColumnDefinition<Patch>> runoff_columns();
+std::vector<ColumnDefinition<Patch>> annual_runoff_columns();
 
 /*
 Get the columns used in the patch-level cpool file.
@@ -251,7 +251,7 @@ std::vector<ColumnDefinition<Patch>> ninput_columns();
 /*
 Get the columns used in the patch-level evaporation output file.
 */
-std::vector<ColumnDefinition<Patch>> evap_columns();
+std::vector<ColumnDefinition<Patch>> daily_evap_columns();
 
 /*
 Get the columns used in the patch-level soil C mass output file.
@@ -281,7 +281,7 @@ std::vector<ColumnDefinition<Patch>> met_year_columns();
 /*
 Get the columns used in the aet output file.
 */
-std::vector<ColumnDefinition<Patch>> aet_columns();
+std::vector<ColumnDefinition<Patch>> daily_aet_columns();
 
 /*
 Get the columns used in the fevap output file.

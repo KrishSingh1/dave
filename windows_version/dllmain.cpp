@@ -66,6 +66,7 @@ public:
 	}
 
 	/// Sends a message to the user somehow and terminates the program
+	[[noreturn]]
 	void fail(const char* message) {
 		log_message(xtring(message)+"\n");
 

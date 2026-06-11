@@ -13,9 +13,12 @@
 #include "config.h"
 #include "guess.h"
 #include "outputchannel.h"
+#include <cmath>
 #include <vector>
 
 namespace GuessOutput {
+
+const char *COLUMN_SEPARATOR = " ";
 
 // w: set width to the user-specified width or the title width + 1, whichever is the largest.
 ColumnDescriptor::ColumnDescriptor(const char* title, 
@@ -292,9 +295,12 @@ void OutputChannel::clear_current_row(const Table& table) {
 		if (!printed_header[table.id()]) {
 			// print title for coordinates and time columns
 			fprintf(file, coords_title_format.c_str(), "Lon");
+			fputs(COLUMN_SEPARATOR, file);
 			fprintf(file, coords_title_format.c_str(), "Lat");
+			fputs(COLUMN_SEPARATOR, file);
 			fprintf(file, "%6s", "Year");
 			if (print_day) {
+				fputs(COLUMN_SEPARATOR, file);
 				fprintf(file, "%5s", "Day");
 			}
 
@@ -310,9 +316,12 @@ void OutputChannel::clear_current_row(const Table& table) {
 
 		// print out coordinates and time
 		fprintf(file, coords_format.c_str(), lon);
+		fputs(COLUMN_SEPARATOR, file);
 		fprintf(file, coords_format.c_str(), lat);
+		fputs(COLUMN_SEPARATOR, file);
 		fprintf(file, "%6d", year);
 		if (print_day) {
+			fputs(COLUMN_SEPARATOR, file);
 			fprintf(file, "%5d", day);
 		}
 
@@ -325,7 +334,7 @@ void OutputChannel::clear_current_row(const Table& table) {
 				fprintf(file, format(table, (int)i, row[i]), row[i]);
 			} else if (type == TEXT) {
 				char fmt[16];
-				sprintf(fmt, "%%%ds", column.width());
+				sprintf(fmt, " %%%ds", column.width());
 				fprintf(file, fmt, row_text[i]);
 			} else {
 				fail("Unknown column type: %d", type);
@@ -349,13 +358,75 @@ void OutputChannel::clear_current_row(const Table& table) {
 
 		double abs_value = fabs(value);
 		int digits_before_decimal = abs_value < 1.0 ? 1 : (int)floor(log10(abs_value)) + 1;
-		int chars_needed = digits_before_decimal + 1 + precision; // decimal point + decimals
+		int chars_needed = digits_before_decimal;
 
-		if (value < 0) {
+		if (std::signbit(value)) {
 			chars_needed++; // minus sign
 		}
 
+		if (precision > 0) {
+			chars_needed += 1 + precision; // decimal point + decimals
+		}
+
 		return chars_needed <= width;
+	}
+
+	/*
+	Get the max allowed precision when printing the specified value to a column
+	of the given width using fixed-point notation.
+	*/
+	int max_fixed_precision(double value, int width) {
+		if (!std::isfinite(value)) {
+			return max(width - 1, 0); // "nan", "inf", etc are short
+		}
+
+		double abs_value = fabs(value);
+		int digits_before_decimal = abs_value < 1.0 ? 1 : (int)floor(log10(abs_value)) + 1;
+		int chars_without_precision = digits_before_decimal;
+		if (std::signbit(value)) {
+			chars_without_precision++;
+		}
+
+		int target_width = max(width, 0);
+		int precision = target_width - chars_without_precision;
+		if (precision <= 0) {
+			return 0;
+		}
+
+		// A non-zero precision also requires the decimal point.
+		return precision - 1;
+	}
+
+	/*
+	Get the max allowed precision when printing the specified value to a column
+	of the given width using scientific notation.
+	*/
+	int max_precision(double value, int width) {
+		if (!std::isfinite(value)) {
+			return max(width - 1, 0); // "nan", "inf", etc are short
+		}
+
+		double abs_value = fabs(value);
+		int exponent = abs_value == 0.0 ? 0 : (int)floor(log10(abs_value));
+		int abs_exponent = exponent < 0 ? -exponent : exponent;
+		int exponent_digits = abs_exponent == 0 ? 1 : (int)floor(log10(abs_exponent)) + 1;
+		exponent_digits = max(exponent_digits, 2);
+
+		// length = sign + 1 digit + optional decimal point + precision +
+		//          'e' + exponent sign + exponent digits
+		int chars_without_precision = 1 + 1 + 1 + exponent_digits;
+		if (std::signbit(value)) {
+			chars_without_precision++;
+		}
+
+		int target_width = max(width, 0);
+		int precision = target_width - chars_without_precision;
+		if (precision <= 0) {
+			return 0;
+		}
+
+		// A non-zero precision also requires the decimal point.
+		return precision - 1;
 	}
 
 	const char* FileOutputChannel::format(const Table& table, int column, double value) {
@@ -367,9 +438,20 @@ void OutputChannel::clear_current_row(const Table& table) {
 
 		// Print using scientific notation if the value won't fit in the
 		// specified width using fixed-point notation.
-		char fmt = fixed_fits(value, cd.width(), cd.precision()) ? 'f' : 'e';
+		bool use_fixed = fixed_fits(value, cd.width(), cd.precision());
+		int precision = cd.precision();
+		if (use_fixed) {
+			precision = min(precision, max_fixed_precision(value, cd.width()));
+			if (!fixed_fits(value, cd.width(), precision)) {
+				use_fixed = false;
+				precision = min(cd.precision(), max_precision(value, cd.width()));
+			}
+		} else {
+			precision = min(precision, max_precision(value, cd.width()));
+		}
 
-		sprintf(buf, "%%%d.%d%c", cd.width(), cd.precision(), fmt);
+		char fmt = use_fixed ? 'f' : 'e';
+		sprintf(buf, " %%%d.%d%c", cd.width(), precision, fmt);
 
 		return buf;
 	}
@@ -382,7 +464,7 @@ void OutputChannel::clear_current_row(const Table& table) {
 		static char format[100];
 		static char buf[100];
 
-		sprintf(format, "%%%ds", cd.width());
+		sprintf(format, " %%%ds", cd.width());
 		sprintf(buf, format, cd.title().c_str());
 
 		return buf;
@@ -556,10 +638,13 @@ void GZFileOutputChannel::finish_row(const Table& table,
         }
         // print title for coordinates and time columns
         fprintf(file, coords_title_format.c_str(), "Lon");
+        fputs(COLUMN_SEPARATOR, file);
         fprintf(file, coords_title_format.c_str(), "Lat");
+        fputs(COLUMN_SEPARATOR, file);
         fprintf(file, "%6s", "Year");
 
         if (print_day) {
+            fputs(COLUMN_SEPARATOR, file);
             fprintf(file, "%5s", "Day");
         }
 
@@ -599,9 +684,12 @@ void GZFileOutputChannel::finish_row(const Table& table,
 
     // print out coordinates and time
     gzprintf(gzfile, coords_format.c_str(), lon);
+    gzputs(gzfile, COLUMN_SEPARATOR);
     gzprintf(gzfile, coords_format.c_str(), lat);
+    gzputs(gzfile, COLUMN_SEPARATOR);
     gzprintf(gzfile, "%6d", year);
     if (print_day) {
+        gzputs(gzfile, COLUMN_SEPARATOR);
         gzprintf(gzfile, "%5d", day);
     }
 
@@ -614,7 +702,7 @@ void GZFileOutputChannel::finish_row(const Table& table,
             gzprintf(gzfile, format(table, (int)i, row[i]), row[i]);
         } else if (type == TEXT) {
             char fmt[16];
-            sprintf(fmt, "%%%ds", column.width());
+            sprintf(fmt, " %%%ds", column.width());
             gzprintf(gzfile, fmt, row_text[i]);
         } else {
             fail("Unknown column type: %d", type);

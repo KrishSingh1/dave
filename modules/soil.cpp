@@ -4038,9 +4038,17 @@ void Soil::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_melt, 
 			}
 
 			// Mineral soil evaporation (mm s-1)
-			// Note: Wind speed doesn't affect soil evaporation  
-			wflux_soil_evap = get_climate().eet * PRIESTLEY_TAYLOR * wcont_evap * wcont_evap * fevap *
-				(1.0 - ssw.wmass_frac) / SECS_PER_DAY;
+			// Note: Wind speed doesn't affect soil evaporation
+			if (ifdavehydrology) {
+				// Only multiply by wcont once: can't find justification for
+				// squared term. This first appears in Rost 2008, Eq A5, but no
+				// squared term in Gerten 2004.
+				wflux_soil_evap = get_climate().eet * PRIESTLEY_TAYLOR * wcont_evap * fevap *
+					(1.0 - ssw.wmass_frac) / SECS_PER_DAY;
+			} else {
+				wflux_soil_evap = get_climate().eet * PRIESTLEY_TAYLOR * wcont_evap * wcont_evap * fevap *
+					(1.0 - ssw.wmass_frac) / SECS_PER_DAY;
+			}
 		}
 
 		// Evaporation for standing water part of the soil (mm s-1)

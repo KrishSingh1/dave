@@ -424,7 +424,7 @@ double germination_fraction_grass(Patchpft& ppft, Patch& patch) {
 	// TODO: parameterise this relationship from data
 	double fwater = wscal_growth(wcont, wscal0, bgrowth);
 	
-	double ftemp = temp_growth(tsoil,ppft.pft.Ha_growth,ppft.pft.T0_growth,ppft.pft.A_growth,ppft.pft.temp_dormancy);
+	double ftemp = temp_growth(tsoil,ppft.pft.Ha_growth,ppft.pft.T0_growth,ppft.pft.A_growth) * cold_attenuation(tsoil, ppft.pft.temp_dormancy - 2.0, 1.0);
 	double frac_germ = fgerm_max25 * ftemp * fwater; 
 	frac_germ = frac_germ > 0.01 ? frac_germ : 0.0;  // avoid very low germination rates
 

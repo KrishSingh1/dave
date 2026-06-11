@@ -268,40 +268,39 @@ double Nstorage_fillfrac(const Individual& indiv) {
 }
 
 
+// Cold attenuation function
+// Purpose is to shut down physiological functioning below the dormancy threshold
+// We need this function because common temperature response curves are not measured 
+// at these temperatures and applying the function would likely overestimate activity.
+// from Fatichi et al. 2014 (New Phytologist): 
+// "a 5–6°C threshold has often been identified to limit growth in cold adapted
+// species, irrespective of photosynthetic activity which typically
+// ceases only at freezing point (Koerner, 2008)"
+double cold_attenuation(double temp, double Tmid, double k) {
+	return 1.0 / (1.0 + exp(-(temp - Tmid) / k));
+}
+
 // Temperature scalar used for growth and dormancy
 // Relationship and parameters from Parent & Tardieu 2012, New Phytologist
 // representative species:
 // 		C3s: wheat (similar to barley, A. thaliana, canola)
 // 		C4s: sorghum (similar to millet, maize)
-// Function includes a modified response at temperatures lower than dormancy temperature.
-// from Fatichi et al. 2014 (New Phytologist): 
-// "a 5–6°C threshold has often been identified to limit growth in cold adapted
-// species, irrespective of photosynthetic activity which typically
-// ceases only at freezing point (Koerner, 2008)"
-double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth, double temp_dorm) {
+double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth) {
 	
 	double alpha   = 3.5;                   // unitless
 	double Ha      = Ha_growth * J_PER_KJ;  // J mol-1
 	double T0      = T0_growth + K2degC;    // K
 	double Tleaf   = temp + K2degC;         // K   
-	double Tdorm   = temp_dorm + K2degC;    // K
 
 	// ASSAF : TEMPORATY PARAMETERS FOR TESTING. AIM: TO GET TREES TO STORE IN WINTER BY
 	// GETTING ftemp TO BE 0.
 	// T0 = 30+ K2degC;
-	// Tdorm = 15 + K2degC;
 
     // Note: A_growth was rescaled so that temp_growth ranges from 0-1
 	double ftemp;
 
 	ftemp = A_growth * (Tleaf * exp(-Ha / (R_gas * Tleaf))) / 
 			(1.0 + pow(exp(-Ha / (R_gas * Tleaf)),(alpha * (1.0 - Tleaf / T0))) );
-
-	// low temperature adjustment to avoid simulating unrealistic growth demand
-    // at very low temperatures (see also comment above).
-	double Tdef = max(0.0,Tdorm - Tleaf);
-	double beta = 0.3;
-    ftemp *= exp(-beta * Tdef);
 
 	return max(0.0,min(1.0,ftemp));
 }
@@ -338,11 +337,13 @@ double dphen_activity(Individual &indiv, Climate& climate) {
 	// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn. pathway)
 	double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
 	double wscal_mean = indiv.get_wscal_moving_average();
-	double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+	double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth) 
+	                    * cold_attenuation(indiv.pft.temp_dormancy, indiv.pft.temp_dormancy - 2.0, 1.0);
 
 	//double wscal_actual = wscal_growth(wscal_mean);
 	double wscal_actual = wscal_mean;
-	double tscal_actual = temp_growth(indiv.soiltemp_dynamic.mean(), indiv.pft.Ha_growth, indiv.pft.T0_growth, indiv.pft.A_growth, indiv.pft.temp_dormancy);
+	double tscal_actual = temp_growth(indiv.soiltemp_dynamic.mean(), indiv.pft.Ha_growth, indiv.pft.T0_growth, indiv.pft.A_growth)
+	                      * cold_attenuation(indiv.soiltemp_dynamic.mean(), indiv.pft.temp_dormancy - 2.0, 1.0);
 
 	// Changes in physiological activity due to changes in dormancy status
 	double denom_wscal = wscal_actual >= wscal_min ? pow((1.0 - wscal_min), 1.5) : wscal_min;
@@ -3530,7 +3531,7 @@ double growth_demand(Individual& indiv) {
 	// ------------------------------
 	// Factors determining growth demand
 	fwater_growth = wscal_growth(indiv.get_wscal(), wscal0, bgrowth);
-	ftemp_growth  = temp_growth(grass_temp, pft.Ha_growth, pft.T0_growth, pft.A_growth, pft.temp_dormancy);
+	ftemp_growth  = temp_growth(grass_temp, pft.Ha_growth, pft.T0_growth, pft.A_growth) * cold_attenuation(grass_temp, indiv.pft.temp_dormancy - 2.0, 1.0);
 	fphoto_growth = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));  // set to 1.0 
 	//dev_growth(indiv, indiv.frepr_cstruct); // indiv.fdev_growth now calculated in phenology_grass_dave beforehand!
 

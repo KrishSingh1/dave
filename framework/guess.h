@@ -5369,7 +5369,7 @@ public:
 
 	std::vector<LitterSolveSOM> solvesom;
 
-	// Soil water potential (mPa).
+	// Soil water potential (MPa).
 	double psi;
 	double k_actual;
 

@@ -298,13 +298,10 @@ double temp_growth(double temp, double Ha_growth, double T0_growth, double A_gro
 			(1.0 + pow(exp(-Ha / (R_gas * Tleaf)),(alpha * (1.0 - Tleaf / T0))) );
 
 	// low temperature adjustment to avoid simulating unrealistic growth demand
-    // at very low or even negative temperatures (see also comment above).
-	// When above tdorm, ftemp = ftemp
-	// When below tdorm, ftemp *= 1 - tdef * 0.5
-	// So, when 2 degrees below tdorm, ftemp = 0
-	//     when 0 degrees below tdorm, ftemp = ftemp
-    double Tdef = Tdorm - Tleaf;
-    ftemp = Tdef < 0.0 ? ftemp : ftemp * min(1.0, max(0.0, (1.0 - Tdef * 0.5)));	// 0.5 for 0 growth 2degC below Tdorm.	
+    // at very low temperatures (see also comment above).
+	double Tdef = max(0.0,Tdorm - Tleaf);
+	double beta = 0.3;
+    ftemp *= exp(-beta * Tdef);
 
 	return max(0.0,min(1.0,ftemp));
 }

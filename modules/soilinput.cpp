@@ -486,7 +486,8 @@ SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 	soiltype.sand = data[soilcode][7];
 	soiltype.clay = data[soilcode][8];
 
-	soiltype.volumetric_whc_field_capacity = data[soilcode][1];
+	// Percolation coefficient
+	soiltype.b = data[soilcode][0];
 
 	// Thermal diffusivity
 	soiltype.thermal_wilting_point = data[soilcode][2];
@@ -495,21 +496,6 @@ SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 
 	// Water holding capacities
 	soiltype.saturation_capacity = data[soilcode][6];
-	soiltype.pH = 6.5;
-	soiltype.soil_OC = 0.05;
-	soiltype.soilC = 0.0; // default value (kgC/m2)
-	return soiltype;
-}
-
-// Stores the basic properties of organic soil. 
-// Used only if scaling between pure mineral and organic soils is activated.
-SoilInput::SoilProperties SoilInput::get_lpj_organic_soil() {
-
-	int soilcode = 8;
-
-	SoilProperties soiltype;
-	soiltype.sand = data[soilcode][7];
-	soiltype.clay = data[soilcode][8];
 
 	soiltype.volumetric_whc_field_capacity = data[soilcode][1];
 	soiltype.wilting_point = data[soilcode][5];

@@ -112,7 +112,6 @@ private:
 
 	SoilProperties get_lpj(coord c);
 	SoilProperties get_mineral(coord c);
-	SoilProperties get_lpj_organic_soil();
 
 	struct SoilDataMineral {
 		double sand;

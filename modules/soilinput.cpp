@@ -486,10 +486,7 @@ SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 	soiltype.sand = data[soilcode][7];
 	soiltype.clay = data[soilcode][8];
 
-	soiltype.K = data[soilcode][0];
 	soiltype.volumetric_whc_field_capacity = data[soilcode][1];
-	// Percolation coefficient
-	soiltype.b = data[soilcode][0];
 
 	// Thermal diffusivity
 	soiltype.thermal_wilting_point = data[soilcode][2];
@@ -501,11 +498,6 @@ SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 	soiltype.pH = 6.5;
 	soiltype.soil_OC = 0.05;
 	soiltype.soilC = 0.0; // default value (kgC/m2)
-	soiltype.porosity = data[soilcode][11];
-	soiltype.Psi_s = 20; // cm, just a guess
-	soiltype.b = 4; // unitless, just a guess
-	soiltype.Psi_wp = 5; // cm, just a guess
-	soiltype.Psi_whc = 15; // cm, just a guess
 	return soiltype;
 }
 
@@ -519,7 +511,6 @@ SoilInput::SoilProperties SoilInput::get_lpj_organic_soil() {
 	soiltype.sand = data[soilcode][7];
 	soiltype.clay = data[soilcode][8];
 
-	soiltype.K = data[soilcode][0];
 	soiltype.volumetric_whc_field_capacity = data[soilcode][1];
 	soiltype.wilting_point = data[soilcode][5];
 
@@ -542,63 +533,7 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 
 	SoilDataMineral& soil = mineral_map[C];
 
-	// soil.sand = 0.7; ! Testing sandier soil at Calperum, reduced soil evap but didn't change LAI much
-	// soil.clay = 0.15;
-
-	double silt = 1.0 - soil.sand - soil.clay;
-
-	// Equation 1 from Cosby 1984
-	// Psi = Psi_s * (Theta/Theta_s)^b
-	// Psi is the pressure head in cm
-	// *_s is the values at saturation
-	// Theta is the volumetric moisture content in percent
-	// Re-arranged to get the Theta
-	// Theta = Theta_s * (Psi/Psi_s)^(1/b)
-
-	// from Table 4, Cosby 1984
-	double b = 3.10 + 15.7 * soil.clay - 0.3 * soil.sand;
-
-	double logPsi_s = 1.54 - 0.95 * soil.sand + 0.63 * silt;
-
-	// Theta_s in Cosby expressed as %
-	double Theta_s = 0.01 * (50.5 - 14.2 * soil.sand - 3.7 * soil.clay);
-
-	double Psi_s = 0.0;
-	double Psi_wilt = 0.0;
-	double Psi_whc = 0.0;
-	double Theta_wilt = 0.0;
-	double Theta_whc = 0.0;
-
-	if (ifdavehydrology){
-
-		Psi_s = -pow(10.0, logPsi_s);  /// CS changed from pow(10.0, -logPsi_s), why the negative there??? Compensates for not having '-b' in equation below but these Psi values didn't make sense (and now I'm using them elsewhere)
-		Psi_wilt = -pow(10.0, 5.3);   /// CS changed from pow(10.0, -4.2). See Hohenbrink et al (2023), output is in cm. Testing parameter change from 4.2 to 5.3, to allow plants/evap to extract more water, up to ~ -20MPa.
-		Psi_whc = -pow(10.0, 1.8);    /// CS changed from pow(10.0, -2). See Hohenbrink et al (2023), output is in cm, 1.8
-
-		Theta_wilt = Theta_s * pow((Psi_wilt / Psi_s), 1.0 / -b);  // CS changed to -b, I think there's a mistake in Cosby 1984
-		Theta_whc = Theta_s * pow((Psi_whc / Psi_s), 1.0 / -b); 
-
-	} else {
-
-		Psi_s = pow(10.0, -logPsi_s);  
-		Psi_wilt = pow(10.0, -4.2);   
-		Psi_whc = pow(10.0, -2.0);    
-
-		Theta_wilt = Theta_s * pow((Psi_wilt / Psi_s), 1.0 / b);  
-		Theta_whc = Theta_s * pow((Psi_whc / Psi_s), 1.0 / b); 
-
-	}
-
-	// A linear dependence between the percolation coefficient from Haxeltine 1996a
-	// and the texture dependent parameter b from Cosby 1984 was established
-	// K = 5.87 - 0.29*b
-
 	SoilProperties soiltype;
-	soiltype.K = 5.87 - 0.29 * b; // note can't find where this comes from or what the units are???
-
-	// hydraulic conductivity (m/s) based on equation 10 from Saxton et al (1986)
-	soiltype.Ksat = 2.778e-6 * exp(12.012 - 0.0755 * soil.sand*100.0 + (-3.895 + 0.03671 * soil.sand*100.0 - 0.1103 * 
-					soil.clay*100.0 + 8.7546e-4 * soil.clay*100.0) * 1.0/Theta_s);
 
 	// Mineral fractions
 	soiltype.sand = soil.sand;
@@ -609,11 +544,6 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 
 	// Soil carbon content
 	soiltype.soilC = soil.soilC;
-	soiltype.Psi_s = Psi_s;
-	soiltype.b = b;
-	soiltype.Theta_s = Theta_s;
-	soiltype.Psi_wp = Psi_wilt;
-	soiltype.Psi_whc = Psi_whc;
 
 	// Soil carbon fraction
 	soiltype.soil_OC = soil.orgc;
@@ -705,7 +635,7 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 		if (soiltype.soil_input == LPJ) {
 
 			// Percolation coefficients
-			soiltype.perc_base = soilprop.K;			
+			soiltype.perc_base = soilprop.b;
 
 			// Thermal diffusivity for mineral soil
 			soiltype.thermdiff_0 = soilprop.thermal_wilting_point;
@@ -726,10 +656,6 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 
 		// Texture depth set to 100 mm
 		soiltype.text_depths[0] = 100.0;
-
-		soiltype.b = soilprop.b;
-		soiltype.Psi_s = soilprop.Psi_s;
-		soiltype.Ksat = soilprop.Ksat;
 	}
 	else {
 		// Inhomogeneous soil profile when it comes to minerals and pH
@@ -746,12 +672,6 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 		soiltype.soilC.resize(nr_lyr);
 		soiltype.pH.resize(nr_lyr);
 		soiltype.text_depths.resize(nr_lyr);
-
-		SoilProperties soilprop = soil_code ? get_lpj(c) : get_mineral(c);
-		soiltype.K = soilprop.K; // unused
-		soiltype.b = soilprop.b;
-		soiltype.Psi_s = soilprop.Psi_s;
-		soiltype.Ksat = soilprop.Ksat;
 
 		for (int lyr = 0; lyr < nr_lyr; lyr++) {
 

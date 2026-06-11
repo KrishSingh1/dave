@@ -4911,21 +4911,6 @@ public:
 	/// Soilcode, 0 to 8
 	int soilcode;
 
-	// saturated pressure head in cm (Cosby 1984)
-	double Psi_s;
-	// pressure head in cm at wilting point (Cosby 1984)
-	double Psi_wp;
-	// pressure head in cm at field capacity (Cosby 1984)
-	double Psi_whc;
-	// slope of soil water retention curve (Cosby 1984)
-	double b;
-	// percolation coefficient from Haxeltine 1996a (UNITS)
-	double K;	
-	// saturated hydraulic conductivity (m/s) based on equation 10 from Saxton et al (1986)
-	double Ksat;
-	// Saturated water content (m3/m3)
-	double Theta_s;
-
 	/// Volumetric fraction of organic material (m3 m-3) (Hillel, 1998)
 	std::vector<double> organic_frac;
 
@@ -4938,9 +4923,6 @@ public:
 
 	/// Constructor: initialises certain member variables
 	Soiltype() {
-		Psi_s = 0.0;
-		Psi_wp = 0.0;
-		Psi_whc = 0.0;
 	}
 };
 

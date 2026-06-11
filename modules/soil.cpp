@@ -2380,8 +2380,12 @@ void Soillayer::update_temp(double add_temp, double add_mass, double add_Ch) {
 	}
 }
 
-/// Help function for soil water matric potential calculation
-/** Help function for soil water matric potential calculation
+/**
+ * Help function for soil water matric potential calculation
+ *
+ * This is an optimisation which improves simulation runtime by ~2.5%.
+ *
+ * Equivalent to theta^k.
  */
 double hydro_pow(double theta, double k) {
 

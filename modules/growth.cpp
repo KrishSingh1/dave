@@ -5369,7 +5369,8 @@ void senescence_dave_grass(Individual &indiv) {
 
 	double senesc = pft.senesc_base;
 
-	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant || indiv.fdev_growth < 1.0) {
+	// Developmental effects on senescence (stronger senescence in reproductive phase)
+	if (indiv.growth_stage == reproductive || indiv.fdev_growth < 1.0) {
 		// stronger increase of senescence in annuals
 		//double senesc_rate_repr = indiv.pft.lifeform == GRASS_PERENNIAL ? 1.015 : 1.08;
 		//indiv.fdev_senesc = max(1.0, indiv.fdev_senesc * senesc_rate_repr);
@@ -5384,6 +5385,7 @@ void senescence_dave_grass(Individual &indiv) {
 
 	// Stress factors increase senescence
 	// Soil moisture
+	// TODO: multiply this by the fraction of soil that is not frozen!
 	double senesc_fwater = pft.senesc_scal_water * pow(1.0 - indiv.get_wscal(),pft.qwater_senesc);
 	
 	// Senescence due to freezing and hot temperatures 

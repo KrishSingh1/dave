@@ -50,7 +50,7 @@ double get_co2(const Patch& p, const Climate& climate, const Pft& pft);
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	double respcoeff, double cton_sap, double cton_shoot, double cton_root, double cton_crown,
 	double cmass_sap, double cmass_culm, double cmass_root_today, double cmass_crown, double cmass_repr, 
-	double growth, double fphen_activity, double assim, double resp_leaf,
+	double growth, double fphen_resp, double assim, double resp_leaf,
 	double& resp, double &resp_maintenance, double &resp_growth,
 	double &resp_repr, double &resp_culm, double &resp_crown, double &resp_root, double &resp_sap);
 

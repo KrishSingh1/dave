@@ -1691,6 +1691,10 @@ void npp_dave(Patch& patch) {
 		// Get effective C:N ratios for sap, root, and crown.
 		CtonRatios cton = cton_effective(indiv);
 
+		// Calculate respiration scalar due to dormancy
+		double fphen_resp = indiv.fphen_activity + (1.0 - indiv.fphen_activity) *
+		                    max(0.0,(indiv.get_wscal_moving_average() - indiv.pft.wscal_min) / (1.0 - indiv.pft.wscal_min));
+
 		// Set leaf respiration.
 		indiv.resp_leaf = indiv.photosynthesis.rd_g * KG_PER_G;
 
@@ -1707,7 +1711,7 @@ void npp_dave(Patch& patch) {
 		double resp = 0;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
 			respcoeff, cton.sap, cton.leaf, cton.root, cton.crown, indiv.cmass_sap,
-			cmass_culm, cmass_root, cmass_crown, cmass_repr, indiv.cgrow, indiv.fphen_activity,
+			cmass_culm, cmass_root, cmass_crown, cmass_repr, indiv.cgrow, fphen_resp,
 			assim, indiv.resp_leaf, resp, indiv.resp_maintenance,
 			indiv.resp_growth, indiv.resp_repr, indiv.resp_culm, indiv.resp_crown,
 			indiv.resp_root, indiv.resp_sap);

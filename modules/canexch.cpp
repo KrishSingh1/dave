@@ -2366,7 +2366,7 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	double respcoeff, double cton_sap, double cton_shoot, double cton_root, double cton_crown,
 	double cmass_sap, double cmass_culm, double cmass_root_today,
-	double cmass_crown, double cmass_repr, double growth, double fphen_activity, 
+	double cmass_crown, double cmass_repr, double growth, double fphen_resp, 
 	double assim, double resp_leaf, double& resp, double &resp_maintenance, double &resp_growth, 
 	double &resp_repr, double &resp_culm, double &resp_crown, double &resp_root, double &resp_sap) {
 
@@ -2508,20 +2508,20 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 			// Culm respiration
 			// TODO: might overestimate this one because we partly account for it through leaf Rd 
-			resp_culm = (respcoeff * K * cmass_culm / cton_shoot * gtemp_air) * fphen_activity;
+			resp_culm = (respcoeff * K * cmass_culm / cton_shoot * gtemp_air) * fphen_resp;
 
 			// Root respiration
-			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_activity;
+			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_resp;
 
 			// Crown respiration
 			// TODO: could replace gtemp_soil (at 25cm) with gtemp at surface (as done for turnover of brown shoots).
 			// Alternatively we might want to take gtemp_air here.
-			resp_crown = (0.85 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
+			resp_crown = (0.85 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_resp;
 
 			// Reproductive respiration
 			// TODO: reduce resp_repr with senescence.
 			// TODO: replace cton_root with cton_repr. 
-			resp_repr = (respcoeff * K * cmass_repr / cton_root * gtemp_air) * fphen_activity;
+			resp_repr = (respcoeff * K * cmass_repr / cton_root * gtemp_air) * fphen_resp;
 			
 			// Growth respiration
 			if (ifdailygrass) {

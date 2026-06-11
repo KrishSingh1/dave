@@ -3652,8 +3652,6 @@ public:
 	double cmass_crown;
 	/// reproductive tissue C biomass (kgC/m2)
 	double cmass_repr;
-	/// peak aboveground leaf biomass (kgC/m2)
-	double cmass_struct;
 	/// sapwood C biomass on modelled area basis (kgC/m2)
 	double cmass_sap;
 	/// Total annual C biomass allocated to leaf on modelled area basis (kgC/m2)

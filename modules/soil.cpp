@@ -373,10 +373,10 @@ double Snow::ncont() const {
 /// Function returns total water and ice mass in snow 
 /** Function returns total water and ice mass in snow 
  */
-double Snow::water_and_ice_content() {
+double Snow::water_and_ice_content() const {
 	double wcontent = 0.0;
 	for (int lyr = 0; lyr < nsnowlayers; lyr++) {
-		Snowlayer& snowlayer = snowlayers[lyr];
+		const Snowlayer& snowlayer = snowlayers[lyr];
 		wcontent += snowlayer.wmass + snowlayer.imass;
 	}
 	return wcontent;
@@ -2887,21 +2887,21 @@ double Soil::ncont(grouppooltype group) const {
 /// Returns surface standing water and ice content
 /** Returns surface standing water and ice content
  */
-double SSW::water_and_ice_content() {
+double SSW::water_and_ice_content() const {
 	return wmass + imass;
 }
 
 /// Returns soil water and ice content
 /** Returns soil water and ice content
  */
-double Soil::water_and_ice_content() {
+double Soil::water_and_ice_content() const {
 	return get_sum(&Soillayer::wmass) + get_sum(&Soillayer::imass);
 }
 
 /// Returns the total value for a certain property
 /** Returns the total value for a certain property
  */
-double Soil::get_sum(double Soillayer::* var_member) {
+double Soil::get_sum(double Soillayer::* var_member) const {
 	// Variable to return
 	double prop = 0.0;
 
@@ -2917,7 +2917,7 @@ double Soil::get_sum(double Soillayer::* var_member) {
 /// Returns the total value for a certain property
 /** Returns the total value for a certain property
  */
-double Soil::get_sum(double(Soillayer::* var_arr)[12], int m) {
+double Soil::get_sum(double(Soillayer::* var_arr)[12], int m) const {
 	// Variable to return
 	double prop = 0.0;
 

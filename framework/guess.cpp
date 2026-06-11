@@ -826,7 +826,7 @@ double Patch::ncont(double scale_indiv, bool luc) const {
 }
 
 /// Water content of patch
-double Patch::water_content() {
+double Patch::water_content() const {
 
 	double water_content = soil.water_and_ice_content();
 
@@ -838,7 +838,7 @@ double Patch::water_content() {
 }
 
 /// C flux of patch
-double Patch::cflux() {
+double Patch::cflux(Period period) const {
 
 	double cflux = 0.0;
 
@@ -857,7 +857,7 @@ double Patch::cflux() {
 }
 
 /// N flux of patch
-double Patch::nflux() {
+double Patch::nflux(Period period) const {
 
 	double nflux = 0.0;
 
@@ -882,7 +882,7 @@ double Patch::nflux() {
 }
 
 /// water flux of patch
-double Patch::water_flux() {
+double Patch::water_flux(Period period) const {
 
 	double wflux = 0.0;
 
@@ -1589,7 +1589,7 @@ double Stand::ncont(double scale_indiv) {
 	return ncont;
 }
 
-double Stand::water_content() {
+double Stand::water_content() const {
 
 	double water_content = 0.0;
 
@@ -1599,32 +1599,32 @@ double Stand::water_content() {
 	return water_content;
 }
 
-double Stand::cflux() {
+double Stand::cflux(Period period) const {
 
 	double cflux = 0.0;
 
 	for (unsigned int p = 0; p < nobj; p++)
-		cflux += (*this)[p].cflux() / nobj;
+		cflux += (*this)[p].cflux(period) / nobj;
 
 	return cflux;
 }
 
-double Stand::nflux() {
+double Stand::nflux(Period period) const {
 
 	double nflux = 0.0;
 
 	for (unsigned int p = 0; p < nobj; p++)
-		nflux += (*this)[p].nflux() / nobj;
+		nflux += (*this)[p].nflux(period) / nobj;
 
 	return nflux;
 }
 
-double Stand::water_flux() {
+double Stand::water_flux(Period period) const {
 
 	double water_flux = 0.0;
 
 	for (unsigned int p = 0; p < nobj; p++)
-		water_flux += (*this)[p].water_flux() / nobj;
+		water_flux += (*this)[p].water_flux(period) / nobj;
 
 	return water_flux;
 }
@@ -4359,7 +4359,7 @@ Stand& Gridcell::create_stand_lu(StandType& st, double fraction, int no_patch, b
 	return stand;
 }
 
-double Gridcell::ccont() {
+double Gridcell::ccont() const {
 
 	double ccont = 0.0;
 
@@ -4371,7 +4371,7 @@ double Gridcell::ccont() {
 	return ccont;
 }
 
-double Gridcell::ncont() {
+double Gridcell::ncont() const {
 
 	double ncont = 0.0;
 
@@ -4383,7 +4383,7 @@ double Gridcell::ncont() {
 	return ncont;
 }
 
-double Gridcell::water_content() {
+double Gridcell::water_content() const {
 
 	double water_content = 0.0;
 
@@ -4395,13 +4395,13 @@ double Gridcell::water_content() {
 	return water_content;
 }
 
-double Gridcell::cflux() {
+double Gridcell::cflux(Period period) const {
 
 	double cflux = 0.0;
 
 	for (unsigned int s = 0; s < nbr_stands(); s++) {
 		Stand& stand = (*this)[s];
-		cflux += stand.cflux() * stand.get_gridcell_fraction();
+		cflux += stand.cflux(period) * stand.get_gridcell_fraction();
 	}
 
 	cflux += landcover.acflux_landuse_change;
@@ -4412,15 +4412,18 @@ double Gridcell::cflux() {
 	return cflux;
 }
 
-double Gridcell::nflux() {
+double Gridcell::nflux(Period period) const {
 
 	double nflux = 0.0;
 
 	for (unsigned int s = 0; s < nbr_stands(); s++) {
 		Stand& stand = (*this)[s];
-		nflux += stand.nflux() * stand.get_gridcell_fraction();
+		nflux += stand.nflux(period) * stand.get_gridcell_fraction();
 	}
 
+	// TODO DH: these won't be accounted for via the period argument. We need
+	// to create per-stand and per-gridcell flux objects to track these kinds
+	// of fluxes. Everything should be a flux!
 	nflux += landcover.anflux_landuse_change;
 	nflux += landcover.anflux_harvest_slow;
 	nflux += landcover.anflux_wood_harvest;
@@ -4429,13 +4432,13 @@ double Gridcell::nflux() {
 	return nflux;
 }
 
-double Gridcell::water_flux() {
+double Gridcell::water_flux(Period period) const {
 
 	double water_flux = 0.0;
 
 	for (unsigned int s = 0; s < nbr_stands(); s++) {
 		Stand& stand = (*this)[s];
-		water_flux += stand.water_flux() * stand.get_gridcell_fraction();
+		water_flux += stand.water_flux(period) * stand.get_gridcell_fraction();
 	}
 
 	return water_flux;
@@ -4572,14 +4575,14 @@ void MassBalance::init_indiv(Individual& indiv) {
 	// Add soil C
 	ccont_zero += patch.ccont(0.0);
 	ccont_zero_scaled += patch.ccont(0.0);
-	cflux_zero = patch.cflux();
+	cflux_zero = patch.cflux(Period::YEAR);
 
 	ncont_zero = indiv.ncont();
 	ncont_zero_scaled = indiv.ncont(scale, true);
 	// Add soil N
 	ncont_zero += patch.ncont(0.0);
 	ncont_zero_scaled += patch.ncont(0.0);
-	nflux_zero = patch.nflux();
+	nflux_zero = patch.nflux(Period::YEAR);
 }
 
 bool MassBalance::check_indiv_C(Individual& indiv, bool check_harvest) {
@@ -4592,7 +4595,7 @@ bool MassBalance::check_indiv_C(Individual& indiv, bool check_harvest) {
 
 	double ccont = indiv.ccont();
 	ccont += patch.ccont(0.0);
-	double cflux = patch.cflux();
+	double cflux = patch.cflux(Period::YEAR);
 
 	if (check_harvest && patch.isharvestday)
 		ccont_zero = ccont_zero_scaled;
@@ -4618,7 +4621,7 @@ bool MassBalance::check_indiv_N(Individual& indiv, bool check_harvest) {
 
 	double ncont = indiv.ncont();
 	ncont += patch.ncont(0.0);
-	double nflux = patch.nflux();
+	double nflux = patch.nflux(Period::YEAR);
 
 	if (check_harvest && patch.isharvestday)
 		ncont_zero = ncont_zero_scaled;
@@ -4655,20 +4658,20 @@ void MassBalance::init_patch(Patch& patch) {
 
 	ccont_zero = patch.ccont();
 	ccont_zero_scaled = patch.ccont(scale, true);
-	cflux_zero = patch.cflux();
+	cflux_zero = patch.cflux(Period::YEAR);
 
 	if (stand.get_gridcell_fraction())
 		cflux_zero += gridcell.landcover.acflux_harvest_slow / stand.get_gridcell_fraction();
 
 	ncont_zero = patch.ncont();
 	ncont_zero_scaled = patch.ncont(scale, true);
-	nflux_zero = patch.nflux();
+	nflux_zero = patch.nflux(Period::YEAR);
 
 	if (stand.get_gridcell_fraction())
 		nflux_zero += gridcell.landcover.anflux_harvest_slow / stand.get_gridcell_fraction();
 
 	water_cont_zero = patch.water_content();
-	water_flux_zero = patch.water_flux();
+	water_flux_zero = patch.water_flux(Period::YEAR);
 }
 
 bool MassBalance::check_patch_C(Patch& patch, bool check_harvest) {
@@ -4677,7 +4680,7 @@ bool MassBalance::check_patch_C(Patch& patch, bool check_harvest) {
 	Stand& stand = patch.stand;
 	Gridcell& gridcell = stand.get_gridcell();
 	double ccont = patch.ccont();
-	double cflux = patch.cflux();
+	double cflux = patch.cflux(Period::YEAR);
 
 	if (stand.get_gridcell_fraction())
 		cflux += gridcell.landcover.acflux_harvest_slow / stand.get_gridcell_fraction();
@@ -4704,7 +4707,7 @@ bool MassBalance::check_patch_N(Patch& patch, bool check_harvest) {
 	//	return balance;
 	Gridcell& gridcell = stand.get_gridcell();
 	double ncont = patch.ncont();
-	double nflux = patch.nflux();
+	double nflux = patch.nflux(Period::YEAR);
 
 	if (stand.get_gridcell_fraction())
 		nflux += gridcell.landcover.anflux_harvest_slow / stand.get_gridcell_fraction();
@@ -4728,7 +4731,7 @@ bool MassBalance::check_patch_water(Patch& patch) {
 	bool balance = true;
 
 	double water_content = patch.water_content();
-	double water_flux = patch.water_flux();
+	double water_flux = patch.water_flux(Period::YEAR);
 
 	if (date.year >= nyear_spinup && !negligible(water_content - water_cont_zero + water_flux - water_flux_zero, -8)) {
 		dprintf("\nStand %d Patch %d Water balance year %d day %d: %.9f\n", patch.stand.id, patch.id, date.year, date.day, water_content - water_cont_zero + water_flux - water_flux_zero);
@@ -4753,7 +4756,7 @@ bool MassBalance::check_patch(Patch& patch, bool check_harvest) {
 void MassBalance::check_year_N(Gridcell& gridcell) {
 
 	double ncont_year = gridcell.ncont();
-	double nflux_year = gridcell.nflux();
+	double nflux_year = gridcell.nflux(Period::YEAR);
 
 	if (date.year == start_year) {
 		ncont_zero = ncont_year;
@@ -4818,7 +4821,7 @@ bool check_mass_balance_today(const Gridcell &gridcell) {
 
 void MassBalance::check_day_c(Gridcell &gridcell) {
 	double ccont = gridcell.ccont();
-	double cflux = gridcell.cflux();
+	double cflux = gridcell.cflux(Period::DAY);
 
 	if (date.day == 0) {
 		cflux_yesterday = 0;
@@ -4846,7 +4849,7 @@ void MassBalance::check_day_c(Gridcell &gridcell) {
 
 void MassBalance::check_day_n(Gridcell &gridcell) {
 	double ncont = gridcell.ncont();
-	double nflux = gridcell.nflux(); // NO_SOIL, N2O_SOIL, gridcell.aNH4dep, gridcell.aNO3dep
+	double nflux = gridcell.nflux(Period::DAY); // NO_SOIL, N2O_SOIL, gridcell.aNH4dep, gridcell.aNO3dep
 
 	if (date.day == 0) {
 		nflux_yesterday = 0;
@@ -4874,7 +4877,7 @@ void MassBalance::check_day_n(Gridcell &gridcell) {
 
 void MassBalance::check_day_water(Gridcell &gridcell) {
 	double wcont = gridcell.water_content();
-	double wflux = gridcell.water_flux();
+	double wflux = gridcell.water_flux(Period::DAY);
 
 	if (date.day == 0) {
 		water_flux_yesterday = 0;
@@ -4902,7 +4905,7 @@ void MassBalance::check_day_water(Gridcell &gridcell) {
 void MassBalance::check_year_C(Gridcell& gridcell) {
 
 	double ccont_year = gridcell.ccont();
-	double cflux_year = gridcell.cflux();
+	double cflux_year = gridcell.cflux(Period::YEAR);
 
 	if (date.year == start_year) {
 		ccont_zero = ccont_year;
@@ -4930,7 +4933,7 @@ void MassBalance::check_year_C(Gridcell& gridcell) {
 void MassBalance::check_year_water(Gridcell& gridcell) {
 
 	double water_cont_year = gridcell.water_content();
-	double water_flux_year = gridcell.water_flux();
+	double water_flux_year = gridcell.water_flux(Period::YEAR);
 
 	if (date.year == start_year) {
 		water_cont_zero = water_cont_year;
@@ -5001,17 +5004,17 @@ void MassBalance::init(Gridcell& gridcell) {
 
 //	start_year = date.year;
 	ccont_zero = gridcell.ccont();
-	cflux_zero = gridcell.cflux();
+	cflux_zero = gridcell.cflux(Period::YEAR);
 	ncont_zero = gridcell.ncont();
-	nflux_zero = gridcell.nflux();
+	nflux_zero = gridcell.nflux(Period::YEAR);
 	water_cont_zero = gridcell.water_content();
-	water_flux_zero = gridcell.water_flux();
+	water_flux_zero = gridcell.water_flux(Period::YEAR);
 }
 
 void MassBalance::check(Gridcell& gridcell) {
 
 	double ccont = gridcell.ccont();
-	double cflux = gridcell.cflux();
+	double cflux = gridcell.cflux(Period::YEAR);
 
 	if (!negligible(ccont - ccont_zero + cflux, -5)) {
 		dprintf("\n(%.2f, %.2f): C balance year %d: %.5f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ccont - ccont_zero + cflux);
@@ -5020,7 +5023,7 @@ void MassBalance::check(Gridcell& gridcell) {
 	}
 
 	double ncont = gridcell.ncont();
-	double nflux = gridcell.nflux();
+	double nflux = gridcell.nflux(Period::YEAR);
 
 	if (!negligible(ncont - ncont_zero + nflux, -5)) {
 		dprintf("\n(%.2f, %.2f): N balance year %d: %.5f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ncont - ncont_zero + nflux);
@@ -5028,7 +5031,7 @@ void MassBalance::check(Gridcell& gridcell) {
 	}
 
 	double water_content = gridcell.water_content();
-	double water_flux = gridcell.water_flux();
+	double water_flux = gridcell.water_flux(Period::YEAR);
 
 	if (!negligible(water_content - water_cont_zero + water_flux, -4)) {
 		dprintf("\n(%.2f, %.2f): Water balance year %d: %.6f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, water_content - water_cont_zero + water_flux);

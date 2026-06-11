@@ -1806,6 +1806,14 @@ public:
 	void serialize(ArchiveStream& arch);
 };
 
+/*
+Defines the period of a flux.
+*/
+enum class Period {
+	DAY,
+	MONTH,
+	YEAR
+};
 
 /// Stores accumulated monthly and annual fluxes.
 /** This class handles the storage and accounting of fluxes for a single patch.
@@ -5662,7 +5670,7 @@ public:
 	double ncont() const;
 
 	/// Returns total snowpack (water and ice) [mm]
-	double water_and_ice_content();
+	double water_and_ice_content() const;
 
 	/// Returns total snowpack water [mm]
 	double wmass();
@@ -5722,7 +5730,7 @@ struct SSW : public Serializable {
 	}
 
 	/// Water and ice content of surface standing water
-	double water_and_ice_content();
+	double water_and_ice_content() const;
 	/// Update surface standing water temperatures due to water fluxes
 	void update_temp(double temp_add, double wmass_add, double imass_add = 0.0);
 	/// Update thermal properties for surface standing water
@@ -5970,11 +5978,11 @@ public:
 	/// N content of soil 
 	double ncont(grouppooltype group = GALL) const;
 	/// Water and ice content of the soil
-	double water_and_ice_content();
+	double water_and_ice_content() const;
 	/// Get soil property totals
-	double get_sum(double Soillayer::* var_member);
+	double get_sum(double Soillayer::* var_member) const;
 	/// Get soil property totals of a certain month
-	double get_sum(double(Soillayer::* var_arr)[12], int m);
+	double get_sum(double(Soillayer::* var_arr)[12], int m) const;
 	/// Get soil layers available nmass fraction
 	void get_nfrac(n_pref_type pref, double nfrac[NSOILLAYERS_MAX], double nmin, bool water_limited = false);
 	/// Get soil layers root fractions
@@ -6813,13 +6821,13 @@ public:
 	/// Total patch nitrogen biomass and litter
 	double ncont(double scale_indiv = 1.0, bool luc = false) const;
 	/// Total patch water and ice mass
-	double water_content();
+	double water_content() const;
 	/// Total patch carbon fluxes so far this year
-	double cflux();
+	double cflux(Period period) const;
 	/// Total patch nitrogen fluxes so far this year
-	double nflux();
+	double nflux(Period period) const;
 	/// Total patch water fluxes so far this year
-	double water_flux();
+	double water_flux(Period period) const;
 	
 	/// Get 5-year mean of tree wood C mass increase (periodic annual increment)
 	double get_tree_cmass_wood_inc_5() {
@@ -7085,13 +7093,13 @@ public:
 	/// Total stand nitrogen biomass and litter
 	double ncont(double scale_indiv = 1.0);
 	/// Total stand water and ice
-	double water_content();
+	double water_content() const;
 	/// Total stand carbon fluxes so far this year
-	double cflux();
+	double cflux(Period period) const;
 	/// Total stand nitrogen fluxes so far this year
-	double nflux();
+	double nflux(Period period) const;
 	/// Total stand water fluxes so far this year
-	double water_flux();
+	double water_flux(Period period) const;
 	/// Returns true if stand is true high-latitude peatland stand, as opposed to a wetland < PEATLAND_WETLAND_LATITUDE_LIMIT N
 	bool is_highlatitude_peatland_stand() const;
 	/// Returns true if stand is wetland stand, as opposed to a peatland >= PEATLAND_WETLAND_LATITUDE_LIMIT N
@@ -7612,17 +7620,17 @@ public:
 	Stand& create_stand_lu(StandType& st, double fraction, int no_patch = 0, bool suppress_disturbance = false);
 
 	/// Total gridcell carbon biomass and litter
-	double ccont();
+	double ccont() const;
 	/// Total gridcell nitrogen biomass and litter
-	double ncont();
+	double ncont() const;
 	/// Total gridcell water and ice
-	double water_content();
+	double water_content() const;
 	/// Total gridcell carbon fluxes so far this year
-	double cflux();
+	double cflux(Period period) const;
 	/// Total gridcell nitrogen fluxes so far this year
-	double nflux();
+	double nflux(Period period) const;
 	/// Total gridcell water fluxes so far this year
-	double water_flux();
+	double water_flux(Period period) const;
 
 	/// Deletes the stand which the iterator is pointing at
 	/** Returns an iterator pointing to the object following the erased object.

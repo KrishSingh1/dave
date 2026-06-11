@@ -279,6 +279,32 @@ double Fluxes::get_annual_flux(PerPatchFluxType flux_type) const {
 	return sum;
 }
 
+double Fluxes::get_flux(PerPatchFluxType flux_type, Period period) const {
+	switch (period) {
+		case Period::DAY:
+			return get_daily_flux(flux_type, date.day);
+		case Period::MONTH:
+			return get_monthly_flux(flux_type, date.month);
+		case Period::YEAR:
+			return get_annual_flux(flux_type);
+		default:
+			fail("Invalid flux period");
+	}
+}
+
+double Fluxes::get_flux(PerPFTFluxType flux_type, Period period) const {
+	switch (period) {
+		case Period::DAY:
+			return get_daily_flux(flux_type, date.day);
+		case Period::MONTH:
+			return get_monthly_flux(flux_type, date.month);
+		case Period::YEAR:
+			return get_annual_flux(flux_type);
+		default:
+			fail("Invalid flux period");
+	}
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Vegetation member functions
 ////////////////////////////////////////////////////////////////////////////////

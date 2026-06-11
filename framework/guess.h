@@ -1999,6 +1999,11 @@ public:
 	/// \returns annual flux for a given flux type
 	double get_annual_flux(PerPatchFluxType flux_type) const;
 
+	/// \returns flux for a given period and flux type (for all PFTs)
+	double get_flux(PerPatchFluxType flux_type, Period period) const;
+
+	/// \returns flux for a given period and flux type
+	double get_flux(PerPFTFluxType flux_type, Period period) const;
 private:
 
 	/// Stores one flux value per PFT and flux type

@@ -2103,6 +2103,12 @@ void Soillayer::phase_change() {
 	}
 }
 
+/** Water content of soil layer
+ *  wcont never reports over field capacity even if there is more water
+ */
+double Soillayer::wcont() const {
+	return wcont(0);
+}
 
 /// Water content of soil layer
 /** Water content of soil layer
@@ -2508,6 +2514,11 @@ double Soillayer::org_frac() {
 	double org_volume = ccont_org / rho_org * MM_PER_M;
 
 	return org_volume / (org_volume + mineral_volume + coarse_volume);
+}
+
+double Soillayer::psi_mpa() const {
+	// 1 mm water head = rho * g * 0.001 m = 9.81 Pa
+	return Psi * 9.81e-6;
 }
 
 /// Serialize soil layer variables
@@ -3506,8 +3517,7 @@ double Soil::var_depth(double depth_start, double depth_end,
 	return acc_var;
 }
 
-double Soil::var_depth(double depth_start, double depth_end,
-	double (*getter)(const Soillayer &)) const {
+double Soil::var_depth(double depth_start, double depth_end, double (Soillayer::*getter)() const) const {
 
 	double lyr_start, lyr_end;
 	double layer_depth;
@@ -3527,7 +3537,7 @@ double Soil::var_depth(double depth_start, double depth_end,
 		layer_depth = lyr_end - lyr_start;
 
 		if (layer_depth > 0.0)
-			acc_var += getter(soillayer) * layer_depth / soillayer.thickness;
+			acc_var += (soillayer.*getter)() * layer_depth / soillayer.thickness;
 
 		acc_depth += soillayer.thickness;
 		lyr++;

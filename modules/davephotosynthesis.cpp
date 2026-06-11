@@ -1755,7 +1755,7 @@ void forest_floor_dave(Patch &patch) {
 
 			// Since the seedlings don't have access to deep layers, only look
 			// at the top few layers' SWP.
-			double lwp = patch.soil.var_depth(0, FOREST_FLOOR_WSCAL_DEPTH, &Soillayer::psi);
+			double lwp = patch.soil.var_depth(0, FOREST_FLOOR_WSCAL_DEPTH, &Soillayer::psi_mpa);
 
 			// No soil water on first day of simulation - this results in wscal
 			// of 0, which results in a division by zero. We can just skip this

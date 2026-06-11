@@ -1450,7 +1450,7 @@ std::vector<ArrayColumnDefinition<Patch>> soil_state_cols() {
 	columns.push_back(ArrayColumnDefinition<Patch>("N2O_mass", [](const Patch &p, int i) { return p.soil.soillayers[i].N2O_mass; }));
 	columns.push_back(ArrayColumnDefinition<Patch>("N2_mass", [](const Patch &p, int i) { return p.soil.soillayers[i].N2_mass; }));
 
-    columns.push_back(ArrayColumnDefinition<Patch>("psi", [](const Patch &p, int i) { return p.soil.soillayers[i].psi; }));
+    columns.push_back(ArrayColumnDefinition<Patch>("psi_mpa", [](const Patch &p, int i) { return p.soil.soillayers[i].psi_mpa(); }));
     columns.push_back(ArrayColumnDefinition<Patch>("k_actual", [](const Patch &p, int i) { return p.soil.soillayers[i].k_actual; }));
 
     columns.push_back(ArrayColumnDefinition<Patch>("nvol", [](const Patch &p, int i) { return p.soil.soillayers[i].nvol; }));

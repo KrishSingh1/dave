@@ -5382,8 +5382,6 @@ public:
 
 	std::vector<LitterSolveSOM> solvesom;
 
-	// Soil water potential (MPa).
-	double psi;
 	double k_actual;
 
 	// Output variables.
@@ -5434,7 +5432,9 @@ public:
 	/// Phase change
 	void phase_change();
 	/// Water content of soil layer
-	double wcont(double wmass_added = 0.0) const;
+	double wcont() const;
+	/// Water content of soil layer
+	double wcont(double wmass_added) const;
 	/// Field capacity of soil layer
 	double fc();
 	/// Fraction air in soil layer
@@ -5469,6 +5469,9 @@ public:
 	void update_socage(double cmass, double age);
 
 	double org_frac();
+
+	/// Get soil water potential in this layer, in MPa.
+	double psi_mpa() const;
 
 	void serialize(ArchiveStream& arch);
 
@@ -6019,8 +6022,8 @@ public:
 	/// Returns the month average soil temperature for a certain depth interval
 	double temp_depth(double depth_start, double depth_end, int mth);
 	/// Returns the value of some vector within a certain depth interval
-	double var_depth(double depth_start, double depth_end, double (*getter)(const Soillayer &l)) const;
 	double var_depth(double depth_start, double depth_end, double Soillayer::* member) const;
+	double var_depth(double depth_start, double depth_end, double (Soillayer::*getter)() const) const;
 	double var_depth(double depth_start, double depth_end, double(Soillayer::* var_arr)[12], int m) const;
 	/// Returns the value of some vector within a certain depth interval with a scalar
 	double var_depth(double depth_start, double depth_end, double Soillayer::* var_member, double Soillayer::* scal_member) const;

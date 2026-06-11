@@ -422,7 +422,7 @@ double germination_fraction_grass(Patchpft& ppft, Patch& patch) {
 	// get average conditions over the last 3-5 (currently 4) days.
 	// wcont at 30cm depth.
 	fail("checkme");
-	double wcont = soil.var_depth(0.25, 0.35, [](const Soillayer& layer) { return layer.wcont(); });
+	double wcont = soil.var_depth(0.25, 0.35, &Soillayer::wcont);
 	ppft.wcont_germ_30.add(wcont);  // longer term wcont used for seed dormancy
 	ppft.wcont_germ_4.add(soil.soillayers[0].wcont()); 
 	ppft.tsoil_germ_4.add(soil.soillayers[0].temp);

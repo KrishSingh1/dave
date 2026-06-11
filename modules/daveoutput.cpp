@@ -176,7 +176,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_evaporation"                    , DAILY, daily_evap_columns, "Daily patch-level evaporation (mm/day)");
 	add_patch_output("file_dave_soilc"                          , DAILY, soil_cmass_columns, "Daily soil carbon content (kgC/m2)", true);
 	add_patch_output("file_dave_soiln"                          , DAILY, soil_nmass_columns, "Daily soil nitrogen content (kgN/m2)", true);
-	add_patch_output("file_dave_soil_psi"                       , DAILY,"soil_psi", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.psi; }); }, "Soil psi (MPa)");
+	add_patch_output("file_dave_soil_psi"                       , DAILY,"soil_psi", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.psi_mpa(); }); }, "Soil psi (MPa)");
 	add_patch_output("file_dave_pet"                            , DAILY, "pet", [](const Patch &patch) { return patch.stand.get_gridcell().climate.eet; }, "Daily potential patch-level evapotranspiration (mm)");
 	add_patch_output("file_dave_swmm_10"                        , DAILY, "total", [](const Patch &p) { return get_soil_moisture(p.soil, 0, 1); }, "Soil Moisture at depth: 0-0.1m (mm)");
 	add_patch_output("file_dave_swmm_100"                       , DAILY, "total", [](const Patch &p) { return get_soil_moisture(p.soil, 1, 10); }, "Soil Moisture at depth: 0.1-1m (mm)");
@@ -185,7 +185,7 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_water_budget_daily"             , DAILY, water_budget_cols_daily, "Daily water budget (mm)");
 	add_patch_output("file_dave_nitrogen_budget_daily"          , DAILY, nitrogen_budget_cols_daily, "Daily nitrogen budget (kgN/m2)");
 	add_patch_output("file_dave_dnpool"                         , DAILY, npool_columns, "Daily N pools (kgN/m2)");
-	add_patch_output("file_dave_wcont_upper"                    , DAILY, "wcont", [](const Patch &p) { return p.soil.var_depth(0, SOILDEPTH_UPPER, [](const Soillayer &l) { return l.wcont(); }); }, "Daily soil moisture in the upper 50cm (0-1)");
+	add_patch_output("file_dave_wcont_upper"                    , DAILY, "wcont", [](const Patch &p) { return p.soil.var_depth(0, SOILDEPTH_UPPER, &Soillayer::wcont); }, "Daily soil moisture in the upper 50cm (0-1)");
 	add_patch_output("file_dave_soiltemp25"                     , DAILY, "soiltemp25", [](const Patch &p) { return p.soil.temp_at_depth(25 * MM_PER_CM); }, "Daily soil temperature at 25cm (°C)");
 	add_patch_output("file_dave_clitter"                        , DAILY, clitter_columns, "Daily C Mass in Litter (kgC/m2)", true);
 	add_patch_output("file_dave_nlitter"                        , DAILY, nlitter_columns, "Daily N Mass in Litter (kgN/m2)", true);
@@ -437,7 +437,7 @@ DaveOutput::DaveOutput() {
 	add_wide_patch_array_output("file_dave_sw"                       , DAILY, "sw_", NSOILLAYERS_MAX, [](const Patch &p, int i) { return i >= p.soil.nsoillayers ? 0.0 : p.soil.soillayers[i].wcont(); }, "Soil water fraction full (0-1)", true, false);
 	add_wide_patch_array_output("file_dave_swmm"                     , DAILY, "swmm_", NSOILLAYERS_MAX, [](const Patch &p, int i) { return i >= p.soil.nsoillayers ? 0.0 : p.soil.soillayers[i].wmass; }, "Soil water content (mm)", true, false);
 	add_wide_patch_array_output("file_dave_swvol"                    , DAILY, "swvol_", NSOILLAYERS_MAX, [](const Patch &p, int i) { return i >= p.soil.nsoillayers ? 0.0 : p.soil.soillayers[i].wmass / p.soil.soillayers[i].thickness; }, "Volumetric soil water content (m3/m3)", false, true);
-	add_wide_patch_array_output("file_dave_soil_psi_layer"           , DAILY, "soil_psi", NSOILLAYERS_MAX, [](const Patch &p, int i) { return i >= p.soil.nsoillayers ? 0.0 : p.soil.soillayers[i].psi; }, "Soil water potential (MPa) in each layer", false, false);
+	add_wide_patch_array_output("file_dave_soil_psi_layer"           , DAILY, "soil_psi", NSOILLAYERS_MAX, [](const Patch &p, int i) { return i >= p.soil.nsoillayers ? 0.0 : p.soil.soillayers[i].psi_mpa(); }, "Soil water potential (MPa) in each layer", false, false);
 	add_wide_patch_array_output("file_dave_ksoil_layer"              , DAILY, "ksoil_", NSOILLAYERS_MAX, [](const Patch &p, int i) { return i >= p.soil.nsoillayers ? 0.0 : p.soil.soillayers[i].k_actual / 2.778e-6; }, "Soil hydraulic conductivity (cm/hr)", false, true);
 
 	// Subdaily patch-level outputs.

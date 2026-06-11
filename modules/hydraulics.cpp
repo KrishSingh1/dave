@@ -59,7 +59,7 @@ double calc_weighted_psi_rootdist(Soil & soil, Pft& pft, Individual &indiv){
     double weighted_psi = 0.0;
 
     for (int j = 0; j < soil.nsoillayers; j++){
-        double psi_layer = soil.soillayers[j].psi;
+        double psi_layer = soil.soillayers[j].psi_mpa();
         double rootfrac_layer = indiv.rootdist[j];
         // Weight soil water potential by root fraction in each layer.
         weighted_psi = weighted_psi + psi_layer * rootfrac_layer;
@@ -114,7 +114,7 @@ double calc_weighted_psi(Soil &soil, Pft &pft, Individual &indiv) {
             indiv.Rs_r[i] = pow(10.0,10.0);
         }
 
-        double psi_layer = soil.soillayers[i].psi;
+        double psi_layer = soil.soillayers[i].psi_mpa();
 
         // Weight soil water potential by root fraction in each layer.
         weighted_psi = weighted_psi + psi_layer * (1.0 / indiv.Rs_r[i]);
@@ -148,42 +148,12 @@ void calc_soil_water_potenial_dave(Soil &soil) {
         // Clay content, as percentage.
         double clay_perc = layer.clay_frac * 100.0;
 
-	    double wcont = layer.wcont();
-
-        // Wilting point in mm.
-		double wilting_point_wc = layer.wp;
-
-        // Fixed available water holding capacity of this layer in mm.
-		double awc = layer.awc;
-
-		double tot_wcont = wcont * awc + wilting_point_wc;
-
-        // Saturation point in mm.
-		double sat_wcont = layer.wsats;
-
-        // Saturated pressure head in cm (Cosby 1984).
-        // TODO: is this the same as layer.Psi_max_min? That is described as
-        // "Saturated mineral matter water suction (matrix potential) (mm)".
-		double Psi_s = soil.soiltype.Psi_s;
-
-        // Slope of soil water retention curve (Cosby 1984).
-		double b = soil.soiltype.b;
-
-        // Same approach used in De Kauwe et al (2020)
-
-        // Seems to be a mistake in this equation in Cosby 1984 as other
-        // literature (e.g. Campbell 1974 and Clap & Hornberger 1978) use '-b',
-        // no negative sign in Cosby 1984 but parameters seem to be the same.
-
-        // Cosby 1984 uses Psi_s in cm, convert to MPa.
-		layer.psi = Psi_s * pow((tot_wcont / sat_wcont), -b) / 100 * 1000 * 9.81 * 1e-6;
-
-        psi_sum += layer.psi;
+        psi_sum += layer.psi_mpa();
         // double Ksoil_sat = soil.soiltype.Ksat; // saturated hydraulic conductivity in m/s
         // double k = pow(tot_wcont / sat_wcont, 2 * b + 3); // Equation 2 from Clapp & Hornberger 1978
         // soil.K_actual[i] = k * Ksoil_sat; // one way of converting Ksat to Kactual, but can also use method below
 
-        double theta = tot_wcont / layer.thickness; // convert from mm to m3/m3
+        double theta = layer.wmass / layer.thickness; // convert from mm to m3/m3
 
         // hydraulic conductivity (m/s) based on equation 10 from Saxton et al (1986)
         layer.k_actual = 2.778e-6 * exp(12.012 - 0.0755 * sand_perc + (-3.895 + 0.03671 *

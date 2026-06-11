@@ -1398,6 +1398,7 @@ std::vector<ArrayColumnDefinition<Patch>> soil_state_cols() {
 	columns.push_back(ArrayColumnDefinition<Patch>("Psi", [](const Patch &p, int i) { return p.soil.soillayers[i].Psi; }));
 	columns.push_back(ArrayColumnDefinition<Patch>("dPsidw", [](const Patch &p, int i) { return p.soil.soillayers[i].dPsidw; }));
 	columns.push_back(ArrayColumnDefinition<Patch>("Psi_max", [](const Patch &p, int i) { return p.soil.soillayers[i].Psi_max; }));
+	columns.push_back(ArrayColumnDefinition<Patch>("psi_max_old", [](const Patch &p, int i) { return p.soil.soiltype.Psi_s; }));
 	columns.push_back(ArrayColumnDefinition<Patch>("Kw", [](const Patch &p, int i) { return p.soil.soillayers[i].Kw; }));
 	columns.push_back(ArrayColumnDefinition<Patch>("Kw_max", [](const Patch &p, int i) { return p.soil.soillayers[i].Kw_max; }));
 	columns.push_back(ArrayColumnDefinition<Patch>("runoff_baseflow", [](const Patch &p, int i) { return p.soil.soillayers[i].runoff_baseflow; }));
@@ -1473,6 +1474,7 @@ std::vector<ArrayColumnDefinition<Patch>> soil_properties_cols() {
 	columns.push_back(ArrayColumnDefinition<Patch>("awc", [](const Patch &p, int i) { return p.soil.soillayers[i].awc; }));
 	columns.push_back(ArrayColumnDefinition<Patch>("wp", [](const Patch &p, int i) { return p.soil.soillayers[i].wp; }));
 	columns.push_back(ArrayColumnDefinition<Patch>("b", [](const Patch &p, int i) { return p.soil.soillayers[i].b; }));
+	columns.push_back(ArrayColumnDefinition<Patch>("b_old", [](const Patch &p, int i) { return p.soil.soiltype.b; }));
 	columns.push_back(ArrayColumnDefinition<Patch>("perc_exp", [](const Patch &p, int i) { return p.soil.soillayers[i].perc_exp; }));
 	columns.push_back(ArrayColumnDefinition<Patch>("perc_mass", [](const Patch &p, int i) { return p.soil.soillayers[i].perc_mass; }));
 	columns.push_back(ArrayColumnDefinition<Patch>("perc_base", [](const Patch &p, int i) { return p.soil.soillayers[i].perc_base; }));

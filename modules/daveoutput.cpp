@@ -1622,6 +1622,7 @@ DaveOutput::PatchLevelArrayOutput::PatchLevelArrayOutput(
 
 	get_nelem = get_n;
 	col_name_prefix = col_name;
+	read_output = std::unique_ptr<ArrayOutputReader<Patch>>(get_output);
 }
 
 DaveOutput::PatchLevelArrayOutput::~PatchLevelArrayOutput() { }

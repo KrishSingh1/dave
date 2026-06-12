@@ -11,8 +11,8 @@
 // Average leaf N:P ratio for C3 grasses from Thum et al. 2019 (SI Table 8).
 const double C3_LEAF_NTOP = 10.7;
 
-// Depth (m) to which forest-floor photosynthesis has access to water.
-const double FOREST_FLOOR_WSCAL_DEPTH = 0.5;
+// Depth (mm) to which forest-floor photosynthesis has access to water.
+const double FOREST_FLOOR_WSCAL_DEPTH = 500;
 
 // Scaling parameter for gcutic (Cochard 2021 Eq 13 & 14).
 const double Q10A = 1.2;
@@ -247,9 +247,13 @@ void store_vcmax_values(Vegetation &vegetation) {
 	}
 }
 
-/*
-Calculate water stress factor [0-1] in the root zone. This is calculated as a
-weighted mean of wcont / wcont_crit (clamped to [0, 1]) across soil layers.
+/**
+* Calculate water stress factor [0-1] in the root zone. This is calculated as a
+* weighted mean of wcont / wcont_crit (clamped to [0, 1]) across soil layers.
+*
+* @param soil: Soil object containing soil layer information.
+* @param weight: Array of weights for each soil layer, which could be based on root distribution or inverse root resistance depending on the configuration.
+* @param max_depth: Maximum depth (mm).
 */
 double calc_water_stress_dave(const Soil &soil, const double weight[NSOILLAYERS_MAX], double max_depth = -1) {
 	if (max_depth < 0) {
@@ -304,7 +308,7 @@ void water_stress_dave(Patch &patch) {
 		for (size_t j = 0; j < soil.nsoillayers; j++) {
 			weight[j] = ifzhou ? 1.0 / indiv.Rs_r[j] : indiv.rootdist[j];
 		}
-		double wstress = calc_water_stress_dave(soil, weight, soil.nsoillayers);
+		double wstress = calc_water_stress_dave(soil, weight);
 
 		// Mean daily water stress value.
 		indiv.set_wscal(wstress);

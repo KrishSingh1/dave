@@ -134,10 +134,6 @@ void calc_soil_water_potenial_dave(Soil &soil) {
         return;
     }
 
-    if (!ifdavehydrology) {
-        fail("ifdavehydrology must be enabled to calculate soil water potential");
-    }
-
     double psi_sum = 0;
     for (int i = 0; i < soil.nsoillayers; i++) {
         Soillayer &layer = soil.soillayers[i];

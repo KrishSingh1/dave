@@ -6441,7 +6441,10 @@ void Soil::hydrology_richards(const Climate& climate, double fevap) {
 		Individual& indiv = vegetation.getobj();
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
 			//double fwu = patch.pft[indiv.pft.id].fwuptake[lyr]; // DW_COMMENT not needed but crashed otherwise on Simba???????
-			aet = patch.pft[indiv.pft.id].fwuptake[lyr] * indiv.aet;
+			double fwuptake = indiv.pft.dave_allocation() ?
+				indiv.fwuptake[lyr] :
+				patch.pft[indiv.pft.id].fwuptake[lyr];
+			aet = fwuptake * indiv.aet;
 			aet_layer[lyr] += aet;
 			aet_total += aet;
 		}

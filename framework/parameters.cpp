@@ -2684,6 +2684,7 @@ void plib_callback(int callback) {
 					if (!itemparsed("alphar")) badins("alphar");
 					if (!itemparsed("est_max")) badins("est_max");
 				}
+				if (!itemparsed("ag_woody_frac")) badins("ag_woody_frac");
 			}
 			if (firemodel==GLOBFIRM) {
 				if (!itemparsed("litterme")) badins("litterme");

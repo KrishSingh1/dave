@@ -2787,7 +2787,7 @@ double Individual::aboveground_biomass() const {
 	if (pft.is_grass()) {
 		ccont += cmass_crown; // TODO: should this be included?
 	} else if (pft.lifeform != MOSS) {
-		ccont += cmass_wood();
+		ccont += cmass_wood() * pft.ag_woody_frac;
 	}
 
 	if (pft.dave_allocation()) {

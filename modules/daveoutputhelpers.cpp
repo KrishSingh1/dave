@@ -1533,4 +1533,11 @@ std::vector<ArrayColumnDefinition<Patch>> soil_properties_cols() {
 	return columns;
 }
 
+std::vector<ColumnDefinition<Individual>> get_closs_hydraulics_cols() {
+	std::vector<ColumnDefinition<Individual>> columns;
+	columns.push_back(ColumnDefinition<Individual>("closs_kmax", [](const Individual &i) { return i.closs_kmax; }));
+	columns.push_back(ColumnDefinition<Individual>("closs_hydraulics", [](const Individual &i) { return i.closs_hydraulics; }));
+	return columns;
+}
+
 } // namespace GuessOutput

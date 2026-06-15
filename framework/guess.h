@@ -4056,6 +4056,8 @@ public:
 	double nmass_heart;
 	/// Last year's cmass_wood value for calculation of period annual increment post mortality
 	double cmass_wood_old;
+	double closs_kmax;
+	double closs_hydraulics;
 
 	/// Daily C sent to litter (kgC/m2). This is used for accounting purposes.
 	double ctolitter;

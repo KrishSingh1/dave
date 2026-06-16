@@ -6453,15 +6453,15 @@ void allometry_dave_tree(Individual& indiv) {
 		
 		// basal area increment (m2/day)
 		indiv.basalarea_inc = indiv.basalarea - basalarea_t1;
-	
-		// Stem volume
-		// double vol = indiv.height * 3.1415 * indiv.diam * indiv.diam * 0.25;
-		// Crown area (Eqn 6)
+	}
 
-		if (!is_zero(indiv.diam)) {
-			indiv.crownarea = min(indiv.pft.k_allom1 * pow(indiv.diam, indiv.pft.k_rp)
-			    , indiv.pft.crownarea_max);
-		} 
+	// Stem volume
+	// double vol = indiv.height * 3.1415 * indiv.diam * indiv.diam * 0.25;
+
+	// Crown area (Eqn 6)
+	if (!is_zero(indiv.diam)) {
+		indiv.crownarea = indiv.pft.k_allom1 * pow(indiv.diam, indiv.pft.k_rp);
+		indiv.crownarea = min(indiv.crownarea, indiv.pft.crownarea_max);
 	}
 
 	if (!is_zero(indiv.cmass_leaf)) {

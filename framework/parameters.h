@@ -421,6 +421,10 @@ extern bool ifdavegrowth;
 /// whether DAVE hydrology changes are used (e.g. allow water content to drop below water potential = -1.5 MPa, allow percolation between layers on days without rain)
 extern bool ifdavehydrology;
 
+/// Whether to use penman-monteith equation to calculate transpiration, or the
+/// relationship with VPD.
+extern bool penman_monteith;
+
 /// Depth of sublayer at top of upper soil layer, from which evaporation is
 /// possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
 /// Must be a multiple of Dz_soil

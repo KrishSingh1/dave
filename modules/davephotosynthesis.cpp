@@ -1577,8 +1577,11 @@ void water_uptake_dave(Patch &patch) {
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual &indiv = vegetation[i];
 
-		indiv.aet = transpiration_dave(indiv);
-		// indiv.aet = calc_transp_old(indiv);
+		if (penman_monteith) {
+			indiv.aet = transpiration_dave(indiv);
+		} else {
+			indiv.aet = calc_transp_old(indiv);
+		}
 
 		// Note: aet may be further limited by the water supply (see below).
 		// This also means that we can't update aaet here (also see below).

@@ -86,6 +86,7 @@ bool ifdailycstarvmort;
 bool ifgrote;
 bool ifdavegrowth;
 bool ifdavehydrology;
+bool penman_monteith;
 int soildepth_evap;
 bool ifzhou;
 bool ifdavehydraulics;
@@ -293,6 +294,7 @@ void initsettings() {
 	ifleafdamage = false;
 	ifdavehydraulics = false;
 	ifdavehydrology = false;
+	penman_monteith = false;
 	ifstoreuptake = true;
 	soildepth_evap = 200.0;// Default in trunk
 	ifzhou = false;
@@ -683,6 +685,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifgrote", &ifgrote, 1, CB_NONE, "Turn on/off grote tree allocation (requires ifdailytree 1)");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
 		declareitem("ifdavehydrology", &ifdavehydrology, 1, CB_NONE, "Use DAVE hydrology updates");
+		declareitem("penman_monteith", &penman_monteith, 1, CB_NONE, "Whether to use penman-monteith equation to calculate transpiration, or the relationship with VPD.");
 		declareitem("soildepth_evap", &soildepth_evap, 0, 1500, 1, CB_NONE, "Depth of sublayer at top of upper soil layer, from which evaporation is possible (NB: must not exceed value of global constant SOILDEPTH_UPPER) Must be a multiple of Dz_soil");
 	    declareitem("ifdavehydraulics", &ifdavehydraulics, 1, CB_NONE, "Use DAVE hydraulics routine");
 	    declareitem("ifzhou", &ifzhou, 1, CB_NONE, "Use Zhou response of photosynthesis to water stress via water potential (requires ifdavehydrology)");

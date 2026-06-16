@@ -1547,6 +1547,33 @@ double transpiration_dave(const Individual &indiv) {
 	return max(0.0, transp);
 }
 
+double calc_transp_old(const Individual &indiv) {
+	const Climate &climate = indiv.vegetation.patch.get_climate();
+	double transp = 0;
+
+	// Loop over time steps per day
+	for (Day day; day.period != date.subdaily; day.next()) {	
+
+		// T = Gc / (pressure/VPD)
+		// Gc in mol m-2 s-1
+		// VPD and pressure in Pa
+		double patmos = climate.pressure[day.period];
+		double vpd = climate.vpds[day.period];
+		double gsw = indiv.ps_subdaily.gsw[day.period];
+		if (vpd > 0 && patmos > 0) {
+			transp += gsw / (patmos / (vpd * 1000.0));
+		}
+
+	} // end sub-daily loop
+	
+	// daily transpiration rate in mol m-2 s-1
+	transp /= date.subdaily;
+
+	// daily transpiration rate in mm d-1
+	// Limiting transpiration to the actual supply is handled later.
+	return transp * MOL2G_H2O * KG_PER_G * SECS_PER_DAY;
+}
+
 /*
 Calculate daily water uptake by layer (but don't take it out of the soil).
 */
@@ -1557,7 +1584,11 @@ void water_uptake_dave(Patch &patch) {
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual &indiv = vegetation[i];
 
-		indiv.aet = transpiration_dave(indiv);
+		if (penman_monteith) {
+			indiv.aet = transpiration_dave(indiv);
+		} else {
+			indiv.aet = calc_transp_old(indiv);
+		}
 
 		// Note: aet may be further limited by the water supply (see below).
 		// This also means that we can't update aaet here (also see below).

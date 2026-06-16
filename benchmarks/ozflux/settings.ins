@@ -35,6 +35,7 @@ ifleafdamage             0   ! Whether leaf damage due to high temperature is en
 soildepth_evap           500 ! Depth of sublayer at top of upper soil layer, from which evaporation is possible Must be a multiple of 100. Trunk default is 200, Clare had 500
 ifstoreuptake            1   ! Whether tree N uptake goes into long-term storage pool.
 ifdailycstarvmort        1   ! Turn on/off daily carbon starvation mortality in trees (Dave)
+penman_monteith          1   ! Whether to use penman-monteith equation to calculate transpiration, or the relationship with VPD.
 
 ! Soil Data, homogenous with depth.
 file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one

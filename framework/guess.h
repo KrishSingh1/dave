@@ -4569,13 +4569,6 @@ public:
 
 	public:
 
-	// N content of the individual at time of establishment (g). This is needed
-	// because we need to report the initial N as an establishment flux 1 year
-	// later, because individuals experiencing allocation on an annual basis are
-	// not considered "alive" until 1 year after establishment.
-	double initialc;
-	double initialn;
-
 	double alpha_leaf;
 	double alpha_root;
 	double alpha_sap;

@@ -1567,10 +1567,10 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	assert(fabs(bminc + exceeds_cmass - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
 }
 
-double calc_creserve_opt_grote(const Individual &indiv) {
+double calc_creserve_opt_grote(const Pft &pft, double cmass_leaf, double cmass_sap) {
 
-	double nsc_leaf = indiv.get_cmass_leaf() * indiv.pft.max_leaf_nsc_conc;
-	double nsc_wood = indiv.cmass_sap * indiv.pft.max_wood_nsc_conc;
+	double nsc_leaf = cmass_leaf * pft.max_leaf_nsc_conc;
+	double nsc_wood = cmass_sap * pft.max_wood_nsc_conc;
 
 	return nsc_leaf + nsc_wood;
 }
@@ -1581,46 +1581,8 @@ double cstorage_capacity(Individual& indiv) {
 	if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 		return cstorage_max_temp * (indiv.get_cmass_leaf() + indiv.cmass_root) + cstorage_max_perm * indiv.cmass_crown;
 	} else {
-
-		// TODO
-		if (ifgrote) {
-			return calc_creserve_opt_grote(indiv);
-		}
-
-		// TODO: what about seedlings? cstorage_max cn be much higher than the total cmass of all the pools
-		// const int nyear_turnover = 3;
-		// double turnover_sap = indiv.cmass_sap * indiv.pft.turnover_sap;
-		// double turnover_leaf = indiv.cmass_leaf * indiv.pft.turnover_leaf;
-		// double turnover_root = indiv.cmass_root * indiv.pft.turnover_root;
-		// double cstorage_opt = nyear_turnover * (turnover_sap + turnover_leaf + turnover_root);
-
-		// return max(cstorage_opt, indiv.cstorage_max);
-
-		// define the maximum storage capacity of the plant live carbon pool. 
-		// TO DO: set as PFT parameters !!!!
-		// Literature values vary significantly , depending on the type of measurement. 
-		// For example, Smith et al. (2018) measured 4.4% of NSC from dry mass of
-		//  E. Obliqua (14yo). See Quentin et al (2015) how the differences
-		// in NSCs depends on the laboratory and measurement method (!)
-		// Smith et al. (2018)  https://doi.org/10.1093/treephys/tpx141
-		// Quentin et al. (2015) https://doi.org/10.1093/treephys/tpv073
-
-		// const double cstorage_fraction_sap = 0.5; // old simulations 
-		// const double cstorage_fraction_leaf = 0.2; // old simulations
-		// const double cstorage_fraction_root = 0.2; // old simulations
-
-		const double cstorage_fraction_sap = 0.27; // good simulation
-		const double cstorage_fraction_leaf = 0.1; // good simulation
-		const double cstorage_fraction_root = 0.1; // good simulation
-
-		// maximum storage capacity
-		return (indiv.cmass_sap * cstorage_fraction_sap) + 
-			(indiv.cmass_leaf * cstorage_fraction_leaf) + 
-			(indiv.cmass_root * cstorage_fraction_root);
-
-		// return cstorage_max_temp * (indiv.get_cmass_leaf() + indiv.cmass_root) + cstorage_max_perm * indiv.cmass_sap;
+		return calc_creserve_opt_grote(indiv.pft, indiv.get_cmass_leaf(), indiv.cmass_sap);
 	}
-
 }
 
 // Capacity of N storage (kg N m-2)
@@ -1780,9 +1742,6 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 		}
 
 		indiv.alive = true;
-		if (!indiv.pft.dave_allocation()) {
-			indiv.initialn = indiv.get_nmass_leaf() + indiv.nmass_root + indiv.nmass_storage + indiv.nmass_crown;
-		}
 
 		double cmass_after = indiv.ccont();
 		double nmass_after = indiv.ncont();
@@ -1899,21 +1858,6 @@ void establishment_biomass(double cmass_init, double ltor, Individual& indiv, do
 			indiv.nmass_storage += nmass_remaining;
 			assert(indiv.nmass_storage >= 0);
 		}
-
-		// We need to report the establishment C and N quantities as fluxes for
-		// trees, in much the same way we did for grasses. However, trees with
-		// annual allocation are not considered "alive" until 1 year after
-		// establishment, so we can't report the establishment flux until then.
-		// That is handled inside growth(), which reports the live C content as
-		// the establishment C, but it can't use the live N content, because
-		// that's based on a year's worth of uptake, which is already reported
-		// separately. Therefore, we need to record the establishment N content
-		// now, in order to report it as an establishment flux later.
-		indiv.initialn = indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart;
-
-		if (indiv.pft.dave_allocation()) {
-			indiv.initialn += indiv.nmass_storage;
-		}
 	}
 }
 
@@ -1962,7 +1906,8 @@ double solve_csap(double bminit, const Pft &pft, double ltor, double init_storfr
 		double latosa = lai / sa;
 
 		double croot  = cleaf / ltor;
-		double cstor  = ks * (cleaf / 5.0 + csap / 2.0 + croot / 2.0);
+		double cstor_max = calc_creserve_opt_grote(pft, cleaf, csap);
+		double cstor  = ks * cstor_max;
 
 		double bmtot  = cleaf + croot + csap + cstor;
 		double cerr   = bminit - bmtot;
@@ -2017,13 +1962,12 @@ void establishment_sapling_dave_dynamic(double bminit, Individual &indiv, double
 	double height = pow(4.0 * (csap / indiv.densindiv) * pow(k2, 2.0 / k3) / (PI * rho), 1.0 / (1.0 + 2.0 / k3));
 	double cleaf = k * csap / (height * rho * sla);
 	double croot = cleaf / ltor;
-	double cstor = ks * (cleaf / 5.0 + csap / 2.0 + croot / 2.0);
 
 	indiv.cmass_leaf    = cleaf;
 	indiv.cmass_root    = croot;
 	indiv.cmass_sap     = csap;
-	indiv.cmass_storage = cstor;
-	indiv.cstorage_max  = cstor;
+	indiv.cstorage_max  = cstorage_capacity(indiv);
+	indiv.cmass_storage = ks * indiv.cstorage_max;
 	indiv.meanleafage   = pft.turnover_leaf; // assuming sapling is 1 year old
 	indiv.meansapage   = pft.turnover_sap; // assuming sapling is 1 year old
 	indiv.meanrootage   = pft.turnover_root; // assuming sapling is 1 year old
@@ -2034,15 +1978,12 @@ void establishment_sapling_dave_dynamic(double bminit, Individual &indiv, double
 	indiv.nstorage_max  = nstorage_capacity(indiv);
 	indiv.nmass_storage = ks * indiv.nstorage_max;
 
-	// This is important for accounting purposes.
-	indiv.initialn = indiv.nmass_sap + indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_storage;
-
 	indiv.lai = indiv.cmass_leaf * pft.sla;
 	indiv.height = height;
 	indiv.diam = pow(indiv.height / k2, 1.0 / k3);
 	double latosa = get_la2sa(indiv);
 
-	assert(equal(bminit, cleaf + croot + csap + cstor, 0.1));
+	assert(equal(bminit, cleaf + croot + csap + indiv.cmass_storage, 0.1));
 	assert(equal(latosa, pft.k_latosa));
 	assert(equal(PI * indiv.diam * indiv.diam * 0.25 * indiv.height * indiv.pft.wooddens * indiv.densindiv, indiv.cmass_sap));
 }
@@ -2086,7 +2027,6 @@ void establishment_sapling_dave_fixedlai(double bminit, Individual &indiv, doubl
 	indiv.nmass_storage = nstorage_cap * INIT_STORAGE_FRACTION;
 	indiv.crownarea = indiv.pft.k_allom1 * pow(indiv.diam, indiv.pft.k_rp);
 	indiv.crownarea = min(indiv.crownarea, indiv.pft.crownarea_max);
-	indiv.initialn = indiv.nmass_sap + indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_storage;
 }
 
 void establishment_sapling_dave(double bminit, Individual& indiv, double ltor) {
@@ -2148,10 +2088,6 @@ void establishment_sapling_dave(double bminit, Individual& indiv, double ltor) {
 	// calculate allometry ( current state of the individual should be 0, including
 	// cgrow_sap)
 	allometry_dave_tree(indiv);
-
-	// for nitrogen balance mass balance checks
-	indiv.initialn = indiv.nmass_sap + indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_storage;
-
 }
 
 void allocation_init(double bminit, double ltor, Individual& indiv) {
@@ -2177,7 +2113,7 @@ void allocation_init(double bminit, double ltor, Individual& indiv) {
 	if ( (indiv.pft.is_grass() && ifdailygrass) || indiv.pft.dave_allocation()) {
 
 		indiv.report_flux(Fluxes::ESTC, -(indiv.get_cmass_leaf() + indiv.cmass_root + indiv.cmass_storage + indiv.cmass_crown + indiv.cmass_sap));
-		indiv.report_flux(Fluxes::ESTN, -indiv.initialn);
+		indiv.report_flux(Fluxes::ESTN, -indiv.ncont(1.0, false, true));
 	}
 }
 
@@ -4595,7 +4531,7 @@ void carbon_allocation_tree_grote(Individual &indiv) {
 
 	// Update storage capacity.
 	// TODO: is this necessary? Pretty sure this is handled elsewhere.
-	indiv.cstorage_max = calc_creserve_opt_grote(indiv);
+	indiv.cstorage_max = cstorage_capacity(indiv);
 	assert(indiv.cstorage_max > 0);
 
 	// Allocate to reproduction when:
@@ -5143,13 +5079,6 @@ void update_pools_dave(Vegetation& vegetation) {
 		// Flush to root litter for now, but better alternatives could exist
 		if (indiv.nmass_storage > indiv.nstorage_max) {
 			double nexcess = indiv.nmass_storage - indiv.nstorage_max;
-			if (indiv.initialn > 0) {
-				double nvoid = min(indiv.initialn, nexcess);
-				indiv.initialn -= nvoid;
-				indiv.ntolitter += nvoid;
-				nexcess -= nvoid;
-				vegetation.patch.fluxes.report_flux(Fluxes::ESTN, nvoid);
-			}
 			indiv.ntolitter += nexcess;
 			ppft.nmass_litter_root += nexcess;
 			indiv.nmass_storage = indiv.nstorage_max;
@@ -5696,8 +5625,9 @@ void turnover_seed(Vegetation& vegetation) {
 */
 void turnover_pool(double turnover_frac, double crelocfrac, double nrelocfrac,
 	double &cpool, double &npool, double &cdest, double &ndest,
-	double &ctolitter, double &ntolitter, double &initialc, double &initialn,
-	double &cmass_storage, double &nmass_storage, double cstorage_max, double nstorage_max,
+	double &ctolitter, double &ntolitter,
+	double &cmass_storage, double &nmass_storage,
+	double cstorage_max, double nstorage_max,
 	Patch &patch) {
 
 	if (cpool > 0.0) {
@@ -5717,31 +5647,13 @@ void turnover_pool(double turnover_frac, double crelocfrac, double nrelocfrac,
 			clitter = cturnover - cstore;
 		}
 
-		// When this individual was established, some biomass appeared out of
-		// thin air (out of the void). This amount is initialc/initialn. We
-		// don't want this going into the soil, because this would result in
-		// long-term fertilisation of the system. Therefore, we reduce the
-		// biomass sent to litter until this imaginary biomass is returned to
-		// the void.
-		double cvoid = 0;
-		if (initialc > 0) {
-			cvoid = min(initialc, clitter);
-			clitter -= cvoid;
-
-			// This C entered the system as a negative establishment flux.
-			patch.fluxes.report_flux(Fluxes::ESTC, cvoid);
-			initialc -= cvoid;
-		}
-
 		cpool      -= cturnover; // Split into clitter and cstore
 		cdest      += clitter;
 		ctolitter  += clitter; // Cumulative across pools
 		cmass_storage += cstore;
 
-		assert(equal(cturnover, cstore + clitter + cvoid));
+		assert(equal(cturnover, cstore + clitter));
 		assert(positive(cpool));
-		ctolitter += cvoid; // temporary hack for mass balance checks
-
 
 		// Nitrogen
 
@@ -5758,25 +5670,13 @@ void turnover_pool(double turnover_frac, double crelocfrac, double nrelocfrac,
 			nlitter = nturnover - nstore;
 		}
 
-		// See comment on cvoid for explanation.
-		double nvoid = 0;
-		if (initialn > 0) {
-			nvoid = min(initialn, nlitter);
-			nlitter -= nvoid;
-
-			// This N entered the system as a negative establishment flux.
-			patch.fluxes.report_flux(Fluxes::ESTN, nvoid);
-			initialn -= nvoid;
-		}
-
 		// Move nitrogen between pools.
 		npool           -= nturnover; // Split into nlitter and nstore
 		ndest           += nlitter;
 		ntolitter 		+= nlitter; // Cumulative between pools
 		nmass_storage   += nstore; // Move N to storage
 
-		assert(equal(nturnover, nstore + nlitter + nvoid));
-		ntolitter += nvoid; // temporary hack
+		assert(equal(nturnover, nstore + nlitter));
 	}
 }
 
@@ -5823,8 +5723,8 @@ void turnover_dave_grass(Individual &indiv) {
 	turnover_pool(frac_turnover_leaf, 0, 0, indiv.cmass_leafs[brown],
                   indiv.nmass_leafs[brown], cturnover_leaf,
                   nturnover_leaf, indiv.ctolitter, indiv.ntolitter,
-                  indiv.initialc, indiv.initialn, indiv.cmass_storage,
-                  indiv.nmass_storage, indiv.cstorage_max, indiv.nstorage_max, patch);
+                  indiv.cmass_storage, indiv.nmass_storage,
+				  indiv.cstorage_max, indiv.nstorage_max, patch);
 
 	// Send leaf turnover to litter.
 	// This will go directly into the SURFSTRUCT and SURFMETA SOM pools.
@@ -5839,8 +5739,8 @@ void turnover_dave_grass(Individual &indiv) {
 	turnover_pool(frac_turnover_crown, 0, nrelocfrac, indiv.cmass_crown,
                   indiv.nmass_crown, cturnover_root,
                   nturnover_root, indiv.ctolitter, indiv.ntolitter,
-                  indiv.initialc, indiv.initialn, indiv.cmass_storage,
-                  indiv.nmass_storage, indiv.cstorage_max, indiv.nstorage_max, patch);
+                  indiv.cmass_storage, indiv.nmass_storage,
+				  indiv.cstorage_max, indiv.nstorage_max, patch);
     indiv.cturnover_crown = cturnover_root;
 	indiv.nturnover_crown = nturnover_root;
 
@@ -5848,8 +5748,7 @@ void turnover_dave_grass(Individual &indiv) {
 	turnover_pool(frac_turnover_root, 0, nrelocfrac, indiv.cmass_root,
                   indiv.nmass_root, cturnover_root,
                   nturnover_root, indiv.ctolitter, indiv.ntolitter,
-                  indiv.initialc, indiv.initialn, indiv.cmass_storage,
-                  indiv.nmass_storage, indiv.cstorage_max, indiv.nstorage_max, patch);
+                  indiv.cmass_storage, indiv.nmass_storage, indiv.cstorage_max, indiv.nstorage_max, patch);
 	indiv.cturnover_root = cturnover_root - indiv.cturnover_crown;
 	indiv.nturnover_root = nturnover_root - indiv.nturnover_crown;
 
@@ -6328,7 +6227,6 @@ void storage_overflow(Individual& indiv) {
 		// decide where to put excess C (or excess N).
 		// If the plant is in the reproductive phase, put excess into repr
 		if (indiv.growth_stage == reproductive) {
-			
 			double cexcess_repr = min(indiv.cexcess, indiv.cgrow_repr);
 
 			// determine amount of C excess allocated to reproductive pool
@@ -6372,18 +6270,10 @@ void storage_overflow(Individual& indiv) {
 		// flush to litter
 		// TODO: return this to the available N pool (e.g. via root exudates).
 
-		double nvoid = min(indiv.nexcess, indiv.initialn);
-		double nexcess = indiv.nexcess - nvoid;
-
-		ppft.nmass_litter_root += nexcess;
+		ppft.nmass_litter_root += indiv.nexcess;
 		indiv.ntolitter += indiv.nexcess;
-
-		// This N entered the system as a negative establishment flux.
-		indiv.vegetation.patch.fluxes.report_flux(Fluxes::ESTN, nvoid);
-		indiv.initialn -= nvoid;
 	}
 }
-
 
 // Photosynthetic sink limitation.
 // Calculates downregulation factors applied to photosynthetic parameters.

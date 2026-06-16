@@ -1956,8 +1956,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	acalloc_storage				= 0.0;
 	acalloc_crown				= 0.0;
 
-	initialc = 0.0;
-	initialn = 0.0;
 	leaf_out = false;
 	leaf_senesced = false;
 	leaf_full_switch_summer = false;
@@ -3545,12 +3543,6 @@ void partition_wood_biomass(double mass_sap, double mass_heart,
 	litter_heart = heart_left;
 }
 
-void take_biomass(double &pool, double &demand) {
-       double flux = min(pool, demand);
-       pool -= flux;
-       demand -= flux;
-}
-
 void Individual::kill(bool harvest /* = false */) {
 
 	Patchpft& ppft = patchpft();
@@ -3563,49 +3555,6 @@ void Individual::kill(bool harvest /* = false */) {
 	double harv_eff = 0.0;
 	double harvest_slow_frac = 0.0;
 	double res_outtake = 0.0;
-	
-	// Remove hypothetical seed biomass from the system to avoid fertilisation
-	// effect.
-	if (pft.dave_allocation() && initialc > 0 && initialn > 0) {
-		 // at the moment, the first assert might be hit if the 
-		 // plant respires but does not turnover much, which
-		 // can happen in stressed plants. This will positively bias
-		 // plant respiration and should be accounted for somehow.
-		//assert(ccont() >= initialc); // C could be lost from the system
-		assert(greater_than_or_equal(ncont(), initialn));
-
-		double nflux_out = initialn;
-		double cflux_out = initialc;
-
-		take_biomass(nmass_storage, initialn);
-		take_biomass(nmass_root, initialn);
-		if (pft.is_grass() || pft.lifeform == MOSS) {
-				take_biomass(nmass_leafs[green], initialn);
-				take_biomass(nmass_leafs[brown], initialn);
-				take_biomass(nmass_crown, initialn);
-		} else if (pft.lifeform == TREE) {
-				take_biomass(nmass_leaf, initialn);
-				take_biomass(nmass_sap, initialn);
-		}
-		take_biomass(nmass_repr, initialn);
-
-		take_biomass(cmass_storage, initialc);
-		take_biomass(cmass_root, initialc);
-		if (pft.is_grass() || pft.lifeform == MOSS) {
-				take_biomass(cmass_leafs[green], initialc);
-				take_biomass(cmass_leafs[brown], initialc);
-				take_biomass(cmass_crown, initialc);
-		} else if (pft.lifeform == TREE) {
-				take_biomass(cmass_leaf, initialc);
-				take_biomass(cmass_sap, initialc);
-		}
-		take_biomass(cmass_repr, initialc);
-
-		// Hypothetical seed biomass enters the system as a negative flux, so
-		// it should leave the system as a positive flux.
-		vegetation.patch.fluxes.report_flux(Fluxes::ESTN, nflux_out - initialn);
-		vegetation.patch.fluxes.report_flux(Fluxes::ESTC, cflux_out - initialc);
-	}
 
 	double clitter_sap = 0.0;
 	double clitter_heart = 0.0;
@@ -3872,23 +3821,6 @@ void Individual::flush_repr_litter_DAVE() {
 
 	if (pft.lifeform == TREE) {
 		return;
-	}
-
-	// Time to pay our debts.
-	if (initialc > 0) {
-		double cvoid = min(cmass_repr, initialc);
-		cmass_repr -= cvoid;
-		initialc -= cvoid;
-		vegetation.patch.fluxes.report_flux(Fluxes::ESTC, cvoid);
-		ctolitter += cvoid; // For mass balance checks; not an actual pool
-	}
-
-	if (initialn > 0) {
-		double nvoid = min(nmass_repr, initialn);
-		nmass_repr -= nvoid;
-		initialn -= nvoid;
-		vegetation.patch.fluxes.report_flux(Fluxes::ESTN, nvoid);
-		ntolitter += nvoid; // For mass balance checks; not an actual pool
 	}
 
 	// only a fraction of cmass_repr (actual seeds) goes to the seedbank.

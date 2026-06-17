@@ -259,7 +259,7 @@ double calc_water_stress_dave(const Soil &soil, const double weight[NSOILLAYER],
 	double wstress = 0;
 	double total_weight = 0;
 	for (size_t i = 0; i < max_layers; i++) {
-		double stress_base = soil.get_layer_soil_water(i) / wcont_crit;
+		double stress_base = soil.get_layer_soil_water_tot(i) / wcont_crit;
 
 		// Clamp to [0, 1].
 		stress_base = max(min(stress_base, 1.0), 0.0);

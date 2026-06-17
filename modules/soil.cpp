@@ -957,6 +957,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 		// Update wcont
 		wcont[ly] = Faw_layer[ly] / soiltype.awc[ly]; // mm
+		wcont_tot[ly] = (Faw_layer[ly] + ice_layer[ly]) / soiltype.awc[ly]; // mm
 
 		if (ly < NSOILLAYER_UPPER)
 			Faw_layer1 += Faw_layer[ly]; // mm
@@ -1019,6 +1020,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 			potential_layer[s] += proportion; // potential INCREASES
 			wcont[s] = Faw_layer[s] / soiltype.awc[s];
+			wcont_tot[s] = (Faw_layer[s] + ice_layer[s]) / soiltype.awc[s]; // mm
 			oob_check_wcont(wcont[s]);
 		}
 	} // > 0.0?
@@ -1063,6 +1065,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 				Faw_layer[s] += water_input_ly;
 				potential_layer[s] -= water_input_ly;
 				wcont[s] = Faw_layer[s] / soiltype.awc[s];
+				wcont_tot[s] = (Faw_layer[s] + ice_layer[s]) / soiltype.awc[s]; // mm
 				oob_check_wcont(wcont[s]);
 			}
 
@@ -1078,6 +1081,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 				Faw_layer[s] += potential_layer[s];
 				potential_layer[s] = 0.0;
 				wcont[s] = Faw_layer[s] / soiltype.awc[s];
+				wcont_tot[s] = (Faw_layer[s] + ice_layer[s]) / soiltype.awc[s]; // mm
 			}
 
 			// Update surface runoff
@@ -1165,6 +1169,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 				potential_layer[s] += perc_layer;
 
 				wcont[s] = Faw_layer[s] / soiltype.awc[s];
+				wcont_tot[s] = (Faw_layer[s] + ice_layer[s]) / soiltype.awc[s]; // mm
 				oob_check_wcont(wcont[s]);
 			}
 		}
@@ -1205,6 +1210,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 				Faw_layer[s] += water_input_ly;
 				potential_layer[s] -= water_input_ly;
 				wcont[s] = Faw_layer[s] / soiltype.awc[s];
+				wcont_tot[s] = (Faw_layer[s] + ice_layer[s]) / soiltype.awc[s]; // mm
 				oob_check_wcont(wcont[s]);
 
  				Faw_perc_layer_2 += Faw_layer[s];
@@ -1259,6 +1265,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 				potential_layer[s] += proportion;
 				wcont[s] = Faw_layer[s] / soiltype.awc[s];
+				wcont_tot[s] = (Faw_layer[s] + ice_layer[s]) / soiltype.awc[s]; // mm
 				oob_check_wcont(wcont[s]);
 			}
 		}
@@ -1996,6 +2003,15 @@ double Soil::get_layer_soil_water(int layer) const {
 		return -999.0;
 	else
 		return wcont[layer];
+}
+
+// return wcont_tot for a certain layer
+double Soil::get_layer_soil_water_tot(int layer) const {
+
+	if (layer < 0 || layer > NSOILLAYER-1 || layer != int(layer))
+		return -999.0;
+	else
+		return wcont_tot[layer];
 }
 
 

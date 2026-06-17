@@ -2539,7 +2539,7 @@
                 "US-SRG.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-SRG",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/US-SRG",
             "environment": [],
             "externalConsole": false,
             "osx": {

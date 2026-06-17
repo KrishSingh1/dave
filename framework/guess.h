@@ -4827,6 +4827,8 @@ private:
 	double temp25;
 	/// water content of soil layers [0=upper layer] as fraction of available water holding capacity;
 	double wcont[NSOILLAYER];
+	/// water content (including ice) of soil layers [0=upper layer] as fraction of available water holding capacity;
+	double wcont_tot[NSOILLAYER]; 
 	/// water content of sublayer of upper soil layer for which evaporation from the bare soil surface is possible
 	/** fraction of available water holding capacity */
 	double wcont_evap;
@@ -5295,6 +5297,9 @@ public:
 
 	/// return wcont for a certain layer
 	double get_layer_soil_water(int layer) const;
+
+	/// return wcont_tot for a certain layer
+	double get_layer_soil_water_tot(int layer) const;
 
 	/// return wcont_evap
 	double get_layer_soil_water_evap() const;

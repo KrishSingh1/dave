@@ -1173,7 +1173,7 @@ std::vector<ColumnDefinition<Patch>> nitrogen_budget_cols_annual() {
 std::vector<ColumnDefinition<Patch>> nitrogen_budget_cols_daily() {
 	std::vector<ColumnDefinition<Patch>> columns;
 	columns.push_back(ColumnDefinition<Patch>("deposition", [](const Patch &p) { return p.stand.get_gridcell().dNO3dep + p.stand.get_gridcell().dNH4dep; }));
-	columns.push_back(ColumnDefinition<Patch>("fixation", [](const Patch &p) { return p.soil.dnfix; }));
+	columns.push_back(ColumnDefinition<Patch>("fixation", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::NFIX, date.day); }));
 	columns.push_back(ColumnDefinition<Patch>("uptake", get_nuptake));
 	columns.push_back(ColumnDefinition<Patch>("net_mineralisation", [](const Patch &p) { return p.soil.net_mineralisation; }));
 	columns.push_back(ColumnDefinition<Patch>("gross_mineralisation", [](const Patch &p) { return p.soil.nmin_gross; }));
@@ -1183,9 +1183,9 @@ std::vector<ColumnDefinition<Patch>> nitrogen_budget_cols_daily() {
 	columns.push_back(ColumnDefinition<Patch>("volatilisation", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::NH3_SOIL, date.day); }));
 	columns.push_back(ColumnDefinition<Patch>("gas_emissions", [](const Patch &p) { return p.soil.nloss_gas; }));
 	// flux in available N
-	columns.push_back(ColumnDefinition<Patch>("flux_avail", [](const Patch &p) { return p.stand.get_gridcell().dNO3dep + p.stand.get_gridcell().dNH4dep + p.soil.dnfix + p.soil.net_mineralisation - get_nuptake(p) - p.soil.dminleach - p.fluxes.get_daily_flux(Fluxes::NH3_SOIL, date.day) - p.soil.nloss_gas; }));
+	columns.push_back(ColumnDefinition<Patch>("flux_avail", [](const Patch &p) { return p.stand.get_gridcell().dNO3dep + p.stand.get_gridcell().dNH4dep + p.fluxes.get_daily_flux(Fluxes::NFIX, date.day) + p.soil.net_mineralisation - get_nuptake(p) - p.soil.dminleach - p.fluxes.get_daily_flux(Fluxes::NH3_SOIL, date.day) - p.soil.nloss_gas; }));
 	// flux in total N
-	columns.push_back(ColumnDefinition<Patch>("flux", [](const Patch &p) { return p.stand.get_gridcell().dNO3dep + p.stand.get_gridcell().dNH4dep + p.soil.dnfix - p.soil.nloss_gas; }));
+	columns.push_back(ColumnDefinition<Patch>("flux", [](const Patch &p) { return p.stand.get_gridcell().dNO3dep + p.stand.get_gridcell().dNH4dep + p.fluxes.get_daily_flux(Fluxes::NFIX, date.day) - p.soil.nloss_gas; }));
 	columns.push_back(ColumnDefinition<Patch>("avail", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &layer) { return layer.NO3_mass + layer.NH4_mass; }); }));
 	columns.push_back(ColumnDefinition<Patch>("totaln", [](const Patch &p) { return p.ncont(); }));
 	return columns;

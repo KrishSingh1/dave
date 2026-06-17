@@ -446,13 +446,13 @@ void adjust_kmax(Patch &patch) {
 
         // If annual allocation, only move forward to conductance loss calcs at
         // end of year.
-        if (!pft.dave_allocation() && !(date.islastday && date.islastmonth)){
+        if (!pft.dave_allocation() && !(date.islastday && date.islastmonth)) {
             continue;
         }
 
         // Drought only has an impact if stomata are fully closed, loss of
         // conductance exceeds current state and we've crossed P12.
-        if (indiv.stomata_open == false && indiv.max_k_loss > (1 - indiv.kmax_drought_affected/pft.kmax) && indiv.max_k_loss > 0.12){
+        if (indiv.stomata_open == false && indiv.max_k_loss > (1 - indiv.kmax_drought_affected / pft.kmax) && indiv.max_k_loss > 0.12) {
 
             // Xylem capacity decreases proportionately to k_loss starting with
             // zero loss at p12 (we scale from here to avoid sudden 'threshold'
@@ -462,7 +462,7 @@ void adjust_kmax(Patch &patch) {
             indiv.kmax_drought_affected = indiv.kmax_drought_affected * (1.0 - xylem_loss_frac);
             indiv.kmax_drought_affected = std::min(pft.kmax,indiv.kmax_drought_affected);
 
-            if (pft.dave_allocation()){
+            if (pft.dave_allocation()) {
 
                 // Note dropping leaves causes problems due to fixed klatosa -
                 // consider adding back in with new allocation.

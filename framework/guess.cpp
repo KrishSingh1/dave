@@ -860,16 +860,16 @@ double Patch::cflux(Period period) const {
 
 	double cflux = 0.0;
 
-	cflux += fluxes.get_annual_flux(Fluxes::LEACHORGC);
-	cflux += -fluxes.get_annual_flux(Fluxes::NPP);
-	cflux += fluxes.get_annual_flux(Fluxes::REPRC);
-	cflux += fluxes.get_annual_flux(Fluxes::SOILC);
-	cflux += fluxes.get_annual_flux(Fluxes::FIREC);
-	cflux += fluxes.get_annual_flux(Fluxes::ESTC);
-	cflux += fluxes.get_annual_flux(Fluxes::SEEDC);
-	cflux += fluxes.get_annual_flux(Fluxes::MANUREC);
-	cflux += fluxes.get_annual_flux(Fluxes::HARVESTC);
-	cflux += fluxes.get_annual_flux(Fluxes::CH4C) * KG_PER_G; // Convert to kg CH4-C m-2 from g CH4-C m-2
+	cflux += fluxes.get_flux(Fluxes::LEACHORGC, period);
+	cflux += -fluxes.get_flux(Fluxes::NPP, period);
+	cflux += fluxes.get_flux(Fluxes::REPRC, period);
+	cflux += fluxes.get_flux(Fluxes::SOILC, period);
+	cflux += fluxes.get_flux(Fluxes::FIREC, period);
+	cflux += fluxes.get_flux(Fluxes::ESTC, period);
+	cflux += fluxes.get_flux(Fluxes::SEEDC, period);
+	cflux += fluxes.get_flux(Fluxes::MANUREC, period);
+	cflux += fluxes.get_flux(Fluxes::HARVESTC, period);
+	cflux += fluxes.get_flux(Fluxes::CH4C, period) * KG_PER_G; // Convert to kg CH4-C m-2 from g CH4-C m-2
 
 	return cflux;
 }
@@ -877,24 +877,29 @@ double Patch::cflux(Period period) const {
 /// N flux of patch
 double Patch::nflux(Period period) const {
 
+	const Gridcell &gridcell = stand.get_gridcell();
 	double nflux = 0.0;
 
-	nflux += -(stand.get_gridcell().aNH4dep + stand.get_gridcell().aNO3dep);
-	nflux += -anfert;
-	nflux += -fluxes.get_annual_flux(Fluxes::NFIX);
-	nflux += fluxes.get_annual_flux(Fluxes::LEACHMINN);
-	nflux += fluxes.get_annual_flux(Fluxes::LEACHORGN);
-	nflux += fluxes.get_annual_flux(Fluxes::HARVESTN);
-	nflux += fluxes.get_annual_flux(Fluxes::SEEDN);
-	nflux += fluxes.get_annual_flux(Fluxes::NH3_FIRE);
-	nflux += fluxes.get_annual_flux(Fluxes::NOx_FIRE);
-	nflux += fluxes.get_annual_flux(Fluxes::N2O_FIRE);
-	nflux += fluxes.get_annual_flux(Fluxes::N2_FIRE);
-	nflux += fluxes.get_annual_flux(Fluxes::N2O_SOIL);
-	nflux += fluxes.get_annual_flux(Fluxes::N2_SOIL);
-	nflux += fluxes.get_annual_flux(Fluxes::NO_SOIL);
-	nflux += fluxes.get_annual_flux(Fluxes::NH3_SOIL);
-	nflux += fluxes.get_annual_flux(Fluxes::ESTN);
+	double nh4dep = period == Period::YEAR ? gridcell.aNH4dep : gridcell.dNH4dep;
+	double no3dep = period == Period::YEAR ? gridcell.aNO3dep : gridcell.dNO3dep;
+
+	nflux += -(nh4dep + no3dep);
+	nflux += -fluxes.get_flux(Fluxes::NFERT, period);
+	nflux += -fluxes.get_flux(Fluxes::NFIX, period);
+
+	nflux += fluxes.get_flux(Fluxes::LEACHMINN, period);
+	nflux += fluxes.get_flux(Fluxes::LEACHORGN, period);
+	nflux += fluxes.get_flux(Fluxes::HARVESTN, period);
+	nflux += fluxes.get_flux(Fluxes::SEEDN, period);
+	nflux += fluxes.get_flux(Fluxes::NH3_FIRE, period);
+	nflux += fluxes.get_flux(Fluxes::NOx_FIRE, period);
+	nflux += fluxes.get_flux(Fluxes::N2O_FIRE, period);
+	nflux += fluxes.get_flux(Fluxes::N2_FIRE, period);
+	nflux += fluxes.get_flux(Fluxes::N2O_SOIL, period);
+	nflux += fluxes.get_flux(Fluxes::N2_SOIL, period);
+	nflux += fluxes.get_flux(Fluxes::NO_SOIL, period);
+	nflux += fluxes.get_flux(Fluxes::NH3_SOIL, period);
+	nflux += fluxes.get_flux(Fluxes::ESTN, period);
 
 	return nflux;
 }
@@ -902,21 +907,24 @@ double Patch::nflux(Period period) const {
 /// water flux of patch
 double Patch::water_flux(Period period) const {
 
+	const Climate &climate = get_climate();
+	double precip = period == Period::YEAR ? climate.aprec : climate.prec;
+
 	double wflux = 0.0;
 
 	// Influx
-	wflux += -get_climate().aprec;
-	wflux += -fluxes.get_annual_flux(Fluxes::WIRRI);
-	wflux += -fluxes.get_annual_flux(Fluxes::WADDED);
+	wflux += -precip;
+	wflux += -fluxes.get_flux(Fluxes::WIRRI, period);
+	wflux += -fluxes.get_flux(Fluxes::WADDED, period);
 
 	// Outflux
-	wflux += fluxes.get_annual_flux(Fluxes::WINTERCEP);
-	wflux += fluxes.get_annual_flux(Fluxes::WTRAN);
-	wflux += fluxes.get_annual_flux(Fluxes::WEVAP);
-	wflux += fluxes.get_annual_flux(Fluxes::WRUNOFF_SURF);
-	wflux += fluxes.get_annual_flux(Fluxes::WRUNOFF_SSW);
-	wflux += fluxes.get_annual_flux(Fluxes::WRUNOFF_DRAIN);
-	wflux += fluxes.get_annual_flux(Fluxes::WRUNOFF_BASE);
+	wflux += fluxes.get_flux(Fluxes::WINTERCEP, period);
+	wflux += fluxes.get_flux(Fluxes::WTRAN, period);
+	wflux += fluxes.get_flux(Fluxes::WEVAP, period);
+	wflux += fluxes.get_flux(Fluxes::WRUNOFF_SURF, period);
+	wflux += fluxes.get_flux(Fluxes::WRUNOFF_SSW, period);
+	wflux += fluxes.get_flux(Fluxes::WRUNOFF_DRAIN, period);
+	wflux += fluxes.get_flux(Fluxes::WRUNOFF_BASE, period);
 
 	return wflux;
 }
@@ -4782,8 +4790,8 @@ void MassBalance::check_day_c(Gridcell &gridcell) {
 	}
 
 	if (check_mass_balance_today(gridcell)) {
-		double cflux_today = cflux_yesterday - cflux;
-		double expected_ccont = ccont_yesterday + cflux_today;
+		// double cflux_today = cflux_yesterday - cflux;
+		double expected_ccont = ccont_yesterday - cflux;
 
 		const double epsilon = 1e-9;
 
@@ -4793,7 +4801,7 @@ void MassBalance::check_day_c(Gridcell &gridcell) {
 				, gridcell.get_lon(), gridcell.get_lat(),
 				date.year, date.day, err);
 			dprintf("C pool change: %.10f\n", ccont - ccont_yesterday);
-			dprintf("C flux: %.10f\n", cflux_today);
+			dprintf("C flux: %.10f\n", cflux);
 		}
 	}
 
@@ -4810,8 +4818,8 @@ void MassBalance::check_day_n(Gridcell &gridcell) {
 	}
 
 	if (check_mass_balance_today(gridcell)) {
-		double nflux_today = nflux_yesterday - nflux;
-		double expected_ncont = ncont_yesterday + nflux_today;
+		// double nflux_today = nflux_yesterday - nflux;
+		double expected_ncont = ncont_yesterday - nflux;
 
 		const double epsilon = 1e-9;
 
@@ -4821,7 +4829,7 @@ void MassBalance::check_day_n(Gridcell &gridcell) {
 				, gridcell.get_lon(), gridcell.get_lat(),
 				date.year, date.day, err);
 			dprintf("N pool change: %.10f\n", ncont - ncont_yesterday);
-			dprintf("N flux: %.10f\n", nflux_today);
+			dprintf("N flux: %.10f\n", nflux);
 		}
 	}
 
@@ -4838,8 +4846,8 @@ void MassBalance::check_day_water(Gridcell &gridcell) {
 	}
 
 	if (!is_first_day()) {
-		double wflux_today = water_flux_yesterday - wflux;
-		double expected_wcont = water_cont_yesterday + wflux_today;
+		// double wflux_today = water_flux_yesterday - wflux;
+		double expected_wcont = water_cont_yesterday - wflux;
 
 		// Ensure wcont matches yesterday's value + today's water flux.
 		double err = wcont - expected_wcont;
@@ -4848,7 +4856,7 @@ void MassBalance::check_day_water(Gridcell &gridcell) {
 				, gridcell.get_lon(), gridcell.get_lat(),
 				date.year, date.day, err);
 			dprintf("Water content change: %.10f\n", wcont - water_cont_yesterday);
-			dprintf("Water flux: %.10f\n", wflux_today);
+			dprintf("Water flux: %.10f\n", wflux);
 		}
 	}
 

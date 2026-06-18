@@ -2571,7 +2571,6 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			resp_growth = 0.0;
 		} else {
 			// Growth respiration = 0.25 ( GPP - maintenance respiration)
-			// TODO: should leaf respiration be subtracted here? Is assim gross?
 			resp_growth = (assim - resp_leaf - resp_sap - resp_root) * 0.25;
 
 			// guess2008 - disallow negative growth respiration

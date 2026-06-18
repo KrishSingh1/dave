@@ -1739,9 +1739,10 @@ void npp_dave(Patch& patch) {
         double respcoeff = pft.respcoeff * scalar;
 
 		double gtemp = patch.soil.gtemp_rootdist(ppft.rootdist);
+		double gtemp_air = mean(patch.get_climate().gtemps);
 
 		double resp = 0;
-		respiration(gtemp, gtemp, indiv.pft.lifeform, respcoeff, cton.sap,
+		respiration(gtemp_air, gtemp, indiv.pft.lifeform, respcoeff, cton.sap,
 			cton.root, cton.crown, indiv.cmass_sap, cmass_root, cmass_crown,
 			cmass_repr, indiv.cgrow, indiv.fphen_activity, assim,
 			indiv.resp_leaf, resp, indiv.resp_maintenance, indiv.resp_growth,

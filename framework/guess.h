@@ -5869,8 +5869,6 @@ public:
 	double aorgNleach;
 	/// total annual nitrogen fixation
 	double anfix;
-	/// total daily nitrogen fixation
-	double dnfix;
 	/// mean annual nitrogen fixation used in equilsom()
 	double anfix_mean;
 	/// calculated annual mean nitrogen fixation

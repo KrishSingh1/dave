@@ -7639,6 +7639,8 @@ days in a year.
 */
 double calc_root_beta(size_t nday_dormant);
 
+int get_solvesomcent_endyr();
+
 #endif // LPJ_GUESS_GUESS_H
 
 ///////////////////////////////////////////////////////////////////////////////////////

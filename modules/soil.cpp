@@ -2585,7 +2585,9 @@ void Soillayer::annual_accounting() {
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Soil member functions
-
+int get_solvesomcent_endyr() {
+	return freenyears + 10;
+}
 
 /// Initilize soil variables
 /** Initilize soil variables
@@ -2656,7 +2658,7 @@ void Soil::initdrivers() {
 
 	// Solve CENTURY SOM pools
 	solvesomcent_beginyr = static_cast<int>(std::round(0.5*freenyears));
-	solvesomcent_endyr = freenyears+10;
+	solvesomcent_endyr = get_solvesomcent_endyr();
 	savesomcent = false;
 }
 

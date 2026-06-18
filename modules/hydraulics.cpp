@@ -385,7 +385,6 @@ void hydraulic_mortality(Patch &patch) {
                 indiv.kill();
                 vegetation.killobj();
             }
-            break;
         }
 
         if (nobj != vegetation.nobj) {

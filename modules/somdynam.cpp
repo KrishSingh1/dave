@@ -1093,8 +1093,11 @@ void somfluxes(Patch& patch, bool ifequilsom, double tillage_fact) {
 		// If no nitrogen limitation or during free nitrogen years
 		// net mineralisation could be negative. Set to zero
 		// in that case
-		if (!ifnlim || date.year <= freenyears)
-			nmin_inc = max(0.0, nmin_inc);
+		if ((!ifnlim || date.year <= freenyears) && nmin_inc < 0.0) {
+			double free_n = -nmin_inc;
+			patch.fluxes.report_flux(Fluxes::NFERT, free_n);
+			nmin_inc = 0.0;
+		}
 
 		if (!ifequilsom) {
 			soillayer.mnetmin[date.month] += nmin_inc;

@@ -5624,7 +5624,7 @@ void Soil::hydrology_wetland(const Climate& climate, double fevap) {
 		Individual& indiv = vegetation.getobj();
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
 			//double fwu = patch.pft[indiv.pft.id].fwuptake[lyr]; // DW_COMMENT not needed but crashed otherwise on Simba???????
-			aet = patch.pft[indiv.pft.id].fwuptake[lyr] * indiv.aet;
+			aet = indiv.get_fwuptake(lyr) * indiv.aet;
 			aet_total += aet;
 		}
 		vegetation.nextobj();
@@ -5795,7 +5795,7 @@ void Soil::hydrology_gerten(const Climate& climate, double fevap) {
 
 		// Loop over all layers
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			aet = patch.pft[indiv.pft.id].fwuptake[lyr] * indiv.aet;
+			aet = indiv.get_fwuptake(lyr) * indiv.aet;
 			aet_total += aet;
 			aet_layer[lyr] += aet;
 		}
@@ -6042,7 +6042,7 @@ void Soil::hydrology_miller(const Climate& climate, double fevap) {
 		Individual& indiv = vegetation.getobj();
 
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
-			aet = patch.pft[indiv.pft.id].fwuptake[lyr] * indiv.aet;
+			aet = indiv.get_fwuptake(lyr) * indiv.aet;
 			aet_layer[lyr] += aet;
 		}
 		vegetation.nextobj();
@@ -6443,10 +6443,7 @@ void Soil::hydrology_richards(const Climate& climate, double fevap) {
 		Individual& indiv = vegetation.getobj();
 		for (int lyr = 0; lyr < nsoillayers; lyr++) {
 			//double fwu = patch.pft[indiv.pft.id].fwuptake[lyr]; // DW_COMMENT not needed but crashed otherwise on Simba???????
-			double fwuptake = indiv.pft.dave_allocation() ?
-				indiv.fwuptake[lyr] :
-				patch.pft[indiv.pft.id].fwuptake[lyr];
-			aet = fwuptake * indiv.aet;
+			aet = indiv.get_fwuptake(lyr) * indiv.aet;
 			aet_layer[lyr] += aet;
 			aet_total += aet;
 		}

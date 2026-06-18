@@ -4801,6 +4801,9 @@ public:
 
 	/// Ensure that canopy layers are internally consistent.
 	void validate_canopy() const;
+
+	/// Get the fraction of water uptake from a given soil layer.
+	double get_fwuptake(size_t layer) const;
 private:
 	// Reset annual variables. Called from daily_accounting() on the first day
 	// of the year.

@@ -4004,6 +4004,13 @@ void Individual::validate_canopy() const {
 	}
 }
 
+double Individual::get_fwuptake(size_t layer) const {
+	if (pft.dave_allocation()) {
+		return fwuptake[layer];
+	}
+	return vegetation.patch.pft[pft.id].fwuptake[layer];
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of Gridcellpft member functions
 ////////////////////////////////////////////////////////////////////////////////

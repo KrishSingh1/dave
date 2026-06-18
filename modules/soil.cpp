@@ -261,6 +261,7 @@ void Soil::init_states() {
 
 	for (int sl = 0; sl<NSOILLAYER; sl++) {
 		wcont[sl] = 0.0;
+		wcont_tot[sl] = 0.0;
 		alwhc[sl] = 0.0;
 		alwhc_init[sl] = 0.0;
 		psi_layer[sl] = 0.0;
@@ -1171,6 +1172,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 				wcont[s] = Faw_layer[s] / soiltype.awc[s];
 				wcont_tot[s] = (Faw_layer[s] + ice_layer[s]) / soiltype.awc[s]; // mm
 				oob_check_wcont(wcont[s]);
+				oob_check_wcont(wcont_tot[s]);
 			}
 		}
 
@@ -1212,6 +1214,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 				wcont[s] = Faw_layer[s] / soiltype.awc[s];
 				wcont_tot[s] = (Faw_layer[s] + ice_layer[s]) / soiltype.awc[s]; // mm
 				oob_check_wcont(wcont[s]);
+				oob_check_wcont(wcont_tot[s]);
 
  				Faw_perc_layer_2 += Faw_layer[s];
 				awc_perc_layer_2 += soiltype.awc[s];
@@ -1267,6 +1270,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 				wcont[s] = Faw_layer[s] / soiltype.awc[s];
 				wcont_tot[s] = (Faw_layer[s] + ice_layer[s]) / soiltype.awc[s]; // mm
 				oob_check_wcont(wcont[s]);
+				oob_check_wcont(wcont_tot[s]);
 			}
 		}
 
@@ -2115,10 +2119,13 @@ double Soil::add_layer_soil_water(int layer, double extrawater) {
 		potential_layer -= extrawater;
 
 		// wcont is the available, nonfrozen water in the layer, divided by the capacity of that layer to hold water. 
-		if (patch.stand.is_highlatitude_peatland_stand())
+		if (patch.stand.is_highlatitude_peatland_stand()) {
 			wcont[layer] = Faw_layer / soiltype.awc_peat[layer];
-		else
+			wcont_tot[layer] = (Faw_layer + ice_layer) / soiltype.awc_peat[layer];
+		} else {
 			wcont[layer] = Faw_layer / soiltype.awc[layer];
+			wcont_tot[layer] = (Faw_layer + ice_layer) / soiltype.awc[layer];
+		}
 
 		oob_check_wcont(wcont[layer]);
 		Frac_water[layer + IDX] = Faw_layer / Dz[layer + IDX];

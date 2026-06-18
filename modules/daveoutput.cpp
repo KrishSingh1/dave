@@ -178,10 +178,10 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_soiln"                          , DAILY, soil_nmass_columns, "Daily soil nitrogen content (kgN/m2)", true);
 	add_patch_output("file_dave_soil_psi"                       , DAILY,"soil_psi", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.psi_mpa(); }); }, "Soil psi (MPa)");
 	add_patch_output("file_dave_pet"                            , DAILY, "pet", [](const Patch &patch) { return patch.stand.get_gridcell().climate.eet; }, "Daily potential patch-level evapotranspiration (mm)");
-	add_patch_output("file_dave_swmm_10"                        , DAILY, "total", [](const Patch &p) { return get_soil_moisture(p.soil, 0, 1); }, "Soil Moisture at depth: 0-0.1m (mm)");
-	add_patch_output("file_dave_swmm_100"                       , DAILY, "total", [](const Patch &p) { return get_soil_moisture(p.soil, 1, 10); }, "Soil Moisture at depth: 0.1-1m (mm)");
+	add_patch_output("file_dave_swmm_10"                        , DAILY, "total", [](const Patch &p) { return get_soil_moisture(p.soil, 0, 100); }, "Soil Moisture at depth: 0-0.1m (mm)");
+	add_patch_output("file_dave_swmm_100"                       , DAILY, "total", [](const Patch &p) { return get_soil_moisture(p.soil, 100, 1000); }, "Soil Moisture at depth: 0.1-1m (mm)");
 	add_patch_output("file_dave_swmm_600"                       , DAILY, "total", [](const Patch &p) { return get_6m_soil_moisture_estimate(p.soil); }, "Soil Moisture at depth: 0.1-1m (mm)");
-	add_patch_output("file_dave_swavail_100"                    , DAILY, "total", [](const Patch &p) { return get_available_soil_moisture(p.soil, 1, 10); }, "Available Soil Moisture at depth: 0.1-1m (mm)");
+	add_patch_output("file_dave_swavail_100"                    , DAILY, "total", [](const Patch &p) { return get_available_soil_moisture(p.soil, 100, 1000); }, "Available Soil Moisture at depth: 0.1-1m (mm)");
 	add_patch_output("file_dave_water_budget_daily"             , DAILY, water_budget_cols_daily, "Daily water budget (mm)");
 	add_patch_output("file_dave_nitrogen_budget_daily"          , DAILY, nitrogen_budget_cols_daily, "Daily nitrogen budget (kgN/m2)");
 	add_patch_output("file_dave_dnpool"                         , DAILY, npool_columns, "Daily N pools (kgN/m2)");

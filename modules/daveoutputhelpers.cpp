@@ -193,22 +193,28 @@ double get_pft_standing_dead_nmass(const Patch &patch, const Pft &pft) {
 	return ppft.nmass_litter_leaf + ppft.nmass_litter_root + ppft.nmass_litter_sap + ppft.nmass_litter_heart + ppft.nmass_litter_repr;
 }
 
-double get_soil_moisture(const Soil &soil, int start_layer, int end_layer) {
-	assert(start_layer < end_layer);
+double get_soil_moisture(const Soil &soil, double start_depth, double end_depth) {
+	assert(start_depth < end_depth);
 	double swmm = 0;
-	for (size_t i = start_layer; i < end_layer; i++) {
+	// fixme: this is not quite right I think
+	for (size_t i = 0; i < soil.nsoillayers; i++) {
 		const Soillayer &layer = soil.soillayers[i];
-		swmm += layer.wcont() * layer.awc + layer.wp;
+		if (layer.depth_bot >= start_depth && layer.depth_bot < end_depth) {
+			swmm += layer.wcont() * layer.awc + layer.wp;
+		}
 	}
 	return swmm;
 }
 
-double get_available_soil_moisture(const Soil &soil, int start_layer, int end_layer) {
-	assert(start_layer < end_layer);
+double get_available_soil_moisture(const Soil &soil, double start_depth, double end_depth) {
+	assert(start_depth < end_depth);
 	double swmm = 0;
-	for (size_t i = start_layer; i < end_layer; i++) {
+	// fixme: this is not quite right I think
+	for (size_t i = 0; i < soil.nsoillayers; i++) {
 		const Soillayer &layer = soil.soillayers[i];
-		swmm += layer.wcont() * layer.awc;
+		if (layer.depth_bot >= start_depth && layer.depth_bot < end_depth) {
+			swmm += layer.wcont() * layer.awc;
+		}
 	}
 	return swmm;
 }

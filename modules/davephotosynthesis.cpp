@@ -1623,7 +1623,7 @@ void water_uptake_dave(Patch &patch) {
 
 		if (uptake > wsupply) {
 			if (ifdavehydraulics) {
-				log_error("Transpiration exceeds soil water content, this shouldn't happen\n");
+				log_error("Transpiration exceeds soil water content, this shouldn't happen");
 			}
 
 			// Demand in this layer exceeds supply.

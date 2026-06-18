@@ -4845,7 +4845,7 @@ void MassBalance::check_day_water(Gridcell &gridcell) {
 		water_flux_yesterday = 0;
 	}
 
-	if (!is_first_day()) {
+	if (check_mass_balance_today(gridcell)) {
 		// double wflux_today = water_flux_yesterday - wflux;
 		double expected_wcont = water_cont_yesterday - wflux;
 

@@ -471,10 +471,15 @@ void state_accounting_dave(Vegetation &vegetation) {
 	if (date.islastday && date.islastmonth) {
 		for (size_t i = 0; i < pftlist.nobj; i++) {
 			Patchpft &ppft = vegetation.patch.pft[i];
-			double dormancy_depth_add = ppft.dormancy_depth + (Date::MAX_YEAR_LENGTH - ppft.ndays_alive);
-			double wscal_add = ppft.wscal_cum + (Date::MAX_YEAR_LENGTH - ppft.ndays_alive) * ppft.pft.wscal_min;
-			ppft.dormancy_depth_historical.add(dormancy_depth_add / Date::MAX_YEAR_LENGTH);
-			ppft.wscal_historical.add(wscal_add / Date::MAX_YEAR_LENGTH);
+			//double dormancy_depth_add = ppft.dormancy_depth + (Date::MAX_YEAR_LENGTH - ppft.ndays_alive);
+			//double wscal_add = ppft.wscal_cum + (Date::MAX_YEAR_LENGTH - ppft.ndays_alive) * ppft.pft.wscal_min;
+			if (ppft.ndays_alive < 90){
+				ppft.dormancy_depth_historical.add(ppft.dormancy_depth_historical.mean());
+				ppft.wscal_historical.add(ppft.wscal_historical.mean());
+			} else {
+				ppft.dormancy_depth_historical.add(ppft.dormancy_depth / ppft.ndays_alive);
+				ppft.wscal_historical.add(ppft.wscal_cum / ppft.ndays_alive);
+			}
 		}
 	}
 

@@ -1809,7 +1809,7 @@ size_t get_response_window(double dormancy_depth) {
 
 double calc_root_beta(double wscal_avg) {
 	// min and max values from range presented in Jackson et al. 1996
-	const double wscal_min = 0.5; // TODO: use existing wscal_min parameter (?)
+	const double wscal_min = 0.3; // TODO: use existing wscal_min parameter (?)
 	const double ROOT_BETA_MIN = 0.94;
 	const double ROOT_BETA_MAX = 0.98;
 	double slope = (ROOT_BETA_MAX - ROOT_BETA_MIN) / (1.0 - wscal_min);
@@ -1939,6 +1939,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	Patchpft &ppft = patchpft();
 	double dormancy_depth = ppft.dormancy_depth_historical.mean();
+	double wscal_avg = ppft.wscal_historical.mean();
 	size_t response_window = get_response_window(dormancy_depth);
 	assert(response_window > 0);
 	wscal_dynamic.set_capacity(response_window);
@@ -1946,7 +1947,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	// Initialise dynamic root_beta and rootdist to the pft-level values.
 	if (ifadaptive_rootdist && pft.is_grass() && pft.dave_allocation()) {
-		root_beta = calc_root_beta(dormancy_depth);
+		root_beta = calc_root_beta(wscal_avg);
 		calc_root_distribution(root_beta, rootdist);
 	} else { // Take PFT-level default
 		root_beta = pft.root_beta;

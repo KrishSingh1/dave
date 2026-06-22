@@ -423,13 +423,14 @@ void adjust_response_window(Individual &indiv) {
 	}
 
 	if (date.islastday && date.islastmonth) {
-		size_t nday_dormant = ppft.nday_dormant_historical.mean();
+		double dormancy_depth = ppft.dormancy_depth_historical.mean();
+		double wscal_avg = ppft.wscal_historical.mean();
 
 		// Only allow the response window to change in size by 1 day per year.
 		// TODO: parameterise this?
 		const size_t MAX_CHANGE_RATE = 1;
 
-		size_t response_window_new = get_response_window(nday_dormant);
+		size_t response_window_new = get_response_window(dormancy_depth);
 		size_t response_window_old = indiv.get_wscal_dynamic_capacity();
 
 		// Move toward the new response window length by at most change_rate.
@@ -439,18 +440,18 @@ void adjust_response_window(Individual &indiv) {
 		indiv.set_wscal_dynamic_capacity(response_window);
 		indiv.soiltemp_dynamic.set_capacity(response_window);
 
-		// Adjust root beta factor (and therefore root distribution) based on
-		// number of dormant days.
-		double root_beta_new = calc_root_beta(nday_dormant);
+		// Adjust root beta factor (and therefore root distribution) based on average wscal.
+		double root_beta_new = calc_root_beta(wscal_avg);
 		const double MAX_ROOT_BETA_CHANGE = 0.0005;
 		indiv.root_beta = move_toward(indiv.root_beta, root_beta_new, MAX_ROOT_BETA_CHANGE);
 		calc_root_distribution(indiv.root_beta, indiv.rootdist);
 	}
 }
 
-void dormant_days_accounting_dave(Vegetation &vegetation) {
-	// The dormant days tracker and response window are only required if the
+void state_accounting_dave(Vegetation &vegetation) {
+	// Keeping track of long-term stress factors and the response window are only required if the
 	// adaptive root distribution for grasses is enabled.
+	// Note: this wouldn't work with multiple cohorts at the moment!
 	if (!ifadaptive_rootdist) {
 		return;
 	}
@@ -459,23 +460,25 @@ void dormant_days_accounting_dave(Vegetation &vegetation) {
 		Individual &indiv = vegetation[i];
 		Patchpft &ppft = indiv.patchpft();
 
-		// Accumulate number of active days this year for this cohort.
-		if (indiv.growth_stage != dormant) {
-			ppft.nday_active++;
-		}
-
+		// Accumulate dormancy depth this year for this cohort as well as water stress.
+		ppft.dormancy_depth += (1.0 - indiv.fphen_activity);
+		ppft.wscal_cum += indiv.get_wscal();
+		ppft.ndays_alive += 1;
 	}
 
-	// Add new value to moving average of number of dormant days, for each PFT
+	// Add new value to moving average of dormancy depth and wscal, for each PFT.
 	// Note: this is done for all PFTs, not just those currently established.
 	if (date.islastday && date.islastmonth) {
 		for (size_t i = 0; i < pftlist.nobj; i++) {
 			Patchpft &ppft = vegetation.patch.pft[i];
-			ppft.nday_dormant_historical.add(Date::MAX_YEAR_LENGTH - ppft.nday_active);
+			double dormancy_depth_add = ppft.dormancy_depth + (Date::MAX_YEAR_LENGTH - ppft.ndays_alive);
+			double wscal_add = ppft.wscal_cum + (Date::MAX_YEAR_LENGTH - ppft.ndays_alive) * ppft.pft.wscal_min;
+			ppft.dormancy_depth_historical.add(dormancy_depth_add / Date::MAX_YEAR_LENGTH);
+			ppft.wscal_historical.add(wscal_add / Date::MAX_YEAR_LENGTH);
 		}
 	}
 
-	// Now adjust dynamic parameter accordingly, based on the mean nday_dormant.
+	// Now adjust dynamic parameter accordingly, based on the long-term averages.
 	for (size_t i = 0; i < vegetation.nobj; i++) {
 		Individual &indiv = vegetation[i];
 		Patchpft &ppft = indiv.patchpft();
@@ -601,7 +604,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 		vegetation.nextobj();
 	}
 
-	dormant_days_accounting_dave(vegetation);
+	state_accounting_dave(vegetation);
 }
 
 void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
@@ -6680,7 +6683,9 @@ void annual_accounting_dave(Vegetation& vegetation) {
 	for (size_t i = 0; i < pftlist.nobj; i++) {
 		Patchpft &ppft = vegetation.patch.pft[i];
 		if (date.day == 0) {
-			ppft.nday_active = 0;
+			ppft.dormancy_depth = 0.0;
+			ppft.wscal_cum = 0.0;
+			ppft.ndays_alive = 0;
 		}
 	}
 }

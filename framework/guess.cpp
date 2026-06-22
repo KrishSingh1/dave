@@ -1798,18 +1798,22 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 		& isintercropgrass;
 }
 
-size_t get_response_window(size_t nday_dormant) {
-	int x_intercept = -3;
-	int y_intercept = 15;
-	double slope = -1.0 * (y_intercept - x_intercept) / Date::MAX_YEAR_LENGTH;
-	return max(1.0,slope * nday_dormant + y_intercept);
+size_t get_response_window(double dormancy_depth) {
+	double mindorm = 0.2;
+	double maxdorm = 0.7;
+	int minwin = 2;
+	int maxwin = 15;
+	double slope = (maxwin - minwin) / (maxdorm - mindorm);
+	return round(slope * (maxdorm - min(maxdorm,max(mindorm,dormancy_depth))) + minwin);
 }
 
-double calc_root_beta(size_t nday_dormant) {
+double calc_root_beta(double wscal_avg) {
+	// min and max values from range presented in Jackson et al. 1996
+	const double wscal_min = 0.5; // TODO: use existing wscal_min parameter (?)
 	const double ROOT_BETA_MIN = 0.94;
 	const double ROOT_BETA_MAX = 0.98;
-	double slope = (ROOT_BETA_MAX - ROOT_BETA_MIN) / Date::MAX_YEAR_LENGTH;
-	return slope * nday_dormant + ROOT_BETA_MIN;
+	double slope = (ROOT_BETA_MAX - ROOT_BETA_MIN) / (1.0 - wscal_min);
+	return slope * (1.0 - max(wscal_min,wscal_avg)) + ROOT_BETA_MIN;
 }
 
 // Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
@@ -1934,15 +1938,15 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	anp_frac                    = 0.0;
 
 	Patchpft &ppft = patchpft();
-	size_t nday_dormant = ppft.nday_dormant_historical.mean();
-	size_t response_window = get_response_window(nday_dormant);
+	double dormancy_depth = ppft.dormancy_depth_historical.mean();
+	size_t response_window = get_response_window(dormancy_depth);
 	assert(response_window > 0);
 	wscal_dynamic.set_capacity(response_window);
 	soiltemp_dynamic.set_capacity(response_window);
 
 	// Initialise dynamic root_beta and rootdist to the pft-level values.
 	if (ifadaptive_rootdist && pft.is_grass() && pft.dave_allocation()) {
-		root_beta = calc_root_beta(nday_dormant);
+		root_beta = calc_root_beta(dormancy_depth);
 		calc_root_distribution(root_beta, rootdist);
 	} else { // Take PFT-level default
 		root_beta = pft.root_beta;

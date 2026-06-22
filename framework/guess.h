@@ -5748,11 +5748,16 @@ public:
 	/// [0,1] - a measure of the inundation stress. Daily photosynthesis is reduced by this factor.
 	double inund_stress;
 
-	// Number of days this indiv has spent dormant this year.
-	size_t nday_active;
-	// Moving average over N years of the total number of days this cohort is
-	// dormant per year.
-	HistoricDynamic<size_t> nday_dormant_historical;
+	// Cumulative dormancy depth (1-fphen_activity) this year.
+	double dormancy_depth;
+	// Cumulative wscal this year.
+	double wscal_cum;
+	// Number of days this Pft has been established/alive.
+	int ndays_alive;
+	// Moving average over N years of the annual dormancy depth of this cohort.
+	HistoricDynamic<double> dormancy_depth_historical;
+    // Historical average over N years of the wscal of this cohort.
+	HistoricDynamic<double> wscal_historical;
 
 	// Maximum total LAI recorded on any day this year (m2/m2).
 	double lai_ymax;
@@ -5842,14 +5847,15 @@ public:
 		cmass_harv_tolitter = 0.0;
 		cmass_harv_killed = 0.0;
 
-		nday_active                = 0;
+		dormancy_depth = 0;
 
 		// 30 years by default.
-		nday_dormant_historical.set_capacity(30);
+		dormancy_depth_historical.set_capacity(30);
+		wscal_historical.set_capacity(30);
 
-		// Initial value of 105 dormant days, which corresponds to a response
-		// window size of 10 days.
-		nday_dormant_historical.add(105);
+		// Initial values for long-term mean dormancy_depth and wscal
+		dormancy_depth_historical.add(0.5);
+		wscal_historical.add(0.7);
 
 		senescence_reason.reset();
 		lai_ymax = 0;
@@ -6936,13 +6942,13 @@ conditions.
 
 @param nday_dormant: The number of dormant days in a year.
 */
-size_t get_response_window(size_t nday_dormant);
+size_t get_response_window(double dormancy_depth);
 
 /*
 Calculate the root beta value corresponding to the specified number of dormant
 days in a year.
 */
-double calc_root_beta(size_t nday_dormant);
+double calc_root_beta(double wscal_avg);
 
 #endif // LPJ_GUESS_GUESS_H
 

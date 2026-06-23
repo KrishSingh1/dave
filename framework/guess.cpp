@@ -4917,7 +4917,7 @@ bool ManagementType::pftinselection(const char* name) {
 }
 
 inline double calc_temp_growth(double a, const Pft *pft) {
-	return temp_growth(a, pft->Ha_growth, pft->T0_growth, 1.0);
+	return temp_growth(a, pft->Ha_growth, pft->T0_growth, 1.0, pft->temp_dormancy);
 }
 
 double calc_a_growth(const Pft *pft) {

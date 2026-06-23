@@ -2094,6 +2094,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	// additional initialisation
 	age               = 0.0;
+	age_active        = 0.0;
 	height            = 0.0;
 	diam              = 0.0;
 	d_height		  = 0.0;
@@ -2253,6 +2254,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& greff_5
 		& cmass_wood_inc_5
 		& age
+		& age_active
 		& mlai
 		& fpar_leafon
 		& lai_leafon_layer

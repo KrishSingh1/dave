@@ -4031,6 +4031,8 @@ public:
 	Historic<double, 10> cmass_wood_inc_5;
 	/// individual/cohort age (years)
 	double age;
+	/// idndividual/cohort age accounting for active/dormant phases (years)
+	double age_active;
 	/// monthly LAI (including phenology component)
 	double mlai[12];
 	/// monthly maximum LAI (including phenology component)

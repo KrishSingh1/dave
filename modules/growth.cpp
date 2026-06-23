@@ -4152,21 +4152,17 @@ void carbon_allocation_grass(Individual &indiv) {
 	if (!negligible(indiv.cgrow)) {
 		
 		// 1) Crowns
-		//if (indiv.age < 1.0 && indiv.pft.lifeform != GRASS_ANNUAL) {
-		//	calloc_crown = 2.0 * indiv.pft.crownfrac;
+		double estab_scal_crown = indiv.pft.lifeform == GRASS_ANNUAL ? 0.0 : exp(-indiv.age_active / 1.0);
 		if (indiv.pft.lifeform == GRASS_ANNUAL && indiv.growth_stage == reproductive) {
 			calloc_crown = 0.0;
 		} else {
-			calloc_crown = 1.25 / (1.0 + indiv.cmass_crown/max(indiv.cmass_leafs[green],1.0e-9)) * indiv.pft.crownfrac;
+			calloc_crown = min(indiv.pft.crownfrac * (1.0 + estab_scal_crown),1.0);
 		}
 		
 		// 2) Reproduction
 		if (indiv.growth_stage == reproductive) {
-			if (indiv.age < 1.0 && indiv.pft.lifeform != GRASS_ANNUAL) {
-				calloc_repr = min(0.2 * indiv.pft.reprfrac,(1.0 - calloc_crown));
-			} else {
-				calloc_repr = min(indiv.pft.reprfrac,(1.0 - calloc_crown));
-			}
+			double extra_crown_alloc = indiv.pft.crownfrac * estab_scal_crown;
+			calloc_repr = min(max(0.0,indiv.pft.reprfrac - extra_crown_alloc),(1.0 - calloc_crown));
 		} else {
 			calloc_repr = 0.0;
 		}
@@ -6626,6 +6622,7 @@ void annual_accounting_dave(Vegetation& vegetation) {
 
 		// Increase age by one day
 		indiv.age += 1.0 / Date::MAX_YEAR_LENGTH;
+		indiv.age_active += 1.0 / Date::MAX_YEAR_LENGTH * indiv.fphen_activity;
 
 		// Initiate yearly maximum
 		if (date.day == 0) {

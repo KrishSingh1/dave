@@ -651,6 +651,7 @@ void establishment_daily(Patch& patch) {
 
 					indiv->fpc=1.0;  // TODO: is that right?
 					indiv->age=0.0;
+					indiv->age_active=0.0;
 					indiv->nscal_5.add(1.0);
 					indiv->growth_stage = vegetative;
 					indiv->frac_germ = frac_germ;

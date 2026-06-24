@@ -3883,6 +3883,8 @@ public:
 	double root_beta;
 	// Maximum physiological up/down-regulation in and out of dormancy (fraction d-1)
 	double dphen_activity_max;
+	// Maximum C storage remobilisation rate (d-1)
+	double max_mobil_cstorage;
 
 	/// Dynamic root distribution used in dave version. This is the fraction of
 	/// roots in each soil layer.

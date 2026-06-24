@@ -322,6 +322,11 @@ double calc_dphen_activity_max(double dphen_activity_base, double dphen_activity
 	return dphen_activity_base + (dphen_activity_pot - dphen_activity_base) * exp(-k * (window_length - window_length_min));
 }
 
+double calc_max_mobil_cstorage(double max_mobil_base, double max_mobil_pot,
+	double k, size_t window_length, size_t window_length_min){
+return max_mobil_base + (max_mobil_pot - max_mobil_base) * exp(-k * (window_length - window_length_min));
+}
+
 
 // Calculates dphen_activity, the change of metabolic activity related to dormancy
 double dphen_activity(Individual &indiv, Climate& climate) {
@@ -453,6 +458,8 @@ void adjust_response_window(Individual &indiv) {
 		double k = 0.4;  // decline rate
         indiv.dphen_activity_max = calc_dphen_activity_max(indiv.pft.dphen_activity_max, 0.4,
 			                                               k, response_window, 2);
+		indiv.max_mobil_cstorage = calc_max_mobil_cstorage(indiv.pft.max_mobil_cstorage, 0.4,
+														   k, response_window, 2);												   
 	}
 }
 
@@ -3574,7 +3581,7 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 	double cstorage_res = frac_cstorage_res * indiv.cstorage_max;
 
 	// C source: Potential growth rate (kgC m-2 d-1)
-	double Gpot = max(0.0, indiv.pft.max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
+	double Gpot = max(0.0, indiv.max_mobil_cstorage * max(0.0,(indiv.cmass_storage - cstorage_res)) + indiv.dnpp); 
 
 	// C sink: growth demand (0-1).
 	indiv.growth_demand = growth_demand(indiv);
@@ -3588,7 +3595,7 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 											// cstore = re-allocation if negative
 
 		// limit allocation to C storage if it is almost at capacity
-		double crefill_max = max(0.0, (indiv.cstorage_max - indiv.cmass_storage) * indiv.pft.max_mobil_cstorage);
+		double crefill_max = max(0.0, (indiv.cstorage_max - indiv.cmass_storage) * indiv.max_mobil_cstorage);
 		if (cstore > crefill_max) {
 			indiv.cexcess += cstore - crefill_max;
 			cstore = crefill_max; 
@@ -4969,7 +4976,7 @@ Calculate the fraction of today's N demand which can be met by supply.
 double fnavail_dave(const Individual &indiv) {
 	//fnavail = max(0.0,min(1.0,(indiv.nmass_storage / indiv.ndemand)));
 	// TODO: define max_mobil_nstorage based on Yang et al. 2023, Journal of Ecology.
-	double supply = indiv.pft.max_mobil_cstorage * indiv.nmass_storage;
+	double supply = indiv.max_mobil_cstorage * indiv.nmass_storage;
 
 	// If N uptake is going into its own pool, this is part of the supply.
 	if (!indiv.pft.store_uptake()) {
@@ -6253,7 +6260,7 @@ void storage_overflow(Individual& indiv) {
 	if (indiv.pft.lifeform == GRASS_ANNUAL && indiv.growth_stage == reproductive) {
 		// TODO JK: limit allocation to repr for annuals to avoid unrealistic growth rates? 
 		// TODO JK: refine frac to be more consistent with the rest of the code!
-		double frac = indiv.pft.max_mobil_cstorage * indiv.cmass_repr / (indiv.cmass_repr + indiv.get_cmass_leaf()); 
+		double frac = indiv.max_mobil_cstorage * indiv.cmass_repr / (indiv.cmass_repr + indiv.get_cmass_leaf()); 
 		if (indiv.lai < 0.001) {
 			frac = 1.0;
 		}
@@ -6279,7 +6286,7 @@ void storage_overflow(Individual& indiv) {
 			//		 allocated to the reproductive pool. Function will draw down storage if 
 			//		 there is a strong imbalance between cexcess and nexcess.
 			allocate_excess(indiv.cexcess, indiv.nexcess, indiv.cmass_repr, indiv.nmass_repr, indiv.cmass_storage, 
-							indiv.nmass_storage, pft.max_mobil_cstorage, pft.cton_repr_min, 
+							indiv.nmass_storage, indiv.max_mobil_cstorage, pft.cton_repr_min, 
 							pft.cton_repr_max, cexcess_repr);	
 		}
 
@@ -6287,7 +6294,7 @@ void storage_overflow(Individual& indiv) {
 		double clim_crown = indiv.pft.lifeform == GRASS_PERENNIAL ? 0.5 : 0.0;
 		double cexcess_crown = min(indiv.cexcess, clim_crown * indiv.cgrow);
 		allocate_excess(indiv.cexcess, indiv.nexcess, indiv.cmass_crown, indiv.nmass_crown, indiv.cmass_storage, 
-						indiv.nmass_storage, pft.max_mobil_cstorage, pft.cton_root_min, 
+						indiv.nmass_storage, indiv.max_mobil_cstorage, pft.cton_root_min, 
 						pft.cton_root_max, cexcess_crown);
 
 	}

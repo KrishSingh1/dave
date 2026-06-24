@@ -2418,6 +2418,8 @@ public:
 	double phengdd5mat;
 	/// water stress threshold for leaf abscission (range 0-1; raingreen PFTs)
 	double wscal_min;
+	/// water stress threshold when plants are dormant (grasses only)
+	double wscal_min_dormant;
 	/// biochemical pathway for photosynthesis (C3 or C4)
 	pathwaytype pathway;
 	/// approximate low temperature limit for photosynthesis (deg C)

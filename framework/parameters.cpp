@@ -764,6 +764,8 @@ void plib_declarations(int id,xtring setname) {
 			"GDD on 5 deg C base to attain full maturity/senescence");
 		declareitem("wscal_min",&ppft->wscal_min,0.0,1.0,1,CB_NONE,
 			"Water stress threshold for leaf abscission (raingreen PFTs)");
+		declareitem("wscal_min_dormant",&ppft->wscal_min_dormant,0.0,1.0,1,CB_NONE,
+			"Water stress threshold during dormancy (grasses only)");	
 		declareitem("pathway",&strparam,16,CB_PATHWAY,
 			"Biochemical pathway (\"C3\" or \"C4\")");
 		declareitem("pstemp_min",&ppft->pstemp_min,-50.0,50.0,1,CB_NONE,
@@ -2191,6 +2193,7 @@ void plib_callback(int callback) {
 			if (ppft->phenology==RAINGREEN || ppft->phenology==ANY ||
 				(ppft->dave_allocation() && ppft->is_grass()))
 				if (!itemparsed("wscal_min")) badins("wscal_min");
+				if (!itemparsed("wscal_min_dormant")) badins("wscal_min_dormant");
 			if (!itemparsed("leafphysiognomy")) badins("leafphysiognomy");
 			if (!itemparsed("pathway")) badins("pathway");
 			if (!ifdavephotosyn) {

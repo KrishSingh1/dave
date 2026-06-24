@@ -357,9 +357,12 @@ group "grass" (
 	! Aerodynamic conductance (m s-1). Only used for VOCs.
 	ga 0.030
 
-	! Water stress threshold during dormancy and vegetative regrowth. Should be
-	! <0.6 (the base threshold). Units are wscal (0-1).
+	! Base water stress threshold below which dormancy is triggered. Units are wscal (0-1).
 	wscal_min 0.4
+
+	! Water stress threshold during dormancy and reproductive phase. Should be
+	! >wscal_min (the base threshold). Units are wscal (0-1).
+	wscal_min_dormant 0.6
 
 	! Maintenance respiration coefficient.
 	respcoeff 1.4
@@ -603,7 +606,7 @@ pft "C4G_perennial" (
 	cton_leaf_min      17.1
     max_mobil_cstorage 0.2
 	reprfrac           0.2
-	crownfrac          0.15
+	crownfrac          0.2
 	culmfrac           0.6
 	extkn              0.17
 )

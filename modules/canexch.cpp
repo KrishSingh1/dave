@@ -2516,7 +2516,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 			// Crown respiration
 			// TODO: could replace gtemp_soil (at 25cm) with gtemp at surface (as done for turnover of brown shoots).
 			// Alternatively we might want to take gtemp_air here.
-			resp_crown = (0.85 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_resp;
+			resp_crown = (0.8 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_resp;
 
 			// Reproductive respiration
 			// TODO: reduce resp_repr with senescence.

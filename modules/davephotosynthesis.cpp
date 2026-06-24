@@ -1693,7 +1693,8 @@ void npp_dave(Patch& patch) {
 
 		// Calculate respiration scalar due to dormancy
 		double fphen_resp = indiv.fphen_activity + (1.0 - indiv.fphen_activity) *
-		                    max(0.0,(indiv.get_wscal_moving_average() - indiv.pft.wscal_min) / (1.0 - indiv.pft.wscal_min));
+		                    max(0.0,(indiv.get_wscal_moving_average() - indiv.pft.wscal_min_dormant) / (1.0 - indiv.pft.wscal_min_dormant));
+
 
 		// Set leaf respiration.
 		indiv.resp_leaf = indiv.photosynthesis.rd_g * KG_PER_G;

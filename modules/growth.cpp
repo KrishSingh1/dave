@@ -73,9 +73,6 @@ const double frac_cstorage_res = 0.15;
 // Minimum physiological activity during dormancy (fraction)
 const double fphen_activity_min = 0.1;
 
-// Maximum physiological up/down-regulation in and out of dormancy (fraction d-1)
-const double dphen_activity_max = 0.2;
-
 // SLA of culms relative to leaves in grasses
 const double frac_sla_culm = 0.2;
 
@@ -320,6 +317,12 @@ double photo_growth(double reldaylength, double daylength_diff) {
 }
 
 
+double calc_dphen_activity_max(double dphen_activity_base, double dphen_activity_pot,
+	                           double k, size_t window_length, size_t window_length_min){
+	return dphen_activity_base + (dphen_activity_pot - dphen_activity_base) * exp(-k * (window_length - window_length_min));
+}
+
+
 // Calculates dphen_activity, the change of metabolic activity related to dormancy
 double dphen_activity(Individual &indiv, Climate& climate) {
 
@@ -369,7 +372,7 @@ double dphen_activity(Individual &indiv, Climate& climate) {
 	//	    				      (daylength_crit - daylength_min))) - 1.0;
 	//
 
-	return min(min(tscal,pscal),wscal) * dphen_activity_max;
+	return min(min(tscal,pscal),wscal) * indiv.dphen_activity_max;
 
 }
 
@@ -444,6 +447,12 @@ void adjust_response_window(Individual &indiv) {
 		const double MAX_ROOT_BETA_CHANGE = 0.0005;
 		indiv.root_beta = move_toward(indiv.root_beta, root_beta_new, MAX_ROOT_BETA_CHANGE);
 		calc_root_distribution(indiv.root_beta, indiv.rootdist);
+
+		// Calculate dphen_activity_max (Maximum physiological up/down-regulation in and out of dormancy)
+		// based on window length (quicker responses with shorter window lengths).
+		double k = 0.4;  // decline rate
+        indiv.dphen_activity_max = calc_dphen_activity_max(indiv.pft.dphen_activity_max, 0.4,
+			                                               k, response_window, 2);
 	}
 }
 

@@ -30,6 +30,8 @@ void growth(Stand& stand,Patch& patch);
 void growth_daily(Patch& patch);
 void growth_daily_grass_warlind(Patch& patch);
 double photo_growth(double reldaylength, double daylength_diff);
+double calc_dphen_activity_max(double dphen_activity_base, double dphen_activity_pot,
+	   double k, size_t window_length, size_t window_length_min);
 void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 	lifeformtype lifeform, landcovertype landcover, double& cmass_leaf, double& cmass_root, double& cmass_sap,
 	double& cmass_heart, double& nmass_leaf, double& nmass_root, double& nmass_sap,

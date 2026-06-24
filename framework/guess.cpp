@@ -1944,6 +1944,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	assert(response_window > 0);
 	wscal_dynamic.set_capacity(response_window);
 	soiltemp_dynamic.set_capacity(response_window);
+	dphen_activity_max = pft.dphen_activity_max;  // TODO: OK to initialise like this for both ifadaptive_rootdist cases?
 
 	// Initialise dynamic root_beta and rootdist to the pft-level values.
 	if (ifadaptive_rootdist && pft.is_grass() && pft.dave_allocation()) {

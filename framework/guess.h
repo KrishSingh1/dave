@@ -2420,6 +2420,8 @@ public:
 	double wscal_min;
 	/// water stress threshold when plants are dormant (grasses only)
 	double wscal_min_dormant;
+	/// Maximum physiological up/down-regulation in and out of dormancy (fraction d-1)
+    double dphen_activity_max;
 	/// biochemical pathway for photosynthesis (C3 or C4)
 	pathwaytype pathway;
 	/// approximate low temperature limit for photosynthesis (deg C)
@@ -3879,6 +3881,8 @@ public:
 	HistoricDynamic<double> soiltemp_dynamic;
 	/// Dynamic root beta value used in dave version.
 	double root_beta;
+	// Maximum physiological up/down-regulation in and out of dormancy (fraction d-1)
+	double dphen_activity_max;
 
 	/// Dynamic root distribution used in dave version. This is the fraction of
 	/// roots in each soil layer.

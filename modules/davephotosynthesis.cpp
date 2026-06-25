@@ -682,7 +682,6 @@ double calc_c4_ac_full(const C4Biochemistry &biochemistry,
 	// kc * (1 + om / ko)
 	double km = biochemistry.km;
 
-	// TODO: check value of alpha_PSII.
 	// Equations 22-24
 	double a_c = alpha_PSII / a0 * kc / ko;
 	double b_c = -((vp - rm + gbs * ci) + (vcmax - rd) + gbs * km + alpha_PSII / a0
@@ -691,7 +690,7 @@ double calc_c4_ac_full(const C4Biochemistry &biochemistry,
 			(vcmax * gbs * lgamstar * O2atm + rd * gbs * km);
 
 	double anc;
-	if (solve_quadratic(a_c, b_c, c_c, anc, false)) {
+	if (solve_quadratic(a_c, b_c, c_c, anc, true)) {
 		return anc;
 	}
 	log_warning("No solution to C4 photosynthesis quadratic equation for Ac. A value of -Rd (%g) will be used for Ac. a_c: %g, b_c: %g, c_c: %g",

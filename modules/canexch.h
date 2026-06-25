@@ -103,7 +103,7 @@ const double LAMBDA_SC4 = 0.4;
 const double BC3 = 0.015;
 
 /// leaf respiration as fraction of maximum carboxylation rate, C4 plants
-const double BC4 = 0.035;
+const double BC4 = 0.025;
 
 // Maximum number of iterations that the C4 photosynthesis solver can use to
 // find An, gs, and ci.
@@ -230,7 +230,7 @@ const double a025 = 0.047;
 const double HA_a0 = 1.63;  // (kJ mol-1)
 
 // Fraction of PSII activity in the bundle sheath
-const double alpha_PSII = 0.2;  // assumed 0 in von Caemmerer 2000, but so is Rd...
+const double alpha_PSII = 0.01;  // assumed 0 in von Caemmerer 2000, but so is Rd...
 
 
 

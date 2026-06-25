@@ -37,6 +37,7 @@ soildepth_evap           500 ! Depth of sublayer at top of upper soil layer, fro
 ifstoreuptake            1   ! Whether tree N uptake goes into long-term storage pool.
 ifdailycstarvmort        1   ! Turn on/off daily carbon starvation mortality in trees (Dave)
 penman_monteith          1   ! Whether to use penman-monteith equation to calculate transpiration, or the relationship with VPD.
+est_live_repr            0   ! Whether to use live reproductive biomass (1) or total annual allocation to reproduction (0) for spatial mass effect.
 
 ! Soil Data
 file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one

@@ -715,6 +715,20 @@ void establishment_daily(Patch& patch) {
 	}
 }
 
+double cmass_repr_tot(const Stand &stand, const Pft &pft) {
+	double total = 0;
+	for (size_t i = 0; i < stand.nobj; i++) {
+		const Vegetation &vegetation = stand[i].vegetation;
+		for (size_t j = 0; j < vegetation.nobj; j++) {
+			const Individual &indiv = vegetation[j];
+			if (indiv.pft.id == pft.id) {
+				total += indiv.cmass_repr;
+			}
+		}
+	}
+	return total;
+}
+
 void establishment_guess(Stand& stand,Patch& patch) {
 
 	// DESCRIPTION
@@ -985,9 +999,14 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						// Spatial mass effect enabled?
 						// Eqns 2, 3, 4
+						double cmass_repr;
+						if (est_live_repr)
+							cmass_repr = cmass_repr_tot(stand, pft);
+						else
+							cmass_repr = stand.pft[pft.id].cmass_repr;
 
 						if (ifsme)
-							est=c*(pft.kest_repr*stand.pft[pft.id].cmass_repr+kest_bg);
+							est=c*(pft.kest_repr*cmass_repr+kest_bg);
 						else if (!negligible(stand.pft[pft.id].cmass_repr))
 							est=c*(pft.kest_pres+kest_bg);
 						else

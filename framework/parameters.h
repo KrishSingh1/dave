@@ -425,6 +425,10 @@ extern bool ifdavehydrology;
 /// relationship with VPD.
 extern bool penman_monteith;
 
+/// Whether establishment should use live reproductive biomss (true) or total
+/// allocation to reproduction (false) for spatial mass effect.
+extern bool est_live_repr;
+
 /// Depth of sublayer at top of upper soil layer, from which evaporation is
 /// possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
 /// Must be a multiple of Dz_soil

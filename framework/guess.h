@@ -961,6 +961,10 @@ struct C4Biochemistry {
 	double ko;
 	// Effective Michaelis-Menten constant of Rubisco for CO2 in the presence of O2 (mol mol-1).
 	double km;
+	// Ratio of solubility and diffusivity of O2 to CO2.
+	double a0;
+	// Half the reciprocal of Rubisco specificity.
+	double lgamstar;
 };
 
 struct C4IterationState {

@@ -221,11 +221,13 @@ const double KO25_C4 = 292E-3;   // (mol mol-1)
 const double HA_KC_C4 = 64.2;   // activation energy for KC_C4 (kJ mol-1), Boyd et al. 2015
 const double HA_KO_C4 = 10.5;   // activation energy for KO_C4 (kJ mol-1), Boyd et al. 2015
 
-// Half the reciprocal of Rubisco specificity
-const double lgamstar = 0.0003817;  // Boyd et al. 2015
+// Half the reciprocal of Rubisco specificity and its activation energy
+const double lgamstar25 = 0.0003817;  // Boyd et al. 2015
+const double HA_lgamstar = 31.1;  // (kJ mol-1)
 
-// Ratio of solubility and diffusivity of O2 to CO2
-const double a0 = 0.047;
+// Ratio of solubility and diffusivity of O2 to CO2 and its activation energy
+const double a025 = 0.047;
+const double HA_a0 = 1.63;  // (kJ mol-1)
 
 // Fraction of PSII activity in the bundle sheath
 const double alpha_PSII = 0.2;  // assumed 0 in von Caemmerer 2000, but so is Rd...

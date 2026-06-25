@@ -676,6 +676,8 @@ double calc_c4_ac_full(const C4Biochemistry &biochemistry,
 	double ci = state.ci;
 	double vcmax = biochemistry.vcmax;
 	double rd = biochemistry.rd;
+	double a0 = biochemistry.a0;
+	double lgamstar = biochemistry.lgamstar;
 
 	// kc * (1 + om / ko)
 	double km = biochemistry.km;
@@ -743,6 +745,8 @@ double calc_c4_aj_full(const C4Biochemistry &biochemistry,
 	double rm = biochemistry.rm;
 	double ci = state.ci;
 	double rd = biochemistry.rd;
+	double a0 = biochemistry.a0;
+	double lgamstar = biochemistry.lgamstar;
 
 	// Equations 41-43
 	double a_j = 1.0 - (7.0 * lgamstar * alpha_PSII) / (3.0 * a0);
@@ -877,7 +881,7 @@ C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
 
 	// Daytime (mitochondrial) leaf respiration (mol m-2 s-1).
 	result.rd = pow(inputs.wscal, qb) * BC4 * vcmax25_c4 * inputs.nscal *
-			respiration_temp_response(inputs.tleaf) * light_inhibition(inputs.ipar()) * resp_scalar;
+			    respiration_temp_response(inputs.tleaf) * light_inhibition(inputs.ipar()) * resp_scalar;
 
 	// Rd in the mesophyll cells.
 	result.rm = 0.5 * result.rd;
@@ -910,6 +914,8 @@ C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
 	result.kc = Arrhenius_temp_response(KC25_C4, inputs.tleaf, HA_KC_C4, 0.0, 0.0);
 	result.ko = Arrhenius_temp_response(KO25_C4, inputs.tleaf, HA_KO_C4, 0.0, 0.0);
 	result.km = result.kc * (1.0 + divide(O2atm, result.ko));
+	result.a0 = Arrhenius_temp_response(a025, inputs.tleaf, HA_a0, 0.0, 0.0);
+	result.lgamstar = Arrhenius_temp_response(lgamstar25, inputs.tleaf, HA_lgamstar, 0.0, 0.0);
 
 	return result;
 }

@@ -91,6 +91,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_amort_greff"         , ANNUAL, [](const Individual &i) { return i.mort_greff; }, "Annual PFT-level growth-efficiency-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.", sum);
 	add_aggregated_indiv_output("file_dave_amort_age"           , ANNUAL, [](const Individual &i) { return i.mort_age; }, "Annual PFT-level age-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.", sum);
 	add_aggregated_indiv_output("file_dave_acmass_germ"         , ANNUAL, [](const Individual &i) { return i.cmass_germ; }, "Annual germinated C mass (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_aroot_beta"          , ANNUAL, [](const Individual &i) { return i.root_beta; }, "Annual output of pft-level root beta value (0-1)", mean);
 
 	// Annual per-patch pft-level outputs.
 	add_pft_output("file_dave_anpp"                             , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id); }, "Total individual-level Annual NPP (kgC/m2/year)", true);

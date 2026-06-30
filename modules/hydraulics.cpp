@@ -216,16 +216,17 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
     double gsw = indiv.ps_subdaily.gsw[day.period];
 
     // Transpiration in mmol/m2/s.
-
     double transpiration = 0.0;
-    //transpiration = gsw / (patmos / (vpd * 1000.0)) * 1000.0;
 
-	const std::vector<EnergyBalance> &ebal = indiv.energy_balance_layerwise[day.period];
-	for (size_t j = 0; j < ebal.size(); j++) {
-		// TODO: should transpiration in each layer/timestep be clamped to
-		// zero if it's negative? Or should we do this once per day?
-		transpiration += std::max(ebal[j].get_transp() * indiv.canopy[j].lai * 1000, 0.0);
-	}
+    if (penman_monteith){
+
+        const std::vector<EnergyBalance> &ebal = indiv.energy_balance_layerwise[day.period];
+	    for (size_t j = 0; j < ebal.size(); j++) {
+		    transpiration += std::max(ebal[j].get_transp() * indiv.canopy[j].lai * 1000, 0.0);
+	    }
+    } else {
+        transpiration = gsw / (patmos / (vpd * 1000.0)) * 1000.0;
+    }
 
     // Average cross-sectional xylem area per unit ground area (m2/m2).
     double Ax = PI * pow(indiv.diam / 2.0, 2.0) * indiv.densindiv * (indiv.cmass_sap / (indiv.cmass_sap + indiv.cmass_heart));

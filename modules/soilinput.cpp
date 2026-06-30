@@ -303,6 +303,11 @@ void SoilInput::init_depth(const char* fname, const std::vector<coord>& gridlist
 		}
 	}
 
+	if (depth_map.empty()) {
+		fail("No soil depth data could be read from file %s"
+			 " (file may be empty or malformed)", fname);
+	}
+
 	depth_kdtree = std::make_unique<kdtree<double, 2>>(std::begin(depth_coords), std::end(depth_coords));
 	ifs.close();
 
@@ -340,6 +345,12 @@ void SoilInput::init_slope(const char* fname, const std::vector<coord>& gridlist
 			}
 		}
 	}
+
+	if (slope_map.empty()) {
+		fail("No soil slope data could be read from file %s"
+			 " (file may be empty or malformed)", fname);
+	}
+
 	slope_kdtree = std::make_unique<kdtree<double, 2>>(std::begin(slope_coords), std::end(slope_coords));
 	ifs.close();
 	log_diagnostic("Loaded soil slope for %d locations.", (int)slope_map.size());

@@ -177,7 +177,7 @@ const double qb = 1.0;   // biochemistry, including Rd - default is 1.0, CS test
 /// C4 photosynthesis parameters
 /// -----------------------------------------------
 // Maximum Rubisco carboxylation rate at 25 degC relative to Vpmax25 (Fan et al. dataset)
-const double rVC4 = 0.56;
+const double rVC4 = 0.69;
 // Maximum electron transport rate at 25 degC relative to Vcmax25 (von Caemmerer 2021)
 const double rJC4 = 6.2;
 // PEP regeneration rate relative to Vcmax25 (von Caemmerer 2021)

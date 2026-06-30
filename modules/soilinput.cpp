@@ -277,6 +277,10 @@ void SoilInput::init_depth(const char* fname, const std::vector<coord>& gridlist
 	std::set<coord> coords(gridlist.begin(), gridlist.end());
 
 	std::ifstream ifs(fname, std::ifstream::in);
+	if (!ifs) {
+		fail("Could not open soil depth file %s for input: %s",
+			 fname, strerror(errno));
+	}
 
 	std::string line;
 	std::vector<point<double, 2>> depth_coords;
@@ -312,6 +316,10 @@ void SoilInput::init_slope(const char* fname, const std::vector<coord>& gridlist
 	std::vector<point<double, 2>> slope_coords;
 
 	std::ifstream ifs(fname, std::ifstream::in);
+	if (!ifs) {
+		fail("Could not open soil slope file %s for input: %s",
+			 fname, strerror(errno));
+	}
 
 	std::string line;
 

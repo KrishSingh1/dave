@@ -11,7 +11,7 @@ DATAPATH=/data/benchmark_data/
 # Function for preparing data for a scatter plot using gnuplot.
 #
 # Parameters:
-# $1 model input 
+# $1 model input
 # $2 observation input
 # $3 output file
 # $4 crop name
@@ -27,7 +27,7 @@ function prepareyielddata {
 # Function for preparing data for a scatter plot using gnuplot.
 #
 # Parameters:
-# $1 model input 
+# $1 model input
 # $2 observation input
 # $3 output file
 # $4 column name
@@ -79,21 +79,23 @@ describe_textfile cpool1961to1990_areaaverage.txt "Global Terrestrial Carbon Poo
 aslice npool1961to1990.txt -o npool1961to1990_areaaverage.txt -n -sum 'kg/m2->Pg' -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0
 describe_textfile npool1961to1990_areaaverage.txt "Global Terrestrial Nitrogen Pools, 1961 to 1990. Units: Pg N"
 
-aslice tot_runoff1961to1990.txt -o tot_runoff1961to1990_areaaverage.txt -sum 'kg/m2->Pg' -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0   
+aslice tot_runoff1961to1990.txt -o tot_runoff1961to1990_areaaverage.txt -sum 'kg/m2->Pg' -lon 1 -lat 2 -n -pixsize 0.5 0.5 -pixoffset 0.0 0.0
 describe_textfile tot_runoff1961to1990_areaaverage.txt "Global Runoff, 1961 to 1990. Units: km3 yr-1"
 
-gmap anpp1961to1990.txt -t 'Global Terrestrial NPP, 1961 to 1990. Units: Pg C/y' -lon 1 -lat 2 -i "Total" -legend common/legend_npp_global.txt -portrait -o cflux_npp.jpg -pixoffset 0.0 0.0 $GMAPSMOOTH -vert
+gmap anpp1961to1990.txt -t 'Global Terrestrial NPP, 1961 to 1990. Units: kg C/m2/y' -lon 1 -lat 2 -i "Total" -legend common/legend_npp_global.txt -portrait -o cflux_npp.jpg -pixoffset 0.0 0.0 $GMAPSMOOTH -vert
 describe_image cflux_npp.jpg "Global Terrestrial NPP (1961-90 average)"
 
-gmap cflux1961to1990.txt -t 'Global Terrestrial NEE, 1961 to 1990. Units: Pg C/y' -lon 1 -lat 2 -i "NEE" -vert -slog -2 2 10 -c NEEGREEN NEERED -portrait -o cflux_nee.jpg -pixoffset 0.0 0.0 $GMAPSMOOTH -vert
+gmap cflux1961to1990.txt -t 'Global Terrestrial NEE, 1961 to 1990. Units: kg C/m2/y' -lon 1 -lat 2 -i "NEE" -vert -slog -2 2 10 -c NEEGREEN NEERED -portrait -o cflux_nee.jpg -pixoffset 0.0 0.0 $GMAPSMOOTH -vert
 describe_image cflux_nee.jpg "Global Terrestrial NEE (1961-90 average)"
 
-gmap cpool1961to1990.txt -t 'Global Terrestrial Carbon Veg Pool, 1961 to 1990. Units: Pg C/y' -lon 1 -lat 2 -i "VegC" -legend common/legend_cmass_global.txt -portrait -o cpool_veg.jpg -pixoffset 0.0 0.0 $GMAPSMOOTH -vert
+gmap cpool1961to1990.txt -t 'Global Terrestrial Carbon Veg Pool, 1961 to 1990. Units: kg C/m2' -lon 1 -lat 2 -i "VegC" -legend common/legend_cmass_global.txt -portrait -o cpool_veg.jpg -pixoffset 0.0 0.0 $GMAPSMOOTH -vert
 describe_image cpool_veg.jpg "Global Terrestrial Carbon Veg Pool (1961-90 average)"
 
 compute cpool1961to1990.txt -i 'SumLitSoil=LitterC+SoilC' -o cpool1961to1990.sumLitSoil.txt
-gmap cpool1961to1990.sumLitSoil.txt -t 'Global Terrestrial Litter and Soil C pools sum, 1961-1990. Units: Pg C/y' -lon 1 -lat 2 -i "SumLitSoil" -legend common/legend_cmass_global.txt -portrait -o cpool_sumlitsoil.jpg -pixoffset 0.0 0.0 $GMAPSMOOTH -vert
+gmap cpool1961to1990.sumLitSoil.txt -t 'Global Terrestrial Litter and Soil C pools sum, 1961-1990. Units: kg C/m2' -lon 1 -lat 2 -i "SumLitSoil" -legend common/legend_cmass_global.txt -portrait -o cpool_sumlitsoil.jpg -pixoffset 0.0 0.0 $GMAPSMOOTH -vert
 describe_image cpool_sumlitsoil.jpg "Global Terrestrial Carbon: Sum of Litter and Soil Pools (1961-90 average)"
+
+# Cumulative period uptake
 
 compute cpool.out -n -o cpool_total.out -i Lon Lat Year Total
 compute cflux.out -n -o cflux_nee.out -i Lon Lat Year NEE
@@ -120,12 +122,12 @@ scatter_plot "Wheat yields" "SPAM" "LPJ-GUESS" temp_wheat.dat wheat_yield.png
 describe_image wheat_yield.png "Crop yield: Modelled compared to SPAM data set. Units: kg m-2." embed
 rm temp_wheat.dat
 
-# Above-ground biomass    
+# Above-ground biomass
 
 tslice cpool.out -f 1993 -t 2012 -o cpool1993-2012.txt
 prepare_agb cpool1993-2012.txt cpool1993-2012_agb.txt VegC
 joyn ${DATAPATH}/2020_08_24/biomass/Liu_1993-2012/Global_mean_ABC_1993-2012_Liu2015_SI.dat cpool1993-2012_agb.txt -i Lon Lat -fast -o cpool1993-2012_joyned.txt
-    
+
 . postprocess_above_ground_biomass.sh # Get above-below ground partintioning based on Jackson et al.
 
 joyn lu_cmass_agb_1993-2012_tot.txt cpool1993-2012_joyned.txt -i Lon Lat -o lu_cmass_agb_tot_1993-2012_joyned.txt
@@ -134,7 +136,7 @@ awk '{print $1,$2, $NF}' lu_cmass_agb_tot_1993-2012_joyned.txt > cpool1993-2012_
 delta cpool1993-2012_joyned_VegC.txt lu_cmass_agb_1993-2012_tot.txt_Liu.txt -i Lon Lat -o delta_cpool1993-2012_joyned_jackson.txt
 gmap delta_cpool1993-2012_joyned_jackson.txt -i VegC -lon 1 -lat 2 -portrait -s -20 2 20  -o delta_cpool1993-2012_joyned_jackson.jpg -t "VegC LPJ-GUESS - Liu kg(C)/m2" -c BLUE RED $GMAPSMOOTH -vert
 describe_image delta_cpool1993-2012_joyned_jackson.jpg "Above ground biomass: Modelled minus Liu et al. (1993-2012 average). Units: kg C m-2."
-    
+
 awk '(FNR>1){print $(NF-1),$(NF-2)}' lu_cmass_agb_tot_1993-2012_joyned.txt > scat_cpool2.txt
 scatter_plot "Above ground biomass (AGB)" "Liu et al. " "LPJ-GUESS" scat_cpool2.txt agb.jpg
 describe_image agb.jpg "Above ground biomass: LPJ-GUESS modelled AGB compared to Liu et al. data (1993-2012 average). Units: kg C m-2." embed
@@ -151,7 +153,7 @@ joyn cflux1997-2016.txt $gfed40_data -i Lon Lat -fast -o cflux1997-2016_joyned.t
 gmap cflux1997-2016_joyned.txt -i Fire -lon 1 -lat 2 -portrait -o cflux1997-2016_blaze.jpg \
     -legend common/legend_fire_emis.txt -t "BLAZE mean annual C-emissions Units: kg C m-2 y-1]" $GMAPSMOOTH -vert
 describe_image cflux1997-2016_blaze.jpg "Fire: BLAZE C-emissions (1997-2016 average). Units: kg C m-2 y-1."
-	
+
 awk '{print $1,$2, $6}' cflux1997-2016_joyned.txt > cflux1997-2016_joyned_Fire.txt
 awk '{if(FNR==1){print $1,$2, $6} else {print $1,$2, $13}}' cflux1997-2016_joyned.txt > cflux1997-2016_joyned_gfed.txt
 delta  cflux1997-2016_joyned_Fire.txt cflux1997-2016_joyned_gfed.txt -i Lon Lat -o delta_cflux1997-2016_joyned.txt
@@ -169,7 +171,7 @@ if [ -f tot_cflux_reg.txt ]; then
 fi
 for ((x=1; x<=14; x++)); do
     ((xx=$x-1))
-    creg=${GFEDreg[${xx}]} 
+    creg=${GFEDreg[${xx}]}
     awk -v reg=$x '(FNR==1 || $3==reg){print $0}' ${DATAPATH}/2020_08_24/fire/gfed_regions0.5.dat > reg.txt
     joyn cflux1997-2016_joyned.txt reg.txt -i Lon Lat -fast -o cflux_reg_${x}_joyned.txt  
     aslice cflux_reg_${x}_joyned.txt -n -lon Lon -lat Lat  -sum "kg/m2->Pg" -o tot_cflux_reg_${x}.txt
@@ -192,13 +194,13 @@ for ((x=1; x<=3; x++))
   do awk -v r=$x '{ORS=" "; printf "%10s", $r} ; END {print "\n"}'  tot_cflux_reg.txt >> tot_cflux_reg_glob.txt 
 done
 
-echo ""  >> tot_cflux_reg_glob.txt 
-echo "Description of regions" >> tot_cflux_reg_glob.txt 
+echo ""  >> tot_cflux_reg_glob.txt
+echo "Description of regions" >> tot_cflux_reg_glob.txt
 awk '($1!~/^Total/){ORS=""; printf " %6s: ",$1; for(i=4;i<=NF;i++){if (i==NF){print $i"\n"} else{print $i" "}}}' tot_cflux_reg.txt >> tot_cflux_reg_glob.txt 
 describe_textfile tot_cflux_reg_glob.txt "Fire C-emissions (1997-2016 average) per GFED region: LPJ-GUESS vs GFED. Units: Tg C y-1."
 
 rm -f cflux1997-2016.txt cflux1997-2016_joyned.txt cflux1997-2016_joyned_Fire.txt cflux1997-2016_joyned_gfed.txt \
-   delta_cflux1997-2016_joyned.txt scat_fire_cflux.txt tot_cflux_reg.txt 
+   delta_cflux1997-2016_joyned.txt scat_fire_cflux.txt tot_cflux_reg.txt
 
 # N2O benchmark
 

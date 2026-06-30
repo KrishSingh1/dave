@@ -5,7 +5,6 @@
 /// \author Mats Lindeskog,
 /// \Part of code in this file as well as in cropphenology.cpp, cropallocation.cpp and
 /// \management.cpp based on LPJ-mL C++ code received from Alberte Bondeau in 2008.
-/// $Date$
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -2842,8 +2841,10 @@ bool check_fractions4(Gridcell& gridcell) {
 
 		if(gcst.frac_change >= 0.0) {
 			if(gcst.frac && !stands_frac_sum) {
-				dprintf("\nCheck 13a: Year %d: no stand present when fraction is > 0 for stand type %d\n", date.year, s);
-				dprintf("st frac=%.15f\n\n", gcst.frac);
+				if(gcst.frac > 1.0e-13) {
+					dprintf("\nCheck 13a: Year %d: no stand present when fraction is > 0 for stand type %d\n", date.year, s);
+					dprintf("st frac=%.15f\n\n", gcst.frac);
+				}
 			}
 			else if(fabs(gcst.frac - stands_frac_sum) > INPUT_RESOLUTION * 100.0) {
 				dprintf("\nCheck 13: Year %d: fraction sum of stands not equal to stand type value for stand type %d\n", 

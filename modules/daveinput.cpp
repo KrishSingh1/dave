@@ -155,17 +155,8 @@ void DaveInput::init(void) {
 		// Open landcover input file.
 		landcover_input.init(file_gridlist);
 
-		if (file_thome != "") {
-			if (ifvcmaxtempacclimation) {
-				thome_input.init(file_thome);
-			} else {
-				printf("WARNING: Temperature acclimation file specified but temperatue acclimation is disabled, so the file will not be used.\n");
-			}
-		} else {
-			if (ifvcmaxtempacclimation) {
-				fail("Temperature acclimation is enabled, but t_home input file is not specified. Please set file_thome in the instruction file.");
-			}
-			// else not specified and not needed - no problem.
+		if (file_thome != "" && ifvcmaxtempacclimation) {
+			thome_input.init(file_thome);
 		}
 
 		esat_method = parse_esat_method(esat_method_name);
@@ -195,7 +186,7 @@ void DaveInput::init(void) {
 			log_diagnostic("Thome values will be calculated from the input climate data");
 		} else if (ifvcmaxtempacclimation) {
 			log_diagnostic("Thome values will be read from file %s", (const char *)file_thome);
-		} else {
+		} else if (file_thome != "") {
 			log_warning("Thome input file was provided, but ifvcmaxtempacclimation is disabled, so thome values will not be used.");
 		}
 
@@ -265,7 +256,7 @@ bool DaveInput::getgridcell(Gridcell& gridcell) {
 			misc_input.loadelevation(lon, lat);
 		}
 
-		if (ifvcmaxtempacclimation) {
+		if (ifvcmaxtempacclimation && file_thome != "") {
 			// Temperature acclimation is enabled - read thome value for this
 			// gridcell.
 			gridcell.climate.thome = thome_input.read_gridcell(lat, lon);

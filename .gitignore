@@ -6,4 +6,5 @@ callgrind.*
 *.lpj
 .simulations
 ._*
-
+.idea
+tests/test_outputs/*.out

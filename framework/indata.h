@@ -5,7 +5,6 @@
 /// line 2 etc.: lon lat year data-columns. For local static data, use: lon lat data-columns,
 /// for global static data, use: dummy data-columns (with "static" as first word in header).
 /// \author Mats Lindeskog
-/// $Date$
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #ifndef INDATA_H
@@ -183,7 +182,7 @@ public:
 	/// Copies the data column names to a string array
 	bool GetHeader(char *cropnames[MAXRECORDS]) const;
 	/// Copies the whole header to a string
-	bool GetHeaderFull(char *header_line) const;
+	bool GetHeaderFull(char header_line[MAXLINE]) const;
 	/// Returns a pointer to a data name string for a column by its index
 	char* GetHeader(int record) const;
 	/// Returns the current coordinates

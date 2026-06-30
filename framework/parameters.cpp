@@ -7,7 +7,6 @@
 /// function plib_callback).
 ///
 /// \author Joe Siltberg
-/// $Date$
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -87,6 +86,8 @@ bool ifdailycstarvmort;
 bool ifgrote;
 bool ifdavegrowth;
 bool ifdavehydrology;
+bool penman_monteith;
+bool est_live_repr;
 int soildepth_evap;
 bool ifzhou;
 bool ifdavehydraulics;
@@ -131,6 +132,7 @@ bool frac_fixed[NLANDCOVERTYPES];
 bool lcfrac_fixed;
 bool all_fracs_const = true;
 bool no_barren_frac_corr = true;
+bool no_peatland_frac_corr = true;
 bool ifslowharvestpool;
 bool ifintercropgrass;
 bool ifcalcdynamic_phu;
@@ -293,6 +295,8 @@ void initsettings() {
 	ifleafdamage = false;
 	ifdavehydraulics = false;
 	ifdavehydrology = false;
+	penman_monteith = false;
+	est_live_repr = false;
 	ifstoreuptake = true;
 	soildepth_evap = 200.0;// Default in trunk
 	ifzhou = false;
@@ -631,6 +635,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("run_barren",&run[BARREN],1,CB_NONE,"Whether barren land is to be simulated");
 		declareitem("no_barren_frac_corr",&no_barren_frac_corr,1,CB_NONE,
 			"Whether BARREN landcover excluded from area fraction correction in cases of non-unity sum");
+		declareitem("no_peatland_frac_corr",&no_peatland_frac_corr,1,CB_NONE,
+			"Whether PEATLAND landcover excluded from area fraction correction in cases of non-unity sum");
 
 		declareitem("ifslowharvestpool",&ifslowharvestpool,1,CB_NONE,"If a slow harvested product pool is included in patchpft.");
 		declareitem("ifintercropgrass",&ifintercropgrass,1,CB_NONE,"Whether intercrop growth is allowed");
@@ -681,6 +687,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifgrote", &ifgrote, 1, CB_NONE, "Turn on/off grote tree allocation (requires ifdailytree 1)");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
 		declareitem("ifdavehydrology", &ifdavehydrology, 1, CB_NONE, "Use DAVE hydrology updates");
+		declareitem("penman_monteith", &penman_monteith, 1, CB_NONE, "Whether to use penman-monteith equation to calculate transpiration, or the relationship with VPD.");
+		declareitem("est_live_repr", &est_live_repr, 1, CB_NONE, "Whether to use live reproductive biomass (true) or total allocation to reproduction (false) for spatial mass effect.");
 		declareitem("soildepth_evap", &soildepth_evap, 0, 1500, 1, CB_NONE, "Depth of sublayer at top of upper soil layer, from which evaporation is possible (NB: must not exceed value of global constant SOILDEPTH_UPPER) Must be a multiple of Dz_soil");
 	    declareitem("ifdavehydraulics", &ifdavehydraulics, 1, CB_NONE, "Use DAVE hydraulics routine");
 	    declareitem("ifzhou", &ifzhou, 1, CB_NONE, "Use Zhou response of photosynthesis to water stress via water potential (requires ifdavehydrology)");
@@ -2039,7 +2047,6 @@ void plib_callback(int callback) {
 		}
 
 		// Remove st:s with monoculture pft:s that are not found in the pftlist or with mt:s that are not in the mtlist
-		dprintf("\n");
 		stlist.firstobj();
 		while (stlist.isobj) {
 			StandType& st = stlist.getobj();
@@ -2055,7 +2062,7 @@ void plib_callback(int callback) {
 				xtring pftname = st.rotation.nmanagements > 1 ? st.get_management(i).pftname : st.management.pftname;
 				if(pftname != "" && pftlist.getpftid(pftname) < 0) {
 					include = false;
-					dprintf("Stand type %s not used; pft %s not in pftlist !\n", (char*)st.name, (char*)st.get_management(i).pftname);
+					dprintf("Stand type %s not used; pft %s not in pftlist !\n", (char*)st.name, (char*) pftname);
 				}
 			}
 
@@ -2067,7 +2074,6 @@ void plib_callback(int callback) {
 				stlist.nextobj();
 			}
 		}
-		dprintf("\n");
 
 		// Set ids and npft variable after removing unused pfts	; NB: minimizecftlist or LandcoverInput::init() may remove more pfts
 		npft = 0;

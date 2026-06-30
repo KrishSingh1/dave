@@ -5,7 +5,6 @@
 /// while its member functions are implemented in soil.cpp and in soilmethane.cpp.
 /// 
 /// \author Paul Miller
-/// $Date: 2019-03-10 16:34:14 +0100 (Sun, 10 Mar 2019) $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 

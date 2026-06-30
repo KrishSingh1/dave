@@ -19,7 +19,6 @@
 /// the order that minimizes disk seeks.
 ///
 /// \author Joe Siltberg
-/// $Date$
 ///
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -183,8 +182,7 @@ public:
 		while (rank <= max_rank) {
 			std::string path = create_path(directory, rank);
 
-			std::auto_ptr<std::ifstream> stream(
-			                                    new std::ifstream(path.c_str(), std::ios::binary | std::ios::in));
+            std::unique_ptr<std::ifstream> stream = std::make_unique<std::ifstream>(std::ifstream(path.c_str(), std::ios::binary | std::ios::in));
 
 			if (!stream->fail()) {
 				File* file = new File;
@@ -213,7 +211,7 @@ public:
 					throw PartitionedMapSerializerError(std::string("failed to read index for state file: ") + path);
 				}
 
-				file->stream = stream;
+				file->stream = std::move(stream);
 				files.push_back(file);
 			}
 			rank++;
@@ -243,7 +241,7 @@ public:
 
 		for (size_t i = 0; i < files.size(); i++) {
 			Index& index = files[i]->index;
-			std::auto_ptr<std::ifstream>& stream = files[i]->stream;
+			std::unique_ptr<std::ifstream>& stream = files[i]->stream;
 			// find position of element in this file if it has it
 			typename Index::iterator itr = 
 				std::lower_bound(index.begin(), index.end(), std::make_pair(key,0), 
@@ -316,7 +314,7 @@ public:
 			std::sort(positions.begin(), positions.end());
 
 			// read all the elements from this file
-			std::auto_ptr<std::ifstream>& stream = files[i]->stream;
+			std::unique_ptr<std::ifstream>& stream = files[i]->stream;
 			stream->seekg(positions[0].first, std::ios::beg);
 
 			for (size_t e = 0; e < positions.size(); e++) {
@@ -361,7 +359,7 @@ private:
 	/// Internal representation for each state file
 	struct File {
 		/// An opened stream for this state file
-		std::auto_ptr<std::ifstream> stream;
+		std::unique_ptr<std::ifstream> stream;
 
 		/// The index, read in from the file
 		Index index;

@@ -5,7 +5,6 @@
 ///  Created on: 24 nov 2014
 /// \author : Stefan Olin
 ///
-/// $Date: $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -44,6 +43,7 @@ public:
 	/// Get and set the Soiltype-object in the current Gridcell-object.
 	void get_soil(double lon, double lat, Gridcell& gridcell);
 	
+	/// searchstep_soil instruction file parameter
 	double STEP;
 
 private:

@@ -3,7 +3,6 @@
 /// \brief The "shell" is the model's interface to the world
 ///
 /// \author Joe Siltberg
-/// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -29,6 +28,8 @@ void vlprintf(xtring format, va_list args);
 /// A printf-style function that sends the user a message and then terminates.
 void fail(xtring format,...);
 
+/// Do the last things before exiting the program, e.g. termiante MPI
+void cleanupAtExit();
 
 /// Adds data point (x,y) to series 'series_name' of line graph 'window_name'.
 /**
@@ -103,6 +104,9 @@ public:
 	/// Sends a message to the user somehow and terminates the program
 	virtual void fail(const char* message) = 0;
 
+	/// Do the last things before exiting, e.g. termiante MPI
+	virtual void cleanupAtExit() = 0;
+
 	/// Sends a message to the user somehow
 	virtual void log_message(const char* message) = 0;
 
@@ -158,6 +162,8 @@ public:
 	~CommandLineShell();
 
 	void fail(const char* message);
+
+	void cleanupAtExit();
 
 	void log_message(const char* message);
 

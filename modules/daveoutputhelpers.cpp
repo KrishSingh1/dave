@@ -4,6 +4,7 @@
 #include "simfire.h"
 #include "blaze.h"
 #include "ncutil.h"
+#include "davephotosynthesis.h"
 
 namespace GuessOutput {
 
@@ -180,6 +181,13 @@ std::vector<ColumnDefinition<Individual>> get_pft_litter_pools() {
 	columns.push_back(ColumnDefinition<Individual>("Sap", [](const Individual &i) { return i.patchpft().cmass_litter_sap; }));
 	columns.push_back(ColumnDefinition<Individual>("Heart", [](const Individual &i) { return i.patchpft().cmass_litter_heart; }));
 	columns.push_back(ColumnDefinition<Individual>("Repr", [](const Individual &i) { return i.patchpft().cmass_litter_repr; }));
+	return columns;
+}
+
+std::vector<ColumnDefinition<Individual>> transp_check_columns() {
+	std::vector<ColumnDefinition<Individual>> columns;
+	columns.push_back(ColumnDefinition<Individual>("new", [](const Individual &i) { return i.aet; }));
+	columns.push_back(ColumnDefinition<Individual>("old", calc_transp_old));
 	return columns;
 }
 
@@ -1359,6 +1367,7 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ene
 		{"niter",        [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_niter() * 1.0; }},
 		{"tleaf",        [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_tleaf(); }},
 		{"tair",         [](const Individual &i, int t, int l) { return i.vegetation.patch.get_climate().temps[t]; }},
+		{"rnet",         [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_rnet(); }},
 	};
 }
 

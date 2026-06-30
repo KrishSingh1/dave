@@ -3,7 +3,6 @@
 /// \brief SIMFIRE burned area simulation by W. Knorr
 ///
 /// \author Lars Nieradzik
-/// $Date: 2017-01-24 16:02:51 +0100 (Tue, 24 Jan 2017) $
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -283,7 +282,7 @@ void getsimfiredata(Gridcell& gridcell) {
 	SimfireInputArchive ark;
 	
 	if (!ark.open(file_simfire)) {
-		fail("Could not open %s for input \n", (char*)file_simfire);
+		fail("getsimfiredata(): Could not open %s for input \n", (char*)file_simfire);
 	}
 	
 	SimfireInput rec;
@@ -294,7 +293,7 @@ void getsimfiredata(Gridcell& gridcell) {
 	
 	if (!ark.getindex(rec)) {
 		ark.close();
-		fail("Grid cell not found in %s \n", (char*)file_simfire);
+		fail("getsimfiredata(): Grid cell not found in %s \n", (char*)file_simfire);
 	}
 
 	// Found the record, get the values

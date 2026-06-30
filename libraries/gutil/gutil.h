@@ -397,12 +397,9 @@ public:
 		  pfirstitem=NULL;
 		  plastitem=NULL;
 		  pthisitem=NULL;
-		  
 		  isobj=false;
 		  nobj=0;
 		  nseg=0;
-
-		  // ecev3
 		  thisobj=0;
 	 }
 
@@ -458,7 +455,7 @@ public:
 		  isobj=true;
 		  thisobj=nobj++;
 		  if (nobj>nseg*SEGSIZE) {
-				Item** newarray=new Item*[((int)nseg+1)*SEGSIZE];
+				Item** newarray=new Item*[(nseg+1)*SEGSIZE];
 				if (!newarray) fail();
 				if (nseg++) {
 					 unsigned int i;
@@ -628,8 +625,6 @@ public:
 		  nobj=0;
 		  nseg=0;
 		  id=0;
-
-		  // ecev3
 		  thisobj=0;
 	 }
 
@@ -693,7 +688,7 @@ public:
 		  isobj=true;
 		  thisobj=nobj++;
 		  if (nobj>nseg*SEGSIZE) {
-				Item** newarray=new Item*[((int)nseg+1)*SEGSIZE];
+				Item** newarray=new Item*[(nseg+1)*SEGSIZE];
 				if (!newarray) fail();
 				if (nseg++) {
 					 unsigned int i;
@@ -872,8 +867,6 @@ public:
 		  nobj=0;
 		  nseg=0;
 		  id=0;
-
-		  // ecev3
 		  array = NULL;
 		  thisobj = 0;
 	 }
@@ -925,7 +918,7 @@ public:
 		  isobj=true;
 		  thisobj=nobj++;
 		  if (nobj>nseg*SEGSIZE) {
-				Item** newarray=new Item*[((int)nseg+1)*SEGSIZE];
+				Item** newarray=new Item*[(nseg+1)*SEGSIZE];
 				if (!newarray) fail();
 				if (nseg++) {
 					 unsigned int i;
@@ -933,7 +926,6 @@ public:
 						  newarray[i]=array[i];
 					 delete[] array;
 				}
-				
 				array=newarray;
 		  }
 		  array[nobj-1]=pitem;
@@ -1111,8 +1103,6 @@ public:
 		  nobj=0;
 		  nseg=0;
 		  id=0;
-
-		  // ecev3
 		  thisobj = 0;
 	 }
 
@@ -1160,7 +1150,7 @@ public:
 		  isobj=true;
 		  thisobj=nobj++;
 		  if (nobj>nseg*SEGSIZE) {
-				Item** newarray=new Item*[((int)nseg+1)*SEGSIZE];
+				Item** newarray=new Item*[(nseg+1)*SEGSIZE];
 				if (!newarray) fail();
 				if (nseg++) {
 					 unsigned int i;

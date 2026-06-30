@@ -12,7 +12,6 @@
 ///      function.
 ///
 /// \author Ben Smith
-/// $Date$
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -919,15 +918,16 @@ public:
 class EnergyBalance {
 public:
 	EnergyBalance(double tleaf, size_t niter, double delta_tleaf,
-						bool converged, double transp) :
+						bool converged, double transp, double rnet) :
 		tleaf(tleaf), niter(niter), delta_tleaf(delta_tleaf),
-		converged(converged), transp(transp) {
+		converged(converged), transp(transp), rnet(rnet) {
 	}
 	double get_tleaf() const { return tleaf; }
 	size_t get_niter() const { return niter; }
 	double get_delta_tleaf() const { return delta_tleaf; }
 	bool get_converged() const { return converged; }
 	double get_transp() const { return transp; }
+	double get_rnet() const { return rnet; }
 private:
 	// Leaf temperature (degC).
 	double tleaf;
@@ -939,6 +939,8 @@ private:
 	bool converged;
 	// Transpiration rate (mol H2O m-2 s-1).
 	double transp;
+	// Net radiation (W m-2).
+	double rnet;
 };
 
 /*
@@ -1391,6 +1393,9 @@ public:
 	 *  see also documentation for the insoltype enum.
 	 */
 	insoltype instype;
+
+	/// annual insolation counter
+	double ainsol;
 
 	/// equilibrium evapotranspiration today (mm/day)
 	double eet;
@@ -1870,6 +1875,9 @@ public:
 	/// Report flux for a certain flux type
 	void report_flux(PerPatchFluxType flux_type, double value);
 
+	/// \returns daily flux for a given flux type and PFT
+	double get_daily_flux(PerPFTFluxType flux_type, int day, int pft_id) const;
+
 	/// \returns daily flux for a given flux type (for all PFTs)
 	double get_daily_flux(PerPFTFluxType flux_type, int day) const;
 
@@ -1903,6 +1911,10 @@ private:
 	/// Stores one flux value per month and flux type
 	/** For the fluxes stored per pft for annual values */
 	double monthly_fluxes_pft[12][NPERPFTFLUXTYPES];
+
+	/// Stores one flux value per day, flux type and PFT
+	//  Order daily_fluxes_per_pft[day][pft][type]
+	std::vector<std::vector<std::vector<double>>> daily_fluxes_per_pft;
 
 	/// Stores one flux value per day and flux type
 	double daily_fluxes_patch[365][NPERPATCHFLUXTYPES];
@@ -4843,7 +4855,7 @@ public:
 	/// mean water content in upper soil layer for last month
 	/** (valid only on last day of month following call to daily_accounting_patch) */
 	double mwcontupper;
-	/// stored snow as average over modelled area (mm rainfall equivalent)
+	/// stored snow as average over modelled area (kg H2O m-2 or mm water)
 	double snowpack;
 	/// total runoff today (mm/day)
 	double runoff;
@@ -5009,8 +5021,6 @@ public:
 	int snow_days;
 	/// previous days of continuous snow cover
 	int	snow_days_prev;
-	/// daily snow depth [mm] 
-	double dsnowdepth;
 	/// Monthly snow depth (average) [mm]
 	double msnowdepth[12];
 	/// Previous December's snowdepth [mm] - used in establishment - from Wolf et al. (2008) 
@@ -5325,6 +5335,9 @@ public:
 
 	/// return true if there is more than 5% ice content in any ice in the top 50cm of soil (needed for irrigation)
 	bool ice_in_top_layer();
+
+	/// return snow depth [mm] 
+	double snowdepth();
 
 	/// Peatland hydrology routine. Implements the peatland hydrology scheme of Wania et al. (2008)
 	void hydrology_peat(const Climate& climate, double fevap);
@@ -5871,6 +5884,8 @@ public:
 	bool growingseason() const;
 
 	void serialize(ArchiveStream& arch);
+
+    double total_litter() const;
 
 	/// Reset daily variables.
 	void daily_accounting(const Patch &patch);

@@ -12,7 +12,6 @@
 ///      function.
 ///
 /// \author Xu-Ri and modified for LPJ-guess by Peter Eliasson, David Wårlind and Stefan Olin.
-/// $Date: 2013-10-14 14:12:00 +0100 (Mon, 10 Sep 2013) $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 

@@ -3,7 +3,6 @@
 /// \brief SIMFIRE - SIMple FIRE module to compute burnt area  
 ///
 /// \author Lars Nieradzik
-/// $Date: 2015-08-25 09:19:28 +0200 (Tue, 25 Aug 2015) $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 

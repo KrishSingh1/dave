@@ -195,8 +195,10 @@ if background establishment disabled).
 
 $k_{\mathrm{est,pres}}$ is a PFT-specific constant in range 0-1 (usually ~1).
 
-$C_{\mathrm{repr}}$ is the net C allocated to reproduction for this PFT in all
-patches of this stand this year (kgC/m2).
+$C_{\mathrm{repr}}$ is a measure of the available reproductive biomass for this
+PFT (kgC/m2). If parameter `est_live_repr` is true, this value represents live
+reproductive biomass; otherwise, it represents total annual allocation to
+reproduction.
 
 $\text{est}_{\mathrm{max}}$ is the (nominal) maximum establishment rate for this PFT
 (saplings/m2/year).
@@ -341,6 +343,7 @@ If initial biomass is zero, that PFT does not establish in that year.
 | `ifdroughtlimitedestab` | Global instruction | Turns drought-limited establishment on/off; if off, `drought_tolerance` does not affect establishment |
 | `ifdailygrass` + `ifdavegrowth` | Global instruction | Moves DAVE-grass establishment to daily pathway (annual grass establishment pathway no longer drives those grasses) |
 | `nindiv_max` | Global instruction | Caps number of individuals/cohorts of a tree PFT per patch (post free-N years) |
+| `est_live_repr` | Global instruction | Controls whether spatial mass effect uses live reproductive biomass (true) or total annual allocation to reproduction (false) |
 | Stand/PFT active flags | Stand/PFT configuration | Inactive PFTs cannot establish in that stand |
 | Management re-establishment settings | Stand management | Can allow/block establishment in managed stands |
 | Planting-year and planting-density management settings | Stand management | Can force planting or bypass normal annual establishment via dedicated planting routine |

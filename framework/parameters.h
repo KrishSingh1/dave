@@ -21,7 +21,6 @@
 /// functions.
 ///
 /// \author Joe Siltberg
-/// $Date$
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
@@ -250,6 +249,9 @@ extern bool frac_fixed[NLANDCOVERTYPES];
 /// Whether BARREN landcover excluded from area fraction correction in cases of non-unity sum
 extern bool no_barren_frac_corr;
 
+/// Whether PEATLAND landcover excluded from area fraction correction in cases of non-unity sum
+extern bool no_peatland_frac_corr;
+
 /// Set to false by initio( ) if fraction input files have yearly data.
 extern bool all_fracs_const;
 
@@ -418,6 +420,14 @@ extern bool ifdavegrowth;
 
 /// whether DAVE hydrology changes are used (e.g. allow water content to drop below water potential = -1.5 MPa, allow percolation between layers on days without rain)
 extern bool ifdavehydrology;
+
+/// Whether to use penman-monteith equation to calculate transpiration, or the
+/// relationship with VPD.
+extern bool penman_monteith;
+
+/// Whether establishment should use live reproductive biomss (true) or total
+/// allocation to reproduction (false) for spatial mass effect.
+extern bool est_live_repr;
 
 /// Depth of sublayer at top of upper soil layer, from which evaporation is
 /// possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)

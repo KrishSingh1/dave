@@ -7,6 +7,8 @@
 
 cmake_minimum_required(VERSION 2.8.12.2...3.5.2)
 project(guess)
+# C++ standard 14 rather than 11 is needed to compile guess on mac.
+set(CMAKE_CXX_STANDARD 14)
 
 set(COMPRESS_OUTPUT 0 BOOL "Compress output or not")
 find_package(ZLIB QUIET)
@@ -26,6 +28,9 @@ if (MSVC)
   # Disable warnings about using secure functions like sprintf_s instead of
   # regular sprintf etc.
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /D _CRT_SECURE_NO_WARNINGS /D _SCL_SECURE_NO_WARNINGS")
+else()
+  # Add a temporary flag for Linux and macOS
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 endif()
 
 # The following are configuration variables for the build. 
@@ -44,7 +49,6 @@ if (UNIX)
   # Setup the SYSTEM variable, currently only used to choose which 
   # submit.sh to generate (for submitting to job queue)
 
-
   # Figure out what value it should have initially, based on the
   # environment variable ARCH if it's set.
   if (NOT $ENV{ARCH} STREQUAL "")
@@ -53,7 +57,13 @@ if (UNIX)
 	set(DEFAULT_SYSTEM "")
   endif()
 
-  set(SYSTEM ${DEFAULT_SYSTEM} CACHE STRING "System to build for (empty (=simba), gimle, aurora or multicore)")
+  set(SYSTEM ${DEFAULT_SYSTEM} CACHE STRING "System to build for (empty (=simba), gimle, lunarc, levante or multicore)")
+  
+  # A temporary helper for Lund users lingering with $ARCH=="aurora" instead of "lunarc".
+  if (SYSTEM STREQUAL "aurora")
+    set(SYSTEM "lunarc")
+  endif()
+  
 endif (UNIX)
 
 # Where to search for cmake modules
@@ -63,9 +73,9 @@ set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 # NetCDF - look for libraries and include files, and use them if found.
 # If this CMakeList script does not find the path to the NetCDF library on
 # your system, then consult LPJ-GUESS/reference/guessdoc.doc.
-# On easybuild systems, it may help to use the same line as for aurora here.
-# i.e.: set(CMAKE_PREFIX_PATH "$ENV{EBROOTNETCDF}").
-if ("$ENV{ARCH}" STREQUAL "aurora")
+# On easybuild systems, it may help to use the same line as for lunarc here.
+# i.e. set(CMAKE_PREFIX_PATH "$ENV{EBROOTNETCDF}").
+if ("$ENV{ARCH}" STREQUAL "lunarc")
   set(CMAKE_PREFIX_PATH "$ENV{EBROOTNETCDF}")
 endif()
 find_package(NetCDF QUIET)
@@ -151,7 +161,9 @@ if (WIN32)
   add_subdirectory(windows_version)
 endif()
 
-if (UNIT_TESTS)
+if (BENCHMARK)
+  message("We are in benchmarks, not copying tests.")
+else()
   add_subdirectory(tests)
 endif()
 
@@ -168,9 +180,13 @@ endif()
 add_executable(${guess_command_name} ${guess_sources} command_line_version/main.cpp)
 
 # Rule for building the unit test binary
-if (UNIT_TESTS)
+if(BENCHMARK)
+  message("We are in benchmarks, not creating executable for tests.")
+else()
   add_executable(runtests ${guess_sources} ${test_sources})
   target_link_libraries(runtests ${LIBS})
+  # Some unit tests require C++14
+  set_property(TARGET runtests PROPERTY CXX_STANDARD 14)
 endif()
 
 # Specify libraries to link to the executable
@@ -190,7 +206,7 @@ if (UNIX)
   # Choose template file depending on system
   if (SYSTEM STREQUAL "")
     set(SYSTEM "simba")
-  endif(SYSTEM STREQUAL "")
+  endif(SYSTEM STREQUAL "")  
   set(submit_template ${guess_SOURCE_DIR}/parallel_version/${SYSTEM}.tmpl)
 
   # A sed command which exchanges each occurrence of BINARY and DATE in
@@ -228,3 +244,12 @@ if (UNIX)
       FORCE)
   endif(NOT CMAKE_BUILD_TYPE)
 endif(UNIX)
+
+if(APPLE)
+  add_custom_command(TARGET guess POST_BUILD
+    COMMAND codesign --force --sign - 
+            --entitlements ${CMAKE_SOURCE_DIR}/debug.entitlements
+            $<TARGET_FILE:guess>
+    COMMENT "Ad-hoc signing LPJ-GUESS with debug entitlement"
+  )
+endif()

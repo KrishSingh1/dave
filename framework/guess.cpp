@@ -3,7 +3,6 @@
 /// \brief LPJ-GUESS Combined Modular Framework
 ///
 /// \author Ben Smith
-/// $Date$
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -91,7 +90,8 @@ void Climate::serialize(ArchiveStream& arch) {
 		& co2
 		& lat
 		& insol
-		& instype
+		& instype	
+		& ainsol
 		& eet
 		& mtemp
 		& mtemp_min20
@@ -189,6 +189,16 @@ Fluxes::Fluxes(Patch& p)
   : patch(p),
     annual_fluxes_per_pft(npft, std::vector<double>(NPERPFTFLUXTYPES)) {
 
+	// Resize daily_fluxes_per_pft to required sizes
+	// Order  daily_fluxes_per_pft[day][pft][type]
+	daily_fluxes_per_pft.resize(date.year_length());
+	for (int day = 0; day < date.year_length(); ++day) {
+		daily_fluxes_per_pft[day].resize(npft);
+		for (int pft = 0; pft < npft; ++pft) {
+			daily_fluxes_per_pft[day][pft].resize(NPERPFTFLUXTYPES, 0.0);
+		}
+	}
+
 	reset();
 }
 
@@ -205,6 +215,9 @@ void Fluxes::reset() {
 	for (int d = 0; d < date.year_length(); ++d) {
 		std::fill_n(daily_fluxes_pft[d], int(NPERPFTFLUXTYPES), 0);
 		std::fill_n(daily_fluxes_patch[d], int(NPERPATCHFLUXTYPES), 0);
+		for (int pft = 0; pft < npft; ++pft) {
+			std::fill_n(daily_fluxes_per_pft[d][pft].begin(), int(NPERPFTFLUXTYPES), 0);
+		}
 	}
 }
 
@@ -218,11 +231,16 @@ void Fluxes::report_flux(PerPFTFluxType flux_type, int pft_id, double value) {
 	annual_fluxes_per_pft[pft_id][flux_type] += value;
 	monthly_fluxes_pft[date.month][flux_type] += value;
 	daily_fluxes_pft[date.day][flux_type] += value;	//Var = value ???
+	daily_fluxes_per_pft[date.day][pft_id][flux_type] += value;
 }
 
 void Fluxes::report_flux(PerPatchFluxType flux_type, double value) {
 	monthly_fluxes_patch[date.month][flux_type] += value;
 	daily_fluxes_patch[date.day][flux_type] += value;
+}
+
+double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day, int pft_id) const {
+	return daily_fluxes_per_pft[day][pft_id][flux_type];
 }
 
 double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day) const {
@@ -509,6 +527,10 @@ void Patchpft::annual_accounting(const Patch &patch) {
 	}
 	amort_cstarve = 0.0;
 	amort_cstarve_ntree = 0.0;
+}
+
+double Patchpft::total_litter() const {
+	return cmass_litter_leaf + cmass_litter_root + cmass_litter_heart + cmass_litter_sap + cmass_litter_repr;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -1843,6 +1865,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	anpp              = 0.0;
 	agpp			  = 0.0;
 	aresp			  = 0.0;
+	aet               = 0.0;
 	fpc               = 0.0;
 	fpc_daily		  = 0.0;
 	rpc               = 0.0;
@@ -1850,7 +1873,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_leaf        = 0.0;
 	cmass_root        = 0.0;
 	cmass_crown       = 0.0;
-	aet               = 0.0;
 	cmass_repr        = 0.0;
 	cmass_struct      = 0.0;
 	cmass_sap         = 0.0;
@@ -3375,12 +3397,24 @@ double Individual::get_cmass_repr() const {
 /// Gets the individual's daily fpc value
 double Individual::fpc_today() const {
 
-	if (pft.phenology == CROPGREEN)
-		return patchpft().cropphen->growingseason ? fpc_daily : 0;
-	else if (pft.is_grass() && ifdailygrass)
+	if (pft.phenology == CROPGREEN) {
+		return patchpft().cropphen->growingseason ? fpc_daily : 0.0;
+	}
+	else if (phen == 1.0) {
 		return fpc;
-	else
-		return fpc * phen;
+	}
+	else if (phen == 0.0) {
+		return 0.0;
+	}
+	else {
+		if (pft.lifeform == TREE) {
+			return crownarea * densindiv * (1.0 - lambertbeer(lai_indiv_today()));
+		}
+		else {
+			// Grass and mosses
+			return 1.0 - lambertbeer(lai_indiv_today());
+		}
+	}
 }
 
 /// Gets the individual's daily lai value
@@ -4113,7 +4147,6 @@ Gridcell::Gridcell():climate(*this) {
 	nesterov_cur = 0.;
 
 	// Initialise BLAZE variables
-	seed = 12345678;
 
 	distinterval_gc = 1.0e10;
 	for (int i=0;i<12;i++) {
@@ -4129,6 +4162,7 @@ Gridcell::Gridcell():climate(*this) {
 	nesterov_max = 0;
 	annual_burned_area = 0;
 	k_tun_litter = 0;
+	seed = 12345678;
 }
 
 double Gridcell::get_lon() const {

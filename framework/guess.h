@@ -1,4 +1,5 @@
 ///////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////
 /// \file guess.h
 /// \brief Framework header file, LPJ-GUESS Combined Modular Framework
 ///
@@ -78,6 +79,9 @@ typedef enum {green, brown} leafpool;
 /// Array size of mowdates
 const int num_mowdates = 5;
 
+/// Soil input type
+typedef enum { LPJ, MINERAL, VARYING } soilinputtype;
+
 /// Units for insolation driving data
 /** Insolation can be expressed as:
  *
@@ -107,11 +111,17 @@ typedef enum {
 } insoltype;
 
 /// CENTURY pool names, NSOMPOOL number of SOM pools
-typedef enum {SURFSTRUCT, SOILSTRUCT, SOILMICRO, SURFHUMUS, SURFMICRO, SURFMETA, SURFFWD, SURFCWD,
-	SOILMETA, SLOWSOM, PASSIVESOM, NSOMPOOL} pooltype;
+typedef enum { SURFMETA, SURFSTRUCT, SURFFWD, SURFCWD, SURFMICRO, SURFHUMUS, 
+SOILMETA, SOILSTRUCT, SOILFWD, SOILCWD, SOILMICRO, SLOWSOM, PASSIVESOM, NSOMPOOL } pooltype;
+
+/// CENTURY SOM pool group names
+typedef enum { GALL, GSURFL, GHUMUS, GSOM, GHUMUSSOM } grouppooltype;
+
+/// Ways of calculating mineral fractions
+typedef enum { ABS, ABSEFF, MINEFF } mincalctype;
 
 /// Irrigation type for PFTs
-typedef enum {RAINFED, IRRIGATED} hydrologytype;
+typedef enum {RAINFED, IRRIGATED} waterusetype;
 /// Intercrop type for PFTs
 typedef enum {NOINTERCROP, NATURALGRASS} intercroptype;
 
@@ -181,10 +191,6 @@ const int NFOREST_STRUCTURAL_CLASSES = 31;
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
 
-/// number  of soil layers modelled
-const int NSOILLAYER_UPPER = 5;
-const int NSOILLAYER_LOWER = NSOILLAYER - NSOILLAYER_UPPER;
-
 /// maximum number of thinnings in a forest management scheme
 const int NTHINNINGS = 5;
 /// maximum number of thinning loops in a forest management scheme (e.g. regrowth and continuous loops)
@@ -194,6 +200,12 @@ const int NTHINNINGLOOPS = 2;
 const int NMTCOMPOUNDS=NMTCOMPOUNDTYPES;
 
 // SOIL DEPTH VALUES
+
+/// Maximum soil depth - 50m (mm)
+const double SOILDEPTH_MAX = 50000.0;
+
+/// Minimum soil depth - 0.2m (mm)
+const double SOILDEPTH_MIN = 200.0;
 
 /// soil upper layer depth (mm)
 const double SOILDEPTH_UPPER = 500.0;
@@ -205,12 +217,6 @@ const double SOILDEPTH_LOWER = 1000.0;
 //  Must be a multiple of Dz_soil
 const double SOILDEPTH_EVAP_TRUNK = 200.0;
 extern double SOILDEPTH_EVAP;
-
-/// Year at which to calculate equilibrium soil carbon
-const int SOLVESOM_END=400;
-
-/// Year at which to begin documenting means for calculation of equilibrium soil carbon
-const int SOLVESOM_BEGIN = 350;
 
 /// Number of years to average growth efficiency over in function mortality
 const int NYEARGREFF = 5;
@@ -244,13 +250,16 @@ const double PRIESTLEY_TAYLOR = 1.32;
 
 // Solving Century SOM pools
 
-/// fraction of nyear_spinup minus freenyears at which to begin documenting for calculation of Century equilibrium
-const double SOLVESOMCENT_SPINBEGIN  = 0.1;
-/// fraction of nyear_spinup minus freenyears at which to end documentation and start calculation of Century equilibrium
-const double SOLVESOMCENT_SPINEND    = 0.3;
+/// Fraction of nyear_spinup minus freenyears at which to begin documenting for calculation of Century equilibrium
+const double SOLVESOMCENT_SPINBEGIN = 0.1;
+/// Fraction of nyear_spinup minus freenyears at which to end documentation and start calculation of Century equilibrium
+const double SOLVESOMCENT_SPINEND = 0.3;
 
 /// Kelvin to deg C conversion
 const double K2degC = 273.15;
+
+// The gas constant [J⋅mol−1 K-1]
+const double R = 8.3145;
 
 /// Maximum number of crop rotation items
 const int NROTATIONPERIODS_MAX = 3;
@@ -291,6 +300,8 @@ class Vegetation;
 class Individual;
 class Gridcell;
 class Patchpft;
+class Soil;
+class Soillayer;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES WITH EXTERNAL LINKAGE
@@ -308,28 +319,6 @@ extern int nst;
 extern int nst_lc[NLANDCOVERTYPES];
 /// Number of management types in stlist
 extern int nmt;
-
-/// Routine for handling slightly out of bounds water contents arising in hydrology and soil water thaw/freezing calculations.
-inline void oob_check_wcont(double &wc_in) {
-
-	// Minimum nonzero wcont allowed
-	// This function will remove very small water amounts from wcont variables and adjust to 1 if we exceed it by tiny amounts
-	const double min_mm = 0.000000001;
-
-	if (DEBUG_SOIL_WATER) {
-		if (wc_in <= -1.0 * min_mm || wc_in >= 1.0 + min_mm) {
-			fail("Out of bounds detected in oob_check_wcont - water content arising in hydrology and soil water thaw/freezing calculations! wcont %g\n", wc_in);
-		}
-	}
-
-	if (wc_in != 0.0 && wc_in < min_mm && wc_in > -1.0 * min_mm) {
-		wc_in = 0.0;
-	}
-
-	if (wc_in > 1.0 && wc_in < 1.0 + min_mm) {
-		wc_in = 1.0;
-	}
-}
 
 /// General purpose object for handling simulation timing.
 /** In general, frameworks should use a single Date object for all simulation
@@ -431,7 +420,6 @@ public:
 	void next() {
 		if (islastday) {
 			if (islastmonth) {
-				dayofmonth = 0;
 				day = 0;
 				month = 0;
 				year++;
@@ -440,10 +428,10 @@ public:
 			}
 			else {
 				day++;
-				dayofmonth = 0;
 				month++;
 				if (month == 11) islastmonth = true;
 			}
+			dayofmonth = 0;
 			islastday = false;
 		}
 		else {
@@ -1115,7 +1103,7 @@ struct PhotosynthesisResult : public Serializable {
 		rd_g        = 0;
 		vm          = 0;
 		je          = 0;
-		nactive_opt = 0.0;
+		nmass_leaf_opt = 0.0;
 		vmaxnlim    = 1.0;
 	}
 
@@ -1135,11 +1123,14 @@ struct PhotosynthesisResult : public Serializable {
 	/// PAR-limited photosynthesis rate (gC/m2/h)
 	double je;
 
-	/// optimal leaf nitrogen associated with photosynthesis (kgN/m2)
-	double nactive_opt;
+	/// optimal leaf nitrogen (kg N m-2)
+	double nmass_leaf_opt;
 
 	/// nitrogen limitation on vm
 	double vmaxnlim;
+
+	/// Daily Vmax for the last 5 days [nmol g-1 d.w. s-1]
+	Historic<double, 5> vmax_5;
 
 	/// net C-assimilation (gross photosynthesis minus leaf respiration) (kgC/m2/day)
     double net_assimilation() const {
@@ -1234,13 +1225,13 @@ private:
 
 public:
 	/// set 
-    void set(double co2_env, double temp_env, double par_env, double fpar_env, double daylength_env) {
+	void set(double co2_env, double temp_env, double par_env, double fpar_env, double daylength_env) {
 		co2 = co2_env;
 		temp = temp_env;
 		par = par_env;
 		fpar = fpar_env;
 		daylength = daylength_env;
-    }
+	}
 
 	double get_apar() const {
 		return par * fpar;
@@ -1282,15 +1273,19 @@ struct PhotosynthesisStresses {
 	 */
 	void no_stress() {
 
-		ifnlimvmax = false;
+		ifopt = true;
+		iflimvmax = false;
 		moss_ps_limit = 1.0;
 		graminoid_ps_limit = 1.0;
 		inund_stress = 1.0;
 	}
 
 private:
-	/// whether nitrogen should limit Vmax
-	bool ifnlimvmax;
+	/// whether to calculate optimal leaf nitrogen
+	bool ifopt;
+
+	/// whether nutrients should limit Vmax
+	bool iflimvmax;
 
 	///  limit to moss photosynthesis. [0,1], where 1 means no limit
 	double moss_ps_limit;
@@ -1303,16 +1298,21 @@ private:
 
 public:
 	/// Set the stresses
-    void set(bool thisnlimvmax, double this_moss_ps_limit, double this_graminoid_ps_limit, double this_inund_stress) {
+    void set(bool thisopt, bool thislimvmax, double this_moss_ps_limit, double this_graminoid_ps_limit, double this_inund_stress) {
 
-		ifnlimvmax = thisnlimvmax;
+		ifopt = thisopt;
+		iflimvmax = thislimvmax;
 		moss_ps_limit = this_moss_ps_limit;
 		graminoid_ps_limit = this_graminoid_ps_limit;
 		inund_stress = this_inund_stress;
     }
 
-	bool get_ifnlimvmax() const {
-		return ifnlimvmax;	
+	bool get_ifopt() const {
+		return ifopt;
+	}
+
+	bool get_iflimvmax() const {
+		return iflimvmax;
 	}
 
 	double get_moss_ps_limit() const {
@@ -1325,6 +1325,73 @@ public:
 
 	double get_inund_stress() const {
 		return inund_stress;	
+	}
+};
+
+/// This struct contains the leaf properties input to a photosynthesis calculation.
+/** \see photosynthesis */
+struct PhotosynthesisLeafstatus {
+
+	/// Constructs an empty result
+	PhotosynthesisLeafstatus() {
+		noinfluence();
+	}
+
+	/// For PFTs use non sensible values as they don't have any influence
+	/** For PFTs use non sensible values as they don't have any influence
+	 */
+	void noinfluence() {
+		cmass_leaf = 0.0;
+		nmass_leaf = 0.0;
+		cton_min = 0.0;
+		cton_max = 0.0;
+		nextin = 1.0;
+	}
+
+private:
+	/// Todays leaf C mass (kgC/m2)
+	double cmass_leaf;
+
+	/// Todays leaf N mass (kgN/m2)
+	double nmass_leaf;
+
+	/// Minimum leaf C:N ratio
+	double cton_min;
+
+	/// Maximum leaf C:N ratio
+	double cton_max;
+
+	/// Scalar depending on individual lai to slow down light optimization of newly shaded leaves
+	double nextin;
+
+public:
+	/// set 
+	void set(double cmass, double nmass, double ctonmin, double ctonmax, double nin) {
+		cmass_leaf = cmass;
+		nmass_leaf = nmass;
+		cton_min = ctonmin;
+		cton_max = ctonmax;
+		nextin = nin;
+	}
+
+	double get_cmass_leaf() const {
+		return cmass_leaf;
+	}
+
+	double get_nmass_leaf() const {
+		return nmass_leaf;
+	}
+
+	double get_cton_min() const {
+		return cton_min;
+	}
+
+	double get_cton_max() const {
+		return cton_max;
+	}
+
+	double get_nextin() const {
+		return nextin;
 	}
 };
 
@@ -1471,6 +1538,8 @@ public:
 	/// mean of monthly temperatures for the last 12 months (deg C)
 	double atemp_mean;
 
+	/// first spinup years annual average air temperature (deg C)
+	double temp_iaavr;
 
 	// BLAZE
 	/// average annual rainfall (mm/a)
@@ -1708,6 +1777,7 @@ public:
 		chilldays = 0;
 		ifsensechill = true;
 		atemp_mean = 0.0;
+		temp_iaavr = 0.0;
 
 		lat = latitude;
 		std::fill_n(doneday, Date::MAX_YEAR_LENGTH, false);
@@ -1745,6 +1815,14 @@ public:
 	void serialize(ArchiveStream& arch);
 };
 
+/*
+Defines the period of a flux.
+*/
+enum class Period {
+	DAY,
+	MONTH,
+	YEAR
+};
 
 /// Stores accumulated monthly and annual fluxes.
 /** This class handles the storage and accounting of fluxes for a single patch.
@@ -1770,8 +1848,12 @@ public:
 		HARVESTC,
 		/// Flux from atmosphere to vegetation associated with sowing (kgC/m2)
 		SEEDC,
+		/// Flux to runoff associated with organic leaching (kgC/m2)
+		LEACHORGC,
 		/// Flux from atmosphere to vegetation associated with manure addition (kgC/m2)
 		MANUREC,
+		/// Flux to soil associated with biological nitrogen fixation (kgN/m2)
+		NFIX,
 		/// Flux to vegetation associated with manure addition (kgN/m2)
 		MANUREN,
 		/// Flux to vegetation associated with N addition (kgN/m2) 
@@ -1780,8 +1862,12 @@ public:
 		ESTN,
 		/// Nitrogen flux to atmosphere from consumed harvested products (kgN/m2)
 		HARVESTN,
-		/// Nitrogen flux from atmosphere to vegetation associated with sowing (kgC/m2)
+		/// Nitrogen flux from atmosphere to vegetation associated with sowing (kgN/m2)
 		SEEDN,
+		/// Nitrogen flux to runoff associated with organic leaching (kgN/m2)
+		LEACHORGN,
+		/// Nitrogen flux to runoff associated with mineral leaching (kgN/m2)
+		LEACHMINN,
 		/// NH3 flux to atmosphere from fire
 		NH3_FIRE,
 		/// NOx flux to atmosphere from fire
@@ -1790,7 +1876,6 @@ public:
 		N2O_FIRE,
 		/// N2 flux to atmosphere from fire
 		N2_FIRE,
-		//---- Soil N transformation -----
 		/// NH3 flux from soil (ntransform)
 		NH3_SOIL,
 		/// NO flux from soil (ntransform)
@@ -1819,6 +1904,26 @@ public:
 		CH4C_PLAN,
 		/// CH4 flux to atmosphere from peatland soils due to ebullition (gC/m2).
 		CH4C_EBUL,
+		/// Surface runoff
+		WRUNOFF_SURF,
+		/// Surface standing water runoff
+		WRUNOFF_SSW,
+		/// Drainage runoff
+		WRUNOFF_DRAIN,
+		/// Baseflow runoff
+		WRUNOFF_BASE,
+		/// Soil evaporation
+		WEVAP,
+		/// Potential evapotranspiration
+		WPET,
+		/// Transpiration
+		WTRAN,
+		/// Interception
+		WINTERCEP,
+		/// Irrigation water
+		WIRRI,
+		/// Water added to wetlands
+		WADDED,
 		/// Number of types, must be last
 		NPERPATCHFLUXTYPES
 	};
@@ -1827,8 +1932,12 @@ public:
 	enum PerPFTFluxType {
 		/// NPP (kgC/m2)
 		NPP,
-		/// GPP (kgC/m2)
+		/// GPP (kgC/m2) with nutrient and water stress
 		GPP,
+		/// GPP (kgC/m2) with no stress
+		GPPno,
+		/// GPP (kgC/m2) with nutrient stress
+		GPPns,
 		/// Autotrophic respiration (kgC/m2)
 		RA,
 		/// Isoprene (mgC/m2)
@@ -1899,6 +2008,11 @@ public:
 	/// \returns annual flux for a given flux type
 	double get_annual_flux(PerPatchFluxType flux_type) const;
 
+	/// \returns flux for a given period and flux type (for all PFTs)
+	double get_flux(PerPatchFluxType flux_type, Period period) const;
+
+	/// \returns flux for a given period and flux type
+	double get_flux(PerPFTFluxType flux_type, Period period) const;
 private:
 
 	/// Stores one flux value per PFT and flux type
@@ -2058,8 +2172,8 @@ public:
 	/// Residue removal fraction during clearcut for coarse roots and stumps for all tree pft:s
 	double res_outtake_coarse_root_cc;
 
-	/// hydrology (RAINFED,IRRIGATED) 
-	hydrologytype hydrology;
+	/// Water use (RAINFED,IRRIGATED) 
+	waterusetype wateruse;
 	/// irrigation efficiency
 //	double firr;
 	/// forced sowing date, unless sdate_force read from file
@@ -2146,7 +2260,7 @@ public:
 		res_outtake_twig_cc = -1.0;
 		res_outtake_coarse_root_cc = -1.0;
 
-		hydrology = RAINFED;
+		wateruse = RAINFED;
 //		firr = 0.0;
 		sdate = -1;
 		hdate = -1;
@@ -2163,8 +2277,8 @@ public:
 	bool is_managed() {
 
 		// Add new management parameters here
-		if(pftname != "" || planting_system != "" || selection != ""||  harvest_system != "" ||  hydrology == IRRIGATED 
-			|| fallow || relaxed_establishment || suppress_fire || suppress_disturbance || nfert > -1.0 || firstmanageyear < FAR_FUTURE_YEAR || grazeintens)
+		if(pftname != "" || planting_system != "" || selection != ""||  harvest_system != "" ||  wateruse == IRRIGATED 
+			|| fallow || relaxed_establishment || suppress_fire || suppress_disturbance || nfert > -1.0 || firstmanageyear < FAR_FUTURE_YEAR)
 			return true;
 		else
 			return false;
@@ -2406,7 +2520,7 @@ typedef std::bitset<NSEN_TYPE> sen_type;
 /*
 Calculate the root distribution given a root beta value.
 */
-void calc_root_distribution(double root_beta, double rootdist[NSOILLAYER]);
+void calc_root_distribution(const Soil &soil, double root_beta, double rootdist[NSOILLAYERS_MAX]);
 
 /// Holds static functional parameters for a plant functional type (PFT).
 /** There should be one Pft object for each potentially occurring PFT. The same Pft object
@@ -2451,8 +2565,10 @@ public:
 	/// vegetation root profile in an array containing fraction of roots in each soil layer, [0=upper layer]
 	/// Should be private, but parameters.cpp wants a pointer for parameter binding..
 	/// This should generally never be used. Always use indiv.rootdist if possible.
-	double input_rootdist[NSOILLAYER];
+	double input_rootdist[NSOILLAYERS_MAX];
 
+	/// vegetation root profile input in an array containing fraction of roots in each soil layer, [0=upper layer]
+	double root_dist[NSOILLAYERS_SIMPLE];
 	/// shape parameter for initialisation of root distribtion
 	double root_beta;
     /// Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)
@@ -2503,6 +2619,12 @@ public:
 	double s_f;
 	// Reference value at which Vcmax or Jmax is half it's non-water-stresed value (Zhou 2014)
 	double psi_f;
+	/// Leaf lignin fraction
+	double ligcfrac_leaf;
+	/// Root lignin fraction
+	double ligcfrac_root;
+	/// Wood lignin fraction
+	double ligcfrac_wood;
 
 	/// minimum leaf C:N mass ratio allowed when nitrogen demand is determined
 	double cton_leaf_min;
@@ -2526,14 +2648,18 @@ public:
 	double cton_sap_avr;
 	/// maximum sapwood C:N mass ratio (used when mass is negligible)
 	double cton_sap_max;
+	/// average heartwood C:N mass ratio (connected cton_leaf_avr)
+	double cton_heart_avr;
+	/// maximum heartwood C:N mass ratio (used when mass is negligible)
+	double cton_heart_max;
+	/// minimum heartwood C:N mass ratio (used when mass is negligible)
+	double cton_heart_min;
 	/// reference fine root C:N mass ratio
 	double cton_root;
 	/// reference sapwood C:N mass ratio
 	double cton_sap;
 	/// Maximum nitrogen (NH4+ and NO3- seperatly) uptake per fine root [kgN kgC-1 day-1]
 	double nuptoroot;
-	/// coefficient to compensate for vertical distribution of fine root on nitrogen uptake
-	double nupscoeff;
 	/// fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen longterm storage scalar
 	double fnstorage;
 
@@ -2714,6 +2840,8 @@ public:
 	double kest_pres;
 	/// expected longevity under non-stressed conditions (individual and cohort modes)
 	double longevity;
+	/// Above ground woody biomass fraction
+	double ag_woody_frac;
 	/// threshold growth efficiency for imposition of growth suppression mortality
 	/** kgC/m2 leaf/year, individual and cohort modes */
 	double greff_min;
@@ -2803,7 +2931,7 @@ public:
 	double gdd0_min;
 	/// GDD0 max
 	double gdd0_max;
-	
+
 	/// New parameters from parameters from Wania et al. (2009a, 2009b, 2010)
 
 	/// Days per month for which inundation is tolerated
@@ -2811,7 +2939,7 @@ public:
 	/// Inundation stress is felt when the water table (mm) is above wtp_max
 	double wtp_max;
 	/// Whether this PFT has aerenchyma through which O2 and CH4 can be transported (Wania et al. 2010 - Sec 2.6)
-	bool has_aerenchyma; 
+	bool has_aerenchyma;
 
 	/// Sapling/regeneration characteristics (used only in population mode)
 	/** For trees, on sapling individual basis (kgC); for grasses, on stand area basis,
@@ -2881,7 +3009,7 @@ public:
 	double trg;
 	/// default number of vernalising days required
 	int pvd;
-    /// sensitivity to the photoperiod effect [0-1]
+	/// sensitivity to the photoperiod effect [0-1]
 	double psens;
 	/// basal photoperiod (h) (pb<ps for longer days plants)
 	double pb;
@@ -3075,6 +3203,9 @@ public:
 		racclim = 0;
 		for (int i=0; i<3; i++)
 			photo[i]=0.0;
+
+		for (int i = 0; i<NSOILLAYERS_SIMPLE; i++)
+			root_dist[i] = 0.0;
 	}
 
 	/// Calculates SLA given leaf longevity
@@ -3167,11 +3298,35 @@ public:
 		// Average leaf C:N ratio
 		cton_leaf_avr = avg_cton(cton_leaf_min, cton_leaf_max);
 
+		// Tighter C:N ratio range for roots and sapwood: picked out thin air
+		double frac_fromavr = 1.05;
+
 		// Average fine root C:N ratio
-		cton_root_avr = avg_cton(cton_root_min, cton_root_max);
+		cton_root_avr = cton_leaf_avr * frac_leaftoroot;
+
+		// Minimum fine root C:N ratio
+		cton_root_min = cton_root_avr / frac_fromavr;
+
+		// Maximum fine root C:N ratio
+		cton_root_max = cton_root_avr * frac_fromavr;
 
 		// Average sap C:N ratio
-		cton_sap_avr  = avg_cton(cton_sap_min, cton_sap_max);
+		cton_sap_avr = cton_leaf_avr * frac_leaftosap;
+
+		// Minimum sap C:N ratio
+		cton_sap_min = cton_sap_avr / frac_fromavr;
+
+		// Maximum sap C:N ratio
+		cton_sap_max = cton_sap_avr * frac_fromavr;
+
+		// Average heart C:N ratio
+		cton_heart_avr = cton_sap_avr * 2.0;
+
+		// Minimum heart C:N ratio
+		cton_heart_min = cton_heart_avr / frac_fromavr;
+
+		// Maximum heart C:N ratio
+		cton_heart_max = cton_heart_avr * frac_fromavr;
 
 		if (!dave_allocation()) {
 			if (is_grass() || lifeform == MOSS) {
@@ -3200,27 +3355,19 @@ public:
 	*/
 	}
 
-	/// Calculates coefficient to compensate for different vertical distribution of fine root on nitrogen uptake
-	void init_nupscoeff() {
+	/// Calculates leaf lignin fraction from leaf SLA
+	void init_ligcfrac_leaf() {
 
-		// Fraction fine root in upper soil layer should have higher possibility for mineralized nitrogen uptake
-		// Soil nitrogen profile is considered to have a exponential decline (Franzluebbers et al. 2009) giving
-		// an approximate advantage of 2 of having more roots in the upper soil layer
-		const double upper_adv = 2.0;
+		// The lignin content is assumed constant for all but the leaf tissues. For the latter, an empirical 
+		// dependency between lignin content and SLA is used (White et al., 2000).
+		const double ligcfrac_leaf_max = 0.344;
+		const double kleaf2sla = -0.0052;
 
-		// Simple solution until we get C and N in all soil layers.
-		double rootdist_upper = 0.0;
-		double rootdist_lower = 0.0;
+		ligcfrac_leaf = ligcfrac_leaf_max + kleaf2sla * sla;
 
-		for (int sl = 0; sl < NSOILLAYER; sl++) {
-			if (sl < NSOILLAYER_UPPER) 
-				rootdist_upper += input_rootdist[sl];
-			else
-				rootdist_lower += input_rootdist[sl];
+		if (ligcfrac_leaf < 0.0) {
+			fail("ERROR: Negative ligcfrac_leaf %g SLA too high %g for %s\n", ligcfrac_leaf, sla, (char*)name);
 		}
-
-		nupscoeff = rootdist_upper * upper_adv + rootdist_lower;
-
 	}
 
 	/// Initialises sapling/regen characteristics in population mode following LPJF formulation
@@ -3255,7 +3402,7 @@ public:
 			regen.cmass_leaf = REGENLAI_GRASS / sla;
 		}
 
-			regen.cmass_root = 1.0 / ltor_max * regen.cmass_leaf;
+		regen.cmass_root = 1.0 / ltor_max * regen.cmass_leaf;
 	}
 
 	/// Initialises transfer constant of leaf material between compartments for daily growth of grass
@@ -3282,25 +3429,152 @@ public:
 			}
 		}
 	}
-    
-    // Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
-    void init_rootdist() {
-		calc_root_distribution(root_beta, input_rootdist);
 
-		double numval = 0;
-		for (size_t i = 0; i < NSOILLAYER; i++) {
-			numval+=input_rootdist[i];
+	// Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
+	void init_rootdist(double soil_lyr_depth[NSOILLAYERS_MAX], double soil_depth, int nsoillayers) {
+
+		if (hydrology == GERTEN) {
+
+			// Old two layer scheme
+			input_rootdist[0] = root_dist[0];
+			input_rootdist[1] = root_dist[1];
+		}
+		else {
+
+			// Multi layer soil scheme uses Jackson root distribution
+			// root_beta is calibrated for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
+
+			// Standard depth
+			const double depth_standard = SOILDEPTH_UPPER + SOILDEPTH_LOWER;
+
+			// Standard root depth
+			double depth_root = depth_standard;
+
+			// Fraction of fine roots to be homogenously distributed within root depth
+			// is zero for MILLER hydrology
+			double fhom_root = 0.0;
+
+			if (hydrology == RICHARDS) {
+
+				// Fraction of deep soil, beyond standard depth, that roots have access to
+				double fdeep_root = rootfrac_of_deep_soil;
+
+				// Fraction of fine roots to be homogenously distributed within root depth
+				// is set in the ins file
+				fhom_root = homrootdistfrac;
+
+				// Grass has half the amount of homogenously distributed roots and depth of deep roots
+				if (isgrass()) {
+					fdeep_root *= 0.5;
+					fhom_root *= 0.5;
+				}
+
+				// Moss don't have homogenously distributed roots nor deep roots
+				if (ismoss()) {
+					fdeep_root = 0.0;
+					fhom_root = 0.0;
+				}
+
+				// If soil depth is deeper than standard depth, then update root depth
+				if (soil_depth > depth_standard) {
+					depth_root = depth_standard + fdeep_root * (soil_depth - depth_standard);
+				}
+			}
+
+			double rootdist_new[NSOILLAYERS_MAX] = { 0.0 };
+
+			calc_rootdist(rootdist_new, soil_lyr_depth, nsoillayers, depth_root, root_beta, fhom_root);
+
+			for (int lyr = 0; lyr < nsoillayers; lyr++) {
+				input_rootdist[lyr] = rootdist_new[lyr];
+			}
+		}
+	}
+
+	// Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
+	void calc_rootdist(double rootdist_new[NSOILLAYERS_MAX], double soil_lyr_depth[NSOILLAYERS_MAX], int nsoillayers,
+		double depth_root, double root_beta, double fhom_root) const{
+
+		// Multi layer soil scheme uses Jackson root distribution
+		// root_beta is calibrated for each PFT to match rootdist_upper from 'old' (pre LPJG 4.1) parameterisation.
+
+		// Root depth in cm
+		double depth_root_cm = depth_root * CM_PER_MM;
+
+		// Total root dist
+		double tot = 0.0;
+
+		// Total soil layer depth
+		double tot_depth = soil_lyr_depth[0] * CM_PER_MM;
+
+		// Total previous soil layer depth
+		double tot_depth_prev = 0.0;
+
+		// init first layer
+		rootdist_new[0] = 1.0 - pow(root_beta, tot_depth); // - (1.0 - pow(root_beta, tot_depth_prev));
+		tot += rootdist_new[0];
+
+		for (int lyr = 1; lyr < nsoillayers; lyr++) {
+
+			// Update depths
+			tot_depth_prev = tot_depth;
+			tot_depth += soil_lyr_depth[lyr] * CM_PER_MM;
+
+			// Check so depth doesn't exceed rooting depth
+			if (tot_depth >= depth_root_cm) {
+				tot_depth = depth_root_cm;
+			}
+
+			double root_frac = 1.0 - pow(root_beta, tot_depth) - (1.0 - pow(root_beta, tot_depth_prev));
+
+			// Don't allow too small root fractions
+			rootdist_new[lyr] = root_frac > 0.001 ? root_frac : 0.0;
+			tot += rootdist_new[lyr];
 		}
 
-		// Ensure total root distribution sums to ~1.
-		if (numval < 0.99 || numval > 1.01) {
-			fail("Error","Specified root fractions do not sum to 1.0");
+		// Adjust so rootdist always add up to 1
+		for (int lyr = 0; lyr < nsoillayers; lyr++) {
+			rootdist_new[lyr] /= tot;
 		}
 
-		// Allow for small numerical errors (<1e-2).
-		input_rootdist[NSOILLAYER-1] += 1.0 - numval;
-    }
-    
+		// If a fraction of root distribution should be homogenously distributed
+		if (!negligible(fhom_root)) {
+
+			// homogenous root fraction per depth [mm-1]
+			double frac_per_depth = fhom_root / depth_root;
+
+			// Reset total depth [mm]
+			tot = 0.0;
+
+			// Accomolated depth [mm]
+			double acc_depth = 0.0;
+
+			for (int lyr = 0; lyr < nsoillayers; lyr++) {
+				double depth = soil_lyr_depth[lyr];
+				if (acc_depth >= depth_root) {
+					depth = 0.0;
+				}
+				else if (acc_depth + depth > depth_root) {
+					depth = depth_root - acc_depth;
+				}
+
+				// New root dist
+				rootdist_new[lyr] = rootdist_new[lyr] * (1.0 - fhom_root) + frac_per_depth * depth;
+
+				// Accomolated total root dist
+				tot += rootdist_new[lyr];
+
+				// Update accomolated depth
+				acc_depth += depth;
+			}
+
+			// Adjust so rootdist always add up to 1
+			for (int lyr = 0; lyr < nsoillayers; lyr++) {
+				rootdist_new[lyr] /= tot;
+			}
+		}
+	}
+
 	bool ismoss() const {
 
 		if (lifeform == MOSS)
@@ -3514,7 +3788,7 @@ struct cropindiv_struct : public Serializable {
 	/// year's stem C biomass at time of harvest (cumulative if several harvest events)
 	double harv_cmass_stem;
 
-	/// NITROGEN
+	/// Nitrogen
 	/// nitrogen content of harvestable organs
 	double nmass_ho;
 	/// nitrogen content of above-ground pool
@@ -3791,6 +4065,8 @@ public:
 	double nmass_heart;
 	/// Last year's cmass_wood value for calculation of period annual increment post mortality
 	double cmass_wood_old;
+	double closs_kmax;
+	double closs_hydraulics;
 
 	/// Daily C sent to litter (kgC/m2). This is used for accounting purposes.
 	double ctolitter;
@@ -3905,7 +4181,7 @@ public:
 	/// If this individual is not using dave allocation, this will be the same
 	/// pft.input_rootdist (ie the old pft.rootdist, as provided in the ins file
 	/// or calculted from the root beta).
-	double rootdist[NSOILLAYER];
+	double rootdist[NSOILLAYERS_MAX];
 
 	/// accumulated NPP over modelled area (kgC/m2/year);
 	/** annual NPP following call to growth module on last day of simulation year */
@@ -3972,7 +4248,9 @@ public:
 	/// Nitrogen storage for leaf daily allocation
 	double nmass_storage;
 	/// Nitrogen uptake today (0 when ifstoreuptake=true) (kgN/m2).
-	double nmass_uptake;
+	double nmass_uptake_no3;
+	double nmass_uptake_nh4;
+
 	/// Nitrogen retranslocated today (kgN/m2).
 	double nretranslocated;
 	/// Cumulative total nitrogen retranslocated this year (kgN/m2).
@@ -4005,7 +4283,7 @@ public:
 	/// annual actual transpiration over projected area (mm/year)
 	double aaet;
 	/// fractional water uptake from each soil layer
-	double fwuptake[NSOILLAYER];
+	double fwuptake[NSOILLAYERS_MAX];
 	/// leaf to root mass ratio
 	double ltor;
 	/// plant height (m)
@@ -4072,12 +4350,7 @@ public:
 	/// non-water-stressed ratio of intercellular to ambient CO2
 	double lambda;
 
-	/// leaf nitrogen that is photosyntetic active
-	double nactive;
-	/// Nitrogen extinction scalar
-	/** Scalar to account for leaf nitrogen not following the optimal light
-	  * extinction, but is shallower.
-	  */
+	/// Nitrogen extinction scalar - Scalar to account for leaf nitrogen not following the optimal light extinction, but is shallower.
 	double nextin;
 	/// long-term storage of labile nitrogen
 	double nstore_longterm;
@@ -4113,6 +4386,14 @@ public:
 	double scale_n_storage;
 	/// annual nitrogen limitation on vmax
 	double avmaxnlim;
+	/// monthly nitrogen limitation on vmax
+	double mvmaxnlim[12];
+	/// annual lambda limitation on photosythesis
+	double alambda;
+	/// monthly lambda limitation on photosythesis
+	double mlambda[12];
+	/// daily optimal leaf C:N ratio
+	double cton_leaf_dopt;
 	/// annual optimal leaf C:N ratio
 	double cton_leaf_aopt;
 	/// annual average leaf C:N ratio
@@ -4188,7 +4469,7 @@ public:
 	/// daily leaf turnover as a proportion of leaf C biomass  (DAVE)
 	double pturnover_leaf;
 
-	/// Number of days with non-negligible phenology this month
+	/// Number of days with non-negligible phenology this year
 	int nday_leafon;
 	// Whether this individual is truly alive.
 	/** Set to false for first year after the Individual object is created, then true. */
@@ -4201,6 +4482,16 @@ public:
 
 	/// NPP this day (kgC/m2/day)
 	double dnpp;
+	/// GPP this day without any stresses
+	double dgpp_no;
+	/// GPP this day with only nutrient stresses
+	double dgpp_ns;
+	/// Montly GPP without any stresses
+	double mgpp_no[12];
+	/// Annual GPP without any stresses
+	double agpp_no;
+	/// Annual GPP with only N stress
+	double agpp_ns;
 
 	Historic<double, 15> gpp_15;
 	Historic<double, 15> gpptrend_15;
@@ -4258,7 +4549,7 @@ public:
 	double weighted_psi; // soil water potential weighted by root fraction in each layer
 
 	/// hydraulic resistance between soil and roots (mmol/m/s/MPa)
-	double Rs_r[NSOILLAYER];
+	double Rs_r[NSOILLAYERS_MAX];
 
 	// predawn leaf water potential (same as weighted soil water potential, MPa)
 	double predawn_lwp;
@@ -4286,13 +4577,6 @@ public:
 	double wscal_mean_year;
 
 	public:
-
-	// N content of the individual at time of establishment (g). This is needed
-	// because we need to report the initial N as an establishment flux 1 year
-	// later, because individuals experiencing allocation on an annual basis are
-	// not considered "alive" until 1 year after establishment.
-	double initialc;
-	double initialn;
 
 	double alpha_leaf;
 	double alpha_root;
@@ -4358,6 +4642,9 @@ public:
 
 	/// Whether harvest and turnover is done on actual C and N on harvest or turnover day, which can occur any day of the year.
 	bool has_daily_turnover() const;
+
+	/// Distribute stored N between plant compartments to prevent unrealistic C:N ratios in litter when killed
+	void partition_nstore(double& NH4_mass);
 
 	/// Whether resetting of grs_cmass and turnover (if has_daily_turnover() returns true) of continuous grass is to be done this day.
 	/** This should occur at the very end of the growing period */
@@ -4523,6 +4810,9 @@ public:
 
 	/// Ensure that canopy layers are internally consistent.
 	void validate_canopy() const;
+
+	/// Get the fraction of water uptake from a given soil layer.
+	double get_fwuptake(size_t layer) const;
 private:
 	// Reset annual variables. Called from daily_accounting() on the first day
 	// of the year.
@@ -4578,10 +4868,7 @@ class Soiltype {
 
 public:
 
-	/// fixed available water holding capacity of soil layers [0=upper layer] (mm)
-	double awc[NSOILLAYER];
-	/// fixed available water holding capacity of the standard Gerten soil layers [0=upper, 1 = lower] (mm)
-	double gawc[2];
+	soilinputtype soil_input;
 
 	/// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)
 	double perc_base;
@@ -4597,100 +4884,45 @@ public:
 	/// thermal diffusivity at 100% WHC (mm2/s)
 	double thermdiff_100;
 
-	/// wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
-	double wp[NSOILLAYER];
-	/// saturation point. Cosby et al 1984
-	double wsats[NSOILLAYER];
-	
-	/// organic soil fraction
-	double org_frac_gridcell[NSOILLAYER];
-	
-	/// mineral soil fraction
-	double min_frac_gridcell[NSOILLAYER];
+	/// Available water holding capacity of soil layers (mm)
+	double awc_min;
+	/// Wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
+	double wp_min;
+	/// Saturation point. Cosby et al 1984
+	double wsats_min;
 
-	/// porosity of the soil
-	double porosity_gridcell[NSOILLAYER];
+	/// Organic soil properties
 	
-	/// wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
-	// equivalents for the standard Gerten soil layers [0=upper, 1 = lower]
-	double gwp[2];
-	/// saturation point. Cosby et al 1984
-	double gwsats[2];
+	/// coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)
+	double perc_base_org;
 
-	/// year at which to calculate equilibrium soil carbon
-	int solvesom_end;
-	/// year at which to begin documenting means for calculation of equilibrium soil carbon
-	int solvesom_begin;
-
-	/// water holding capacity plus wilting point for whole soil volume
-	double wtot;
+	/// thermal diffusivity at 0% WHC (mm2/s)
+	double thermdiff_0_org;
+	/// thermal diffusivity at 15% WHC (mm2/s)
+	double thermdiff_15_org;
+	/// thermal diffusivity at 100% WHC (mm2/s)
+	double thermdiff_100_org;
 
 	// Sand, silt and clay fractions, should always add up to 1.
 	/// fraction of soil that is sand
-	double sand_frac;
+	std::vector<double> sand_frac;
 	/// fraction of soil that is clay
-	double clay_frac;
-	/// fraction of soil that is silt
-	double silt_frac;
+	std::vector<double> clay_frac;
+	/// fraction of soil that is coarse fragmnets
+	std::vector<double> coarse_frac;
 	/// pH
-	double pH;
+	std::vector<double> pH;
+	/// carbon content (kg C m-2)
+	std::vector<double> soilC;
 
-	/// soilcode, 0 to 8
+	/// Soilcode, 0 to 8
 	int soilcode;
-	/// volumetric fraction of organic material (m3 m-3) (Hillel, 1998)
-	double organic_frac;
-	// water held below wilting point, important for heat conductance
-	// From the AGRMET Handbook, 2002
-	double water_below_wp;
-	/// porosity from AGRMET Handbook, 2002
-	double porosity;
-	// volumetric fraction of mineral material (m3 m-3) (Hillel, 1998)
-	// = 1 - organic_frac - porosity
-	double mineral_frac;
-	// [cm], 3 depths at which monthly soil temperature is saved and output.
-	// Defaults: 25, 75 and 150 cm (if array values == 0)
-	double soiltempdepths[10];
-	// Run on [mm/day]
-	// Currently only used for wetlands, but could be used for irrigation too
-	double runon;
-	// saturated pressure head in cm (Cosby 1984)
-	double Psi_s;
-	// pressure head in cm at wilting point (Cosby 1984)
-	double Psi_wp;
-	// pressure head in cm at field capacity (Cosby 1984)
-	double Psi_whc;
-	// slope of soil water retention curve (Cosby 1984)
-	double b;
-	// percolation coefficient from Haxeltine 1996a (UNITS)
-	double K;	
-	// saturated hydraulic conductivity (m/s) based on equation 10 from Saxton et al (1986)
-	double Ksat;
-	// Saturated water content (m3/m3)
-	double Theta_s;
 
-	// PEAT PROPERTIES (needed if there is a peat stand in this gridcell)
+	/// Volumetric fraction of organic material (m3 m-3) (Hillel, 1998)
+	std::vector<double> organic_frac;
 
-	/// fixed available water holding capacity of soil layers [0=upper layer] (mm)
-	double awc_peat[NSOILLAYER];
-	/// fixed available water holding capacity of the standard Gerten soil layers [0=upper, 1 = lower] (mm)
-	double gawc_peat[2];
-	/// wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
-	double wp_peat[NSOILLAYER];
-	/// saturation point. Cosby et al 1984
-	double wsats_peat[NSOILLAYER];
-	// equivalents for the standard Gerten soil layers [0=upper, 1 = lower]
-	/// wilting point of soil layers [0=upper layer] (mm) Cosby et al 1984
-	double gwp_peat[2];
-	/// saturation point. Cosby et al 1984
-	double gwsats_peat[2];
-	/// water holding capacity plus wilting point for whole soil volume
-	double wtot_peat;
-	/// fraction of soil that is sand
-	double sand_frac_peat;
-	/// fraction of soil that is clay
-	double clay_frac_peat;
-	/// fraction of soil that is silt
-	double silt_frac_peat;
+	/// Bottom depth of texture data
+	std::vector<double> text_depths;
 
 	// MEMBER FUNCTIONS
 
@@ -4698,30 +4930,6 @@ public:
 
 	/// Constructor: initialises certain member variables
 	Soiltype() {
-
-		solvesom_end = SOLVESOM_END;
-		solvesom_begin = SOLVESOM_BEGIN;
-		organic_frac = 0.02;
-		pH = -1.0;
-		Psi_s = 0.0;
-		Psi_wp = 0.0;
-		Psi_whc = 0.0;
-
-		// Assume no mineral content on peatlands
-		sand_frac_peat = clay_frac_peat = silt_frac_peat = 0.0;
-		wtot_peat = 0.0;
-
-		runon = 0.0;
-		for (int ii = 0; ii < 10; ii++)
-			soiltempdepths[ii] = 0.0;
-	}
-
-	/// Override the default SOM years with 70-80% of the spin-up period length
-	void updateSolveSOMvalues(const int& nyrspinup) {
-
-		solvesom_end = static_cast<int>(0.8 * nyrspinup);
-		solvesom_begin = static_cast<int>(0.7 * nyrspinup);
-
 	}
 };
 
@@ -4737,10 +4945,23 @@ public:
 
 		cmass = 0.0;
 		nmass = 0.0;
+		ntoc = 0.0;
+		cdec = 0.0; 
+		ndec = 0.0; 
+		cinc = 0.0;
+		ninc = 0.0;
+		respsum = 0.0;
+		respsum_surf = 0.0;
 		ligcfrac = 0.0;
 		delta_cmass = 0.0;
 		delta_nmass = 0.0;
 		fracremain = 0.0;
+		fireresist = 0.0;
+		cmass_init = 0.0;
+		multi = 1.0;
+		sign_trend = 1;
+		same_trend = 0;
+		changed_trend = 0;
 		litterme = 0.0;
 		fireresist = 0.0;
 		ntoc = 0.0;
@@ -4748,6 +4969,11 @@ public:
 		for (int m = 0; m < 12; m++) {
 			mfracremain_mean[m] = 0.0;
 		}
+	}
+
+	/// Destructor
+	~Sompool() {
+		// Performs memory deallocation, closing of files or other "cleanup" functions.
 	}
 
 	/// C mass in pool kgC/m2
@@ -4758,14 +4984,32 @@ public:
 	double cdec;
 	/// (potential) decrease in nitrogen following decomposition today (kgN/m2)
 	double ndec;
+	/// (potential) increase in C following decomposition today (kgC/m2)
+	double cinc;
+	/// (potential) increase in nitrogen following decomposition today (kgN/m2)
+	double ninc;
+	/// (potential) microbial respiration following decomposition today (kgC/m2)
+	double respsum;
+	/// (potential) surface microbial respiration following decomposition today (kgC/m2)
+	double respsum_surf;
 	/// daily change in carbon and nitrogen
-	double delta_cmass,delta_nmass;
+	double delta_cmass, delta_nmass;
 	/// lignin fractions
 	double ligcfrac;
 	/// fraction of pool remaining after decomposition
 	double fracremain;
 	/// nitrogen to carbon ratio
 	double ntoc;
+	/// Initial C mass in pool (kgC/m2) used for fast spinup
+	double cmass_init;
+	/// Multiplier for passive SOM C mass trend
+	double multi;
+	/// Sign of passive SOM C mass trend
+	int sign_trend;
+	/// How many times the passive SOM C mass trend has have the same sign in a raw
+	int same_trend;
+	/// How many times the passive SOM C mass trend has have changed sign in a raw
+	int changed_trend;
 
 	// Fire
 	/// soil litter moisture flammability threshold (fraction of AWC)
@@ -4784,9 +5028,15 @@ public:
 /// This struct contains litter for solving Century SOM pools.
 /** \see equilsom() */
 struct LitterSolveSOM : public Serializable {
+
 	/// Constructs an empty result
 	LitterSolveSOM() {
 		clear();
+	}
+
+	/// Destructor
+	~LitterSolveSOM() {
+		// Performs memory deallocation, closing of files or other "cleanup" functions.
 	}
 
 	/// Clears all members
@@ -4820,68 +5070,232 @@ private:
 	double nlitter[NSOMPOOL];
 };
 
-/// Soil stores state variables for soils and the snow pack.
-/** Initialised by a call to initdrivers. One Soil object is defined for each patch.
- *  A reference to the parent Patch object (defined below) is included as a member
- *  variable. Soil static parameters are stored as objects of class Soiltype, of which
- *  there is one for each grid cell. A reference to the Soiltype object holding the
- *  static parameters for this soil is included as a member variable.
- *
- *  NB: The class Soil and its member functions and variables are declared in guess.h, 
- *      while its member functions are implemented in soil.cpp and in soilmethane.cpp.
- */
-class Soil : public Serializable {
+/// Soillayer stores state variables for.
+/**
+*
+*/
+class Soillayer : public Serializable {
 
 	// MEMBER VARIABLES
-private:
-
-	/// soil temperature today at 0.25 m depth (deg C)
-	double temp25;
-	/// water content of soil layers [0=upper layer] as fraction of available water holding capacity;
-	double wcont[NSOILLAYER];
-	/// water content of sublayer of upper soil layer for which evaporation from the bare soil surface is possible
-	/** fraction of available water holding capacity */
-	double wcont_evap;
 
 public:
-	/// reference to parent Patch object
-	Patch& patch;
-	/// reference to Soiltype object holding static parameters for this soil
-	Soiltype& soiltype;
-	/// the average wcont over the growing season, for each of the upper soil layers. Used in drought limited establishment. 
-	double awcont_upper;
-	/// daily water content in upper soil layer for each day of year
-	double dwcontupper[Date::MAX_YEAR_LENGTH];
-	/// mean water content in upper soil layer for last month
-	/** (valid only on last day of month following call to daily_accounting_patch) */
-	double mwcontupper;
-	/// stored snow as average over modelled area (kg H2O m-2 or mm water)
-	double snowpack;
-	/// total runoff today (mm/day)
-	double runoff;
-	/// surface runoff today (mm/day)
-	double surfrunoff;
-	/// drainage runoff today (mm/day)
-	double drainrunoff;
-	/// base runoff today (mm/day)
-	double baserunoff;
-	/// daily temperatures for the last month (deg C)
-	/** (valid only on last day of month following call to daily_accounting_patch) */
-	double dtemp[31];
-	/// mean soil temperature for the last month (deg C)
-	/** (valid only on last day of month following call to daily_accounting_patch) */
-	double mtemp;
+
+	/// reference to parent soil object
+	Soil* soil;
+
+	/// Depth
+	/// Soil layer thickness (mm)
+	double thickness;
+	/// Soil layer middle depth (mm)
+	double depth_mid;
+	/// Soil layer bottom depth (mm)
+	double depth_bot;
+
+	// Sand, silt and clay fractions, should always add up to 1.
+	/// fraction of mineral soil that is sand
+	double sand_frac;
+	/// fraction of mineral soil that is clay
+	double clay_frac;
+	/// fraction of mineral soil that is silt
+	double silt_frac;
+	/// fraction of soil that is coarse fragments
+	double coarse_frac;
+	/// pH
+	double pH;
+
+	/// Water
+	/// Water mass in soil layer (kg m-2)
+	double wmass;
+	/// Monthly water mass in soil layer (kg m-2)
+	double mwmass[12];
+	/// Suppercooled water mass in soil layer (kg m-2)
+	double wmass_sc;
+	/// Monthly water content as fraction of available water holding capacity
+	double mwcont[12];
+	/// Mean water content above current soil layer for last month
+	double mwcontabove;
+	/// Average wcont over the growing season
+	double awcont;
+	/// Saturation point of soil layer (mm) Cosby et al 1984
+	double wsats;
+	/// Available water holding capacity of soil layer (mm)
+	double awc;
+	/// Wilting point of soil layer (mm) Cosby et al 1984
+	double wp;
+
+	/// Ice
+	/// Ice mass in soil layer (kg m-2)
+	double imass;
+	/// Monthly ice mass in soil layer (kg m-2)
+	double mimass[12];
+
+	/// Matrix potential (mm)
+	double Psi;
+	/// Derivative in matrix potential w.r.t. volumetric liquid water content (mm)
+	double dPsidw;
+	/// Soil matric potential at saturation (mm)
+	double Psi_max;
+
+	/// Soil moisture conductivity (mm s-1)
+	double Kw;
+	/// Derivative in hydraulic conductivity w.r.t relative saturation (mm s-1)
+	double dKwdw;
+	/// Soil moisture conductivity at saturation (mm s-1)
+	double Kw_max;
+	/// Exponential in Campbell (1974) parameterization for soil water retention curves
+	double b;
+	/// exponent in percolation calculation (=4 in Eqn 31, Haxeltine & Prentice 1996)
+	double perc_exp;
+	/// Percolation mass from this layer
+	double perc_mass;
+	/// Coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996)
+	double perc_base;
+	/// Coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996) for mineral soils
+	double perc_base_min;
+	/// Coefficient in percolation calculation (K in Eqn 31, Haxeltine & Prentice 1996) for organic soils
+	double perc_base_org;
+	/// Lateral drainage runoff
+	double runoff_drain;
+	/// Monthly lateral drainage runoff
+	double mdrain[12];
+	/// Baseflow runoff
+	double runoff_baseflow;
+
+	/// Mineral available water holding fraction of soil layer (-)
+	double awc_min;
+	/// Mineral wilting point of soil layer (-)
+	double wp_min;
+	/// Mineral saturation point (-)
+	double wsats_min;
+	/// Mineral exponential in Campbell (1974) parameterization for soil water retention curves 
+	double b_min;
+	/// Mineral hydraulic conductivity at saturation (mm s-1)
+	double Kw_max_min;
+	/// Saturated mineral matter water suction (matrix potential) (mm)
+	double Psi_max_min;
+
+	/// Coarse fragment (rock) available water holding fraction of soil layer (-)
+	double awc_rock;
+	/// Coarse fragment (rock) wilting point of soil layer (-)
+	double wp_rock;
+	/// Coarse fragment (rock) saturation point (-)
+	double wsats_rock;
+	/// Coarse fragment (rock) exponential in Campbell (1974) parameterization for soil water retention curves 
+	double b_rock;
+	/// Coarse fragment (rock) hydraulic conductivity at saturation (mm s-1)
+	double Kw_max_rock;
+	/// Coarse fragment (rock) mineral matter water suction (matrix potential) (mm)
+	double Psi_max_rock;
+	
+	/// Volume
+	/// Coarse root volume (mm)
+	double root_volume;
+	/// Mineral volume (mm)
+	double mineral_volume;
+	/// Coarse fragment volume (mm)
+	double coarse_volume;
+	/// Organic matter volume (mm)
+	double organic_volume;
+	/// Effective volume when accounting for space occupied by roots (mm)
+	double effective_volume;
+	// Soil specific surface area (m2 g−1)
+	double ssa;
+
+	/// Bulk density (g cm-3)
+	double bulk_density;
+	
+	/// Organic influence on water
+	// Organic carbon density (kg C m-3)
+	double rho_org;
+	/// Organic available water holding fraction of soil layer (-)
+	double awc_org;
+	/// Organic wilting point of soil layer (-)
+	double wp_org;
+	/// Organic saturation point (-)
+	double wsats_org;
+	/// Organic exponential in Campbell (1974) parameterization for soil water retention curves 
+	double b_org;
+	/// Organic soil matric potential at saturation 
+	double Psi_max_org;
+	/// Hydraulic conductivity at saturation for organic matter (m s-1)
+	double Kw_max_org;
+	/// Volumetric fraction of peat material (m3 m-3)
+	double peat_frac;
+	/// if soil layer is in the acrotelm
+	bool acrotelm;
+	/// if soil layer is in the catotelm
+	bool catotelm;
+	/// Tiller area
+	double tiller_area;
+
+	/// Temperature
+	/// Thermal diffusivity at 0% WHC (mm2/s)
+	double thermdiff_0;
+	/// Thermal diffusivity at 15% WHC (mm2/s)
+	double thermdiff_15;
+	/// Thermal diffusivity at 100% WHC (mm2/s)
+	double thermdiff_100;
+	/// Thermal diffusivity at 0% WHC (mm2/s)
+	double thermdiff_0_min;
+	/// Thermal diffusivity at 15% WHC (mm2/s)
+	double thermdiff_15_min;
+	/// Thermal diffusivity at 100% WHC (mm2/s)
+	double thermdiff_100_min;
+	/// Thermal diffusivity at 0% WHC (mm2/s)
+	double thermdiff_0_org;
+	/// Thermal diffusivity at 15% WHC (mm2/s)
+	double thermdiff_15_org;
+	/// Thermal diffusivity at 100% WHC (mm2/s)
+	double thermdiff_100_org;
+	/// Thermal conductivities (J m-1 K-1 s-1)
+	double Kh;
+	/// Heat capacities (J m-3 K-1)
+	double Ch;
+	/// Heat capacity of mineral soil [J m-3 K-1]
+	double Cp_min;
+	/// Soil layer temperature (deg C)
+	double temp;
+	/// Soil layer temperature from previous phase change (deg C)
+	double temp_old;
+	/// Record the monthly average soil temp at SOILTEMPOUT layers [deg C]
+	double mtemp[12];
 	/** respiration response to today's soil temperature at 0.25 m depth
-	 *  incorporating damping of Q10 due to temperature acclimation (Lloyd & Taylor 1994)
-	 */
+	*  incorporating damping of Q10 due to temperature acclimation (Lloyd & Taylor 1994)
+	*/
 	double gtemp;
-	/// soil organic matter (SOM) pool with c. 1000 yr turnover (kgC/m2)
+	// Parameters used by function soiltemp and updated monthly
+	double alag, exp_alag;
+
+	/// Gases
+	/// Dissolved CO2 concentration in each layer [g CO2-C layer-1 d-1]
+	double CO2;
+	/// Dissolved CH4 concentration in each layer [g CH4-C layer-1 d-1]
+	double CH4;
+	/// CH4 which bubbles out [g CH4-C layer-1]
+	double CH4_ebull_ind;
+	/// Gaseous CH4 concentration in each layer [g CH4-C layer-1 d-1]
+	double CH4_gas;
+	/// Dissolved CH4 concentration in each layer [g CH4-C layer-1 d-1]
+	double CH4_diss;
+	/// Dissolved O2 concentration in each layer [mol O2 layer-1 d-1]
+	double O2;
+	/// Todays heterotrophic respiration [kg C m-2]
+	double respsum;
+	/// Annual total respiration [kg C m-2]
+	double arespsum;
+
+	/// Annual fine litter C input
+	double acmassfinput;
+	/// Annual coarse litter C input
+	double acmasscinput;
+
+	//////////////////////////////////////////////////////////////////////////////////
+	// Old Soil Organic Matter (SOM) scheme
+
+	/// SOM pool with c. 1000 yr turnover (kgC/m2)
 	double cpool_slow;
-	/// soil organic matter (SOM) pool with c. 33 yr turnover (kgC/m2)
+	/// SOM pool with c. 33 yr turnover (kgC/m2)
 	double cpool_fast;
-
-	// Running sums (converted to long term means) maintained by SOM dynamics module
-
 	/// mean annual litter decomposition (kgC/m2/yr)
 	double decomp_litter_mean;
 	/// mean value of decay constant for fast SOM fraction
@@ -4890,262 +5304,538 @@ public:
 	double k_soilslow_mean;
 
 
-	// Parameters used by function soiltemp and updated monthly
+	//////////////////////////////////////////////////////////////////////////////////
+	// CENTURY SOM pools and other variables
 
-	double alag, exp_alag;
+	Sompool sompool[NSOMPOOL];
 
-	/// water content of soil layers [0=upper layer] as fraction of available water holding capacity
-	double mwcont[12][NSOILLAYER];
-	/// daily water content in lower soil layer for each day of year
-	double dwcontlower[Date::MAX_YEAR_LENGTH];
-	/// mean water content in lower soil layer for last month
-	/** (valid only on last day of month following call to daily_accounting_patch) */
-	double mwcontlower;
+	/// Decay rate modifier depending on depth profile (Koven et al 2013)
+	double depth_mod;
+	/// Soil organic C microorganism collocation factor
+	double a;
+	/// Annual average temperature rate modifier
+	double atemp_mod;
+	/// Annual average moisture rate modifier
+	double amoist_mod;
+	/// Annual average total rate modifier
+	double atot_mod;
+	
+	/// Fraction of decayed organic matter leached each day;
+	double orgleachfrac;
+	/// Annual leaching from available nitrogen pool
+	double aminleach;
+	/// Annual leaching of organics from active nitrogen pool
+	double aorgNleach;
+	/// Annual leaching of organics nitrogen from carbon pool
+	double aorgCleach;
+	// Soil labile carbon availability daily (kgC/m2/day)
+	double labile_carbon;
+	// Age of organic matter
+	double socage;
 
+	/// Annual sum of nitrogen mineralisation
+	double anmin;
+	/// Annual sum of nitrogen immobilisation
+	double animmob;
+	/// Monthly sum of nitrogen net mineralisation
+	double mnetmin[12];
+	/// Annual C decomposition without and with nutrient limitation
+	double acdec[2];
+	/// Annual C mineralisation without and with nutrient limitation
+	double acinc[2];
+
+	/// Soil NH4 mass in pool (kgN/m2)
+	double NH4_mass;
+	/// Soil NO3 mass in pool (kgN/m2)
+	double NO3_mass; 
+	/// Soil NO2 mass in pool (kgN/m2)
+	double NO2_mass;
+	/// Soil NO mass in pool (kgN/m2)
+	double NO_mass;
+	/// Soil NO mass in pool (kgN/m2)
+	double N2O_mass;
+	/// Soil N2 mass in pool (kgN/m2)
+	double N2_mass;
+
+	// Variables for fast spinup of SOM pools
+
+	/// monthly fraction of organic carbon/nitrogen leached
+	double morgleach_mean[12];
+	/// monthly fraction of available mineral nitrogen leached
+	double mminleach_mean[12];
+
+	// Solving Century SOM pools
+
+	/// Cumulative litter pools for one year.
+	LitterSolveSOM litterSolveSOM;
+
+	std::vector<LitterSolveSOM> solvesom;
+
+	double k_actual;
+
+	// Output variables.
+	double nvol;
+	double anvol;
+	double nloss_gas;
+	double anloss_gas;
+	// MEMBER FUNCTIONS
+
+public:
+
+	/// Constructs a Soillayer
+	/**  \param d         The soil layer depth
+	*/
+	Soillayer() : soil(NULL) {};
+
+	Soillayer(Soil* soilcol, double d, double dp, bool acrotelm, bool catotelm);
+
+	// Destructor
+	~Soillayer() {
+
+		// Performs memory deallocation, closing of files or other "cleanup" functions.
+	}
+
+	// Mineral exponential in Campbell (1974) parameterization for soil 
+	// water retention curves from Table 4, Cosby (1984)
+	double mineral_exp(double clay_frac, double sand_frac);
+	/// Set soil layer properties
+	void set_properties();
+	/// Initiate soil layer properties
+	void initiate_properties();
+	/// Update soil layer properties
+	void update_properties(double& wmass_move, double& imass_move, bool must_set = false);
+	/// C content of soil layer
+	double ccont(grouppooltype group = GALL) const;
+	/// N content of soil layer
+	double ncont(grouppooltype group = GALL) const;
+	/// Calculate organic matter density
+	double calc_organic_density(grouppooltype pools = GALL);
+	/// Calculate clay fraction of this layer
+	double fclay(mincalctype type = MINEFF);
+	/// Calculate sand fraction of this layer
+	double fsand(mincalctype type = MINEFF);
+	/// Calculate silt fraction of this layer
+	double fsilt(mincalctype type = MINEFF);
+	/// Freeze full layer
+	void freeze_lyr();
+	/// Phase change
+	void phase_change();
+	/// Water content of soil layer
+	double wcont() const;
+	/// Water content of soil layer
+	double wcont(double wmass_added) const;
+	/// Field capacity of soil layer
+	double fc();
+	/// Fraction air in soil layer
+	double fracair();
+	/// available N content of soil layer
+	double nmass_avail(n_pref_type pref = NO, bool water_limited = false);
+	void nmass_subtract(double nmass, n_pref_type pref = NO);
+	void nmass_inc(double nmass, n_pref_type pref = NO);
+	/// Return the amount of soil available nitrogen where SOM C:N ratio 
+	/// reach their minimum (nitrogen saturation) [kg N m-3]
+	double nmass_saturation(double NMASS_SAT);
+	/// Water filled pore space ([0-1])
+	double wfps();
+
+	/// Maximum water capacity of soil layer
+	double wmass_max();	
+	/// Set target nutrient to carbon ratios for SOM pools
+	void setntoc(double fac, double& ntoc, double cton_max, double cton_min, double fmin, double fmax);
+	/// Calculates CENTURY instantaneous decay rates
+	void decayrates_century(double tillage_fact, bool savesomcent, double temp_surf);
+	/// Water modifier for decomposition (Friend et al 1997)
+	double moisture_modifier();
+	/// Water modifier for decomposition (Yan et al 20189
+	double moisture_modifier_yan();
+
+	void update_temp(double add_temp, double add_mass, double add_Ch);
+
+	void update_matric_potential();
+
+	void update_thermal_properties();
+
+	void update_socage(double cmass, double age);
+
+	double org_frac();
+
+	/// Get soil water potential in this layer, in MPa.
+	double psi_mpa() const;
+
+	void serialize(ArchiveStream& arch);
+
+	void daily_accounting();
+private:
+	void annual_accounting();
+};
+
+/// Container for soil padlayer parameters
+struct Padlayer : public Serializable {
+
+	Padlayer() {
+		temp = 0.0;
+		thickness = 0.0;
+		// Bedrock parameters from Chadburn et al. (2015)
+		// Thermal conductivity [W m-1 K-1 s-1]
+		Kh = 8.6;
+		// Heat capacity [J m-3 K-1]
+		Ch = 2100000.0;
+
+		for (int mth = 0; mth < 12; mth++) {
+			mtemp[mth] = 0.0;
+		}
+	}
+
+	/// Soil padding layer temperatures [deg C]
+	double temp;
+	/// Record the monthly average padding temperature [deg C]
+	double mtemp[12];
+	/// Soil padding layer thickness
+	double thickness;
+	/// Soil padding layer thermal conductivities (J m-1 K-1 s-1)
+	double Kh;
+	/// Soil padding layer heat capacities (J m-3 K-1)
+	double Ch;
+	/// Update thermal properties for padding layers
+	void update_thermal_properties(double Kh_last_lyr = 0.0, double Ch_last_lyr = 0.0);
+	/// Serialize padding layer variables
+	void serialize(ArchiveStream& arch);
+};
+
+class Padding : public Serializable {
+
+	// MEMBER VARIABLES
+
+public:
+
+	std::vector<Padlayer> padlayers;
+
+	// MEMBER FUNCTIONS
+
+public:
+
+	/// Constructs an empty result
+	Padding() {
+		padlayers.resize(NPADLAYERS);
+	}
+
+	/// Set padding layers depth
+	void set_depths(double depth_last_lyr);
+	/// Update thermal properties for padding layers
+	void update_thermal_properties(double Kh_last_lyr, double Ch_last_lyr);
+	/// Serialize padding layer variables
+	void serialize(ArchiveStream& arch);
+};
+
+struct Snowlayer : public Serializable {
+
+	Snowlayer() {
+		clear();
+	}
+
+	Snowlayer(double init_ice, double init_water, double init_dens, double init_temp) {
+		clear();
+
+		imass = init_ice;
+		wmass = init_water;
+		dens = init_dens;
+		temp = init_temp;
+	}
+
+	/// water mass in snow layer (kg m-2)
+	double wmass;
+
+	/// ice mass in snow layer (kg m-2)
+	double imass;
+
+	/// Snow density per layer (kg m-3)
+	double dens;
+
+	/// Snow water holding capacity per layer
+	double whc;
+
+	/// Snow layer thickness [mm]
+	double thickness;
+
+	/// Snow temperature [C]
+	double temp;
+
+	/// Thermal conductivity of snow [J m-1 K-1 s-1]
+	double Kh;
+
+	/// Heat capacity of snow [J m-3 K-1]
+	double Ch;
+
+	void clear();
+
+	void update_temp(double add_temp, double add_mass, double add_Ch);
+
+	/// Update snow thermal properties
+	void update_thermal_properties();
+
+	/// Update snow water holding capacity
+	void update_whc();
+
+	/// Phase change
+	void phase_change(bool toplayer = false);
+
+	void serialize(ArchiveStream& arch);
+};
+
+/// This struct contains snow properties.
+class Snow : public Serializable {
+
+	// MEMBER VARIABLES
+
+public:
+
+	/// vector with snow layers
+	std::vector<Snowlayer> snowlayers;
+	/// number of snow layers
+	int nsnowlayers;
+	/// NH4 mass (kgN/m2)
+	double NH4_mass;
+	/// NO3 mass (kgN/m2)
+	double NO3_mass;
+	/// Monthly snow depth (average) [mm]
+	double mdepth[12];
+	/// Monthly snow cover (average) [-]
+	double mcover[12];
+	/// Number of snow days during the year
+	int snowdays;
+	/// Monthly snow layer temperature [C]
+	double mtemp[NSNOWLAYERS_MAX][12];
+	/// Excess snow depth fractions
+	double snow_excess_frac[NSNOWLAYERS_MAX];
+
+	// MEMBER FUNCTIONS
+
+public:
+
+	/// Constructs an empty result
+	Snow() {
+		init_state();
+	}
+
+	void init_state();
+
+	/// Redistributing snow layers after melt or compaction
+	void potential_depth(double snowpack_depth, double pot_ice[NSNOWLAYERS_MAX], int& pot_nsnowlayers);
+
+	/// Update snow water holding capacity
+	void update_whc();
+
+	/// Reduce snowpack to its maximum depth, excess goes to runoff
+	void reduce_snowpack(Patch& patch, double depth_reduction);
+
+	/// Redistribute snow when a non-overfull layer increases/decreases due to melt or compaction
+	void redist_layers(double snowpack_depth, double snowfall_depth = 0.0, 
+		double snowfall_imass = 0.0, double snowfall_temp = 0.0, double snowfall_Ch = 0.0);
+
+	/// Rain melts snowpack
+	void rainwater_melt(double airT, double& prec, double& rain_melt, double& rain_melt_temp);
+
+	/// Update snow fractions
+	void phase_change();
+
+	/// Soak snowpack with water
+	void soak_snowpack(double& wmass_ssw, double& imass_ssw, double temp_ssw);
+
+	/// Snow water over water holding capacity
+	double wmass_excess();
+
+	/// Snow compaction
+	void compaction(Patch& patch, double& rain_melt, double& rain_melt_temp);
+
+	/// Update snow thermal properties for each snow layer
+	void update_thermal_properties();
+
+	/// Balance ice and water in snow layers after melt
+	void balance_snow(Patch& patch, double& rain_melt, double& rain_melt_temp);
+
+	/// Mean snow depth for the three months with largest snowpack
+	double snowpack_avrmax3mth();
+
+	/// Returns total snow depth [mm]
+	double depth();
+
+	/// Returns nmass available [kgN/m2]
+	double nmass_avail();
+
+	double ccont() const;
+
+	double ncont() const;
+
+	/// Returns total snowpack (water and ice) [mm]
+	double water_and_ice_content() const;
+
+	/// Returns total snowpack water [mm]
+	double wmass();
+
+	/// Returns total snowpack ice [mm]
+	double imass();
+
+	void serialize(ArchiveStream& arch);
+};
+
+/// Container for surface standing water and ice
+struct SSW : public Serializable {
+
+	/// Surface standing water (kg m-2)
+	double wmass;
+	/// Surface standing ice (kg m-2)
+	double imass;
+	/// Surface standing water/ice temperature (deg C)
+	double temp;
+	/// Surface standing water/ice thermal conductivities (J m-1 K-1 s-1)
+	double Kh;
+	/// Surface standing water/ice heat capacities (J m-3 K-1)
+	double Ch;
+	/// Monthly surface standing water and ice [mm]
+	double mwimass[12];
+	/// Fraction of surface covered by surface standing water and ice
+	double wmass_frac;
+	// Fraction of the area that is inundated threshold below which no 
+	// single connected inundated area spans the grid cell (-)
+	double wmass_frac_thresh;
+	// Surface water threshold below which no single connected  
+	// inundated area spans the grid cell (mm)
+	double wmass_thresh;
+	/// Microtopography distribution (mm) (Ekcic et al. 2019; eqn 2)
+	double slope_sigma;
+	double sigma_sqrt2;
+	double sigma_sqrt2pi;
+	double sigma2;
+
+	SSW() {
+		wmass = 0.0;
+		imass = 0.0;
+		temp = 0.0;
+		Kh = 0.0;
+		Ch = 0.0;
+		wmass_frac = 0.0;
+		wmass_frac_thresh = 0.0;
+		wmass_thresh = 0.0;
+		slope_sigma = 0.0;
+		sigma_sqrt2 = 0.0;
+		sigma_sqrt2pi = 0.0;
+		sigma2 = 0.0;
+
+		for (int mth = 0; mth < 12; mth++) {
+			mwimass[mth] = 0.0;
+		}
+	}
+
+	/// Water and ice content of surface standing water
+	double water_and_ice_content() const;
+	/// Update surface standing water temperatures due to water fluxes
+	void update_temp(double temp_add, double wmass_add, double imass_add = 0.0);
+	/// Update thermal properties for surface standing water
+	void update_thermal_properties();
+	/// Calculate surface standing water and ice
+	void phase_change();
+	/// Serialize surface standing water variables
+	void serialize(ArchiveStream& arch);
+};
+
+/// Soil stores state variables for soillayers and the snow pack.
+/** Initialised by a call to initdrivers. One Soil object is defined for each patch.
+*  A reference to the parent Patch object (defined below) is included as a member
+*  variable. Soil static parameters are stored as objects of class Soiltype, of which
+*  there is one for each grid cell. A reference to the Soiltype object holding the
+*  static parameters for this soil is included as a member variable. Soil holds the
+*  object array of soil layers
+*/
+class Soil : public Serializable {
+
+	// MEMBER VARIABLES
+
+public:
+
+	/// reference to parent Patch object
+	Patch& patch;
+	/// reference to Soiltype object holding static parameters for this soil
+	Soiltype& soiltype;
+	/// Soil depth
+	double depth;
+	/// vector with soil layers
+	std::vector<Soillayer> soillayers;
+	/// array with soil layer thicknesses
+	double soillayerthicks[NSOILLAYERS_MAX];
+	/// number of soil layers
+	int nsoillayers;
+	/// Annual surface fine litter input [kg C m-2 yr-1]
+	double asurfflitterinput;
+	/// Annual surface coarse litter input [kg C m-2 yr-1]
+	double asurfclitterinput;
+	/// Annual surface litter respiration [kg C m-2 yr-1]
+	double asurflitterresp;
+	/// vector with SOM pool litter input
+	double csom_litter_input[NSOMPOOL];
+	/// number of acrotelm soil layers
+	int nacrotelm;
+	/// number of catotelm soil layers
+	int ncatotelm;
+	/// the average wcont over the growing season, for each of the upper soil layers. Used in drought limited establishment. 
+	double awcont_upper;
+	/// water content of sublayer of upper soil layer for which evaporation from the bare soil surface is possible
+	/// fraction of available water holding capacity 
+	double wcont_evap;
+	/// water fluxes between soil layers (mm)
+	double wfluxes[NSOILLAYERS_MAX + 1];
 	/// rainfall and snowmelt today (mm)
 	double rain_melt;
+	/// rainfall and snowmelt temperature today (C)
+	double rain_melt_temp;
 	/// upper limit for percolation (mm)
 	double max_rain_melt;
+	/// water added to wetland today (mm)
+	double wmass_wetland_added;
 	/// whether to percolate today
 	bool percolate;
-
-	//////////////////////////////////////////////////////////////////////////////////
-	// Soil member variables
-
-	/// sum of soil layers
-	int ngroundl;
-	/// density of the snowpack, daily
-	double snowdens;
-	
-
-	// Temperature variables:
-    
-	/// temperature in each layer today (after call to cnstep) [deg C]
-	double T[NLAYERS];
-	/// Recorded T each day of the year, at each level [deg C]
-	double T_soil[NLAYERS];
-	/// Record the monthly average soil temp at SOILTEMPOUT layers [deg C]
-	double T_soil_monthly[12][SOILTEMPOUT];
-	/// soil temperature in each layer YESTERDAY
-	double T_soil_yesterday[NLAYERS];
-	/// soil temperature at 25 cm depth, as calculated using previous versions of the model [deg C]
-	double temp_analyticsoln;
-	
-
-	// Padding - The values initialised in first call to calctemp method
-    
-	/// temperature in padding layers [deg C]
-	double pad_temp[PAD_LAYERS];
-	/// thickness of padding layers [mm]
-	double pad_dz[PAD_LAYERS];
-	
-
-	// Ice and water variables for the soil layers, where Frac stands for Fraction
-	
-	/// (Frac)tion of ice in each layer: amount of ice / total volume of soil layer. Not associated with AWC. 
-	double Frac_ice[NLAYERS];
-	
-	/// ice fraction in each layer YESTERDAY
-	double Frac_ice_yesterday[NLAYERS];
-	
-	/// fraction of water in each layer: water / total volume of soil layer
-	double Frac_water[NLAYERS];
-	
-
-	// Layer composition and properties:
-	// Soil layer information:
-    
-	/// Thickness of soil layers [mm]
-	double Dz[NLAYERS];
-	/// porosity of each soil layer
-	double por[NLAYERS];
-	/// organic soil fraction
-	double Frac_org[NLAYERS];
-	/// peat fraction
-	double Frac_peat[NLAYERS];
-	/// mineral soil fraction
-	double Frac_min[NLAYERS];
-	/// Fraction of water held below permanent wilting point when no freexing
-	double Fpwp_ref[NLAYERS];
-	/// fraction of water held below permanent wilting point.
-	double Frac_water_belowpwp[NLAYERS];
-	/// diffusivity of the soil layers [mm2 / day]
-	double Di[NLAYERS];
-	/// heat capacities of the soil layers [J mm-3 K-1]
-	double Ci[NLAYERS];
-	/// thermal conductivities of the soil layers [J day-1 mm-1 K-1]
-	double Ki[NLAYERS];
-	/// soil water potential in each layer (MPa)
-	double psi_layer[NSOILLAYER];
-	/// soil water potential averaged over layers (MPa)
-	double soil_psi;
-	/// soil unsaturated hydraulic condutivity in each layer
-	double K_actual[NSOILLAYER];
-
-	bool snow_active; // active snow layer(s)?
-	int snow_active_layers; // <= NLAYERS_SNOW
-	/// liquid water in the snow pack [kg m-2] == [mm]
-	double snow_water[NLAYERS_SNOW];
-	/// ice in the snowpack [kg m-2]
-	double snow_ice[NLAYERS_SNOW];
-
-	// Log (l) of thermal conductivities. Used in the calculation of thermal conductivity and diffusivity.
-	double lKorg, lKpeat, lKmin, lKwater, lKice, lKair;
-
-	/// records the first time T is calculated
-	bool firstTempCalc;
-
+	/// Soil temperature padding
+	Padding pad;
+	/// Snow
+	Snow snow;
+	/// Surface standing water
+	SSW ssw;
 
 	// Daily storage:
-    
+
 	/// Depth in mm of the maximum depth of thaw this year
-	double maxthawdepththisyear;
+	double maxthaw;
 	/// daily thaw depth. The depth to the first soil layer with a temperature greater than 0 degrees C [mm]
 	double thaw;
 	/// monthly thawing depth full, where ALL the ice has melted [mm]
 	double mthaw[12];
-	/// daily thawing depth full, where ALL the ice has melted [mm]
-	double dthaw[Date::MAX_YEAR_LENGTH];
-	
-	/// depth of the acrotelm [mm]
-	double acro_depth;
-	/// depth of the catotelm [mm]
-	double cato_depth;
+	//
+	double mald_mean[12];
+	//
+	Historic<double, 10> maxthaw_10;
+
 	/// acrotelm CO2 level [mimil L-1]
 	double acro_co2;
 
-
-	// Snow:
-    
-	/// days of continuous snow cover
-	int snow_days;
-	/// previous days of continuous snow cover
-	int	snow_days_prev;
-	/// Monthly snow depth (average) [mm]
-	double msnowdepth[12];
-	/// Previous December's snowdepth [mm] - used in establishment - from Wolf et al. (2008) 
-	double dec_snowdepth;
-  
-
 	// Daily photosynthetic limits:
-    
+
 	/// Daily limit on moss photosynthetic activity due to dessication [0,1], but really [0.3,1]
 	double dmoss_wtp_limit;
 	/// Daily limit on graminoid photosynthetic activity as WTP drops.
 	double dgraminoid_wtp_limit;
-    /// acrotelm porosity MINUS Fgas (so, 0.98-0.08)
-	double acro_por;
-	/// acrotelm porosity MINUS Fgas (so, 0.92-0.08)
-	double cato_por;
-	
 
 	// Peatland hydrology variables:
-    
+
 	/// daily water table position [mm]
-	double wtp[Date::MAX_YEAR_LENGTH];
+	double wtp;
 	/// monthly average water table position [mm]
 	double mwtp[12];
 	/// annual average water table position [mm]
 	double awtp;
-	/// water table depth from yesterday and updated today = -wtp [mm]
+	/// Water table depth from yesterday and updated today = -wtp (range -100, +300) [mm]
 	double wtd;
-	/// Water in acrotelm plus standing water (up to a max of 100mm) [mm]
-	double Wtot;
-	/// Standing water (up to a max of 100mm) [mm] - set to 0 in LPJG
-	double stand_water;
-	/// Volumetric water content in the NSUBLAYERS_ACRO of the acrotelm
-	double sub_water[NSUBLAYERS_ACRO];
-	// available water holding capacity of soil layers [0=upper layer] [mm], taking into
-	// account the unavailability of frozen water. Default value: soiltype.awc[]
-	double whc[NSOILLAYER];
-	/// Max water (mm) that can be held in each layer
-	double aw_max[NSOILLAYER];
-	// Volumetric liquid water content. A fraction. Considers the entire (awc + Fpwp)
-	// volumetric water content MINUS the ice fraction. Updated daily.
-	double alwhc[NSOILLAYER];
-	// Initial volumetric liquid water content. A fraction. Considers the entire
-	// (awc + Fpwp) volumetric water content MINUS the ice fraction.
-	double alwhc_init[NSOILLAYER];
-
-
-	// Indices
-    
-	/// index for first active layer of soil
-	int IDX;
-	/// index for snow layers
-	int SIDX;
-	/// index for snow layer from previous day
-	int SIDX_old;
-	/// index for mixed layer
-	int MIDX;
-	
-	// Hydrology variables:
-    
-	/// records the first time hydrology routine is called
-	bool firstHydrologyCalc;
-	
-	// These are the number of sublayers in the standard 0.5/1.0m
-	// hydrology laters. Set ONCE in hydrology routine
-	int nsublayer1;
-	int nsublayer2;
-	int num_evaplayers;
-	
-	/// root fractions per layer
-	double rootfrac[NLAYERS];
-	/// air fraction in each layer
-	double Frac_air[NLAYERS];
-	
-	/// daily carbon flux to atmosphere from soil respiration
-	/// Temporary storage of heterotrophic respiration on PEATLAND until it is reduced by allocation of a certain fraction to CH4 production.
-	double dcflux_soil;
-	
-	/// CH4 and CO2 stores in the soil layers - updated daily 
-	double ch4_store;
-	double co2_store;
-
-	/// dissolved CO2 concentration in each layer [g CO2-C layer-1 d-1]
-	double CO2_soil[NLAYERS];
-	/// dissolved CO2 concentration in each layer yesterday [g CO2-C layer-1 d-1]
-	double CO2_soil_yesterday[NLAYERS];
-	/// daily CO2 production in each layer [g CO2-C layer-1 d-1]
-	double CO2_soil_prod[NLAYERS];
-	/// dissolved CH4 concentration in each layer [g CH4-C layer-1 d-1]
-	double CH4[NLAYERS];
-	/// dissolved CH4 concentration in each layer yesterday [g CH4-C layer-1 d-1]
-	double CH4_yesterday[NLAYERS];
-	/// daily CH4 production in each layer [g CH4-C layer-1 d-1]
-	double CH4_prod[NLAYERS];
-	/// daily CH4 oxidation in each layer [g CH4-C layer-1 d-1]
-	double CH4_oxid[NLAYERS];
-	/// CH4 which bubbles out [g CH4-C layer-1]
-	double CH4_ebull_ind[NLAYERS];
-	/// Volume of CH4 which bubbles out [m3]
-	double CH4_ebull_vol[NLAYERS];
-	/// gaseous CH4 concentration in each layer [g CH4-C layer-1 d-1]
-	double CH4_gas[NLAYERS];
-	/// dissolved CH4 concentration in each layer [g CH4-C layer-1 d-1]
-	double CH4_diss[NLAYERS];
-	/// gaseous CH4 concentration in each layer [g CH4-C layer-1] yesterday
-	double CH4_gas_yesterday[NLAYERS];
-	/// dissolved CH4 concentration in each layer [g CH4-C layer-1] yesterday
-	double CH4_diss_yesterday[NLAYERS];
-	/// gaseous CH4 volume in each layer [m3]
-	double CH4_gas_vol[NLAYERS];
-	// volumetric CH4 content [unitless]
-	double CH4_vgc[NLAYERS];
-	/// dissolved O2 concentration in each layer [mol O2 layer-1 d-1]
-	double O2[NLAYERS];
-	
-	/// layer water volume [m3]
-	double volume_liquid_water[NLAYERS];
-	/// layer water + ice volume [m3]
-	double total_volume_water[NLAYERS];
-	/// tiller area
-	double tiller_area[NLAYERS];
-	
 
 	// Gas diffusion variables:
-    
+
 	/// gas transport velocity of O2 [m d-1]
 	double k_O2;
 	/// gas transport velocity of CO2 [m d-1]
@@ -5158,12 +5848,11 @@ public:
 	double Ceq_CO2;
 	/// Equilibrium concentration of CH4 [mol L-1]
 	double Ceq_CH4;
-	
 
-//////////////////////////////////////////////////////////////////////////////////
-// CENTURY SOM pools and other variables
+	/// records the first time T is calculated
+	bool firstTempCalc;
 
-	Sompool sompool[NSOMPOOL];
+	// Variables for fast spinup of SOM pools
 
 	/// daily percolation (mm)
 	double dperc;
@@ -5177,7 +5866,6 @@ public:
 	double NH4_input;
 	/// soil NO3 mass input (kgN/m2)
 	double NO3_input;
-	double navail_start_day;
 	double nmin_gross;
 	double nimmob;
 	double nimmob_pool[NSOMPOOL];
@@ -5193,12 +5881,16 @@ public:
 	double aorgNleach;
 	/// total annual nitrogen fixation
 	double anfix;
-	/// total daily nitrogen fixation
-	double dnfix;
+	/// mean annual nitrogen fixation used in equilsom()
+	double anfix_mean;
 	/// calculated annual mean nitrogen fixation
 	double anfix_calc;
 	/// annual leaching of organics from carbon pool
 	double aorgCleach;	
+	/// monthly fraction of available NH4 taken up
+	double fNH4uptake_mean[12];
+	/// monthly fraction of available NO3 taken up
+	double fNO3uptake_mean[12];
 
 	// Daily net mineralisation (kgN/m2/day)
 	double net_mineralisation;
@@ -5209,175 +5901,30 @@ public:
 	// Daily leaching of organics from active nitrogen pool (kgN/m2/day)
 	double dorgNleach;
 
-	// Daily N volatilisation (kgN/m2/day).
-	double nvol;
-	// Cumulative annual N volatilisation (kgN/m2/year).
-	double anvol;
-
 	/// Cumulative annual nitrogen flux to atmosphere (kgN/m2/year).
 	double anloss_gas;
 	// Daily nitrogen flux to atmosphere (kgN/m2/day).
 	double nloss_gas;
 
 	// Variables for fast spinup of SOM pools
+	// Restart variables
 
-	/// monthly fraction of available mineral nitrogen taken up
-	double fnuptake_mean[12];
-	/// monthly fraction of organic carbon/nitrogen leached
-	double morgleach_mean[12];
-	/// monthly fraction of available mineral nitrogen leached
-	double mminleach_mean[12];
-	/// annual nitrogen fixation
-	double anfix_mean;
-
-	// Solving Century SOM pools
+	/// year at which to calculate equilibrium soil carbon
+	int solvesom_end;
+	/// year at which to begin documenting means for calculation of equilibrium soil carbon
+	int solvesom_begin;
 
 	/// years at which to begin documenting for calculation of Century equilibrium
 	int solvesomcent_beginyr;
 	/// years at which to end documentation and start calculation of Century equilibrium
 	int solvesomcent_endyr;
-
-	/// Cumulative litter pools for one year.
-	LitterSolveSOM litterSolveSOM;
-
-	std::vector<LitterSolveSOM> solvesom;
-
-	/// stored NH4 deposition in snowpack
-	double snowpack_NH4_mass;
-	/// stored NO3 deposition in snowpack
-	double snowpack_NO3_mass;
-
-	/// pools of soil N species in transformation (nitrification & denitrifiacation)
-
-	/// soil NH4 mass in pool (kgN/m2)
-	// double NH4_mass;	// total, definde above
-	double NH4_mass_w;	// wet proportion
-	double NH4_mass_d;	// dry...
-
-	/// soil NO3 mass in pool (kgN/m2)
-	// double NO3_mass; // total, definde above
-	double NO3_mass_w;
-	double NO3_mass_d;
-	/// soil NO2 mass in pool (kgN/m2)
-	double NO2_mass;
-	double NO2_mass_w;
-	double NO2_mass_d;
-	/// soil NO mass in pool (kgN/m2)
-	double NO_mass;
-	double NO_mass_w;
-	double NO_mass_d;
-	/// soil NO mass in pool (kgN/m2)
-	double N2O_mass;
-	double N2O_mass_w;
-	double N2O_mass_d;
-	/// soil N2 mass in pool (kgN/m2)
-	double N2_mass;
-
-	// soil pH
-	double pH;	//TODO: pH - not used yet. Daily mean precip, based on annual average
-
-	// soil labile carbon availability daily (kgC/m2/day)
-	double labile_carbon;
-	double labile_carbon_w;
-	double labile_carbon_d;
-
-	// MEMBER FUNCTIONS
-
-public:
-	/// constructor (initialises member variable patch)
-	Soil(Patch& p,Soiltype& s):patch(p),soiltype(s) {
-			init_states();
-	}
-
-	void init_states();
-
-	/// return soil temperature at 25cm depth
-	double get_soil_temp_25() const;
-
-	/// Analytic soil temperature calculation for this patch. Updates daily
-	void soil_temp_analytic(const Climate& climate, double depth);
-
-	/// main hydrology routine
-	void hydrology_lpjf(const Climate& climate, double fevap);	
-
-	/// simpler hydrology routine from LPJ-GUESS v4.0
-	void hydrology_lpjf_twolayer(const Climate& climate, double fevap);
-
-	/// return wcont for a certain layer
-	double get_layer_soil_water(int layer) const;
-
-	/// return wcont_evap
-	double get_layer_soil_water_evap() const;
-
-	/// method to return the 'old' (i.e. Gerten) wcont for layers between layer1 and layer2
-	double get_soil_water(int layer1, int layer2) const;
-
-	/// method to return the 'old' (i.e. Gerten) wcont for upper layers
-	double get_soil_water_upper() const;
-
-	/// method to return the 'old' (i.e. Gerten) wcont for lower layers
-	double get_soil_water_lower() const;
-
-	/// copy wcont
-	void copy_layer_soil_water_array(double wconttoreturn[NSOILLAYER]);
-
-	/// add water to a certain soil layer and return the water that cannot be added due to limited capacity
-	double add_layer_soil_water(int layer, double extrawater);
-
-	/// set wcont for a certain layer
-	void set_layer_soil_water(int layer, double newlayerwater);
-
-	/// set wcont_evap
-	void set_layer_soil_water_evap(double newevaplayerwater);
-
-	/// update wcont_evap, whc[], Frac_water etc. based on wcont
-	void update_soil_water();
-
-	/// return true if there is more than 5% ice content in any ice in the top 50cm of soil (needed for irrigation)
-	bool ice_in_top_layer();
-
-	/// return snow depth [mm] 
-	double snowdepth();
-
-	/// Peatland hydrology routine. Implements the peatland hydrology scheme of Wania et al. (2008)
-	void hydrology_peat(const Climate& climate, double fevap);
-
-	/// Main soil temperature calculation. See soil.cpp for definition
-	bool soil_temp_multilayer(const double& temp);
-
-	/// Calculate methane dynamics today
-	bool methane(bool generatemethane);
-	
-	/// Initialise the root fractions in each layer of the wetland - see Wania et al. (2010)
-	void init_peatland_root_fractions();
-
-	/// Get soil clay fraction
-	double get_clayfrac();
-
-	/// Get soil sand fraction
-	double get_sandfrac();
-
-	/// Get soil silt fraction
-	double get_siltfrac();
-
-	/// Return CH4 content (g CH4-C / m2) 
-	double get_ch4_content();
-
-	/// Return CO2 content (gC / m2) 
-	double get_co2_content();
-
-	/// Water filled pore space of layer ([0-1])
-	double wfps(int layer) const;
-
-	/// Soil water freezing allowed?
-	bool can_freeze() const;
-
-	// Soil helper functions
-	double nmass_avail(int pref = NO);
-	double get_nmass_avail(int pref = NO) const;
-	void nmass_subtract(double nmass, int pref = NO);
-	void nmass_inc(double nmass, int pref = NO);
-	void nmass_multiplic_inc(double inc, int pref = NO);
+	/// document for calculation of Century equilibrium
+	bool savesomcent;
+	/// Slope gradient [m m-1]
+	double slope_grade_tan;
+	double slope_grade_cos;
+	/// soil water potential averaged over layers (MPa)
+	double soil_psi;
 
 private:
 
@@ -5385,36 +5932,186 @@ private:
 	static const bool ifallowphasechanges = true;
 	static const bool snowdensityconstant = false;
 
-	// Private helper methods. Contain daily functionality moved from calctemp. 
-	// All definitions in soil.cpp and methane.cpp
 
-	// Soil temperature and hydrology methods
-	void update_from_yesterday();
-	void update_snow_properties(const double& dailyairtemp, double& Dsnow, double& Csnow, double& Ksnow);
-	void snowpack_dynamics(const double &snowdepth, const int& soilsurfaceindex, int& snow_active_layers);
-	void update_soil_diffusivities(bool ansoln);
-	double heatcapacity(double Frac_min, double Frac_org, double Frac_ice, double Frac_water, double Frac_peat, double Frac_air);
-	void update_ice_fraction(const int& daynum, const int& MIDX);
-	void update_layer_fractions(const int& daynum, const int& mixedl, const int& MIDX);
+	// MEMBER FUNCTIONS
 
-	// Hydrology methods
-	void init_hydrology_variables();
-	bool update_layer_water_content(int day);
+public:
+
+	/// constructor (initialises member variable patch)
+	Soil(Patch& p, Soiltype& s) : patch(p), soiltype(s) {
+		initdrivers();
+	}
+	
+	// Destructor
+	~Soil() {
+
+		// Performs memory deallocation, closing of files or other "cleanup" functions.
+	}
+
+	/// Initialize variables
+	void initdrivers();
+	/// Create soillayers
+	void create_soillayers(double soil_layer_depths[NSOILLAYERS_MAX]);
+	/// Add a soil layer
+	void add_soillayer(double soil_layer_thick, double soil_layer_depth_mid, bool acrotelm, bool catotelm);
+	/// Returns the Climate for this Patch
+	/** This function returns a const reference to prevent code which operates
+	 *  on a patch basis to modify the climate and thereby affect other
+	 *  patches/stands.
+	 */
+	const Climate& get_climate() const;
+	/// Set slope properties
+	void set_slope_properties();
+	/// Initiate soil water content
+	void init_water();
+	/// Returns surface litter C content
+	double get_surflittercmass();
+	/// Returns surface litter N content
+	double get_surflitternmass();
+	/// C content of soil 
+	double ccont(grouppooltype group = GALL) const;
+	/// N content of soil 
+	double ncont(grouppooltype group = GALL) const;
+	/// Water and ice content of the soil
+	double water_and_ice_content() const;
+	/// Get soil property totals
+	double get_sum(double Soillayer::* var_member) const;
+	/// Get soil property totals of a certain month
+	double get_sum(double(Soillayer::* var_arr)[12], int m) const;
+	/// Get soil layers available nmass fraction
+	void get_nfrac(n_pref_type pref, double nfrac[NSOILLAYERS_MAX], double nmin, bool water_limited = false);
+	/// Get soil layers root fractions
+	void calc_rootfrac(double rootfrac[NSOILLAYERS_MAX]);
+	/// Get soil layers root C mass
+	void calc_rootmass(double cmass_root[NSOILLAYERS_MAX]);
+	/// Get total soil nmass_avail (if water_limited true then water up to awc limits nmass availability) 
+	double nmass_avail(n_pref_type pref = NO, bool water_limited = false);
+	/// Nitrogen uptake from soil nmass_avail
+	void nmass_avail_uptake(double uptake, n_pref_type pref);
+	/// Nitrogen increment to soil nmass_avail
+	void nmass_avail_inc(double inc, n_pref_type pref);
+	/// Calculate root volume
+	void calc_root_volume();
+	/// Returns a fine vertical resolution C soil fraction
+	std::vector<double> interp_soil_conserve(double fineDz);
+	/// Vertical movement of mineral and organic matter
+	void vertical_movement();
+	/// Calculate this months average soil layer wcont
+	void calc_mwcont();
+	/// Calculate this months average soil layer temperature
+	void calc_mtemp();
+	/// Function to get temperature at a specific depth
+	double temp_at_depth(double depth) const;
+	/// gtemp weighted against root distribution
+	double gtemp_rootdist(double rootdist[NSOILLAYERS_MAX]);
+	/// Returns the soil temperature for a certain depth interval
+	double temp_depth(double depth_start, double depth_end);
+	/// Returns the month average soil temperature for a certain depth interval
+	double temp_depth(double depth_start, double depth_end, int mth);
+	/// Returns the value of some vector within a certain depth interval
+	double var_depth(double depth_start, double depth_end, double Soillayer::* member) const;
+	double var_depth(double depth_start, double depth_end, double (Soillayer::*getter)() const) const;
+	double var_depth(double depth_start, double depth_end, double(Soillayer::* var_arr)[12], int m) const;
+	/// Returns the value of some vector within a certain depth interval with a scalar
+	double var_depth(double depth_start, double depth_end, double Soillayer::* var_member, double Soillayer::* scal_member) const;
+	double var_depth(double depth_start, double depth_end, double(Soillayer::* var_arr)[12], double Soillayer::* scal_member, int mth) const;
+	/// Returns the value of soil C within a certain depth interval
+	double var_depth_ccont(double depth_start, double depth_end, grouppooltype group = GALL);
+	/// Returns the value of soil N within a certain depth interval
+	double var_depth_ncont(double depth_start, double depth_end, grouppooltype group = GALL);
+	/// Determine snow or rainfall, and melt if simple snow scheme is used
+	void snow_or_rainfall(double airT, double& prec, double u10, double& rain_melt, double& rain_melt_temp);
+	/// Add snowfall
+	void snowfall(double airT, double& prec, double u10);
+	/// Calculate surface evaporation, infiltration and runoff
+	void compute_evap_infilt_and_runoff(double dtsub, double qflx_rain_melt, double depth_infilt,
+		double imass_infilt, double wsats_infilt, double imp_ice, double Kw_max, double fevap, double& qflx_evap, 
+		double& qflx_surf_runoff, double& qflx_ssw_runoff, double& qflx_in_surf, double& qflx_infilt, double& qflx_ssw_drain); // DW_COMMENT
+	/// Update matric potential
+	void update_matric_potential();
+	/// Update hydraulic conductivity and diffusivity
+	void update_hydraulic_properties(int nsoillayers_sim);
+	/// Update soil layer temperatures due to water fluxes
+	void wflow_temp(double temp_infilt);
+	/// Update heat capacity and conductivity for soil layers
+	void update_thermal_properties();
+	/// Soil water freezing allowed?
+	bool can_freeze() const;
+	/// Updates the CO2 concentration in the acrotelm water
 	void update_acrotelm_co2(double atmo_co2);
-	bool valid_layer_num(const int& ngr) const;
+	/// return snow depth [mm] 
+	double snowdepth();
+
+	/// Peatland hydrology routine. Implements the peatland hydrology scheme of Wania et al. (2008)
+	void hydrology_peat(const Climate& climate, double fevap);
+	/// If it is wet season for wetland hydrology
+	bool is_wet_season();
+	/// Mineral wetland hydrology (simplistic placeholder)
+	void hydrology_wetland(const Climate& climate, double fevap);
+	/// Two layer hydrology routine from LPJ-GUESS v4.0
+	void hydrology_gerten(const Climate& climate, double fevap);
+	/// 15 layer hydrology routine from LPJ-GUESS v4.1
+	void hydrology_miller(const Climate& climate, double fevap);
+	/// Flexible layer hydrology routine
+	void hydrology_richards(const Climate& climate, double fevap);
+	void compute_moisture_fluxes_and_derivs(double qflx_infl, double Kw[NSOILLAYERS_MAX], double Psi[NSOILLAYERS_MAX], 
+		double dKwdw[NSOILLAYERS_MAX], double dPsidw[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX], double qout[NSOILLAYERS_MAX],
+		double dqidw0[NSOILLAYERS_MAX], double dqidw1[NSOILLAYERS_MAX], double dqodw1[NSOILLAYERS_MAX], double dqodw2[NSOILLAYERS_MAX],
+		double vws_liq[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX], int nsoillayers_sim);
+	void compute_RHS_moisture_form(double qflx_root[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX], 
+		double qout[NSOILLAYERS_MAX], double dt_dz[NSOILLAYERS_MAX], double rmx[NSOILLAYERS_MAX], 
+		int nsoillayers_sim);
+	void compute_LHS_moisture_form(double dt_dz[NSOILLAYERS_MAX], double dqidw0[NSOILLAYERS_MAX], double dqidw1[NSOILLAYERS_MAX], 
+		double dqodw1[NSOILLAYERS_MAX], double dqodw2[NSOILLAYERS_MAX], double amx[NSOILLAYERS_MAX], double bmx[NSOILLAYERS_MAX], 
+		double cmx[NSOILLAYERS_MAX], int nsoillayers_sim);
+	void TridiagonalCol(double a[NSOILLAYERS_MAX], double b[NSOILLAYERS_MAX], double c[NSOILLAYERS_MAX], 
+		double r[NSOILLAYERS_MAX], double u[NSOILLAYERS_MAX], int nsoillayers_sim);
+	void check_error(double dwat[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX], double dt_dz[NSOILLAYERS_MAX], double qin[NSOILLAYERS_MAX], 
+		double qout[NSOILLAYERS_MAX], double qflx_root[NSOILLAYERS_MAX], int nsoillayers_sim, double dtmin, double xTolerUpper, double& dtsub,
+		double& errorMax, bool& calcsub);
+	void update_wtp();
+	/// initial percolation
+	void initial_percolation();
 
 	// CH4 methods
-	void calculate_carbon_store(int dy, bool today);
-	bool calculate_gas_diffusivities(double CH4[NLAYERS], double CO2[NLAYERS], double O2[NLAYERS]);
-	bool update_daily_gas_parameters();
-	double diffuse_gas(double Cgas[NLAYERS], double D[NLAYERS], gastype thisgastype, double Ceq,
-		double kgas, double Dz_m[NLAYERS], double &dailyDiff);
-	bool plant_gas_transport(double Cgas[NLAYERS], double Ceq, double kgas, gastype thisgastyp,
-		double& plantCH4TransportToday);
-	double calculate_tiller_areas(double r_frac[NLAYERS], double t_area[NLAYERS]);
-	bool calculate_gas_ebullition(double& ebull_today);
+	/// Calculate and return diffusivities
+	void calculate_gas_diffusivities(double CH4[NSOILLAYERS_MAX], double CO2[NSOILLAYERS_MAX], double O2[NSOILLAYERS_MAX]);
+	/// Calculate CH4 and CO2 production 
+	void calculate_ch4_and_co2_production();
+	/// Update gas transport velocities[m d - 1] and equilibrium gas concentrations[mmol m - 3] for CH4, CO2 and O2
+	void update_daily_gas_parameters();
+	/// Generic gas diffusion method that works with CO2, CH4 and O2
+	void diffuse_gas(double D[NSOILLAYERS_MAX], gastype thisgastype, double Ceq,
+		double kgas, double &dailyDiff);
+	/// Plant transport of O2 or CH4
+	void plant_gas_transport(double Ceq, double kgas, gastype thisgastyp,
+		double tillers, double& plantCH4TransportToday);
+	/// Calculate the area of tillers
+	void calculate_tiller_areas(double& tiller_density);
+	/// CH4 oxidation
+	void oxidation_ch4();
+	/// Gas ebullition
+	void calculate_gas_ebullition(double& ebull_today);
+	/// Calculate methane dynamics today
+	void methane(bool generatemethane);
 
-	void serialize(ArchiveStream& arch);
+	/// Calculate soil temperature
+	void temp();
+	/// Calculate multilayer soil temperature
+	void calc_temp();
+	/// Calculate analytic soil temperatures
+	void calc_temp_analytic();
+	/// Calculate water and ice for each layer
+	void phase_change();
+	/// Calculate thaw depth
+	void thaw_depth();
+	/// Calculate monthly snow depth
+	void calc_msnow();
+	void serialize(ArchiveStream & arch);
+
+	void daily_accounting();
+private:
+	void annual_accounting();
 };
 
 /// Container for crop-specific data at patchpft level
@@ -5666,6 +6363,10 @@ public:
 	double aphen;
 	/// Month of lowest phen for RAINGREEN
 	int driest_mth;
+	/// Monthly average leaf C mass for this patch PFT. Used for output
+	double mcmass_leaf[12];
+	/// Monthly average leaf N mass for this patch PFT. Used for output
+	double mnmass_leaf[12];
 	/// whether PFT can establish in this patch under current conditions
 	bool establish;
 	/// running total for number of saplings of this PFT to establish (cohort mode)
@@ -5719,16 +6420,24 @@ public:
 	double nmass_litter_heart;
 	/// N content of reproductive litter pool (seedbank) (kgN/m2)
 	double nmass_litter_repr;
+	/// remaining NH4-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
+	double nmass_litter_NH4;
+	/// Half saturation concentration for N uptake (Rothstein 2000, Macduff 2002) Michaelis-Menten kinetic parameters
+	double Km;
 
 	/// non-FPC-weighted canopy conductance value for PFT under water-stress conditions (mm/s)
 	double gcbase;
 	/// daily value of the above variable (mm/s)
 	double gcbase_day;
 
+	/// Vegetation root profile in an array containing fraction of roots in each soil layer, [0=upper layer]
+	double rootdist[NSOILLAYERS_MAX];
+
 	/// evapotranspirational "supply" function for this PFT today (mm/day)
 	double wsupply;
 	double wsupply_leafon;
-
+	/// fractional uptake of water from each soil layer today
+	double fwuptake[NSOILLAYERS_MAX];
 
 	/// whether water-stress conditions for this PFT
 	bool wstress;
@@ -5742,9 +6451,9 @@ public:
 	/// first and last day of crop sowing window, calculated in crop_sowing_patch() or Crop_sowing_date_new()
 	int swindow[2];
 	/// daily value of water deficit, calculated in irrigated_water_uptake()
-	double water_deficit_d;
+	double wmass_deficit_d;
 	/// yearly sum of water deficit
-	double water_deficit_y;
+	double wmass_deficit_y;
 
 	/// Struct for crop-specific variables
 	cropphen_struct *cropphen;
@@ -5802,12 +6511,13 @@ public:
 		cmass_litter_repr = 0.0;
 		cmass_ext_seed = 0.0;
 
-		nmass_litter_leaf  = 0.0;
-		nmass_litter_root  = 0.0;
-		nmass_litter_sap   = 0.0;
+		nmass_litter_leaf = 0.0;
+		nmass_litter_root = 0.0;
+		nmass_litter_sap = 0.0;
 		nmass_litter_heart = 0.0;
 		nmass_litter_repr  = 0.0;
 		nmass_ext_seed     = 0.0;
+		nmass_litter_NH4 = 0.0;
 
 		wscal = 1.0;
 		wscal_mean = 1.0;
@@ -5822,10 +6532,18 @@ public:
 		wscal_mean_est = 0.0;
 		nsapling = 0;
 		nsapling_year = 0;
-		water_deficit_y = 0.0;
 
-		for (int mth = 0; mth < 12; mth++)
+		for (int mth = 0; mth < 12; mth++) {
 			mphen[mth] = 0.0;
+			mcmass_leaf[mth] = 0.0;
+			mnmass_leaf[mth] = 0.0;
+		}
+
+		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
+			rootdist[lyr] = 0.0;
+			fwuptake[lyr] = 0.0;
+		}
+		rootdist[0] = 1.0;
 
 		cropphen = NULL;
 		cmass_harvested_products_slow = 0.0;
@@ -5839,7 +6557,7 @@ public:
 			cropphen=new cropphen_struct;
 		}
 
-		water_deficit_d = 0.0;
+		wmass_deficit_d = 0.0;
 
 		inund_count=0;
 		inund_stress=1.0; // No stress by default
@@ -5883,6 +6601,8 @@ public:
 
 	bool growingseason() const;
 
+	void update_rootdist(double maxthaw, double soildepth, double soil_lyr_depth[NSOILLAYERS_MAX], int nsoillayers);
+
 	void serialize(ArchiveStream& arch);
 
     double total_litter() const;
@@ -5917,7 +6637,7 @@ public:
 	ListArray_idin1<Patchpft,Pft> pft;
 	/// vegetation for this patch
 	Vegetation vegetation;
-	/// soil for this patch
+	/// soil  for this patch
 	Soil soil;
 	/// fluxes for this patch
 	Fluxes fluxes;
@@ -6017,26 +6737,10 @@ public:
 
 	/// interception by vegetation today on patch basis (mm)
 	double intercep;
-	/// annual sum of AET (mm/year)
-	double aaet;
 	/// annual sum of AET (mm/year) for each of the last five simulation years
 	Historic<double, NYEARAAET> aaet_5;
-	/// annual sum of soil evaporation (mm/year)
-	double aevap;
-	/// daily evaporation (mm/day)
-	double evap;
 	/// daily transpiration (mm/day)
 	double transp;
-	/// annual sum of interception (mm/year)
-	double aintercep;
-	/// annual sum of runoff (mm/year)
-	double asurfrunoff;
-	/// annual sum of runoff (mm/year)
-	double adrainrunoff;
-	/// annual sum of runoff (mm/year)
-	double abaserunoff;
-	/// annual sum of runoff (mm/year)
-	double arunoff;
 	/// water added to wetlands today (mm)
 	double wetland_water_added_today;
 	/// annual sum of water added to wetlands (mm/year)
@@ -6057,17 +6761,6 @@ public:
 	/// rescaling factor to account for spatial overlap between individuals/cohorts populations
 	double fpc_rescale;
 
-	/// monthly AET (mm/month)
-	double maet[12];
-	/// monthly soil evaporation (mm/month)
-	double mevap[12];
-	/// monthly interception (mm/month)
-	double mintercep[12];
-	/// monthly runoff (mm/month)
-	double mrunoff[12];
-	/// monthly PET (mm/month)
-	double mpet[12];
-
 	/// daily nitrogen demand
 	double ndemand;
 
@@ -6075,11 +6768,6 @@ public:
 	double anfert;
 	/// daily nitrogen fertilization (kgN/m2/day)
 	double dnfert;
-
-	/// daily value of irrigation water (mm), set in irrigation(), derived from water_deficit_d
-	double irrigation_d;
-	/// yearly sum of irrigation water (mm)
-	double irrigation_y;
 
 	/// whether litter is to be sent to the soil today
 	bool is_litter_day;
@@ -6112,13 +6800,13 @@ public:
 	/// Total patch nitrogen biomass and litter
 	double ncont(double scale_indiv = 1.0, bool luc = false) const;
 	/// Total patch water and ice mass
-	double water_content();
+	double water_content() const;
 	/// Total patch carbon fluxes so far this year
-	double cflux();
+	double cflux(Period period) const;
 	/// Total patch nitrogen fluxes so far this year
-	double nflux();
+	double nflux(Period period) const;
 	/// Total patch water fluxes so far this year
-	double water_flux();
+	double water_flux(Period period) const;
 	
 	/// Get 5-year mean of tree wood C mass increase (periodic annual increment)
 	double get_tree_cmass_wood_inc_5() {
@@ -6384,13 +7072,13 @@ public:
 	/// Total stand nitrogen biomass and litter
 	double ncont(double scale_indiv = 1.0);
 	/// Total stand water and ice
-	double water_content();
+	double water_content() const;
 	/// Total stand carbon fluxes so far this year
-	double cflux();
+	double cflux(Period period) const;
 	/// Total stand nitrogen fluxes so far this year
-	double nflux();
+	double nflux(Period period) const;
 	/// Total stand water fluxes so far this year
-	double water_flux();
+	double water_flux(Period period) const;
 	/// Returns true if stand is true high-latitude peatland stand, as opposed to a wetland < PEATLAND_WETLAND_LATITUDE_LIMIT N
 	bool is_highlatitude_peatland_stand() const;
 	/// Returns true if stand is wetland stand, as opposed to a peatland >= PEATLAND_WETLAND_LATITUDE_LIMIT N
@@ -6457,11 +7145,6 @@ public:
 	 */
 	double addtw;
 
-	/// Michaelis-Menten kinetic parameters
-	/** Half saturation concentration for N uptake (Rothstein 2000, Macduff 2002)
-	 */
-	double Km;
-
 	///Crop-specific variables:
 	/// whether the daily temperature has fallen below the autumn temperature limit (tempautumn) this year
 	bool autumnoccurred;
@@ -6522,7 +7205,6 @@ public:
 	 */
 	Gridcellpft(int i,Pft& p):id(i),pft(p) {
 		addtw = 0.0;
-		Km = 0.0;
 
 		autumnoccurred=false;
 		springoccurred=false;
@@ -6706,6 +7388,10 @@ struct Landcover : public Serializable {
 	double frac_transfer[NLANDCOVERTYPES][NLANDCOVERTYPES];
 	forest_lc_frac_transfer  forest_lc_subset_transfer;
 
+	// Peat duration
+	int wet_startday;
+	int wet_days;
+
 	/// Whether the land cover fractions changed for this grid cell this year
 	/** \see landcover_dynamics
 	 */
@@ -6816,6 +7502,9 @@ public:
 	/// object for keeping track of carbon, nitrogen and water balance
 	MassBalance balance;
 
+	/// Soil depth for gridcell (mm)
+	double soil_depth;
+
 	// SIMFIRE
 	/// the region index to chosose from set of optimisations
 	int simfire_region;
@@ -6895,6 +7584,12 @@ public:
 	/// Set longitude and latitude for this grid cell
 	void set_coordinates(double longitude, double latitude);
 
+	/// Set initial soil layer properties
+	void set_soillayer_properties();
+	
+	/// Calculates soil layer depths and number of soil layers
+	void soillayer_thickness(double lyr_thickness[NSOILLAYERS_MAX], int& nsoillayers);
+
 	void serialize(ArchiveStream& arch);
 
 	/// Creates a new Stand in this grid cell
@@ -6904,17 +7599,17 @@ public:
 	Stand& create_stand_lu(StandType& st, double fraction, int no_patch = 0, bool suppress_disturbance = false);
 
 	/// Total gridcell carbon biomass and litter
-	double ccont();
+	double ccont() const;
 	/// Total gridcell nitrogen biomass and litter
-	double ncont();
+	double ncont() const;
 	/// Total gridcell water and ice
-	double water_content();
+	double water_content() const;
 	/// Total gridcell carbon fluxes so far this year
-	double cflux();
+	double cflux(Period period) const;
 	/// Total gridcell nitrogen fluxes so far this year
-	double nflux();
+	double nflux(Period period) const;
 	/// Total gridcell water fluxes so far this year
-	double water_flux();
+	double water_flux(Period period) const;
 
 	/// Deletes the stand which the iterator is pointing at
 	/** Returns an iterator pointing to the object following the erased object.
@@ -6953,6 +7648,8 @@ Calculate the root beta value corresponding to the specified number of dormant
 days in a year.
 */
 double calc_root_beta(size_t nday_dormant);
+
+int get_solvesomcent_endyr();
 
 #endif // LPJ_GUESS_GUESS_H
 

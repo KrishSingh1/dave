@@ -31,28 +31,52 @@ double const PI = M_PI;
 #endif
 const double DEGTORAD = PI / 180.;
 
-const double SECS_PER_DAY	= 24.0*60.0*60.0;
-const double M3_PER_MM3		= 1E-9;
-const double MM3_PER_M3		= 1E9;
+const double SECS_PER_MIN   = 60.0;
+const double MIN_PER_HOUR   = 60.0;
+const double HOUR_PER_DAY   = 24.0;
+const double SECS_PER_HOUR  = SECS_PER_MIN*MIN_PER_HOUR;
+const double SECS_PER_DAY	= SECS_PER_HOUR*HOUR_PER_DAY;
+const double MONTH_PER_YEAR = 12.0;
+const double M3_PER_MM3     = 1E-9;
+const double MM3_PER_M3     = 1E9;
+const double M3_PER_CM3     = 1E-6;
+const double CM3_PER_M3     = 1E6;
+const double DM3_PER_M3     = 1E3;
+const double M3_PER_DM3     = 1E-3;
 const double HA_PER_M2		= 1E-4;
 const double M2_PER_HA		= 1E4;
 const double CM2_PER_M2		= 1E4;
 const double MM2_PER_M2		= 1E6;
 const double SQ_M			= 1.0;		// 1 m2
-const double M_PER_MM		= 1E-3;
+const double M_PER_CM		= 1E-2;
+const double M_PER_MM       = 1E-3;
+const double DM_PER_MM      = 1E-2;
 const double CM_PER_M		= 1E2;
 const double CM_PER_MM		= 1E-1;
 const double MM_PER_M		= 1E3;
 const double MM_PER_CM		= 1E1;
+const double M_PER_INCH     = 0.0254;
+const double MM_PER_INCH    = M_PER_INCH * MM_PER_M;
 const double KG_PER_G		= 1E-3;
 const double G_PER_KG		= 1E3;
 const double G_PER_MG		= 1E-3;
-const double MG_PER_G		= 1E3;		// Milligrams
-const double KG_PER_MT		= 1E3;		// Metric tonnes
+const double G_PER_UG       = 1E-6;     // Gram per microgram
+const double MG_PER_G       = 1E3;		// Milligrams per gram
+const double NG_PER_G       = 1E9;		// Nanograms per gram
+const double NG_PER_UG      = 1E3;		// Nanograms per microgram
+const double UG_PER_NG      = 1E-3;		// Microgram per nanograms
+const double MG_PER_KG      = 1E6;
+const double KG_PER_MT      = 1E3;		// Metric tonnes
+const double KG_PER_MG      = 1E-6;		// kg per milligram
+const double KG_PER_UG      = 1E-9;		// kg per microgram
 const double MMOL_PER_MOL	= 1E3;
 const double UMOL_PER_MOL   = 1E6;
+const double KG_M3_PER_G_CM3 = KG_PER_G / M3_PER_CM3; // Density change from g cm-3 to kg m-3
 const double J_PER_KJ		= 1E3;
-const double KMH_PER_MS         = 3.6;
+const double KMH_PER_MS     = 3.6;
+const double DW_PER_C       = 2.0;		// Dry weight per C
+const double GC_PER_MOLC    = 12.0107;  // Atomic weight of carbon
+const double GC_PER_MOLN    = 14.0067;  // Atomic weight of nitrogen
 const double FRACT_TO_PERCENT   = 100.;
 const double PERCENT_TO_FRACT   = 0.01;
 const double R_EARTH            = 6371.2213; // mean earth-radius[km]
@@ -244,6 +268,20 @@ inline double mean(double* array, int nitem) {
 	double sum=0.0;
 	for (int i=0; i<nitem; sum += array[i++]);
 	return sum / (double)nitem;
+}
+
+template<typename T>
+inline double sum(std::vector<T> &vec, double T::* member) {
+	double sum = 0.0;
+	for (size_t i = 0; i < vec.size(); ++i) {
+		sum += vec[i].*member;
+	}
+	return sum;
+}
+
+template<typename T>
+inline double mean(std::vector<T> &vec, double T::* member) {
+	return sum(vec, member) / vec.size();
 }
 
 double sum(const Vegetation &vegetation, double (*func)(const Individual &indiv));
@@ -520,6 +558,43 @@ public:
 		}
 	}
 
+	T slope() const {
+
+		const size_t nvalues = size();
+		if (nvalues < 2) {
+			return 0;
+		}
+		else {
+			T xSum = 0, ySum = 0, xxSum = 0, xySum = 0;
+			for (size_t i = 0; i < nvalues; ++i) {
+				xSum += i + 1;
+				xxSum += (i + 1) * (i + 1);
+				ySum += values[i];
+				xySum += (i + 1) * values[i];
+			}
+
+			return (nvalues * xySum - xSum * ySum) / (nvalues * xxSum - xSum * xSum);
+		}
+	}
+
+	T std() const {
+
+		const size_t nvalues = size();
+		if (nvalues < 2) {
+			return 0;
+		}
+		else {
+			T avr = mean();
+
+			// Compute sum squared differences with mean.
+			double sqdiff = 0;
+			for (int i = 0; i < nvalues; i++)
+				sqdiff += (values[i] - avr) * (values[i] - avr);
+
+			return sqrt(sqdiff / nvalues);
+		}
+	}
+
 	/// Writes all values to a plain buffer
 	/** The values will be ordered by age, the oldest value has index 0.
 	 *
@@ -532,6 +607,11 @@ public:
 		for (size_t i = 0; i < nvalues; ++i) {
 			buffer[i] = values[(first_position+i)%capacity];
 		}
+	}
+
+	void reset() {
+		full = false;
+		current_index = 0;
 	}
 
 	friend ArchiveStream& operator&<T, capacity>(ArchiveStream& stream,

@@ -85,6 +85,9 @@ private:
 		   file_harvest_flux_luc, file_cflux_forestry, file_cflux_regrowth, file_cflux_primary,
 		   file_cpool_forestry, file_cpool_regrowth, file_cpool_primary;
 
+	xtring file_csoil_depth_cropland, file_csoil_depth_pasture, file_csoil_depth_natural, 
+		file_csoil_depth_forest, file_csoil_depth_peatland;
+
 	// Stand type output
 	xtring file_anpp_sts, file_cmass_sts, file_cmass_tree_sts, file_cmass_tree_mort_sts, file_cmass_harv_killed_sts, file_cmass_wood_sts, 
 		   file_cmass_wood_harv_sts, file_cmass_wood_harv_toprod_sts, file_dens_sts, file_height_sts, file_diam_g_sts,
@@ -104,12 +107,14 @@ private:
 		   file_daily_cmass_storage, file_daily_nmass_storage,
 		   file_daily_n_input_soil, file_daily_avail_nmass_soil,
 		   file_daily_upper_wcont, file_daily_lower_wcont,
-		   file_daily_irrigation, file_daily_climate,
+		   file_daily_irrigation, file_daily_climate, file_daily_temp, file_daily_wcont,
 		   file_daily_cmass_dead_leaf, file_daily_nmass_dead_leaf, 
 		   file_daily_fphu, file_daily_nminleach,
 		   file_daily_norgleach, file_daily_nuptake, file_daily_ds,
 		   file_daily_stem, file_daily_leaf, file_daily_root,
 		   file_daily_storage;
+	xtring file_daily_snow_depth, file_daily_snow_density, file_daily_snow_k, file_daily_snow_c;
+	xtring file_dtemp_depth;
 
 	// Output tables
 	Table out_yield, out_yield1, out_yield2, out_sdate1, out_sdate2,
@@ -142,6 +147,9 @@ private:
 		  out_forest_harvest, out_forest_vegc, out_forest_cflux_veg, out_forest_cmass_harv_killed,
 		  out_harvest_flux_luc, out_cflux_forestry, out_cflux_regrowth, out_cflux_primary,
 		  out_cpool_forestry, out_cpool_regrowth, out_cpool_primary;
+
+	Table out_csoil_depth_cropland, out_csoil_depth_pasture, out_csoil_depth_natural, 
+		out_csoil_depth_forest, out_csoil_depth_peatland;
 
 	// Output files with stand type columns
 	Table out_anpp_sts, out_cmass_sts, out_cmass_tree_sts, out_cmass_tree_mort_sts, out_cmass_harv_killed_sts, out_cmass_wood_sts, out_cmass_wood_harv_sts,
@@ -183,9 +191,11 @@ private:
 		  out_daily_nmass_storage, out_daily_n_input_soil,
 		  out_daily_cmass_dead_leaf, out_daily_nmass_dead_leaf, out_daily_fphu,
 		  out_daily_avail_nmass_soil, out_daily_upper_wcont,
-		  out_daily_lower_wcont, out_daily_irrigation, out_daily_climate,
+		  out_daily_lower_wcont, out_daily_irrigation, out_daily_climate, out_daily_temp, out_daily_wcont,
 		  out_daily_nminleach, out_daily_norgleach, out_daily_nuptake, out_daily_ds, 
 		  out_daily_stem, out_daily_leaf, out_daily_root, out_daily_storage;
+	Table out_daily_snow_depth, out_daily_snow_density, out_daily_snow_k, out_daily_snow_c;
+	Table out_dtemp_depth;
 
 	bool print_anpp_stand;
 	bool print_lai_stand;

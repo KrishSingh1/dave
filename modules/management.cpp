@@ -195,10 +195,10 @@ void remove_grass(Individual& indiv,double frac_remove, double frac_creturn, dou
 		double nreturn_meta   = nmass_return * 0.5;
 		double nreturn_struct = nmass_return * 0.5;
 
-		patch.soil.sompool[SURFMETA].cmass += creturn_meta;
-		patch.soil.sompool[SURFSTRUCT].cmass += creturn_struct;
-		patch.soil.sompool[SURFMETA].nmass += nreturn_meta;
-		patch.soil.sompool[SURFSTRUCT].nmass += nreturn_struct;
+		patch.soil.soillayers[0].sompool[SURFMETA].cmass += creturn_meta;
+		patch.soil.soillayers[0].sompool[SURFSTRUCT].cmass += creturn_struct;
+		patch.soil.soillayers[0].sompool[SURFMETA].nmass += nreturn_meta;
+		patch.soil.soillayers[0].sompool[SURFSTRUCT].nmass += nreturn_struct;
 
 		assert(positive(indiv.cmass_leafs[green]));
 		assert(positive(indiv.nmass_leafs[green]));
@@ -384,10 +384,10 @@ void grazing_daily(Individual& indiv) { // DW_COMMENT
 		patch.fluxes.report_flux(Fluxes::HARVESTC, cmass_harvest - cmass_manure);
 		patch.fluxes.report_flux(Fluxes::HARVESTN, nmass_harvest - nmass_manure);
 
-		patch.soil.sompool[SURFMETA].cmass += cmass_manure * 0.25;
-		patch.soil.sompool[SURFSTRUCT].cmass += cmass_manure * 0.75;
-		patch.soil.sompool[SURFMETA].nmass += nmass_manure * 0.5;
-		patch.soil.sompool[SURFSTRUCT].nmass += nmass_manure * 0.5;
+		patch.soil.soillayers[0].sompool[SURFMETA].cmass += cmass_manure * 0.25;
+		patch.soil.soillayers[0].sompool[SURFSTRUCT].cmass += cmass_manure * 0.75;
+		patch.soil.soillayers[0].sompool[SURFMETA].nmass += nmass_manure * 0.5;
+		patch.soil.soillayers[0].sompool[SURFSTRUCT].nmass += nmass_manure * 0.5;
 	}
 }
 
@@ -557,15 +557,15 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 	// only harvest trees
 	if (pft.is_grass())
 		return;
-
+	
 	double stem_harvest = 0.0;
 	double residue_outtake = 0.0;
 	// Fraction of wood cmass that are stems
-	double stem_frac = pft.stem_frac; // Default 0.65
+	double stem_frac = pft.ag_woody_frac * pft.stem_frac / (pft.stem_frac + pft.twig_frac);
 	// Fraction of wood cmass that are twigs
-	double twig_frac = pft.twig_frac; // Default 0.13
+	double twig_frac = pft.ag_woody_frac * pft.twig_frac / (pft.stem_frac + pft.twig_frac);
 	// Fraction of wood cmass that are coarse roots, including stumps
-	double coarse_root_frac = 1.0 - stem_frac - twig_frac;	// 0.22 with default stem_frac and twig_frac values
+	double coarse_root_frac = 1.0 - pft.ag_woody_frac;
 	// Fraction of leaves adhering to twigs at the time of removal (provisional value, typical for situation for harvested spruce in Sweden)
 	double adhering_leaf_frac = 0.75;
 
@@ -749,10 +749,10 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
  *   - cmass_debt					C "debt" (retrospective storage) (kgC/m2)
  *   - nmass_leaf 					leaf nitrogen biomass (kgN/m2)
  *   - nmass_root 					fine root nitrogen biomass (kgN/m2)
- *   - nmass_sap   					sapwood nitrogen biomass (kgC/m2)
- *   - nmass_heart    				heartwood nitrogen biomass (kgC/m2)
- *   - nstore_labile    			labile nitrogen storage (kgC/m2)
- *   - nstore_longterm    			longterm nitrogen storage (kgC/m2)
+ *   - nmass_sap   					sapwood nitrogen biomass (kgN/m2)
+ *   - nmass_heart    				heartwood nitrogen biomass (kgN/m2)
+ *   - nstore_labile    			labile nitrogen storage (kgN/m2)
+ *   - nstore_longterm    			longterm nitrogen storage (kgN/m2)
  *									Patchpft (accessed from indiv) public members:
  *   - litter_leaf    				leaf C litter (kgC/m2)
  *   - litter_root 					root C litter (kgC/m2)
@@ -3138,16 +3138,18 @@ void nfert_crop(Patch& patch) {
 
 	pftlist.firstobj();
 	// Loop through PFTs
-	while(pftlist.isobj) {
+	while (pftlist.isobj) {
 
 		Pft& pft = pftlist.getobj();
-		Patchpft& patchpft = patch.pft[pft.id];
-		Gridcellpft& gridcellpft = gridcell.pft[pft.id];
 
 		if (patch.stand.pft[pft.id].active && pft.phenology == CROPGREEN) {
 
-			cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
-			if(!ppftcrop.growingseason) {
+			Patchpft& ppft = patch.pft[pft.id];
+			Gridcellpft& gridcellpft = gridcell.pft[pft.id];
+			Fluxes& fluxes = patch.fluxes;
+
+			cropphen_struct& ppftcrop = *(ppft.get_cropphen());
+			if (!ppftcrop.growingseason) {
 				pftlist.nextobj();
 				continue;
 			}
@@ -3169,28 +3171,29 @@ void nfert_crop(Patch& patch) {
 			if (!ppftcrop.fertilised[0] && ppftcrop.dev_stage > 0.0) {
 				// Fertiliser application directly after sowing:
 				patch.dnfert = nfert * mineral * (1.0 - pft.fertrate[0] - pft.fertrate[1]);
-				patch.fluxes.report_flux(Fluxes::NFERT,nfert * mineral * (1.0 - pft.fertrate[0] - pft.fertrate[1]));
+				fluxes.report_flux(Fluxes::NFERT, nfert * mineral * (1.0 - pft.fertrate[0] - pft.fertrate[1]));
 				ppftcrop.fertilised[0] = true;
 				if (mineral < 1.0) {
-					patch.soil.sompool[SOILMETA].nmass += nfert * (1.0 - mineral) * 0.5;
-					patch.soil.sompool[SOILMETA].cmass += nfert * (1.0 - mineral) * 30.0 * 0.25;
-					patch.soil.sompool[SOILSTRUCT].nmass += nfert * (1.0 - mineral) * 0.5;
-					patch.soil.sompool[SOILSTRUCT].cmass += nfert * (1.0 - mineral) * 30.0 * 0.75;
-					patch.fluxes.report_flux(Fluxes::MANUREC, -nfert * (1.0 - mineral) * 30.0 );
+					Soillayer& surflayer = patch.soil.soillayers[0];
+					surflayer.sompool[SOILMETA].nmass += nfert * (1.0 - mineral) * 0.5;
+					surflayer.sompool[SOILMETA].cmass += nfert * (1.0 - mineral) * 30.0 * 0.25;
+					surflayer.sompool[SOILSTRUCT].nmass += nfert * (1.0 - mineral) * 0.5;
+					surflayer.sompool[SOILSTRUCT].cmass += nfert * (1.0 - mineral) * 30.0 * 0.75;
+					fluxes.report_flux(Fluxes::MANUREC, -nfert * (1.0 - mineral) * 30.0);
 					patch.anfert += nfert * (1.0 - mineral);
-					patch.fluxes.report_flux(Fluxes::MANUREN, nfert * (1.0 - mineral));
+					fluxes.report_flux(Fluxes::MANUREN, nfert * (1.0 - mineral));
 				}
 			}
 			else if (!ppftcrop.fertilised[1] && ppftcrop.dev_stage > pft.fert_stages[0]) {
 				// Fertiliser application at first fertilisation event after sowing:
 				patch.dnfert = nfert * mineral * pft.fertrate[0];
-				patch.fluxes.report_flux(Fluxes::NFERT,nfert * mineral * pft.fertrate[0]);
+				fluxes.report_flux(Fluxes::NFERT, nfert * mineral * pft.fertrate[0]);
 				ppftcrop.fertilised[1] = true;
 			}
 			else if (!ppftcrop.fertilised[2] && ppftcrop.dev_stage > pft.fert_stages[1]) {
 				// Fertiliser application at second fertilisation event after sowing:
 				patch.dnfert = nfert * mineral * (pft.fertrate[1]);
-				patch.fluxes.report_flux(Fluxes::NFERT,nfert * mineral * pft.fertrate[1]);
+				fluxes.report_flux(Fluxes::NFERT, nfert * mineral * pft.fertrate[1]);
 				ppftcrop.fertilised[2] = true;
 			}
 		}

@@ -37,7 +37,7 @@
 #include "bvoc.h"
 #include "canexch.h"
 
-const double CO2 = 370;            // standard CO2 concentration
+const double CO2 = 370;       // standard CO2 concentration
 const double Tstand = 30;          // standard temperature, oC
 
 void initbvoc(){
@@ -61,6 +61,9 @@ void initbvoc(){
 	PhotosynthesisStresses ps_stress;
 	ps_stress.no_stress(); // No limits in the initialization of BVOC calculations
 
+	PhotosynthesisLeafstatus ps_status;
+	ps_status.noinfluence(); // No individual values
+
  	pftlist.firstobj();
  	while (pftlist.isobj) {
  		Pft& pft = pftlist.getobj();
@@ -69,7 +72,7 @@ void initbvoc(){
 				// par for the standard condition, J m-2 d-1
 
 		ps_env.set(CO2, Tstand, par, 1.0, daylength);
-		photosynthesis(ps_env, ps_stress, pft, pft.lambda_max, 1.0, -1, phot);
+		photosynthesis(ps_env, ps_stress, ps_status, pft, pft.lambda_max, -1, phot);
 
 		double coeff = 1e-3 / (phot.je + phot.rd_g/24) / pft.sla / Cfrac;
 
@@ -122,7 +125,7 @@ void iso_mono(double co2, double temp, double daylength, const Pft& pft, double 
 
 	if(adtmm>0){  
 	
-		double f_co2 = CO2/co2;                                     // CO2 scaling factor
+		double f_co2 = CO2/co2;                                // CO2 scaling factor
 		double f_temp = min(f_tempmax, exp(epsT*(temp-Tstand)));    // temp scaling factor
 
 		double coeff = phot.je * daylength + phot.rd_g;

@@ -179,6 +179,31 @@ class ArrayOutputReader {
 		double (*get_value_simple)(const T&);
 };
 
+template<class T>
+class ArrayColumnDefinition {
+	public:
+		/*
+		Create a new column definition.
+
+		@param name: Column name.
+		@param get_output: Pointer to a function which returns the value to
+							be written to the rows of this column.
+		*/
+		ArrayColumnDefinition(std::string name, std::function<double(const T&, int)> get_output) {
+			this->name = name;
+			this->reader = get_output;
+		}
+		std::string get_name() const {
+			return name;
+		}
+		double read_value(const T &t, int i) const {
+			return reader(t, i);
+		}
+	private:
+		std::string name;
+		std::function<double(const T&, int)> reader;
+};
+
 class DaveOutput : public OutputModule {
 public:
 	/*
@@ -785,8 +810,11 @@ class GridcellLevelOutput : public OutputFile {
 	};
 
 	/*
-	This class writes an array output file. One row is written per timestep
-	(which can be yearly, daily, etc). One column is written per array element.
+	This class writes an array of values per timestep (ie a "wide" table). All
+	values are written in a single row, with one column per array element. The
+	number of array must be constant for all timesteps/patches/stands/gridcells.
+	A function pointer may be provided to read the array length, if it's not
+	known until simulation runtime (e.g. day length).
 	*/
 	class PatchLevelArrayOutput : public PatchLevelOutput {
 		public:
@@ -795,39 +823,13 @@ class GridcellLevelOutput : public OutputFile {
 
 			@param param_name: Name of the parameter in the instruction file which contains the output file name.
 			@param col_name: Column name prefix. Will be suffixed with column index (0-n).
-			@param n: Number of elements in the array.
+			@param get_nelem: A function which gets the number of columns for a given patch.
 			@param get_output: A function which returns the n-th element of the array from the patch.
 			@param description: A description of the output (including units!!).
 			@param sum: Iff true, a total column will be written after all other columns.
 			@param mean: Iff true, a mean column will be written after all other columns.
 			*/
-			PatchLevelArrayOutput(std::string param_name, std::string col_name, int n, ArrayOutputReader<Patch> *get_output, std::string description, bool sum, bool mean);
-
-			/*
-			Create a new patch-level array output.
-
-			@param param_name: Name of the parameter in the instruction file which contains the output file name.
-			@param col_name: Column name prefix. Will be suffixed with column index (0-n).
-			@param n: Pointer to a function which gets the number of columns for a given patch.
-			@param get_output: A function which returns the n-th element of the array from the patch.
-			@param description: A description of the output (including units!!).
-			@param sum: Iff true, a total column will be written after all other columns.
-			@param mean: Iff true, a mean column will be written after all other columns.
-			*/
-			PatchLevelArrayOutput(std::string param_name, std::string col_name, int (*get_nelem)(), ArrayOutputReader<Patch> *get_output, std::string description, bool sum, bool mean);
-
-			/*
-			Create a new patch-level array output using predefined column names.
-
-			@param param_name: Name of the parameter in the instruction file which contains the output file name.
-			@param col_names: Predefined column names.
-			@param n: Number of elements in the array.
-			@param get_output: A function which returns the n-th element of the array from the patch.
-			@param description: A description of the output (including units!!).
-			@param sum: Iff true, a total column will be written after all other columns.
-			@param mean: Iff true, a mean column will be written after all other columns.
-			*/
-			PatchLevelArrayOutput(std::string param_name, std::vector<std::string> col_names, int n, ArrayOutputReader<Patch> *get_output, std::string description, bool sum, bool mean);
+			PatchLevelArrayOutput(std::string param_name, std::string col_name, std::function<int()> get_nelem, ArrayOutputReader<Patch> *get_output, std::string description, bool sum, bool mean);
 
 			/*
 			Destructor.
@@ -850,14 +852,11 @@ class GridcellLevelOutput : public OutputFile {
 
 		private:
 			/*
-			Number of elements in the output array.
+			Column name prefix. The column name for the i-th element of the
+			array will be col_name_prefix + i (e.g. "layer" -> "layer0",
+			"layer1", etc).
 			*/
-			int nelem;
-
-			/*
-			Vector of column names.
-			*/
-			std::vector<std::string> column_names;
+			std::string col_name_prefix;
 
 			/*
 			Pointer to a function which reads an element of the output array
@@ -871,9 +870,68 @@ class GridcellLevelOutput : public OutputFile {
 
 			/*
 			Optional pointer to a function which gets the number of columns for
-			a given patch. This may be NULL at runtime.
+			a given patch. This may be NULL at runtime if nelem is set.
 			*/
-			int (*get_nelem)();
+			std::function<int()> get_nelem;
+	};
+
+	/*
+	Writes an array of values per timestep, with multiple columns per array
+	element (ie a "long" or "tall" table). One row is written per array element.
+	The number of array elements may vary across time/patches/stands/gridcells.
+	*/
+	class DynamicPatchLevelArrayOutput : public OutputFile {
+		public:
+			/*
+			Create a new dynamic patch-level array output.
+
+			@param param_name: Name of the parameter in the instruction file which contains the output file name.
+			@param index_col_name: Column name for the array index column (e.g. layer, timestep, etc).
+			@param get_nelem: A function which gets the number of array elements for a given patch.
+			@param columns: A vector of column definitions.
+			@param description: A description of the output (including units!!).
+			*/
+			DynamicPatchLevelArrayOutput(std::string param_name,
+										 std::string index_col_name,
+										 std::function<size_t(const Patch &)> get_nelem,
+										 std::vector<ArrayColumnDefinition<Patch>> columns,
+										 std::string description);
+
+			/*
+			Destructor.
+			*/
+			~DynamicPatchLevelArrayOutput();
+
+			/*
+			Write one row per (individual, timestep, layer) for the current day.
+
+			@param channel:   Pointer to an output channel.
+			@param gridcell:  The current gridcell.
+			*/
+			virtual void write_rows(OutputChannel *channel, Gridcell &gridcell) override;
+
+		protected:
+			/*
+			Get the column descriptors to be used for the output table.
+			*/
+			virtual ColumnDescriptors get_cols() override;
+
+		private:
+			/*
+			Name of the index column.
+			*/
+			std::string index_col_name;
+
+			/*
+			Function which gets the number of array elements for a given patch.
+			*/
+			std::function<size_t(const Patch &)> get_nelem;
+
+			/*
+			The column definitions. This will be set at init time and cannot
+			change after that.
+			*/
+			std::vector<ArrayColumnDefinition<Patch>> columns;
 	};
 
 	class PftOutput : public PatchLevelOutput {
@@ -1312,7 +1370,8 @@ class GridcellLevelOutput : public OutputFile {
 		bool mean = false);
 
 	/*
-	Add a patch-level array output.
+	Add a patch-level array output which writes one row per patch, with one
+	column per array element.
 
 	@param name: Parameter in the instruction file which determines output file name.
 	@param colname: Column name prefix. Will be suffixed with column index.
@@ -1322,10 +1381,12 @@ class GridcellLevelOutput : public OutputFile {
 	@param sum: Iff true, a total column will be written after all other columns.
 	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
-	void add_patch_array_output(std::string name, timestep_t timestep, std::string colname, int nelem, double (*read_output)(const Patch&, int), std::string description, bool sum = false, bool mean = false);
+	void add_wide_patch_array_output(std::string name, timestep_t timestep, std::string colname, int nelem, double (*read_output)(const Patch&, int), std::string description, bool sum = false, bool mean = false);
 
 	/*
-	Add a patch-level array output.
+	Add a patch-level array output which writes one row per patch (one column
+	per array element). The number of array elements therefore cannot change
+	over time, or across gridcells/stands/patches.
 
 	@param name: Parameter in the instruction file which determines output file name.
 	@param colname: Column name prefix. Will be suffixed with column index.
@@ -1335,19 +1396,19 @@ class GridcellLevelOutput : public OutputFile {
 	@param sum: Iff true, a total column will be written after all other columns.
 	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
-	void add_patch_array_output(std::string name, timestep_t timestep, std::string colname, int (*get_nelem)(), double (*read_output)(const Patch&, int), std::string description, bool sum = false, bool mean = false);
+	void add_wide_patch_array_output(std::string name, timestep_t timestep, std::string colname, int (*get_nelem)(), double (*read_output)(const Patch&, int), std::string description, bool sum = false, bool mean = false);
 
 	/*
-	Add a patch-level array output with a predetermined list of column names.
+	Add a patch-level array output which writes one row per patch per array
+	element. The number of array elements can vary across time and/or patches.
 
 	@param name: Parameter in the instruction file which determines output file name.
-	@param colname: Column names.
-	@param read_output: A function which returns the i-th element of the output array.
+	@param colname: Column name prefix. Will be suffixed with column index.
+	@param get_nelem: A function which gets the number of array elements for a given patch.
+	@param columns: A vector of column definitions, which will be used for each array element.
 	@param description: Description of the output (with units!!).
-	@param sum: Iff true, a total column will be written after all other columns.
-	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
-	void add_patch_array_output(std::string name, timestep_t timestep, std::vector<std::string> colnames, double (*read_output)(const Patch&, int), std::string description, bool sum = false, bool mean = false);
+	void add_tall_patch_array_output(std::string name, timestep_t timestep, std::string index_col_name, std::function<size_t(const Patch &)> get_nelem, std::vector<ArrayColumnDefinition<Patch>> columns, std::string description);
 
 	/*
 	Add a standpft-level output.

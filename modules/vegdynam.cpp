@@ -48,11 +48,11 @@ const double PLANTSIZE = 0.25;
 const double wetlandlailimit = 2.0;
 
 /// Internal help function for splitting up nitrogen fire fluxes into components
-void report_fire_nfluxes(Patch& patch, double nflux_fire) {
-	patch.fluxes.report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::NOx_FIRE, Fluxes::NOx_FIRERATIO * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
-	patch.fluxes.report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
+void report_fire_nfluxes(Fluxes& fluxes, double nflux_fire) {
+	fluxes.report_flux(Fluxes::NH3_FIRE, Fluxes::NH3_FIRERATIO * nflux_fire);
+	fluxes.report_flux(Fluxes::NOx_FIRE, Fluxes::NOx_FIRERATIO * nflux_fire);
+	fluxes.report_flux(Fluxes::N2O_FIRE, Fluxes::N2O_FIRERATIO * nflux_fire);
+	fluxes.report_flux(Fluxes::N2_FIRE,  Fluxes::N2_FIRERATIO  * nflux_fire);
 }
 
 /*
@@ -143,11 +143,12 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 		climate.mtemp_max < pft.twmin_est ||
 		climate.agdd5 < pft.gdd5min_est)) return false;
 
-	if (!relaxed_establishment && !iftwolayersoil) {
+	if (!relaxed_establishment) {
 		// Wolf et al. (2008) bioclimatic limits related to snow depth and GDD0
-		if ((climate.lat >= 0.0 && ((patch.soil.msnowdepth[0] + patch.soil.msnowdepth[1] + patch.soil.dec_snowdepth) / 3.0) < pft.min_snow) ||
-			(climate.lat < 0.0 && ((patch.soil.msnowdepth[5] + patch.soil.msnowdepth[6] + patch.soil.msnowdepth[7]) / 3.0) < pft.min_snow) ||
-			climate.agdd0_20.mean() <= pft.gdd0_min || climate.agdd0_20.mean() >= pft.gdd0_max) return false;
+		if (patch.soil.snow.snowpack_avrmax3mth() < pft.min_snow ||
+			climate.agdd0_20.mean() <= pft.gdd0_min || climate.agdd0_20.mean() >= pft.gdd0_max) {
+			return false;
+		}
 	}
 
 	/* Bypass all environmental limits except temperature for selected tree species after clearcut
@@ -165,7 +166,8 @@ bool establish(Patch& patch, const Climate& climate, Pft& pft) {
 		// Compare this PFT's/species' drought_tolerance with the average wcont over the
 		// growing season, in this patch. Higher drought_tolerance values (set in the .ins file)
 		// lead to greater restrictions on establishment.
-        if (pft.drought_tolerance > patch.soil.awcont_upper) {
+		double awcontupper = patch.soil.var_depth(0.0, SOILDEPTH_UPPER, &Soillayer::awcont, &Soillayer::awc);
+        if (pft.drought_tolerance > awcontupper) {
            return false;
         }
     }
@@ -344,11 +346,13 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 			indiv.cmass_heart+=indiv.pft.regen.cmass_heart*est_pft;
 
 			// Calculate storage pool size
-			indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
-			if (!indiv.alive)
-				indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr /
+			indiv.max_n_storage = max(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr,
+				indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root * indiv.pft.turnover_root / indiv.pft.cton_root_avr);
+			if (!indiv.alive) {
+				indiv.scale_n_storage = indiv.max_n_storage /
 					((indiv.pft.regen.cmass_leaf + indiv.pft.regen.cmass_root +
-					indiv.pft.regen.cmass_sap +	indiv.pft.regen.cmass_heart) * est_pft);
+						indiv.pft.regen.cmass_sap + indiv.pft.regen.cmass_heart) * est_pft);
+			}
 		}
 		else if (((indiv.pft.is_grass() || indiv.pft.lifeform==MOSS) && indiv.pft.phenology!=CROPGREEN) &&
 			establish(patch, stand.get_climate(), indiv.pft)) {
@@ -372,10 +376,11 @@ void establishment_lpj(Stand& stand,Patch& patch) {
 			indiv.cmass_root+=est_pft*indiv.pft.regen.cmass_root;
 
 			// Calculate storage pool size
-			indiv.max_n_storage = (indiv.cmass_leaf + indiv.cmass_root) / indiv.pft.cton_leaf_avr;
-			if (!indiv.alive)
-				indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr /
-					((indiv.pft.regen.cmass_leaf + indiv.pft.regen.cmass_root) * est_pft);
+			indiv.max_n_storage = max(0.0, max(indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_root_avr,
+				indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root * indiv.pft.turnover_root / indiv.pft.cton_root_avr));
+			if (!indiv.alive) {
+				indiv.scale_n_storage = indiv.max_n_storage / ((indiv.pft.regen.cmass_leaf + indiv.pft.regen.cmass_root) * est_pft);
+			}
 		}
 
 		// Update allometry to account for changes in average individual biomass
@@ -407,6 +412,7 @@ Individual* get_beneficiary(Patch& patch, Pft& pft) {
 
 
 double germination_fraction_grass(Patchpft& ppft, Patch& patch) {
+	const Soil &soil = patch.soil;
 
 	// Water content and temperature of the first soil layer (0-10cm).
 	// wcont as fraction of available water holding capacity.
@@ -414,10 +420,12 @@ double germination_fraction_grass(Patchpft& ppft, Patch& patch) {
 	double fgerm_max25 = 0.6; // maximum daily germination rate at temperature optimum (fraction) 
 
 	// get average conditions over the last 3-5 (currently 4) days.
-	ppft.wcont_germ_30.add(patch.soil.get_layer_soil_water(2));  // longer term wcont used for seed dormancy
-	ppft.wcont_germ_4.add(patch.soil.get_layer_soil_water(0)); 
-	ppft.tsoil_germ_4.add(patch.soil.T_soil[7]);
-	double wcont = ppft.wcont_germ_4.mean();
+	// wcont at 30cm depth.
+	double wcont = soil.soillayers[0].wcont();
+	ppft.wcont_germ_30.add(wcont);  // longer term wcont used for seed dormancy
+	ppft.wcont_germ_4.add(soil.soillayers[0].wcont()); 
+	ppft.tsoil_germ_4.add(soil.soillayers[0].temp);
+	wcont = ppft.wcont_germ_4.mean();
 	double tsoil = ppft.tsoil_germ_4.mean();
 	
 	// TODO: parameterise this relationship from data
@@ -451,58 +459,12 @@ double germination_fraction_grass(Patchpft& ppft, Patch& patch) {
 	return frac_germ;
 }
 
-// fraction of seeds that will germinate today
-double germination_fraction_tree(Patchpft& ppft, Patch& patch) {
-
-	double frac_germ = .3;
-	if (date.year == 0) {
-		return 0.0;
-	}
-	double max_frac = 1.0;
-	double peaktemp = 20.0;
-	double tempbreadth = 0.2;
-	double midpoint_sm = .8; 
-	double shape = .03;
-	// And to Climate object
-	const Climate& climate = patch.get_climate();
-	// find the maximum PAR from the input 
-	// TODO: Is there an analytical way of calculating that (using latitude and DOY)?
-	// the amount of today's par that reaches the forest floor, relative to the 
-	// maximum potential par:
-	// TODO: find what is par_max (ie: maximum PAR in the peak of summer at this latitude)!!!
-	double relative_par_ff = min((patch.fpar_ff * climate.par) / climate.par_max, 1.0);
-	// inflection (mid) point of the par_ff (shade tolerance)
-	const double x0 = .5; // TODO: should be PFT paramter related to shade tolerance
-	// shape of the sigmoid curve
-	const double b = .08; // TODO: should be PFT paramter related to shade tolerance
-	double f_par =  1 / (1 + exp( -( (relative_par_ff - x0) / b) ) );
-
-	// get average conditions over the last 14 days.
-	ppft.wcont_germ_14.add(patch.soil.get_layer_soil_water(0)); 
-	ppft.tsoil_germ_14.add(patch.soil.T_soil[7]);
-	double wcont = ppft.wcont_germ_14.mean();
-	double tsoil = ppft.tsoil_germ_14.mean();
-	// calculate f_temp
-	// TODO: Use Juergen's function
-	double exponent = pow((log(tsoil / peaktemp) / 0.5), 2);
-	double f_temp = max_frac * exp(-1.0*(exponent));
-	// calculate f_water
-	double f_water =  1 / (1 + exp(-(wcont - midpoint_sm) / shape));
-
-	// return frac_germ
-	return frac_germ * f_par * f_temp * f_water;
-
-}
-
 // Calculates the fraction of the seedbank that is germinating today.
 double germination_fraction(Patchpft& ppft, Patch& patch) {
-
 	if (ppft.pft.is_grass()) {
 		return germination_fraction_grass(ppft, patch);
-	} else {
-		return germination_fraction_tree(ppft, patch);
 	}
-
+	return 0;
 }
 
 double nseedlings(double cmass_seed, Pft &pft) {
@@ -699,9 +661,6 @@ void establishment_daily(Patch& patch) {
 					// Add some new biomass into this individual.
 					establishment_biomass(cmass_total_seed, pft.ltor_max, *indiv, nmass_total_seed); // * is a dereference (gets the value at the address)
 
-					indiv->initialc += cmass_ext_seed;
-					indiv->initialn += nmass_ext_seed;
-
 					indiv->cmass_germ = cmass_ext_seed;
 					indiv->acmass_germ += cmass_ext_seed;
 
@@ -784,8 +743,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 	// Coefficient in calculation of initial sapling size and initial
 	// grass biomass (see comment above)
-	const double SAPSIZE=0.1;
+	const double SAPSIZE = 0.1;
 
+	// Minimum carbon mass allowed (kgC/m2)
+	const double MINCMASS = 1.0e-8;
 	bool present = false; // whether PFT already present in this patch
 	double c = 0.0; // constant in equation for number of new saplings (Eqn 5)
 	double est = 0.0; // expected number of new saplings for PFT in this patch
@@ -861,6 +822,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 		}
 
 		Standpft& standpft=stand.pft[pft.id];
+		Patchpft& ppft = patch.pft[pft.id];
 
 		// For this PFT ...
 
@@ -882,17 +844,17 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 		if (stand.pft[pft.id].active) {
 			if (patch.age==0 || init_clone) {
-				patch.pft[pft.id].anetps_ff_est=patch.pft[pft.id].anetps_ff;
-				patch.pft[pft.id].wscal_mean_est=patch.pft[pft.id].wscal_mean;
+				ppft.anetps_ff_est=ppft.anetps_ff;
+				ppft.wscal_mean_est=ppft.wscal_mean;
 
 				// BLARP
 				if (date.year==0 || date.year==stand.first_year || init_clone || force_planting) // also after clearcut
-					patch.pft[pft.id].anetps_ff_est_initial=patch.pft[pft.id].anetps_ff;
+					ppft.anetps_ff_est_initial=ppft.anetps_ff;
 
 			}
 			else {
-				patch.pft[pft.id].anetps_ff_est+=patch.pft[pft.id].anetps_ff;
-				patch.pft[pft.id].wscal_mean_est+=patch.pft[pft.id].wscal_mean;
+				ppft.anetps_ff_est+=ppft.anetps_ff;
+				ppft.wscal_mean_est+=ppft.wscal_mean;
 			}
 
 			if (establish(patch, stand.get_climate(), pft) && (est_this_year || force_planting)) {
@@ -939,7 +901,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Initial leaf to fine root biomass ratio based on
 						// hypothetical value of water stress parameter
 
-						ltor=patch.pft[pft.id].wscal_mean*pft.ltor_max;
+						ltor=ppft.wscal_mean*pft.ltor_max;
 
 						// Allocate initial biomass
 						if(!indiv.istruecrop_or_intercropgrass())
@@ -952,16 +914,25 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Calculate storage pool size
 						if(indiv.pft.phenology == CROPGREEN) {
 							indiv.max_n_storage = CMASS_SEED / indiv.pft.cton_leaf_avr;
-							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / CMASS_SEED;
+							indiv.scale_n_storage = indiv.max_n_storage / CMASS_SEED;
 						}
-						else if (!(indiv.pft.is_grass() && ifdailygrass)){
-							indiv.max_n_storage = indiv.cmass_root * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr;
-							indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
+						else {
+							indiv.max_n_storage = max(0.0, max(indiv.cmass_root * indiv.pft.fnstorage * indiv.pft.cton_leaf_avr,
+								indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root * indiv.pft.turnover_root / indiv.pft.cton_root_avr));
+							indiv.scale_n_storage = indiv.max_n_storage / bminit;
 						}
 
 						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()
 						// if they survive the first year
+
+						// If established individuals initial biomass is too small 
+						// then don't establish (e.g. anetps_ff extremely low or even zero)
+						if (bminit < MINCMASS) {
+							indiv.kill();
+
+							vegetation.killobj();
+						}
 					}
 				}
 				else if (pft.lifeform==TREE) {
@@ -980,10 +951,10 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// Every year except year 1
 						// Eqns 5, 6
 
-						if (patch.pft[pft.id].anetps_ff>0.0 &&
-							!negligible(patch.pft[pft.id].anetps_ff)) {
+						if (ppft.anetps_ff>0.0 &&
+							!negligible(ppft.anetps_ff)) {
 
-							c=exp(pft.alphar-pft.alphar/patch.pft[pft.id].anetps_ff*
+							c=exp(pft.alphar-pft.alphar/ppft.anetps_ff*
 								stand.pft[pft.id].anetps_ff_max)*pft.est_max*patcharea;
 						}
 						else {
@@ -1038,9 +1009,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// BLARP added for OECD experiment (is this sensible?)
 						if (patch.has_disturbances() && patch.disturbed || force_planting) {
 
-							patch.pft[pft.id].anetps_ff_est=
-								patch.pft[pft.id].anetps_ff_est_initial;
-							patch.pft[pft.id].wscal_mean_est=patch.pft[pft.id].wscal_mean;
+							ppft.anetps_ff_est=
+								ppft.anetps_ff_est_initial;
+							ppft.wscal_mean_est=ppft.wscal_mean;
 							newindiv=!negligible(nsapling / patcharea);
 						}
 						else if (patch.age%estinterval && !init_clone || patch.plant_this_year) {
@@ -1049,14 +1020,14 @@ void establishment_guess(Stand& stand,Patch& patch) {
 							// establishment the next establishment year
 							// Establishment each year in managed patches
 
-							patch.pft[pft.id].nsapling+=nsapling;
+							ppft.nsapling+=nsapling;
 							newindiv=0;
 						}
 						else {
 							if (patch.age && !init_clone) {// all except first year after disturbance
-								nsapling+=patch.pft[pft.id].nsapling;
-								patch.pft[pft.id].anetps_ff_est/=(double)estinterval;
-								patch.pft[pft.id].wscal_mean_est/=(double)estinterval;
+								nsapling+=ppft.nsapling;
+								ppft.anetps_ff_est/=(double)estinterval;
+								ppft.wscal_mean_est/=(double)estinterval;
 							}
 							newindiv=!negligible(nsapling / patcharea);
 								// round down to 0 if nsapling very small
@@ -1155,12 +1126,21 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						}
 
 						// Calculate storage pool size
-						indiv.max_n_storage = indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr;
-						indiv.scale_n_storage = indiv.max_n_storage * indiv.pft.cton_leaf_avr / bminit;
+						indiv.max_n_storage = max(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr,
+							indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root * indiv.pft.turnover_root / indiv.pft.cton_root_avr);
+						indiv.scale_n_storage = indiv.max_n_storage / bminit;
 
 						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()
 						// if they survive the first year
+
+						// If established individuals initial biomass is too small 
+						// then don't establish (e.g. anetps_ff extremely low or even zero)
+						if (bminit < MINCMASS) {
+							indiv.kill();
+
+							vegetation.killobj();
+						}
 					}
 				}
 			}
@@ -1168,9 +1148,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 			// Reset running sums for next year (establishment years only in cohort mode)
 
 			if (vegmode!=COHORT || !(patch.age%estinterval)) {
-				patch.pft[pft.id].nsapling=0.0;
-				patch.pft[pft.id].wscal_mean_est=0.0;
-				patch.pft[pft.id].anetps_ff_est=0.0;
+				ppft.nsapling=0.0;
+				ppft.wscal_mean_est=0.0;
+				ppft.anetps_ff_est=0.0;
 			}
 
 		}
@@ -1478,7 +1458,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	double fpc_moss = 0.0;
 	double fpc_other = 0.0;
 
-	if ((patch.stand.is_highlatitude_peatland_stand() || patch.stand.is_true_wetland_stand()) && wetlandlailimit > 0) {
+	if (patch.stand.landcover == PEATLAND && wetlandlailimit > 0) {
 
 		vegetation.firstobj();
 		while (vegetation.isobj) {
@@ -1584,7 +1564,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
-		Patchpft& patchpft = patch.pft[indiv.pft.id];
+		Patchpft& ppft = patch.pft[indiv.pft.id];
 
 		// For this individual ...
 
@@ -1596,7 +1576,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 			// Kill cohort/individual, transfer biomass to litter
 
-			patchpft.cmass_mort += indiv.ccont();
+			ppft.cmass_mort += indiv.ccont();
 
 			log_info("%s killed by exceedance of bioclimatic limits...", (const char *)indiv.pft.name);
 			indiv.kill();
@@ -1725,7 +1705,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 				else frac_survive=1.0-mort;
 
-				patchpft.cmass_mort += (1.0 - frac_survive) * indiv.ccont();
+				ppft.cmass_mort += (1.0 - frac_survive) * indiv.ccont();
 
 				// Reduce individual density and biomass on patch area basis
 				// to account for loss of killed individuals
@@ -1750,7 +1730,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				// MORTALITY in PEATLAND stands
 				// i.e. shading mortality when LAI gets too high (cf mortality_lpj above), whereupon
 				// biomass is reduced (ends up in litter) to be consistent with the given LAI limit (maxlai_peatland)
-				if ((patch.stand.is_highlatitude_peatland_stand() || patch.stand.is_true_wetland_stand()) && wetlandlailimit > 0.0) {
+				if (patch.stand.landcover == PEATLAND && wetlandlailimit > 0.0) {
 
 					double mort_shade = 0.0;
 
@@ -1777,7 +1757,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 						// Reduce C biomass to account for biomass lost through shading mortality
 						if (mort_shade> 0.0) {
-							patchpft.cmass_mort += mort_shade * indiv.ccont();
+							ppft.cmass_mort += mort_shade * indiv.ccont();
 							indiv.reduce_biomass(mort_shade, 0.0);
 							allometry(indiv);
 						}
@@ -1802,7 +1782,7 @@ void mortality_daily(Patch& patch){
 // FIRE DISTURBANCE
 // Internal function (do not call directly from framework)
 
-void fire(Patch& patch,double& fireprob) {
+void fire(Patch& patch, double& fireprob) {
 
 	// DESCRIPTION
 	// Calculates probability/incidence of disturbance by fire; implements
@@ -1816,7 +1796,7 @@ void fire(Patch& patch,double& fireprob) {
 	//            (in population mode: fraction of modelled area affected by fire)
 
 	// Minimum total aboveground litter required for fire (kgC/m2)
-	const double MINFUEL=0.2;
+	const double MINFUEL = 0.2;
 	// Total aboveground litter (kgC/m2) [litter_ag_total/1000, fuel/1000; LPJF]
 	double litter_ag;
 	// Mean litter flammability moisture threshold [=moisture of extinction, me;
@@ -1831,142 +1811,153 @@ void fire(Patch& patch,double& fireprob) {
 	// Annual mean daily probability of fire [s; Thonicke et al 2001, Eqn 8;
 	// fire_index; LPJF]
 	double s;
-	
+
 	double sm; // s-1
 	double mort_fire; // fire mortality as fraction of current FPC
 	int p;
 
 	// Calculate fuel load (total aboveground litter)
 
-	litter_ag=0.0;
+	litter_ag = 0.0;
+
+	// Soil
+	Soil& soil = patch.soil;
+
+	// Top soil layer
+	Soillayer& surflayer = soil.soillayers[0];
 
 	// Loop through PFTs
 
-	for (p=0;p<npft;p++) {
-		litter_ag += patch.pft[p].cmass_litter_leaf + patch.pft[p].cmass_litter_sap + patch.pft[p].cmass_litter_heart +
-			patch.pft[p].cmass_litter_repr;
+	for (p = 0; p < npft; p++) {
+		Patchpft& ppft = patch.pft[p];
+		litter_ag += ppft.cmass_litter_leaf + ppft.cmass_litter_sap + ppft.cmass_litter_heart +
+			ppft.cmass_litter_repr;
 	}
 
-	// Soil Litter
-	litter_ag += patch.soil.sompool[SURFSTRUCT].cmass + patch.soil.sompool[SURFMETA].cmass +
-		patch.soil.sompool[SURFFWD].cmass + patch.soil.sompool[SURFCWD].cmass;
+	// Surface Litter
+	litter_ag += surflayer.sompool[SURFSTRUCT].cmass + surflayer.sompool[SURFMETA].cmass +
+		surflayer.sompool[SURFFWD].cmass + surflayer.sompool[SURFCWD].cmass;
 
 	// Prevent fire if fuel load below prescribed threshold
 
-	if (litter_ag<MINFUEL) {
-		fireprob=0.0;
+	if (litter_ag < MINFUEL) {
+		fireprob = 0.0;
 		return;
 	}
 
 	// Calculate mean litter flammability moisture threshold
 
-	me_mean=0.0;
+	me_mean = 0.0;
 
 	// Loop through PFTs
 
-	for (p=0;p<npft;p++) {
-		me_mean += (patch.pft[p].cmass_litter_leaf + patch.pft[p].cmass_litter_sap + patch.pft[p].cmass_litter_heart +
-			patch.pft[p].cmass_litter_repr) * patch.pft[p].pft.litterme / litter_ag;
+	for (p = 0; p < npft; p++) {
+		Patchpft& ppft = patch.pft[p];
+		me_mean += (ppft.cmass_litter_leaf + ppft.cmass_litter_sap + ppft.cmass_litter_heart +
+			ppft.cmass_litter_repr) * ppft.pft.litterme / litter_ag;
 	}
 
-	// Soil litter
-	me_mean += (patch.soil.sompool[SURFSTRUCT].cmass * patch.soil.sompool[SURFSTRUCT].litterme +
-		patch.soil.sompool[SURFMETA].cmass * patch.soil.sompool[SURFMETA].litterme +
-		patch.soil.sompool[SURFFWD].cmass * patch.soil.sompool[SURFFWD].litterme +
-		patch.soil.sompool[SURFCWD].cmass * patch.soil.sompool[SURFCWD].litterme) / litter_ag;
+	// Surface litter
+	me_mean += (surflayer.sompool[SURFSTRUCT].cmass * surflayer.sompool[SURFSTRUCT].litterme +
+		surflayer.sompool[SURFMETA].cmass * surflayer.sompool[SURFMETA].litterme +
+		surflayer.sompool[SURFFWD].cmass * surflayer.sompool[SURFFWD].litterme +
+		surflayer.sompool[SURFCWD].cmass * surflayer.sompool[SURFCWD].litterme) / litter_ag;
 
 	// Calculate length of fire season in days
 	// Eqn 2, 4, Thonicke et al 2001
 	// NOTE: error in Eqn 2, Thonicke et al - multiplier should be PI/4, not PI
 
-	n=0.0;
-	for (int day = 0; day < date.year_length(); day++) {
+	n = 0.0;
+	for (int mth = 0; mth < 12; mth++) {
 
 		// No fires unless there is some soil melt.
-		if (iftwolayersoil || (patch.soil.dthaw[day] > 0.0 && date.year > FIRST_FREEZE_YEAR + 10)) {
-			pm = exp(-PI*patch.soil.dwcontupper[day] / me_mean*patch.soil.dwcontupper[day] /
-				me_mean);		// Eqn 2
+		if (hydrology == GERTEN || (soil.mthaw[mth] > 0.0 && date.year > FIRST_FREEZE_YEAR + 10)) {
+			pm = exp(-PI * surflayer.mwcont[mth] / me_mean * surflayer.mwcont[mth] / me_mean) * date.ndaymonth[mth];		// Eqn 2
 		}
 		else {
 			pm = 0.0;
 		}
-			
+
 
 		// Eqn 4
-		n+=pm;
+		n += pm;
 	}
 
 	// Calculate fraction of grid cell burnt
 	// Thonicke et al 2001, Eqn 9
 
-	s=n/(double)date.year_length();
-	sm=s-1;
+	s = n / (double)date.year_length();
+	sm = s - 1;
 
-	fireprob=s*exp(sm/(0.45*sm*sm*sm+2.83*sm*sm+2.96*sm+1.04));
+	fireprob = s * exp(sm / (0.45 * sm * sm * sm + 2.83 * sm * sm + 2.96 * sm + 1.04));
 
-	if (fireprob>1.0)
+	if (fireprob > 1.0)
 		fail("fire: probability of fire >1.0");
-	else if (fireprob<0.001) fireprob=0.001; // c.f. LPJF
+	else if (fireprob < 0.001) fireprob = 0.001; // c.f. LPJF
 
 	// Calculate expected flux from litter due to fire
 	// (fluxes from vegetation calculated in mortality functions)
 
-	for (p=0;p<npft;p++) {
+	Fluxes& fluxes = patch.fluxes;
+
+	for (p = 0; p < npft; p++) {
+
+		Patchpft& ppft = patch.pft[p];
 
 		// Assume litter is as fire resistant as the vegetation it originates from
 
-		mort_fire=fireprob*(1.0-patch.pft[p].pft.fireresist);
+		mort_fire = fireprob*(1.0 - ppft.pft.fireresist);
 
 		// Calculate flux from burnt litter
 
-		patch.fluxes.report_flux(Fluxes::FIREC,
-		                         mort_fire*(patch.pft[p].cmass_litter_leaf + patch.pft[p].cmass_litter_sap +
-		                                    patch.pft[p].cmass_litter_heart + patch.pft[p].cmass_litter_repr));
+		fluxes.report_flux(Fluxes::FIREC,
+			mort_fire*(ppft.cmass_litter_leaf + ppft.cmass_litter_sap +
+				ppft.cmass_litter_heart + ppft.cmass_litter_repr));
 
-		report_fire_nfluxes(patch, mort_fire * (patch.pft[p].nmass_litter_leaf +
-			                patch.pft[p].nmass_litter_sap + patch.pft[p].nmass_litter_heart));
+		report_fire_nfluxes(fluxes, mort_fire * (ppft.nmass_litter_leaf +
+			ppft.nmass_litter_sap + ppft.nmass_litter_heart));
 
 		// Account for burnt above ground litter
 
-		patch.pft[p].cmass_litter_leaf  *= (1.0 - mort_fire);
-		patch.pft[p].cmass_litter_sap   *= (1.0 - mort_fire);
-		patch.pft[p].cmass_litter_heart *= (1.0 - mort_fire);
-		patch.pft[p].cmass_litter_repr  *= (1.0 - mort_fire);
-		patch.pft[p].nmass_litter_leaf  *= (1.0 - mort_fire);
-		patch.pft[p].nmass_litter_sap   *= (1.0 - mort_fire);
-		patch.pft[p].nmass_litter_heart *= (1.0 - mort_fire);
+		ppft.cmass_litter_leaf  *= (1.0 - mort_fire);
+		ppft.cmass_litter_sap   *= (1.0 - mort_fire);
+		ppft.cmass_litter_heart *= (1.0 - mort_fire);
+		ppft.cmass_litter_repr  *= (1.0 - mort_fire);
+		ppft.nmass_litter_leaf  *= (1.0 - mort_fire);
+		ppft.nmass_litter_sap   *= (1.0 - mort_fire);
+		ppft.nmass_litter_heart *= (1.0 - mort_fire);
 	}
 
 	// Soil litter
-	double mort_fire_struct = fireprob * (1.0 - patch.soil.sompool[SURFSTRUCT].fireresist);
-	double mort_fire_meta   = fireprob * (1.0 - patch.soil.sompool[SURFMETA].fireresist);
-	double mort_fire_fwd    = fireprob * (1.0 - patch.soil.sompool[SURFFWD].fireresist);
-	double mort_fire_cwd    = fireprob * (1.0 - patch.soil.sompool[SURFCWD].fireresist);
+	double mort_fire_struct = fireprob * (1.0 - surflayer.sompool[SURFSTRUCT].fireresist);
+	double mort_fire_meta = fireprob * (1.0 - surflayer.sompool[SURFMETA].fireresist);
+	double mort_fire_fwd = fireprob * (1.0 - surflayer.sompool[SURFFWD].fireresist);
+	double mort_fire_cwd = fireprob * (1.0 - surflayer.sompool[SURFCWD].fireresist);
 
 	// Calculate flux from burnt soil litter
-	patch.fluxes.report_flux(Fluxes::FIREC,patch.soil.sompool[SURFSTRUCT].cmass * mort_fire_struct +
-	                                       patch.soil.sompool[SURFMETA].cmass   * mort_fire_meta +
-	                                       patch.soil.sompool[SURFFWD].cmass    * mort_fire_fwd +
-	                                       patch.soil.sompool[SURFCWD].cmass    * mort_fire_cwd);
+	fluxes.report_flux(Fluxes::FIREC, surflayer.sompool[SURFSTRUCT].cmass * mort_fire_struct +
+		surflayer.sompool[SURFMETA].cmass * mort_fire_meta +
+		surflayer.sompool[SURFFWD].cmass * mort_fire_fwd +
+		surflayer.sompool[SURFCWD].cmass * mort_fire_cwd);
 
 	// Account for burnt above ground litter
-	patch.soil.sompool[SURFSTRUCT].cmass *= (1.0 - mort_fire_struct);
-	patch.soil.sompool[SURFMETA].cmass   *= (1.0 - mort_fire_meta);
-	patch.soil.sompool[SURFFWD].cmass    *= (1.0 - mort_fire_fwd);
-	patch.soil.sompool[SURFCWD].cmass    *= (1.0 - mort_fire_cwd);
+	surflayer.sompool[SURFSTRUCT].cmass *= (1.0 - mort_fire_struct);
+	surflayer.sompool[SURFMETA].cmass *= (1.0 - mort_fire_meta);
+	surflayer.sompool[SURFFWD].cmass *= (1.0 - mort_fire_fwd);
+	surflayer.sompool[SURFCWD].cmass *= (1.0 - mort_fire_cwd);
 
 	// Calculate nitrogen flux from burnt soil litter
-	double nflux_fire = patch.soil.sompool[SURFSTRUCT].nmass * mort_fire_struct +
-	                    patch.soil.sompool[SURFMETA].nmass   * mort_fire_meta +
-	                    patch.soil.sompool[SURFFWD].nmass    * mort_fire_fwd +
-						patch.soil.sompool[SURFCWD].nmass    * mort_fire_cwd;
+	double nflux_fire = surflayer.sompool[SURFSTRUCT].nmass * mort_fire_struct +
+		surflayer.sompool[SURFMETA].nmass * mort_fire_meta +
+		surflayer.sompool[SURFFWD].nmass * mort_fire_fwd +
+		surflayer.sompool[SURFCWD].nmass * mort_fire_cwd;
 
-	report_fire_nfluxes(patch, nflux_fire);
+	report_fire_nfluxes(fluxes, nflux_fire);
 
-	patch.soil.sompool[SURFSTRUCT].nmass *= (1.0 - mort_fire_struct);
-	patch.soil.sompool[SURFMETA].nmass   *= (1.0 - mort_fire_meta);
-	patch.soil.sompool[SURFFWD].nmass    *= (1.0 - mort_fire_fwd);
-	patch.soil.sompool[SURFCWD].nmass    *= (1.0 - mort_fire_cwd);
+	surflayer.sompool[SURFSTRUCT].nmass *= (1.0 - mort_fire_struct);
+	surflayer.sompool[SURFMETA].nmass *= (1.0 - mort_fire_meta);
+	surflayer.sompool[SURFFWD].nmass *= (1.0 - mort_fire_fwd);
+	surflayer.sompool[SURFCWD].nmass *= (1.0 - mort_fire_cwd);
 }
 
 
@@ -1992,10 +1983,10 @@ void disturbance(Patch& patch, double disturb_prob) {
 		vegetation.firstobj();
 		while (vegetation.isobj) {
 			Individual& indiv = vegetation.getobj();
-			Patchpft& patchpft = patch.pft[indiv.pft.id];
+			Patchpft& ppft = patch.pft[indiv.pft.id];
 
 			if(indiv.alive)
-				patchpft.cmass_dist += indiv.ccont();
+				ppft.cmass_dist += indiv.ccont();
 
 			indiv.kill();
 
@@ -2099,7 +2090,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		// Patch-destroying disturbance
 
 		// Disturbance when N limitation is switched on to get right pft composition under N limitation faster
-		if (ifcentury && ifnlim && date.year == freenyears){
+		if (ifcentury && ifnlim && (date.year == patch.soil.solvesomcent_beginyr - 2 || date.year == patch.soil.solvesomcent_endyr - 2)){
 			disturbance(patch, 1.0);
 			if (patch.disturbed) {
 				return; // no mortality or establishment this year

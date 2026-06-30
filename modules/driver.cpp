@@ -662,21 +662,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 	Climate& climate = gridcell.climate;
 
-	// On first day of the simulation ...
-	if (iftwolayersoil && date.day == 0 && date.year == 0) {
-		// Override some of the wetland Booleans when using the two layer soil. These have no effect in any case, as 
-		// run_peatland must be false
-		ifinundationstress = false;
-		wetland_runon = 0.0;
-		ifmethane = false;
-		ifsaturatewetlands = false;
-
-		// Fail in these cases
-		if (iforganicsoilproperties || ifcarbonfreeze || ifmultilayersnow) {
-			fail("dailyaccounting_gridcell: iforganicsoilproperties, ifcarbonfreeze and ifmultilayersnow must all be 0 if iftwolayersoil = 1");
-		}
-	}
-
 	// On first day of year ...
 
 	if (date.day == 0) {
@@ -685,10 +670,12 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		climate.agdd5 = 0.0;
 
 		// reset annual nitrogen input variables
-		gridcell.aNH4dep  = 0.0;
-		gridcell.aNO3dep  = 0.0;
-		climate.aprec = 0.0;
+		gridcell.aNH4dep = 0.0;
+		gridcell.aNO3dep = 0.0;
 
+		// reset annual precipitation
+		climate.aprec = 0.0;
+		
 		// reset annual radiation counter
 		climate.ainsol = 0;
 
@@ -734,13 +721,6 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			}
 
 			climate.atemp_mean = climate.temp;
-
-			// Initialise gridcellpfts Michaelis-Menten kinetic Km value
-			pftlist.firstobj();
-			while (pftlist.isobj) {
-				gridcell.pft[pftlist.getobj().id].Km = pftlist.getobj().km_volume * gridcell.soiltype.wtot;
-				pftlist.nextobj();
-			}
 		}
 
 		// Reset fluxes and management variables for all patches
@@ -755,18 +735,18 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			stand.firstobj();
 			while (stand.isobj) {
 				Patch& patch = stand.getobj();
+				Soil& soil = patch.soil;
 
 				for(unsigned int i=0;i<pftlist.nobj;i++) {
-					Patchpft& patchpft = patch.pft[i];
-					patchpft.cmass_harv_killed = 0.0;
-					patchpft.cmass_harv_tolitter = 0.0;
-					patchpft.cmass_wood_harv = 0.0;
-					patchpft.cmass_wood_harv_toprod = 0.0;
+					Patchpft& ppft = patch.pft[i];
+					ppft.cmass_harv_killed = 0.0;
+					ppft.cmass_harv_tolitter = 0.0;
+					ppft.cmass_wood_harv = 0.0;
+					ppft.cmass_wood_harv_toprod = 0.0;
 				}
 
 				patch.fluxes.reset();
 				patch.soil.anfix = 0.0;
-				patch.soil.dnfix = 0.0;
 				patch.soil.aorgNleach = 0.0;
 				patch.soil.aorgCleach = 0.0;
 				patch.soil.aminleach = 0.0;
@@ -813,8 +793,8 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	// Update GDD counters and chill day count
 	climate.gdd5 += max(0.0, climate.temp - 5.0);
 	climate.agdd5 += max(0.0, climate.temp - 5.0);
-	if (climate.temp < 5.0 && climate.chilldays < Date::MAX_YEAR_LENGTH)
-			climate.chilldays++;
+	if (climate.temp < 5.0 && climate.chilldays < date.year_length())
+		climate.chilldays++;
 
 	climate.gdd0 += max(0.0, climate.temp);
 	climate.agdd0 += max(0.0, climate.temp);
@@ -823,11 +803,11 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	if (date.diurnal()) {
 		climate.gtemps.assign(date.subdaily, 0);
 		for (int i=0; i<date.subdaily; i++) {
-			respiration_temperature_response(climate.temps[i], climate.gtemps[i]);
+			respiration_temperature_response(climate.temps[i], climate.gtemps[i], false);
 		}
 	}
 	else {
-		respiration_temperature_response(climate.temp, climate.gtemp);
+		respiration_temperature_response(climate.temp, climate.gtemp, false);
 	}
 
 	// Sum annual nitrogen addition to system
@@ -879,6 +859,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		// On 31 December update records of minimum monthly temperatures for the last
 		// 20 years and find mean of minimum monthly temperatures for the last 20 years
 		if (date.islastmonth) {
+
+			climate.aprec_lastyear = climate.aprec;
+
 			startyear = 20 - (int)min(19, date.year);
 			climate.mtemp_min20 = climate.mtemp_min;
 			climate.mtemp_max20 = climate.mtemp_max;
@@ -959,7 +942,6 @@ void dailyaccounting_patch(Patch& patch) {
 	// soil   = patch soil
 
 	Soil& soil = patch.soil;
-	soil.navail_start_day = soil.get_nmass_avail();
 	soil.nmin_gross = 0.0;
 	soil.nimmob = 0;
 	for (size_t i = 0; i < NSOMPOOL; i++) {
@@ -970,8 +952,6 @@ void dailyaccounting_patch(Patch& patch) {
 
 	if (date.day == 0) {
 
-		patch.aaet = 0.0;
-		patch.aintercep = 0.0;
 		patch.apet = 0.0;
 
 		// Calculate total FPC and RPC
@@ -990,52 +970,184 @@ void dailyaccounting_patch(Patch& patch) {
 		patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
 
 		for(unsigned int i=0;i<pftlist.nobj;i++) {
-			Patchpft& patchpft = patch.pft[i];
-			patchpft.cmass_mort = 0.0;
-			patchpft.cmass_fire = 0.0;
-			patchpft.cmass_dist = 0.0;
-			patchpft.cmass_leaf_root_turnover = 0.0;
-			patchpft.cmass_repr = 0.0;
-			patchpft.cmass_est = 0.0;
-			patchpft.nsapling_year = 0;
-			if(patch.age == 1) {
-				patchpft.cmass_wood_clearcut = 0.0;			// set in harvest_forest()
+			Patchpft& ppft = patch.pft[i];
+			ppft.cmass_mort = 0.0;
+			ppft.cmass_fire = 0.0;
+			ppft.cmass_dist = 0.0;
+			ppft.cmass_leaf_root_turnover = 0.0;
+			ppft.cmass_repr = 0.0;
+			ppft.cmass_est = 0.0;
+			ppft.nsapling_year = 0;
+			if (patch.age == 1) {
+				ppft.cmass_wood_clearcut = 0.0;			// set in harvest_forest()
 			}
 
 			// Reset month phen and set driest month for RAINGREENS
 			double phen_min = 1.0;
-			patchpft.driest_mth = 0;
+			ppft.driest_mth = 0;
 			for (int mth = 0; mth < 12; mth++) {
-				if (patchpft.pft.phenology == RAINGREEN) {
-					if (patchpft.mphen[mth] < phen_min) {
-						phen_min = patchpft.mphen[mth];
-						patchpft.driest_mth = mth;
+				if (ppft.pft.phenology == RAINGREEN) {
+					if (ppft.mphen[mth] < phen_min) {
+						phen_min = ppft.mphen[mth];
+						ppft.driest_mth = mth;
 					}
 				}
-				patchpft.mphen[mth] = 0.0;
+				ppft.mphen[mth] = 0.0;
+				ppft.mcmass_leaf[mth] = 0.0;
+				ppft.mnmass_leaf[mth] = 0.0;
+			}
+
+			// Update root distribution if you have permafrost
+			if ((ifthawaffectrootdist && soil.maxthaw_10.max() < soil.depth)) {
+				ppft.update_rootdist(soil.maxthaw_10.max(), soil.depth, soil.soillayerthicks, soil.nsoillayers);
+			}
+		}
+
+		if (date.year >= soil.solvesomcent_beginyr && date.year <= soil.solvesomcent_endyr) {
+			soil.savesomcent = true;
+		}
+		else {
+			soil.savesomcent = false;
+		}
+
+		soil.asurfflitterinput = 0.0;
+		soil.asurfclitterinput = 0.0;
+		soil.asurflitterresp = 0.0;
+
+		for (int p = 0; p < NSOMPOOL; p++) {
+			soil.csom_litter_input[p] = 0.0;
+		}
+
+		for (int mth = 0; mth < 12; mth++) {
+			soil.ssw.mwimass[mth] = 0.0;
+		}
+
+		// Snow
+		Snow& snow = soil.snow;
+
+		snow.snowdays = 0;
+
+		for (int mth = 0; mth < 12; mth++) {
+			snow.mdepth[mth] = 0.0;
+			snow.mcover[mth] = 0.0;
+			soil.mthaw[mth] = 0.0;
+			for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
+				snow.mtemp[lyr][mth] = 0.0;
+			}
+		}
+
+		// Soil layers
+		for (int lyr = 0; lyr < soil.nsoillayers; lyr++) {
+
+			Soillayer& soillayer = soil.soillayers[lyr];
+
+			// If soil layer temperature is negative throughout the year 
+			// at FIRST_FREEZE_YEAR year then move all water to ice
+			if (date.year == FIRST_FREEZE_YEAR && hydrology != GERTEN) {
+				soillayer.freeze_lyr();
+				soillayer.temp_old = 0.0;
+			}
+
+			soillayer.arespsum = 0.0;
+			soillayer.aorgCleach = 0.0;
+			soillayer.aorgNleach = 0.0;
+			soillayer.aminleach = 0.0;
+			soillayer.acmassfinput = 0.0;
+			soillayer.acmasscinput = 0.0;
+
+			soillayer.atemp_mod = 0.0;
+			soillayer.amoist_mod = 0.0;
+			soillayer.atot_mod = 0.0;
+
+			for (int mth = 0; mth < 12; mth++) {
+				soillayer.mwmass[mth] = 0.0;
+				soillayer.mimass[mth] = 0.0;
+				soillayer.mwcont[mth] = 0.0;
+				soillayer.mdrain[mth] = 0.0;
+				soillayer.mtemp[mth] = 0.0;
+				soillayer.mnetmin[mth] = 0.0;
+			}
+
+			if (date.year == 0) {
+				soillayer.mwcontabove = 0.0;
+			}
+
+			// Set initial temperatures as first spinup years mean annual air temperature
+			if (date.year == 0) {
+				soillayer.temp = patch.get_climate().temp_iaavr;
+			}
+		}
+
+		// Padding layers
+		for (int plyr = 0; plyr < NPADLAYERS; plyr++) {
+
+			Padlayer& pad_lyr = soil.pad.padlayers[plyr];
+
+			for (int mth = 0; mth < 12; mth++) {
+				pad_lyr.mtemp[mth] = 0.0;
+			}
+
+			// Set initial temperatures as first spinup years mean annual air temperature
+			if (date.year == 0) {
+				pad_lyr.temp = patch.get_climate().temp_iaavr;
+			}
+		}
+
+		// Calculate soil layers root volume
+		soil.calc_root_volume();
+
+		// Vertical movement if matter in soil layer exceed maximum volume
+		soil.vertical_movement();
+
+		// Water to be moved due to changes in the soil layers capability to hold water
+		double wmass_move = 0.0;
+		double imass_move = 0.0;
+
+		for (int lyr = 0; lyr < soil.nsoillayers; lyr++) {
+
+			// Set soil layer properties
+			soil.soillayers[lyr].update_properties(wmass_move, imass_move);
+		}
+
+		// If water and ice exceed the capability of the soil to hold water, 
+		// then it will be lost as drainage 
+		if (!negligible(wmass_move + imass_move)) {
+			patch.fluxes.report_flux(Fluxes::WRUNOFF_DRAIN, wmass_move + imass_move);
+		}
+	}
+
+	// Soil organic matter age
+	if (date.islastday && date.islastmonth) {
+		for (int lyr = 0; lyr < soil.nsoillayers; lyr++) {
+
+			// Increase organic matter age
+			if (!negligible(soil.soillayers[lyr].ccont())) {
+				soil.soillayers[lyr].socage++;
+			}
+			else {
+				soil.soillayers[lyr].socage = 0.0;
 			}
 		}
 	}
 
-	if (date.dayofmonth == 0) {
+	// Initiate slope properties of the soil
+	if (patch.age == 0 && date.day == 0) {
+		soil.set_slope_properties();
+	}
 
-		soil.mwcontupper = 0.0;
-		soil.mwcontlower = 0.0;
-
-		patch.maet[date.month] = 0.0;
-		patch.mintercep[date.month] = 0.0;
-		patch.mpet[date.month]=0.0;
+	// Initiate soil water content
+	if (date.year == 0 && date.day == 0) {
+		soil.init_water();
 	}
 
 	if(run_landcover)
 		dailyaccounting_patch_lc(patch);
 
-	// Store daily soil water in both layers
-	soil.dwcontupper[date.day] = soil.get_soil_water_upper();
-	soil.dwcontlower[date.day] = soil.get_soil_water_lower();
+	// Calculate snow, soil, and padding temperatures
+	soil.temp();
 
-	soil.mwcontupper += soil.dwcontupper[date.day];
-	soil.mwcontlower += soil.dwcontlower[date.day];
+	// Calculate mean monthly temperatures
+	soil.calc_mtemp();
 
 	// Recalculate total FPC and RPC for daily version
 	if (ifdavegrowth) {
@@ -1072,96 +1184,31 @@ void dailyaccounting_patch(Patch& patch) {
 
 	// On last day of month, calculate mean content of upper and lower soil layers
 
-	if (date.islastday) {
+	// Calculate mean monthly water content of all soil layers
+	soil.calc_mwcont();
 
-		soil.mwcontupper = mean(soil.dwcontupper + date.day - date.ndaymonth[date.month] + 1,
-			date.ndaymonth[date.month]);
-
-		// guess2008 - record water in lower layer too, and then update mwcont
-		soil.mwcontlower = mean(soil.dwcontlower + date.day - date.ndaymonth[date.month] + 1,
-			date.ndaymonth[date.month]);
-
-		soil.mwcont[date.month][0] = soil.mwcontupper;
-		soil.mwcont[date.month][1] = soil.mwcontlower;
-	}
-
-	// Reset monthly soil temp., litter depth, snow depth and thaw averages on Jan 1
-	if (date.day == 0) {
-
-		// Save the December value for use in establishment
-		soil.dec_snowdepth = soil.msnowdepth[11];
-
-		for (int mth = 0; mth < 12; mth++) {
-			soil.msnowdepth[mth] = 0.0;
-			soil.mthaw[mth] = 0.0;
-			for (int sl = 0; sl < SOILTEMPOUT; sl++)
-				soil.T_soil_monthly[mth][sl] = 0.0;
-		}
-	}
-
-	// Calculate analytic soil temperatures at 25cm depth and update dtemp_31 (trend in daily air temperatures for the last 31 days)
-	// Analytic soil temperatures can be used to test the accuracy of the numerical scheme in Soil::soil_temp_multilayer below.
-	// The soil temperature at 25cm depth calculated here is used in the rest of the model (e.g. in respiration) if iftwolayersoil is true (determined in 
-	// Soil::get_soil_temp_25() below).
-	soil.soil_temp_analytic(patch.get_climate(), 0.25);
-
-	// Calculate the soil temperature in each 10cm soil layer, the padding layers, and the snowpack. This function is called 
-	// even if iftwolayersoil is true, though the calculations are much simpler. 
-	bool validTemp = soil.soil_temp_multilayer(patch.get_climate().temp);
-	if (!validTemp) fail("Error in Soil::soil_temp_multilayer");
-
-	// Determine the soil temperature at 25cm depth
-	double soiltemp25 = soil.get_soil_temp_25();
-
-	if (iftwolayersoil) {
-		// Update monthly 25cm soil temperature - used for output only
-		soil.T_soil_monthly[date.month][2] += soiltemp25 / (double)date.ndaymonth[date.month];
-	}
-
-	respiration_temperature_response(soiltemp25, soil.gtemp);
-
-	// Possible updates to soil.gtemp used if soiltemp25 < 0degC
-	// Needed for root respiration
-	if (ifcarbonfreeze && soiltemp25 <= 0.0 && !iftwolayersoil) {
-
-		double decomp_at_freezing_point = exp(308.56*(1.0 / 56.02 - 1.0 / (0.0 + 46.02))); // soil.gtemp above when soiltemp25 = 0;
-
-		// Linear approach (Koven et al. 2011)
-		double slope = decomp_at_freezing_point / fabs(MIN_DECOMP_TEMP);
-
-		if (soiltemp25 < MIN_DECOMP_TEMP)
-			soil.gtemp = 0.0;
-		else
-			soil.gtemp = slope * soiltemp25 + decomp_at_freezing_point; // i.e. a linear decrease from decomp_at_freezing_point at 0C to 0 at MIN_DECOMP_TEMP
-	}
-
-
-	// On last day of month, calculate mean soil temperature at 25cm depth for last month
-
-	soil.dtemp[date.dayofmonth] = soil.get_soil_temp_25();
-
-	if (date.islastday)
-		soil.mtemp = mean(soil.dtemp,date.ndaymonth[date.month]);
-
-
-	double mdays = (double)date.ndaymonth[date.month];
-	soil.msnowdepth[date.month] += soil.snowdepth() / mdays;
-	soil.mthaw[date.month] += soil.thaw / mdays;
-
-	// needed for fire
-	soil.dthaw[date.day] = soil.thaw;
+	// Calculate respiration temperature response
+	respiration_temperature_response(soil);
 
 	patch.is_litter_day = false;
 	patch.isharvestday = false;
 }
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // RESPIRATION TEMPERATURE RESPONSE
 // Called by dailyaccounting_patch and dailyaccounting_gridcell to calculate
 // response of respiration to temperature
 
-void respiration_temperature_response(double temp,double& gtemp) {
+double calc_gtemp(double temp) {
+	if (temp >= -40.0) {
+		return exp(308.56 * (1.0 / 56.02 - 1.0 / (temp + 46.02)));
+	}
+	else {
+		return 0.0;
+	}
+}
+
+void respiration_temperature_response(double temp, double& gtemp, bool ifsoil) {
 
 	// DESCRIPTION
 	// Calculates g(T), response of respiration rate to temperature (T), based on
@@ -1178,11 +1225,32 @@ void respiration_temperature_response(double temp,double& gtemp) {
 	// OUTPUT PARAMETER
 	// gtemp = respiration temperature response
 
-	if (temp >= -40.0) {
-		gtemp = exp(308.56 * (1.0 / 56.02 - 1.0 / (temp + 46.02)));
-	} 
-	else {
-		gtemp = 0.0;
+	gtemp = calc_gtemp(temp);
+
+	// Possible updates to gtemp used if temp < 0degC
+	// Needed for root respiration
+	if (ifsoil && ifcarbonfreeze && temp <= 0.0 && hydrology != GERTEN) {
+
+		double decomp_at_freezing_point = calc_gtemp(0.0);
+
+		// Linear approach (Koven et al. 2011)
+		double decrease = decomp_at_freezing_point / fabs(MIN_DECOMP_TEMP);
+
+		if (temp < MIN_DECOMP_TEMP)
+			gtemp = 0.0;
+		else
+			gtemp = decrease * temp + decomp_at_freezing_point; // i.e. a linear decrease from decomp_at_freezing_point at 0C to 0 at MIN_DECOMP_TEMP
+	}
+}
+
+void respiration_temperature_response(Soil& soil) {
+
+	for (int lyr = 0; lyr < soil.nsoillayers; lyr++) {
+
+		Soillayer& soillayer = soil.soillayers[lyr];
+
+		// Calculate gtemp for this soil layer
+		respiration_temperature_response(soillayer.temp, soillayer.gtemp, true);
 	}
 }
 
@@ -1210,8 +1278,8 @@ void daylengthinsoleet(Climate& climate) {
 	const double D = 0.5;
 	const double K = 13750.98708;
 	const double FRADPAR = 0.5;
-		// fraction of net incident shortwave radiation that is photosynthetically
-		// active (PAR)
+	// fraction of net incident shortwave radiation that is photosynthetically
+	// active (PAR)
 
 	double w, hn;
 

@@ -105,9 +105,19 @@ Calculate a mean.
 double mean(const double *array, size_t n);
 
 /*
+Sum a quantity across soil layers.
+*/
+double sum_layers(const Soil &soil, double (*read_layer)(const Soillayer &));
+
+/*
+Sum a quantity across soil layers.
+*/
+double mean_layers(const Soil &soil, double (*read_layer)(const Soillayer &));
+
+/*
 Get the columns used in the patch-level runoff output file.
 */
-std::vector<ColumnDefinition<Patch>> runoff_columns();
+std::vector<ColumnDefinition<Patch>> annual_runoff_columns();
 
 /*
 Get the columns used in the patch-level cpool file.
@@ -149,9 +159,15 @@ Get the columns used in the patch-level pft litter pools file.
 std::vector<ColumnDefinition<Individual>> get_pft_litter_pools();
 
 /*
+<<<<<<< HEAD
 Get the columns used in the indiv-level transpiration debug file.
 */
 std::vector<ColumnDefinition<Individual>> transp_check_columns();
+=======
+Get the columns used in the patch-level closs hydraulics output file.
+*/
+std::vector<ColumnDefinition<Individual>> get_closs_hydraulics_cols();
+>>>>>>> edda7c277cbacc43d8016e34de76578b461a7aa8
 
 /*
 Get the columns used in the patch-level npool veg file.
@@ -246,7 +262,7 @@ std::vector<ColumnDefinition<Patch>> ninput_columns();
 /*
 Get the columns used in the patch-level evaporation output file.
 */
-std::vector<ColumnDefinition<Patch>> evap_columns();
+std::vector<ColumnDefinition<Patch>> daily_evap_columns();
 
 /*
 Get the columns used in the patch-level soil C mass output file.
@@ -276,7 +292,7 @@ std::vector<ColumnDefinition<Patch>> met_year_columns();
 /*
 Get the columns used in the aet output file.
 */
-std::vector<ColumnDefinition<Patch>> aet_columns();
+std::vector<ColumnDefinition<Patch>> daily_aet_columns();
 
 /*
 Get the columns used in the fevap output file.
@@ -292,6 +308,17 @@ std::vector<ColumnDefinition<Individual>> indiv_hydraulics_columns();
 Get the columns used to evaluate the hydraulics model.
 */
 std::vector<ColumnDefinition<Individual>> indiv_resp_columns();
+
+/*
+Get the columns in the soil state output file.
+*/
+std::vector<ArrayColumnDefinition<Patch>> soil_state_cols();
+
+/*
+Get the columns in the soil properties output file.
+*/
+std::vector<ArrayColumnDefinition<Patch>> soil_properties_cols();
+
 
 /*
 Get the total standing dead biomass for the given PFT.
@@ -318,7 +345,7 @@ Get the soil moisture in mm between the specified top and bottom layers.
 @param start_layer: The index of the top layer.
 @param end_layer: The index of the bottom layer.
 */
-double get_soil_moisture(const Soil &soil, int start_layer, int end_layer);
+double get_soil_moisture(const Soil &soil, double start_depth, double end_depth);
 
 /*
 Get the available soil moisture in mm between the specified top and bottom
@@ -328,7 +355,7 @@ layers. This is the sum of AWC * wcont for each layer.
 @param start_layer: The index of the top layer.
 @param end_layer: The index of the bottom layer.
 */
-double get_available_soil_moisture(const Soil &soil, int start_layer, int end_layer);
+double get_available_soil_moisture(const Soil &soil, double start_depth, double end_depth);
 
 /*
 Get an estimate of total soil moisture in mm from 1-6m.

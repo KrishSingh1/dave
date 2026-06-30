@@ -75,8 +75,30 @@ typedef enum {BLAZE, GLOBFIRM, NOFIRE} firemodeltype;
  */
 typedef enum {GWGEN, INTERP, NONE} weathergeneratortype;
 
-///How to determine root distribution in soil layers
-typedef enum {ROOTDIST_FIXED, ROOTDIST_JACKSON} rootdisttype;
+/// Type of hydrology used 
+/**     One of:
+ *      GERTEN          Standard two-layer hydrology (0.5 and 1m layers) based on Gerten et al. (2004)
+ *      MILLER          Extention of GERTEN where each layer is divided into 10 cm layers. What distribution
+ *						within the two basic layers is based on Miller et al. (in prep.)
+ *      RICHARDS        Flexible hydrology scheme based on Richards (1931)
+ */
+typedef enum { GERTEN, MILLER, RICHARDS } hydrologytype;
+
+/// Type of energy calculation used 
+/**     One of:
+ *      CNSTEP_FULL
+ *      CNSTEP
+ *      BELDA
+ */
+typedef enum { CNSTEP_FULL, CNSTEP, BELDA} energytype;
+
+/// Type of water modifier for decomposition of soil organic matter used 
+/**     One of:
+ *      FRIEND          Standard soil moisture decomposition function based on Friend et al (1997)
+ *      YAN             A moisture function of soil heterotrophic respiration that incorporates 
+ *                      microscale processes based on Yan et al (2018)
+ */
+typedef enum { FRIEND, YAN } moistdecaytype;
 
 /// The type of disturbance regime.
 /**		One of:
@@ -143,6 +165,15 @@ extern firemodeltype firemodel;
 /// Weather Generator switch
 extern weathergeneratortype weathergenerator;
 
+/// Hydrology switch
+extern hydrologytype hydrology;
+
+/// Energy calculation switch
+extern energytype energy;
+
+/// Mater modifier for decomposition of soil organic matter switch
+extern moistdecaytype moistdecay;
+
 /// Whether "generic" patch-destroying disturbance enabled (individual, cohort mode)
 extern bool ifdisturb;
 
@@ -179,14 +210,14 @@ extern bool ifcdebt;
 /// Water uptake parameterisation
 extern wateruptaketype wateruptake;
 
-/// Parameterisation of root distribution
-extern rootdisttype rootdistribution;
-
 /// whether CENTURY SOM dynamics (otherwise uses standard LPJ formalism)
 extern bool ifcentury;
 
 /// whether plant growth limited by available N
 extern bool ifnlim;
+
+/// Whether daily leaf N retranslocation is allowed
+extern bool ifdailynretrans;
 
 /// number of years to allow spinup without nitrogen limitation
 extern int freenyears;
@@ -209,9 +240,9 @@ extern double frac_labile_carbon;
 extern double pH_soil;
 /// Maximum nitrification rate, 0.03,0.15
 extern double f_nitri_max;
-/// Constant in denitrification, 0.001,0.1
+/// Denitrification Michaelis–Menten constant for N oxides [kg N kg H2O-1], 0.000001,0.0001
 extern double k_N;
-/// Constant in temperature function for denitrification, 0.005,0.05
+/// Denitrification Michaelis–Menten constant for labile carbon [kg C kg H2O-1], 0.000005,0.00005
 extern double k_C;
 /// Maximum gaseus losses in nitrification
 extern double f_nitri_gas_max;
@@ -242,6 +273,9 @@ extern bool run[NLANDCOVERTYPES];
 
 /// Whether landcover fractions are not read from input file.
 extern bool lcfrac_fixed;
+
+/// Whether peat durations are read from input file.
+extern bool peatduration;
 
 /// Whether fractions of stand types of a specific land cover are not read from input file.
 extern bool frac_fixed[NLANDCOVERTYPES];
@@ -367,6 +401,10 @@ extern bool disturb_pasture;
 /// Whether to simulate cropland as pasture
 extern bool grassforcrop;
 
+/// Soil depth
+extern double depth_soil;
+
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Settings controlling the saving and loading from state files
 
@@ -445,15 +483,6 @@ extern bool ifevenlaidist;
 /// (Number of dormant+dead days)
 extern bool ifadaptive_rootdist;
 
-/// Whether DAVE mass balance diagnostics are enabled. This value is checked set
-/// to false at all times except during mass balance checks. This is the value
-/// which is checked in ccont(), ncont(), etc.
-extern bool ifdavediagnostics;
-
-/// Whether DAVE mass balance diagnostics are enabled. This parameter is bound
-/// to the instruction file parameter.
-extern bool _ifdavediagnostics;
-
 /// Whether tree N uptake should go into long-term storage pool.
 extern bool ifstoreuptake;
 
@@ -489,13 +518,40 @@ extern bool ifforcedlai;
 extern double fixed_lai;
 
 ///////////////////////////////////////////////////////////////////////////////////////
-// Arctic and wetland inputs
+// Soil, arctic and wetland inputs
 
-/// Use the original LPJ-GUESS v4 soil scheme, or not. If true, override many of the switches below.
-extern bool iftwolayersoil; 
+/// Whether to use fixed slope value (>=0 degree) or input data (<0)
+extern double slope;
+
+/// Variable infiltration capacity parameter (Global value 0.2, higher value gives lower infiltration and more surface runoff)
+extern double b_infilt;
+
+/// Calibration parameter for lateral drainage (-)
+extern double C_dw;
+
+/// Whether to consider bedrock as lower boundary condition for multilayer soil hydrology (1), or not (0)
+extern bool ifbedrock;
+
+/// Whether to consider supercooled soil water. 0 - not, 1 - Niuet al.2006 (CLM), 2 - Jin et al. 2020
+extern int ifsupercooled;
+
+/// Fraction of fine roots to be homogenously distributed in soil column
+extern double homrootdistfrac;
+
+/// Fraction of deep soil, beyond 1500mm, that roots have access to
+extern double rootfrac_of_deep_soil;
+
+/// Fraction of organic matter to move from receiver layer
+extern double receiver_frac;
 
 /// Use multilayer snow scheme, or the original LPJ-GUESS v4 scheme
 extern bool ifmultilayersnow;
+
+/// Whether to soak snowpack with melted water (1), or not (0)
+extern bool ifsoaksnow;
+
+/// Additional thickness ontop of snowpack to account for radiation energy
+extern double top_thickness;
 
 /// whether to reduce GPP if there's inundation (1), or not (0)
 extern bool ifinundationstress;
@@ -509,12 +565,28 @@ extern double wetland_runon;
 /// Whether methane calculations are included
 extern bool ifmethane;
 
-/// Whether soil C pool input is used to update soil properties
+/// Age of peat (0 peatland will be spun up to equilibrium)
+extern int peat_age;
+
+/// Whether to update physical soil properties using soil carbon content (1), or not (0)
 extern bool iforganicsoilproperties;
 
 /// Whether to take water from runoff to saturate low latitide wetlands
 extern bool ifsaturatewetlands;
 
+/// Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)
+extern bool ifeffvolume;
+
+/// Whether to use depth soil organic matter decay rate modifier
+extern bool ifdepthdecaymod;
+
+/// Whether thaw depth affects root distribution
+extern bool ifthawaffectrootdist;
+
+/// Cali k_max
+extern double surf_li_scalar;
+extern double soil_om_scalar;
+extern double moist_mod_anaerobic;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // The Paramlist class (and Paramtype)

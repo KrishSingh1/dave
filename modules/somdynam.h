@@ -18,9 +18,6 @@
 // computes the decomposition temperature modifier (in range 0-1)
 double temperature_modifier(double temp);
 
-// computes the decomposition moisture modifier (in range 0-1)
-double moisture_modifier(double wfps);
-
 void som_dynamics(Patch& patch, Climate& climate);
 
 // computes the fraction of leaf and root that goes to metabolic litter (used by BLAZE)
@@ -33,11 +30,5 @@ void leaf_to_litter(Soil& soil, const Pft &pft, double cmass_litter_leaf, double
 void root_to_litter(Soil& soil, const Pft &pft, double cmass_litter_root, double nmass_litter_root);
 void sap_to_litter(Soil& soil, const Pft &pft, double cmass_litter_sap, double nmass_litter_sap);
 void heart_to_litter(Soil& soil, const Pft &pft, double cmass_litter_heart, double nmass_litter_heart);
-
-// Leaf, root and wood litter lignin fractions
-// Leaf and root fractions: Comins & McMurtrie 1993; Friend et al 1997
-const double LIGCFRAC_LEAF = 0.2;
-const double LIGCFRAC_ROOT = 0.16;
-const double LIGCFRAC_WOOD = 0.3;	// TODO Check wood fraction
 
 #endif // LPJ_GUESS_SOMDYNAM_H

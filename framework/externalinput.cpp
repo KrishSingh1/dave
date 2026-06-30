@@ -256,6 +256,27 @@ void LandcoverInput::init(xtring file_gridlist) {
 							 * landcover_dynamics will call get_landcover() each year
 							 */
 
+	// No peatland allowed when using the two layer soil so treat the peatland fraction as natural
+	if (hydrology == GERTEN && run[PEATLAND]) {
+		fail("LandcoverInput::init(): do not set run_peatland to 1 in landcover.ins if hydrology is set to GERTEN");
+	}
+
+	// Active peatland and hydrology set to Richards, then check if peat duration input file exist
+	if (hydrology == RICHARDS && run[PEATLAND]) {
+		// Retrieve file name for peat duration and start date
+		file_peat = param["file_peat"].str;
+
+		if (file_peat != "") {
+			if (!Peatdata.Open(file_peat, gridlist)) {
+				fail("LandcoverInput::init(): could not open %s for input", (char*)file_peat);
+			}
+			else {
+				peatduration = true;
+			}
+		}
+	}
+
+
 	bool LU_input_present = false;
 
 	//Retrieve file names for landcover files and open them if static values from ins-file are not used
@@ -565,6 +586,13 @@ bool LandcoverInput::loadlandcover(double lon, double lat) {
 			else {
 				gross_input_present = true;
 			}
+		}
+	}
+
+	if (peatduration) {
+		// Load landcover area fraction data from input file to data object
+		if (!Peatdata.Load(c)) {
+			dprintf("Problems with peat duration input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n", c.lon, c.lat);
 		}
 	}
 
@@ -963,6 +991,14 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 		gcst.frac_change = gcst.frac - gcst.frac_old;
 		stlist.nextobj();
 	}
+
+	if (peatduration) {
+		if (date.year == 0) {	// Fixed through out time // DW_COMMENT need to work with restarts!!!
+			int year_fixed = Peatdata.GetFirstyear();
+			lc.wet_startday = Peatdata.Get(year_fixed, "Startday");
+			lc.wet_days = Peatdata.Get(year_fixed, "Days");
+		}
+	}
 }
 
 double LandcoverInput::get_crop_fractions(Gridcell& gridcell, int year, TimeDataD& CFTdata, double sum_tot) {
@@ -1052,7 +1088,7 @@ double LandcoverInput::get_crop_fractions(Gridcell& gridcell, int year, TimeData
 				StandType& st = stlist.getobj();
 				Gridcellst& gcst = gridcell.st[st.id];
 				if(st.landcover == CROPLAND) {
-					if(st.rotation.nmanagements == 1 && st.get_management(0).hydrology == RAINFED) {
+					if(st.rotation.nmanagements == 1 && st.get_management(0).wateruse == RAINFED) {
 						if(gridcell.get_lat() > 30 || gridcell.get_lat() < -30) {
 							if(pftlist[pftlist.getpftid(st.get_management(0).pftname)].tb <= 5) {
 								gcst.frac = 1.0;
@@ -2006,27 +2042,27 @@ void ManagementInput::init(xtring file_gridlist) {
 			readharvestdates = true;
 		}
 
-		file_Nfert=param["file_Nfert"].str;
-		if(	file_Nfert != "")	{
-			if(!Nfert.Open(file_Nfert, gridlist))
-				fail("initio: could not open %s for input",(char*)file_Nfert);
+		file_Nfert = param["file_Nfert"].str;
+		if (file_Nfert != "") {
+			if (!Nfert.Open(file_Nfert, gridlist))
+				fail("initio: could not open %s for input", (char*)file_Nfert);
 			readNfert = true;
 		}
-		if(param.find(xtring("file_NfertMan"))) {
-			file_NfertMan=param["file_NfertMan"].str;
-			if(	file_NfertMan != "")	{
-				if(!NfertMan.Open(file_NfertMan, gridlist))
-					fail("initio: could not open %s for input",(char*)file_NfertMan);
+		if (param.find(xtring("file_NfertMan"))) {
+			file_NfertMan = param["file_NfertMan"].str;
+			if (file_NfertMan != "") {
+				if (!NfertMan.Open(file_NfertMan, gridlist))
+					fail("initio: could not open %s for input", (char*)file_NfertMan);
 				readNman = true;
 			}
 		}
 	}
 
-	if(run_landcover) {
-		file_Nfert_st=param["file_Nfert_st"].str;
-		if(	file_Nfert_st != "")	{
-			if(!Nfert_st.Open(file_Nfert_st, gridlist))
-				fail("initio: could not open %s for input",(char*)file_Nfert_st);
+	if (run_landcover) {
+		file_Nfert_st = param["file_Nfert_st"].str;
+		if (file_Nfert_st != "") {
+			if (!Nfert_st.Open(file_Nfert_st, gridlist))
+				fail("initio: could not open %s for input", (char*)file_Nfert_st);
 			readNfert_st = true;
 		}
 		// See getwoodharvest() for input file format and content of text files
@@ -2111,15 +2147,15 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 		}
 	}
 
-	if(readNman && !LUerror) {
-		if(!NfertMan.Load(c)) {
-			dprintf("Manure data not found for %.2f,%.2f.\n",c.lon,c.lat);
+	if (readNman && !LUerror) {
+		if (!NfertMan.Load(c)) {
+			dprintf("N manure data not found for %.2f,%.2f.\n", c.lon, c.lat);
 		}
 	}
-	if(readNfert_st && !LUerror) {
-		if(!Nfert_st.Load(c)) {
-				dprintf("Problems with N fertilization input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
-				LUerror = true;	// skip this stand
+	if (readNfert_st && !LUerror) {
+		if (!Nfert_st.Load(c)) {
+			dprintf("Problems with N fertilization input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+			LUerror = true;	// skip this stand
 			dprintf("N fertilization data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
@@ -2248,9 +2284,9 @@ void ManagementInput::getNfert(Gridcell& gridcell) {
 		}
 	}
 
-	if(Nfert_st.isloaded()) {
-		for(int i=0; i<nst; i++)	{
-			gridcell.st[stlist[i].id].nfert = Nfert_st.Get(year,stlist[i].name);
+	if (Nfert_st.isloaded()) {
+		for (int i = 0; i < nst; i++) {
+			gridcell.st[stlist[i].id].nfert = Nfert_st.Get(year, stlist[i].name);
 		}
 	}
 }
@@ -2451,7 +2487,7 @@ void ManagementInput::getmanagement(Gridcell& gridcell, LandcoverInput& landcove
 		if(readharvestdates)		
 			getharvestdates(gridcell);
 		//Read N fertilization from input file, put into gridcellpft.Nfert_read
-		if(readNfert || readNfert_st)		
+		if (readNfert || readNfert_st)
 			getNfert(gridcell);
 	}
 	// Read wood harvest from input file, put into gridcell.landcover.wood_harvest struct

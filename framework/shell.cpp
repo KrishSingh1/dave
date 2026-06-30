@@ -61,6 +61,7 @@ void vlprintf(xtring format, va_list args) {
 	current_shell->vwrite_log((const char *)format, args);
 }
 
+[[noreturn]]
 void fail(xtring format,...) {
 	// printf-style function accessible throughout the model code.
 	// Sends text to currently chosen Shell, which prints it and
@@ -74,6 +75,10 @@ void fail(xtring format,...) {
 	va_end(v);
 
 	current_shell->fail(output);
+
+	// This is never hit, and Shell::fail() is [[noreturn]], but some compilers
+	// complain nonetheless.
+	std::abort();
 }
 
 
@@ -197,6 +202,7 @@ CommandLineShell::~CommandLineShell() {
 	}
 }
 
+[[noreturn]]
 void CommandLineShell::fail(const char* message) {
 	log_message(xtring(message)+"\n");
 	cleanupAtExit();

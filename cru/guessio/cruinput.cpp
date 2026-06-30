@@ -141,6 +141,11 @@ void CRUInput::init() {
 
 	soilinput.init(param["file_soildata"].str, translate_gridlist_to_coord(gridlist));
 
+	if (hydrology == RICHARDS) {
+		soilinput.init_depth(param["file_soildepth"].str, translate_gridlist_to_coord(gridlist));
+		soilinput.init_slope(param["file_soilslope"].str, translate_gridlist_to_coord(gridlist));
+	}
+
 	// Set timers
 	tprogress.init();
 	tmute.init();
@@ -475,6 +480,15 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 	// bvoc
 	if(ifbvoc){
 	  climate.dtr = ddtr[date.day];
+	}
+
+	// Calculate first years annual mean air temperature to be used to 
+	if (date.year == 0 || date.day == 0) {
+		double avr_temp = 0.0;
+		for (int d = 0; d < 365; d++) {
+			avr_temp += dtemp[d];
+		}
+		climate.temp_iaavr = avr_temp / 365.0;
 	}
 
 	// First day of year only ...

@@ -128,10 +128,10 @@ co2_delta                    0
 precip_scalar                1
 
 ! Interval in seconds between progress reports; 0 for yearly or -1 for daily.
-progress_interval            0
+progress_interval            20
 
 ! Force the use of newline characters to terminate progress messages. Useful for MPI runs.
-progress_newline             0
+progress_newline             1
 
 ! If enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.
 strict_math                  1
@@ -158,7 +158,7 @@ patch_output_stats           0
 verbosity                    3
 
 ! Maximum number of iterations to use in DAVE energy balance.
-energy_balance_maxiter       1
+energy_balance_maxiter       20
 
 ! Convergence criterion for DAVE energy balance (K). Iteration for tleaf will
 ! cease when the change in tleaf between iterations is less than this value.
@@ -322,7 +322,7 @@ import "landcover.ins"
 !import "warra_pfts.ins"
 ! also, comment out pft_commons.ins
 
-import "pft_dave.ins"
+import "pft_clare.ins"
 import "outputs_clare.ins"
 
 ! Uncomment this (and comment out all other pft .ins files) to use the standard

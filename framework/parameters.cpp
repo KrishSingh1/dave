@@ -791,6 +791,8 @@ void plib_declarations(int id,xtring setname) {
 			"Respiration coefficient (0-1)");
 		
 		///Dave Parameters
+		declareitem("vpmax_scal",&ppft->vpmax_scal,0.0,100.0,1,CB_NONE,
+			"Scalar for Vpmax25 (C4 photosynthesis only)");
 		// Subdaily photosynthesis parameters
 		declareitem("g0",&ppft->g0,0.0,1.0,1,CB_NONE,
 			"Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)");

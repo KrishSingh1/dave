@@ -212,7 +212,7 @@ void vcmax_from_N(Individual &indiv) {
 		} 
 		else if (indiv.pft.pathway == C4) {
 
-			indiv.ps_subdaily.vpmax25 = calc_vpmax25(nmass_leaf0);
+			indiv.ps_subdaily.vpmax25 = indiv.pft.vpmax_scal * calc_vpmax25(nmass_leaf0);
 
 		} else {
 			fail("Unknown photosynthetic pathway");
@@ -691,6 +691,9 @@ double calc_c4_ac_full(const C4Biochemistry &biochemistry,
 
 	double anc;
 	if (solve_quadratic(a_c, b_c, c_c, anc, true)) {
+		if (anc < -rd || anc > 2.0 * vcmax){
+			fail("implausible Anc value with the lower root!");
+		}
 		return anc;
 	}
 	log_warning("No solution to C4 photosynthesis quadratic equation for Ac. A value of -Rd (%g) will be used for Ac. a_c: %g, b_c: %g, c_c: %g",
@@ -757,6 +760,9 @@ double calc_c4_aj_full(const C4Biochemistry &biochemistry,
 
 	double anj;
 	if (solve_quadratic(a_j, b_j, c_j, anj, false)) {
+		if (anj < -rd || anj > biochemistry.jmax){
+			printf("implausible Anj value with the higher root!");
+		}
 		return anj;
 	}
 

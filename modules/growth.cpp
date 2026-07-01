@@ -390,7 +390,7 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstorage) {
 
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
-		double k_repr = 3.5;
+		double k_repr = 5.0;
 		double seed_target = k_repr * indiv.pft.reprfrac * indiv.cmass_crown_flowering;
 
 		indiv.fdev_growth = max(0.0, min(1.0, (1.0 - indiv.cmass_repr/seed_target)));

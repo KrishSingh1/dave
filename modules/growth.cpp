@@ -344,7 +344,8 @@ double dphen_activity(Individual &indiv, Climate& climate) {
 	const Historic<double,10> &wscal_10 = indiv.get_wscal_10();
 
 	// Threshold temperature for dormancy (base temperature same as dormancy threshold, depends on photosyn. pathway)
-	double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
+	//double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
+	double grass_temp = climate.temp;
 	double wscal_mean = indiv.get_wscal_moving_average();
 	double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
 
@@ -390,7 +391,7 @@ void dev_growth(Individual &indiv, Climate &climate, double frepr_cstorage) {
 
 	if (indiv.growth_stage == reproductive || indiv.growth_stage == dormant) {
 
-		double k_repr = 5.0;
+		double k_repr = 12.0;
 		double seed_target = k_repr * indiv.pft.reprfrac * indiv.cmass_crown_flowering;
 
 		indiv.fdev_growth = max(0.0, min(1.0, (1.0 - indiv.cmass_repr/seed_target)));
@@ -532,7 +533,9 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = vegetation.patch.pft[indiv.pft.id];
 
-		indiv.soiltemp_dynamic.add(vegetation.patch.soil.T_soil[7]);
+		// Driving temperature for grass phenology (air vs soil temp)
+		//indiv.soiltemp_dynamic.add(vegetation.patch.soil.T_soil[7]);  // temperature of first soil layer
+		indiv.soiltemp_dynamic.add(climate.temp);
 
 		if (pft.is_grass()) { 
 
@@ -5404,10 +5407,11 @@ void senescence_dave_grass(Individual &indiv) {
 	
 	// Senescence due to freezing and hot temperatures 
 	double senesc_ftemp = 0.0;
-	double Tfreeze = 2.0;
+	double Tfreeze = 2.0;  // mean daily temperature below which freezing is assumed to occur (see comment above)
     double Tcold = max(0.0, Tfreeze - grass_temp);               // freezing stress
 	double Theat = max(0.0, grass_temp - indiv.pft.T0_growth);   // heat stress
-    senesc_ftemp = pft.senesc_scal_temp * ((1.0 - exp(-Tcold / 3.0)) + (1.0 - exp(-pow(Theat / 12.0, 2.5))));
+	double senesc_freeze_scal = indiv.pft.pathway == C3 ? 0.5 : 1.0;   // less freezing stress for C3s
+    senesc_ftemp = pft.senesc_scal_temp * (senesc_freeze_scal * (1.0 - exp(-Tcold / 3.0)) + (1.0 - exp(-pow(Theat / 12.0, 2.5))));
 
 	// Dormancy-induced
 	double senesc_fdorm = 0.0;

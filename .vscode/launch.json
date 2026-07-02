@@ -2691,7 +2691,7 @@
                 "US-xWD.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-xWD",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/US-xWD",
             "environment": [],
             "externalConsole": false,
             "osx": {

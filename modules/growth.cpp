@@ -5423,8 +5423,8 @@ void senescence_dave_grass(Individual &indiv) {
 	double Tfreeze = 2.0;  // mean daily temperature below which freezing is assumed to occur (see comment above)
     double Tcold = max(0.0, Tfreeze - grass_temp);               // freezing stress
 	double Theat = max(0.0, grass_temp - indiv.pft.T0_growth);   // heat stress
-	double senesc_freeze_scal = indiv.pft.pathway == C3 ? 0.5 : 1.0;   // less freezing stress for C3s
-    senesc_ftemp = pft.senesc_scal_temp * (senesc_freeze_scal * (1.0 - exp(-Tcold / 3.0)) + (1.0 - exp(-pow(Theat / 12.0, 2.5))));
+	double senesc_freeze_scal = indiv.pft.pathway == C3 ? max(0.0,min(1.0,1.0 - 0.25 * (pft.temp_dormancy - indiv.temp_dormancy))) : 1.0;   // less freezing stress for C3s
+	senesc_ftemp = pft.senesc_scal_temp * (senesc_freeze_scal * (1.0 - exp(-Tcold / 3.0)) + (1.0 - exp(-pow(Theat / 12.0, 2.5))));
 
 	// Dormancy-induced
 	double senesc_fdorm = 0.0;

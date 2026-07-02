@@ -316,7 +316,7 @@ double photo_growth(double reldaylength, double daylength_diff) {
 	return 1.0;
 }
 
-
+// Functions calculating traits based on the environment (i.e. making them adaptive)
 double calc_dphen_activity_max(double dphen_activity_base, double dphen_activity_pot,
 	                           double k, size_t window_length, size_t window_length_min){
 	return dphen_activity_base + (dphen_activity_pot - dphen_activity_base) * exp(-k * (window_length - window_length_min));
@@ -324,7 +324,11 @@ double calc_dphen_activity_max(double dphen_activity_base, double dphen_activity
 
 double calc_max_mobil_cstorage(double max_mobil_base, double max_mobil_pot,
 	double k, size_t window_length, size_t window_length_min){
-return max_mobil_base + (max_mobil_pot - max_mobil_base) * exp(-k * (window_length - window_length_min));
+	return max_mobil_base + (max_mobil_pot - max_mobil_base) * exp(-k * (window_length - window_length_min));
+}
+
+double calc_temp_dormancy(double temp_dormancy_base, double mtemp_min20){
+	return temp_dormancy_base + min(0.0, max(-3.0,mtemp_min20 * 0.3));
 }
 
 
@@ -347,11 +351,11 @@ double dphen_activity(Individual &indiv, Climate& climate) {
 	//double grass_temp = indiv.vegetation.patch.soil.T_soil[7];   // Temperature of first soil layer
 	double grass_temp = climate.temp;
 	double wscal_mean = indiv.get_wscal_moving_average();
-	double tscal_crit = temp_growth(indiv.pft.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.pft.temp_dormancy);
+	double tscal_crit = temp_growth(indiv.temp_dormancy,indiv.pft.Ha_growth,indiv.pft.T0_growth,indiv.pft.A_growth,indiv.temp_dormancy);
 
 	//double wscal_actual = wscal_growth(wscal_mean);
 	double wscal_actual = wscal_mean;
-	double tscal_actual = temp_growth(indiv.soiltemp_dynamic.mean(), indiv.pft.Ha_growth, indiv.pft.T0_growth, indiv.pft.A_growth,indiv.pft.temp_dormancy);
+	double tscal_actual = temp_growth(indiv.soiltemp_dynamic.mean(), indiv.pft.Ha_growth, indiv.pft.T0_growth, indiv.pft.A_growth,indiv.temp_dormancy);
 
 	// Changes in physiological activity due to changes in dormancy status
 	double denom_wscal = wscal_actual >= wscal_min ? pow((1.0 - wscal_min), 1.5) : wscal_min;
@@ -421,7 +425,7 @@ double move_toward(double current, double target, double max_change) {
 
 // Adjust window length for moving averages of soil temperature and
 // water scalar.
-void adjust_response_window(Individual &indiv) {
+void adjust_response_window(Individual &indiv, Climate &climate) {
 	Patchpft &ppft = indiv.patchpft();
 
 	// Only grasses respond dynamically to the growing conditions (for
@@ -455,16 +459,25 @@ void adjust_response_window(Individual &indiv) {
 		calc_root_distribution(indiv.root_beta, indiv.rootdist);
 
 		// Calculate dphen_activity_max (Maximum physiological up/down-regulation in and out of dormancy)
-		// based on window length (quicker responses with shorter window lengths).
+		// based on window length (quicker responses with shorter window lengths) as well as
+		// max. C mobilisation rate (also faster with shorter window lengths).
 		double k = 0.4;  // decline rate
         indiv.dphen_activity_max = calc_dphen_activity_max(indiv.pft.dphen_activity_max, 0.4,
 			                                               k, response_window, 2);
 		indiv.max_mobil_cstorage = calc_max_mobil_cstorage(indiv.pft.max_mobil_cstorage, 0.4,
-														   k, response_window, 2);												   
+														   k, response_window, 2);
+											
+		// lower dormancy threshold temperature for C3 grasses in cold environments
+		if (indiv.pft.pathway == C3){  // only adjust for C3s for now. Could implement something similar for C4s.
+			indiv.temp_dormancy = calc_temp_dormancy(indiv.pft.temp_dormancy,climate.mtemp_min20);
+		} else {
+			indiv.temp_dormancy = indiv.pft.temp_dormancy;
+		}
+
 	}
 }
 
-void state_accounting_dave(Vegetation &vegetation) {
+void state_accounting_dave(Vegetation &vegetation, Climate &climate) {
 	// Keeping track of long-term stress factors and the response window are only required if the
 	// adaptive root distribution for grasses is enabled.
 	// Note: this wouldn't work with multiple cohorts at the moment!
@@ -506,7 +519,7 @@ void state_accounting_dave(Vegetation &vegetation) {
 
 		// Adjust window length for moving averages of soil temperature and
 		// water scalar.
-		adjust_response_window(indiv);
+		adjust_response_window(indiv, climate);
 	}
 }
 
@@ -627,7 +640,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 		vegetation.nextobj();
 	}
 
-	state_accounting_dave(vegetation);
+	state_accounting_dave(vegetation, climate);
 }
 
 void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
@@ -3557,7 +3570,7 @@ double growth_demand(Individual& indiv) {
 	// ------------------------------
 	// Factors determining growth demand
 	fwater_growth = wscal_growth(indiv.get_wscal(), wscal0, bgrowth);
-	ftemp_growth  = temp_growth(grass_temp, pft.Ha_growth, pft.T0_growth, pft.A_growth,indiv.pft.temp_dormancy);
+	ftemp_growth  = temp_growth(grass_temp, pft.Ha_growth, pft.T0_growth, pft.A_growth,indiv.temp_dormancy);
 	fphoto_growth = photo_growth(ppft.reldaylength, ppft.daylength_10.periodictrend(1));  // set to 1.0 
 	//dev_growth(indiv, indiv.frepr_cstruct); // indiv.fdev_growth now calculated in phenology_grass_dave beforehand!
 

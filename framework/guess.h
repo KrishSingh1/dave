@@ -3883,6 +3883,7 @@ public:
 	double anj_frac;
 	double anp_frac;
 
+	/// Adaptive parameters (i.e. changing with the environment)
 	/// Adaptive N-day moving avegage of soil temperature.
 	HistoricDynamic<double> soiltemp_dynamic;
 	/// Dynamic root beta value used in dave version.
@@ -3891,6 +3892,8 @@ public:
 	double dphen_activity_max;
 	// Maximum C storage remobilisation rate (d-1)
 	double max_mobil_cstorage;
+	// Dormancy temperature (deg C)
+	double temp_dormancy;
 
 	/// Dynamic root distribution used in dave version. This is the fraction of
 	/// roots in each soil layer.

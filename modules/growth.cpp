@@ -362,7 +362,7 @@ double dphen_activity(Individual &indiv, Climate& climate) {
 	double num_wscal   = wscal_actual >= wscal_min ? pow((wscal_actual - wscal_min), 1.5) : (wscal_actual - wscal_min);
 
 	double tscal = tscal_actual > tscal_crit ? tscal_actual : (tscal_actual - tscal_crit) / tscal_crit;
-	tscal = tscal > 0.0 ? pow(tscal, 0.5) : tscal;
+	tscal = tscal > 0.0 ? pow(tscal, 0.25) : tscal;
 	double wscal = num_wscal / denom_wscal;
 
 	assert(tscal >= -1.0 && tscal <= 1.0);

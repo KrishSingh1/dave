@@ -57,7 +57,7 @@ const double cstorage_max_temp = 0.3;   // leaves and roots
 const double cstorage_max_perm = 0.75;  // crowns
 
 // Water response parameters for growth and developmental processes
-const double wscal0 = 0.7;    // inflection point
-const double bgrowth = 0.08;   // steepness around wscal0
+const double wscal0 = 0.7;     // inflection point
+const double bgrowth = 0.07;   // steepness around wscal0
 
 #endif // LPJ_GUESS_GROWTH_H

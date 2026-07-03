@@ -170,7 +170,7 @@ const double HA_GS = 37.83;  // Gamma* (Bernacchi et al. 2001)
 const double HD = 200.0;
 
 // Exponents in soil water stress function (wscal^q)
-const double qs = 0.5;   // stomatal conductance
+// const double qs = 0.5;    // stomatal conductance --> moved to ins file as pft parameter
 const double qb = 1.0;   // biochemistry, including Rd - default is 1.0, CS testing change
 
 /// -----------------------------------------------

@@ -2453,6 +2453,8 @@ public:
 	double gcutic;
     /// Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)
     double g1;
+	/// Stomatal sensitivity to water stress (0-1)
+	double qs;
 	/// Stomatal intercept parameter at leaf water potential = -0.3 Mpa (Zhou et al. 2014), (kPa^0.5)
     double g1x;
 	/// maximum evapotranspiration rate (mm/day)
@@ -3038,6 +3040,7 @@ public:
 		g0=0.0;
 		g1=0.0;
 		gcutic=0.0;
+		qs=0.0;
 
 		stom_clos=0.0;
 		p50=0.0;

@@ -801,6 +801,8 @@ void plib_declarations(int id,xtring setname) {
 		// Subdaily photosynthesis parameters, Zhou model
 		declareitem("g1x",&ppft->g1x,0,20.0,1,CB_NONE,
 			"g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), units are (kPa^0.5)");
+		declareitem("qs",&ppft->qs,0,5.0,1,CB_NONE,
+			"Stomatal sensitivty to water stress (0-1)");
 		// Hydraulic parameters
 		declareitem("stom_clos",&ppft->stom_clos,-1000.0,0.0,1,CB_NONE, 
 			"Water potential at which stomatal close and roots disconnect from soil (MPa)");

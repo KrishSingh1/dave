@@ -353,7 +353,7 @@ void get_temp_acclimation_parameters(const Climate &climate, const Pft &pft,
 Calculate stomatal term (Medlyn et al. 2011).
 X needs to represent gs for CO2, hence no 1.6 factor.
 */
-double stomatal_conductance_term(double wscal, double g1, double vpd, double ca) {
+double stomatal_conductance_term(double wscal, double g1, double qs, double vpd, double ca) {
 	return divide(1.0 + divide(pow(wscal, qs) * g1, sqrt(max(vpd, 0.1))), ca);
 }
 
@@ -362,7 +362,7 @@ Residual stomatal conductance term.
 Note: g0 is for H20, here conversion to conductances to CO2.
 TODO: do we need a different qs here?
 */
-double stomatal_conductance_residual(double g0, double wscal) {
+double stomatal_conductance_residual(double g0, double qs, double wscal) {
 	return divide(max(0.0, g0 * pow(wscal, qs)), DWDC);
 }
 
@@ -1054,12 +1054,12 @@ PhotosynthesisDiagnostics get_photosynthesis_inputs(const CohortState &cohort,
 	} else {
 		// Stomatal term (Medlyn et al. 2011)
 		// X needs to represent gs for CO2, hence no 1.6 factor
-		inputs.X = stomatal_conductance_term(inputs.wscal, pft.g1, inputs.vpd, inputs.ca);
+		inputs.X = stomatal_conductance_term(inputs.wscal, pft.g1, pft.qs, inputs.vpd, inputs.ca);
 
 		// Residual stomatal conductance term
 		// Note: g0 is for H20, here conversion to conductances to CO2
 		// TODO: do we need a different qs here?
-		inputs.gdark = stomatal_conductance_residual(pft.g0, inputs.wscal);
+		inputs.gdark = stomatal_conductance_residual(pft.g0, pft.qs, inputs.wscal);
 	}
 
 	// LAI of this individual in this layer.

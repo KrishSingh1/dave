@@ -377,7 +377,7 @@ group "grass" (
 	crelocfrac 0
 
 	! Baseline senescence rate for dave grasses (d-1).
-	senesc_base 0.0005
+	senesc_base 0.0004
 
 	! Senescence coefficient for dormancy in dave grasses. Senescence rate is
 	! increased by this factor when phenology is changing at the maximum rate.
@@ -437,6 +437,9 @@ group "C3G" (
 
 	! Stomatal slope parameter (Lin et al. 2015) (kPa^0.5).
 	g1 4.5
+
+	! Stomatal sensitivity to water deficit (0-1). See Ripley et al. 2013, JXB.
+	qs 0.75
 
 	! Cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma
 	! et al. (2019)) (mol m-2 s-1).
@@ -578,6 +581,9 @@ group "C4G" (
 
 	! Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5).
 	g1 1.62
+
+	! Stomatal sensitivity to water deficit (0-1). See Ripley et al. 2013, JXB.
+	qs 0.5
 
 	! Cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma
 	! et al. (2019)) (mol m-2 s-1).

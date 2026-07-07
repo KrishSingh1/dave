@@ -4782,6 +4782,7 @@ void ndemand_grass(Individual &indiv) {
 		cton_demand_crown = (1.0 - nstorage_fill) * (indiv.pft.cton_root_max - indiv.pft.cton_root_min) + indiv.pft.cton_root_min;
 		cton_demand_repr = (1.0 - nstorage_fill) * (indiv.pft.cton_repr_max - indiv.pft.cton_repr_min) + indiv.pft.cton_repr_min;
 
+		// N demand for new growth
 		ngrow_demand_leaf  = indiv.cgrow_leaf / cton_demand_leaf;
 		ngrow_demand_root  = indiv.cgrow_root / cton_demand_root;
 		ngrow_demand_crown = indiv.cgrow_crown / cton_demand_crown;
@@ -6355,12 +6356,16 @@ void storage_overflow(Individual& indiv) {
 // Calculates downregulation factors applied to photosynthetic parameters.
 void sink_source_feedback(Individual& indiv) {
 	
-	double dpslim = 0.00;
-	double qf2 = 100.0;
-	double cstorage_fill = Cstorage_fillfrac(indiv);
+	//double dpslim = 0.00;
+	//double qf2 = 100.0;
+	//double cstorage_fill = Cstorage_fillfrac(indiv);
+	double slim_max = 0.4;
 
-	indiv.ps_sink_lim = min(1.0, (1.0 + dpslim - 2.0 * dpslim * pow(indiv.fphen_activity*cstorage_fill,qf2)) * indiv.ps_sink_lim);
-
+	//indiv.ps_sink_lim = min(1.0, (1.0 + dpslim - 2.0 * dpslim * pow(indiv.fphen_activity*cstorage_fill,qf2)) * indiv.ps_sink_lim);
+	double excess_strength = 0;
+	if (indiv.cexcess_npp_5.size() > 1) {
+		indiv.ps_sink_lim = max(0.0, 1.0 - min(indiv.cexcess_npp_5.mean(),slim_max));
+	}
 } 
 
 
@@ -6418,7 +6423,7 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 		indiv.cmass_repr_10.add(indiv.cmass_repr);
 		indiv.frac_germ = 0.0;  // reset in vegdynam.cpp if > 0.0
 
-		indiv.cgrow_repr_20.add(indiv.cgrow_repr);
+		indiv.cexcess_npp_5.add(indiv.cexcess / max(1.0e-12,indiv.dnpp));
 
 	}
 }

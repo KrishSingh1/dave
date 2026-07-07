@@ -2231,6 +2231,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cgrow_pot
 		& lai_20
 		& cmass_storage_20
+		& cexcess_npp_5
 		& cstorage_dynam_14
 		& cstorage_max
 		& nmass_storage

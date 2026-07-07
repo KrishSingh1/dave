@@ -3949,8 +3949,8 @@ public:
 	Historic<double, 20> cmass_storage_20;
 	/// 10-day record of daily reproduction pool (kgC/m2/d)
 	Historic<double, 10> cmass_repr_10;
-	/// 20-day record of daily cgrow reproduction (kgC/m2/d)
-	Historic<double, 20> cgrow_repr_20;
+	/// 5-day record of excess C relative to NPP (cexcess/npp)
+	Historic<double, 5> cexcess_npp_5;
 	/// 14-day record of storage dynamics (kgC/m2/d)
 	Historic<double, 14> cstorage_dynam_14;
 	/// Maximum capacity of C storage pool (kgC/m2)

@@ -5043,21 +5043,18 @@ double fnavail_dave(const Individual &indiv) {
 }
 
 /*
-Calculate the N stress for grass. 1 = max stress, 0 = no stress.
+Calculate the N stress for grass. 0 = max stress, 1 = no stress.
 */
 double nstress_dave_grass(const Individual &indiv) {
-	// Account for negative feedback of N limitation on nstress calculation (nstress = nmass_storage / (1/Nfeedback) * ndemand)
-	// TODO: clean this up. Maybe make calculation of qf1 a separate function.
-	//nstress = max(0.0,min(1.0,(indiv.nmass_storage / (indiv.ndemand - indiv.storendemand))));
-	double nstorage_fill = Nstorage_fillfrac(indiv);
-	double qf1 = indiv.growth_stage == vegetative ? 0.1 : 1.5 - indiv.fdev_growth;
-	double N_feedback = pow(nstorage_fill,qf1);
-	double nstress = N_feedback * indiv.nmass_storage / (indiv.ndemand - indiv.storendemand);
+	// N stress is calculated based on how many days of N reserves we have, given the current N demand (reserve_days).
+	double reserve_days = indiv.nmass_storage / (max(1e-15,indiv.ndemand - indiv.storendemand));
+	double reserve_days_50 = 2.0; // number of reserve days that give stress of 0.5
+	double nstress = 1.0 / (1.0 + exp(-(reserve_days - reserve_days_50)));
 	return max(0.0, min(1.0, nstress));
 }
 
 /*
-Calculate the N stress for trees. 1 = max stress, 0 = no stress.
+Calculate the N stress for trees. 0 = max stress, 1 = no stress.
 */
 double nstress_dave_tree(const Individual &indiv) {
 	// N stress for trees based on how far the leaf N is below the max N:C.

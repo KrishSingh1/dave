@@ -4738,13 +4738,11 @@ double constrain_cton(double cmass, double nmass, double cton_min, double cton_m
 }
 
 void ndemand_grass(Individual &indiv) {
-	const double frac_nchange = 0.01;   // TODO: better to express as C:N? Zaehle as reference?
-	const double max_update_growth = 0.1;
+	
+	const Pft &pft = indiv.pft;
 
-	// update growth depending on N stress of plant
-	// TODO JK: double check cases where nmass_storage > nstorage_max!!
-	// TODO JK: constrain cton ratio ;) 
-	double nstorage_fill = min(0.999999, max(0.000001, (indiv.nmass_storage / indiv.nstorage_max)));
+	// Parameters
+	const double frac_nchange = 0.10;
 
 	// Local	
 	double cton_demand_leaf = 0.0;
@@ -4756,6 +4754,18 @@ void ndemand_grass(Individual &indiv) {
 	double ngrow_demand_root  = 0.0;
 	double ngrow_demand_repr  = 0.0;
 	double ngrow_demand_crown = 0.0;
+
+	// update growth depending on N stress of plant
+	// TODO JK: double check cases where nmass_storage > nstorage_max!!
+	// TODO JK: constrain cton ratio ;) 
+	double nstorage_fill = min(0.999999, max(0.000001, (indiv.nmass_storage / indiv.nstorage_max)));
+
+	//double fN_storage = (1.0 - sqrt(nstorage_fill));
+	double fN_storage = (1.0 - nstorage_fill);
+	cton_demand_leaf = fN_storage * (indiv.pft.cton_leaf_max - indiv.pft.cton_leaf_min) + indiv.pft.cton_leaf_min;
+	cton_demand_root = fN_storage * (indiv.pft.cton_root_max - indiv.pft.cton_root_min) + indiv.pft.cton_root_min;
+	cton_demand_crown = fN_storage * (indiv.pft.cton_root_max - indiv.pft.cton_root_min) + indiv.pft.cton_root_min;
+	cton_demand_repr = fN_storage * (indiv.pft.cton_repr_max - indiv.pft.cton_repr_min) + indiv.pft.cton_repr_min;
 
 	// N demand of new growth
 	if (!negligible(indiv.cgrow)) {
@@ -4777,11 +4787,6 @@ void ndemand_grass(Individual &indiv) {
 			indiv.pft.cton_repr_min, indiv.pft.cton_repr_max,
 			indiv.cgrow_repr);
 		
-		cton_demand_leaf = (1.0 - nstorage_fill) * (indiv.pft.cton_leaf_max - indiv.pft.cton_leaf_min) + indiv.pft.cton_leaf_min;
-		cton_demand_root = (1.0 - nstorage_fill) * (indiv.pft.cton_root_max - indiv.pft.cton_root_min) + indiv.pft.cton_root_min;
-		cton_demand_crown = (1.0 - nstorage_fill) * (indiv.pft.cton_root_max - indiv.pft.cton_root_min) + indiv.pft.cton_root_min;
-		cton_demand_repr = (1.0 - nstorage_fill) * (indiv.pft.cton_repr_max - indiv.pft.cton_repr_min) + indiv.pft.cton_repr_min;
-
 		// N demand for new growth
 		ngrow_demand_leaf  = indiv.cgrow_leaf / cton_demand_leaf;
 		ngrow_demand_root  = indiv.cgrow_root / cton_demand_root;
@@ -4794,27 +4799,55 @@ void ndemand_grass(Individual &indiv) {
 		ngrow_demand_repr  = 0.0;
 	}
 
-	// N demand of existing biomass (weight by current activity (growth) of the tissue?)
-	double nupdate_demand_leaf  = max(0.0, indiv.get_cmass_leaf() / indiv.pft.cton_leaf_min - indiv.get_nmass_leaf()) * frac_nchange;
-	double nupdate_demand_root  = max(0.0, indiv.cmass_root / indiv.pft.cton_root_min - indiv.nmass_root) * frac_nchange;
-	double nupdate_demand_crown = max(0.0, indiv.cmass_crown / indiv.pft.cton_root_min - indiv.nmass_crown) * frac_nchange;
-	double nupdate_demand_repr  = max(0.0, indiv.cmass_repr / indiv.pft.cton_repr_min - indiv.nmass_repr) * frac_nchange;
+	// N demand of existing biomass
+	// We allow this value to be negative to allow for active retranslocation of N within the plant
+	// This often applies to cases where new growth is limited by N but existing tissues have plenty.
+	double nupdate_demand_leaf  = (indiv.get_cmass_leaf() / cton_demand_leaf - indiv.get_nmass_leaf()) * frac_nchange;
+	double nupdate_demand_root  = (indiv.cmass_root / cton_demand_root - indiv.nmass_root) * frac_nchange * 0.5;
+	double nupdate_demand_crown = (indiv.cmass_crown / cton_demand_crown - indiv.nmass_crown) * frac_nchange * 0.5;
+	double nupdate_demand_repr  = (indiv.cmass_repr / cton_demand_repr - indiv.nmass_repr) * frac_nchange * 0.01;
 
-	// Make sure that nupdate_demands do not exceed N demands for growth (i.e. prioritise growth over existing biomass)
-	// Otherwise plants could not grow if C:N of the existing biomass is high.
-	// Alternatively, one could ask for the min C:N for new growth and not update existing biomass.
-	double ngrow_demand_growth_total = ngrow_demand_leaf + ngrow_demand_root + ngrow_demand_crown + ngrow_demand_repr;
-	double ngrow_demand_update_total = max(0.0, nupdate_demand_leaf + nupdate_demand_root + nupdate_demand_crown + nupdate_demand_repr);
-	double growth_update_ratio = min(max_update_growth, ngrow_demand_growth_total / ngrow_demand_update_total);
+	// Calculate total N demand from growth and redistribution
+	double ntotal_demand_leaf = ngrow_demand_leaf + nupdate_demand_leaf;
+	double ntotal_demand_root = ngrow_demand_root + nupdate_demand_root;
+	double ntotal_demand_crown = ngrow_demand_crown + nupdate_demand_crown;
+	double ntotal_demand_repr = ngrow_demand_repr + nupdate_demand_repr;
+
+	// If demand is negative, give N back to storage and set demand to 0.
+	if (ntotal_demand_leaf < 0.0) {
+		indiv.nmass_storage += -ntotal_demand_leaf;
+		if (pft.is_grass() || pft.lifeform == MOSS) {
+			indiv.nmass_leafs[green] += ntotal_demand_leaf;
+		} else {
+			indiv.nmass_leaf += ntotal_demand_leaf;
+		}
+		ntotal_demand_leaf = 0.0;
+	}
+	if (ntotal_demand_root < 0.0) {
+		indiv.nmass_storage += -ntotal_demand_root;
+		indiv.nmass_root += ntotal_demand_root;
+		ntotal_demand_root = 0.0;
+	}
+	if (ntotal_demand_crown < 0.0) {
+		indiv.nmass_storage += -ntotal_demand_crown;
+		indiv.nmass_crown += ntotal_demand_crown;
+		ntotal_demand_crown = 0.0;
+	}
+	if (ntotal_demand_repr < 0.0) {
+		indiv.nmass_storage += -ntotal_demand_repr;
+		indiv.nmass_repr += ntotal_demand_repr;
+		ntotal_demand_repr = 0.0;
+	}
+	// TODO: do we need to check for stoichiometry here or can we rely on the one in update_pools?
 
 	// Take N demand of storage into account
 	indiv.storendemand = max(0.0, indiv.nstorage_max - indiv.nmass_storage);
 
 	// Total biomass N demand of individual
-	indiv.leafndemand  = ngrow_demand_leaf + nupdate_demand_leaf * growth_update_ratio;
-	indiv.rootndemand  = ngrow_demand_root + nupdate_demand_root * growth_update_ratio;
-	indiv.crownndemand = ngrow_demand_crown + nupdate_demand_crown * growth_update_ratio;
-	indiv.reprndemand  = ngrow_demand_repr + nupdate_demand_repr * growth_update_ratio;
+	indiv.leafndemand  = ntotal_demand_leaf;
+	indiv.rootndemand  = ntotal_demand_root;
+	indiv.crownndemand = ntotal_demand_crown;
+	indiv.reprndemand  = ntotal_demand_repr;
 	indiv.ndemand      = indiv.leafndemand + indiv.rootndemand + indiv.crownndemand + indiv.reprndemand + indiv.storendemand;
 
 }

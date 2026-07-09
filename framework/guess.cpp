@@ -3593,7 +3593,7 @@ void Individual::kill(bool harvest /* = false */) {
 		ppft.cmass_litter_root += cmass_storage;	// storage growth to litter
 		if (ifdavegrowth) {
 			ppft.cmass_litter_leaf += cmass_leafs[brown];
-			flush_repr_litter_DAVE();
+			flush_repr_litter_DAVE(1.0);
 		} else {
 			ppft.cmass_litter_leaf += cmass_leafs[3];	// add senescing leaves and growth storage to litter
 		}
@@ -3807,8 +3807,9 @@ void Individual::kill(bool harvest /* = false */) {
 }
 
 // Flush reproductive carbon and nitrogen to ppft-level reproductive litter (=seedbank).
-// Happens every year at the end of the reproductive period.
-void Individual::flush_repr_litter_DAVE() {
+// Happens every day (flush_fraction = daily turnover) as well as at the end of 
+// the reproductive period or after mortality (flush_fraction - 1.0).
+void Individual::flush_repr_litter_DAVE(double flush_fraction) {
 
 	Patchpft &ppft = patchpft();
 
@@ -3816,30 +3817,38 @@ void Individual::flush_repr_litter_DAVE() {
 		return;
 	}
 
+	// C and N removed from the repr. pool 
+	double cflush_removed = flush_fraction * cmass_repr;
+	double nflush_removed = flush_fraction * nmass_repr;
+
+	// C and N going to litter or seedbank (can be higher than the one removed from the repr.pool because of initialc and initialn)
+	double cflush_export = cflush_removed;
+	double nflush_export = nflush_removed;
+
 	// Time to pay our debts.
 	if (initialc > 0) {
-		double cvoid = min(cmass_repr, initialc);
-		cmass_repr -= cvoid;
+		double cvoid = min(cflush_export, initialc);
+		cflush_export -= cvoid;
 		initialc -= cvoid;
 		vegetation.patch.fluxes.report_flux(Fluxes::ESTC, cvoid);
 		ctolitter += cvoid; // For mass balance checks; not an actual pool
 	}
 
 	if (initialn > 0) {
-		double nvoid = min(nmass_repr, initialn);
-		nmass_repr -= nvoid;
+		double nvoid = min(nflush_export, initialn);
+		nflush_export -= nvoid;
 		initialn -= nvoid;
 		vegetation.patch.fluxes.report_flux(Fluxes::ESTN, nvoid);
 		ntolitter += nvoid; // For mass balance checks; not an actual pool
 	}
 
-	// only a fraction of cmass_repr (actual seeds) goes to the seedbank.
+	// only a fraction of cmass_export (actual seeds) goes to the seedbank.
 	// the rest (e.g. panicles, husks) goes to the litter pool.
-	double cflux_seed = pft.frac_seed * cmass_repr;
-	double nflux_seed = pft.frac_seed * nmass_repr;
+	double cflux_seed = pft.frac_seed * cflush_export;
+	double nflux_seed = pft.frac_seed * nflush_export;
 
-	double cflux_litter = cmass_repr - cflux_seed;
-	double nflux_litter = nmass_repr - nflux_seed; 
+	double cflux_litter = cflush_export - cflux_seed;
+	double nflux_litter = nflush_export - nflux_seed; 
 
 	ppft.cmass_litter_repr += cflux_seed;
 	ppft.nmass_litter_repr += nflux_seed;
@@ -3847,17 +3856,17 @@ void Individual::flush_repr_litter_DAVE() {
 	ppft.cmass_litter_leaf += cflux_litter;
 	ppft.nmass_litter_leaf += nflux_litter;			
 
-	assert(equal(cmass_repr, cflux_seed + cflux_litter));
-	assert(equal(nmass_repr, nflux_seed, nflux_litter));
+	assert(equal(cflush_export, cflux_seed + cflux_litter));
+	assert(equal(nflush_export, nflux_seed + nflux_litter));
 
-	ctolitter += cmass_repr;
-	ntolitter += nmass_repr;
+	ctolitter += cflush_export;
+	ntolitter += nflush_export;
 
-	cturnover_repr = cmass_repr;
-	nturnover_repr = nmass_repr;
+	cturnover_repr = cflush_export;
+	nturnover_repr = nflush_export;
 
-	cmass_repr = 0.0;
-	nmass_repr = 0.0;
+	cmass_repr -= cflush_removed;
+	nmass_repr -= nflush_removed;
 }
 
 void Individual::daily_accounting() {

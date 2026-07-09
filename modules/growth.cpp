@@ -628,7 +628,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
  
                 // flush reproductive tissue to seedbank.
                 if (indiv.growth_stage != reproductive && indiv.cmass_repr > 0.0) {
-                    indiv.flush_repr_litter_DAVE();
+                    indiv.flush_repr_litter_DAVE(1.0);
 				}
 			}
 			indiv.growth_stage_days += 1;
@@ -3015,7 +3015,7 @@ void growth(Stand& stand, Patch& patch) {
 				if (indiv.cmass_leaf_ymax < MINCMASS || indiv.cmass_root_ymax < MINCMASS || indiv.cmass_leaf_ygrowth < MINCMASS) {
 
 					if (ifdavegrowth) {
-						indiv.flush_repr_litter_DAVE();
+						indiv.flush_repr_litter_DAVE(1.0);
 					}
 
 					log_info("%s killed by carbon starvation...", (const char *)indiv.pft.name);
@@ -6185,7 +6185,7 @@ void turnover_dave_tree(Individual &indiv) {
 	// // reproductiove pool into the litter. possible do a trend rather than all 
 	// // at once.
 	// if (indiv.cgrow_repr_20.periodictrend(20) < 0) {
-	// 	indiv.flush_repr_litter_DAVE();
+	// 	indiv.flush_repr_litter_DAVE(1.0);
 	// }
 
 	assert(indiv.cmass_leaf >= 0);
@@ -6741,7 +6741,7 @@ void annual_accounting_dave(Vegetation& vegetation) {
 			indiv.deltafpc = 0.0;
 
 			if (indiv.pft.lifeform == TREE) {
-				indiv.flush_repr_litter_DAVE();
+				indiv.flush_repr_litter_DAVE(1.0);
 			}
 		} // Last day of year
 	}

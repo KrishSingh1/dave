@@ -4363,7 +4363,7 @@ public:
 	}
 
 	// Flush reproductive pool to litter
-	void flush_repr_litter_DAVE();
+	void flush_repr_litter_DAVE(double flush_fraction);
 
 	/// Whether harvest and turnover is done on actual C and N on harvest or turnover day, which can occur any day of the year.
 	bool has_daily_turnover() const;

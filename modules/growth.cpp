@@ -610,7 +610,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				// stop reproductive phase either 
 				// a) at the onset of dormancy
                 // b) repr pool does not increase any longer
-                repr_trend = indiv.cmass_repr_10.size() > 9 ? indiv.cmass_repr_10.periodictrend(10)/indiv.cmass_repr_10.mean() : 1.0;
+                //repr_trend = indiv.cmass_repr_10.size() > 9 ? indiv.cmass_repr_10.periodictrend(10)/indiv.cmass_repr_10.mean() : 1.0;
 
                 // dormancy
                 if (equal(indiv.fphen_activity, fphen_activity_min)) {
@@ -620,11 +620,11 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
                 // no further increases in repr. 
                 // Note: does not go in there during freenyears. Is that a problem?
-                if (repr_trend <= 0.001) {
-                   indiv.growth_stage = vegetative;
-                   indiv.growth_stage_days = 0;
-                   indiv.fdev_growth = fdev_growth_min;
-                }
+                //if (repr_trend <= 0.001) {
+                //   indiv.growth_stage = vegetative;
+                //   indiv.growth_stage_days = 0;
+                //   indiv.fdev_growth = fdev_growth_min;
+                // }
  
                 // flush reproductive tissue to seedbank.
                 if (indiv.growth_stage != reproductive && indiv.cmass_repr > 0.0) {
@@ -4803,42 +4803,42 @@ void ndemand_grass(Individual &indiv) {
 	// We allow this value to be negative to allow for active retranslocation of N within the plant
 	// This often applies to cases where new growth is limited by N but existing tissues have plenty.
 	double nupdate_demand_leaf  = (indiv.get_cmass_leaf() / cton_demand_leaf - indiv.get_nmass_leaf()) * frac_nchange;
-	double nupdate_demand_root  = (indiv.cmass_root / cton_demand_root - indiv.nmass_root) * frac_nchange * 0.5;
-	double nupdate_demand_crown = (indiv.cmass_crown / cton_demand_crown - indiv.nmass_crown) * frac_nchange * 0.5;
-	double nupdate_demand_repr  = (indiv.cmass_repr / cton_demand_repr - indiv.nmass_repr) * frac_nchange * 0.01;
+	double nupdate_demand_root  = (indiv.cmass_root / cton_demand_root - indiv.nmass_root) * frac_nchange;
+	double nupdate_demand_crown = (indiv.cmass_crown / cton_demand_crown - indiv.nmass_crown) * frac_nchange;
+	double nupdate_demand_repr  = (indiv.cmass_repr / cton_demand_repr - indiv.nmass_repr) * frac_nchange * 0.1;
+
+	// If demand is negative, give N back to storage and set demand to 0.
+	if (nupdate_demand_leaf < 0.0) {
+		indiv.nmass_storage += -nupdate_demand_leaf;
+		if (pft.is_grass() || pft.lifeform == MOSS) {
+			indiv.nmass_leafs[green] += nupdate_demand_leaf;
+		} else {
+			indiv.nmass_leaf += nupdate_demand_leaf;
+		}
+		nupdate_demand_leaf = 0.0;
+	}
+	if (nupdate_demand_root < 0.0) {
+		indiv.nmass_storage += -nupdate_demand_root;
+		indiv.nmass_root += nupdate_demand_root;
+		nupdate_demand_root = 0.0;
+	}
+	if (nupdate_demand_crown < 0.0) {
+		indiv.nmass_storage += -nupdate_demand_crown;
+		indiv.nmass_crown += nupdate_demand_crown;
+		nupdate_demand_crown = 0.0;
+	}
+	if (nupdate_demand_repr < 0.0) {
+		indiv.nmass_storage += -nupdate_demand_repr;
+		indiv.nmass_repr += nupdate_demand_repr;
+		nupdate_demand_repr = 0.0;
+	}
+	// TODO: do we need to check for stoichiometry here or can we rely on the one in update_pools?
 
 	// Calculate total N demand from growth and redistribution
 	double ntotal_demand_leaf = ngrow_demand_leaf + nupdate_demand_leaf;
 	double ntotal_demand_root = ngrow_demand_root + nupdate_demand_root;
 	double ntotal_demand_crown = ngrow_demand_crown + nupdate_demand_crown;
 	double ntotal_demand_repr = ngrow_demand_repr + nupdate_demand_repr;
-
-	// If demand is negative, give N back to storage and set demand to 0.
-	if (ntotal_demand_leaf < 0.0) {
-		indiv.nmass_storage += -ntotal_demand_leaf;
-		if (pft.is_grass() || pft.lifeform == MOSS) {
-			indiv.nmass_leafs[green] += ntotal_demand_leaf;
-		} else {
-			indiv.nmass_leaf += ntotal_demand_leaf;
-		}
-		ntotal_demand_leaf = 0.0;
-	}
-	if (ntotal_demand_root < 0.0) {
-		indiv.nmass_storage += -ntotal_demand_root;
-		indiv.nmass_root += ntotal_demand_root;
-		ntotal_demand_root = 0.0;
-	}
-	if (ntotal_demand_crown < 0.0) {
-		indiv.nmass_storage += -ntotal_demand_crown;
-		indiv.nmass_crown += ntotal_demand_crown;
-		ntotal_demand_crown = 0.0;
-	}
-	if (ntotal_demand_repr < 0.0) {
-		indiv.nmass_storage += -ntotal_demand_repr;
-		indiv.nmass_repr += ntotal_demand_repr;
-		ntotal_demand_repr = 0.0;
-	}
-	// TODO: do we need to check for stoichiometry here or can we rely on the one in update_pools?
 
 	// Take N demand of storage into account
 	indiv.storendemand = max(0.0, indiv.nstorage_max - indiv.nmass_storage);
@@ -5854,6 +5854,12 @@ void turnover_dave_grass(Individual &indiv) {
 	// This will go directly into the SOILSTRUCT and SOILMETA SOM pools.
 	root_to_litter(soil, pft, cturnover_root, nturnover_root);
 
+	// Reproductive turnover
+	double repr_turnover_time = 75.0;    // d
+	if (indiv.growth_stage == reproductive){
+		indiv.flush_repr_litter_DAVE(1/repr_turnover_time);
+	}
+
 }
 
 // calculate the coefficient of water stress for the turnover of leaves and roots in trees
@@ -6389,7 +6395,7 @@ void sink_source_feedback(Individual& indiv) {
 	//double dpslim = 0.00;
 	//double qf2 = 100.0;
 	//double cstorage_fill = Cstorage_fillfrac(indiv);
-	double slim_max = 0.4;
+	double slim_max = 0.0;  // if 0.0, feedback is turned off.
 
 	//indiv.ps_sink_lim = min(1.0, (1.0 + dpslim - 2.0 * dpslim * pow(indiv.fphen_activity*cstorage_fill,qf2)) * indiv.ps_sink_lim);
 	double excess_strength = 0;

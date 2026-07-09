@@ -952,6 +952,8 @@ void plib_declarations(int id,xtring setname) {
 			"Maximum sapwood C:N mass ratio");
 		declareitem("ltor_max",&ppft->ltor_max,0.1,10.0,1,CB_NONE,
 			"Non-water-stressed leaf:fine root mass ratio");
+		declareitem("frac_seed",&ppft->frac_seed,0,1.0,1,CB_NONE,
+			"Fraction of reproductive biomass consisting of seeds");
 		declareitem("litterme",&ppft->litterme,0.0,1.0,1,CB_NONE,
 			"Litter moisture flammability threshold (fraction of AWC)");
 		declareitem("fireresist",&ppft->fireresist,0.0,1.0,1,CB_NONE,
@@ -2201,6 +2203,7 @@ void plib_callback(int callback) {
 				if (!itemparsed("wscal_min")) badins("wscal_min");
 				if (!itemparsed("wscal_min_dormant")) badins("wscal_min_dormant");
 				if (!itemparsed("dphen_activity_max")) badins("dphen_activity_max");
+				if (!itemparsed("frac_seed")) badins("frac_seed");
 			if (!itemparsed("leafphysiognomy")) badins("leafphysiognomy");
 			if (!itemparsed("pathway")) badins("pathway");
 			if (!ifdavephotosyn) {

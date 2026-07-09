@@ -3810,8 +3810,6 @@ void Individual::kill(bool harvest /* = false */) {
 // Happens every year at the end of the reproductive period.
 void Individual::flush_repr_litter_DAVE() {
 
-	// TODO: where to define this??
-	const double frac_seed = 0.7;
 	Patchpft &ppft = patchpft();
 
 	if (pft.lifeform == TREE) {
@@ -3837,8 +3835,8 @@ void Individual::flush_repr_litter_DAVE() {
 
 	// only a fraction of cmass_repr (actual seeds) goes to the seedbank.
 	// the rest (e.g. panicles, husks) goes to the litter pool.
-	double cflux_seed = frac_seed * cmass_repr;
-	double nflux_seed = frac_seed * nmass_repr;
+	double cflux_seed = pft.frac_seed * cmass_repr;
+	double nflux_seed = pft.frac_seed * nmass_repr;
 
 	double cflux_litter = cmass_repr - cflux_seed;
 	double nflux_litter = nmass_repr - nflux_seed; 

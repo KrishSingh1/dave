@@ -2614,6 +2614,8 @@ public:
 	double k_latosa;
 	/// specific leaf area (m2/kgC)
 	double sla;
+	/// fraction of reproductive biomass consisting of seeds (the rest being supporting structures)
+	double frac_seed;
 	/// leaf to root mass ratio under non-water-stressed conditions
 	double ltor_max;
 	/// litter moisture flammability threshold (fraction of AWC)

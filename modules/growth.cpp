@@ -610,7 +610,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 				// stop reproductive phase either 
 				// a) at the onset of dormancy
                 // b) repr pool does not increase any longer
-                //repr_trend = indiv.cmass_repr_10.size() > 9 ? indiv.cmass_repr_10.periodictrend(10)/indiv.cmass_repr_10.mean() : 1.0;
+                repr_trend = indiv.cmass_repr_10.size() > 9 ? indiv.cmass_repr_10.periodictrend(10)/indiv.cmass_repr_10.mean() : 1.0;
 
                 // dormancy
                 if (equal(indiv.fphen_activity, fphen_activity_min)) {
@@ -620,11 +620,11 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
                 // no further increases in repr. 
                 // Note: does not go in there during freenyears. Is that a problem?
-                //if (repr_trend <= 0.001) {
-                //   indiv.growth_stage = vegetative;
-                //   indiv.growth_stage_days = 0;
-                //   indiv.fdev_growth = fdev_growth_min;
-                // }
+                if (repr_trend <= 0.001) {
+                   indiv.growth_stage = vegetative;
+                   indiv.growth_stage_days = 0;
+                   indiv.fdev_growth = fdev_growth_min;
+                }
  
                 // flush reproductive tissue to seedbank.
                 if (indiv.growth_stage != reproductive && indiv.cmass_repr > 0.0) {
@@ -4742,7 +4742,7 @@ void ndemand_grass(Individual &indiv) {
 	const Pft &pft = indiv.pft;
 
 	// Parameters
-	const double frac_nchange = 0.10;
+	const double frac_nchange = 0.05;
 
 	// Local	
 	double cton_demand_leaf = 0.0;
@@ -5855,10 +5855,10 @@ void turnover_dave_grass(Individual &indiv) {
 	root_to_litter(soil, pft, cturnover_root, nturnover_root);
 
 	// Reproductive turnover
-	double repr_turnover_time = 75.0;    // d
-	if (indiv.growth_stage == reproductive){
-		indiv.flush_repr_litter_DAVE(1/repr_turnover_time);
-	}
+	//double repr_turnover_time = 75.0;    // d
+	//if (indiv.growth_stage == reproductive && indiv.cmass_repr > indiv.cmass_crown){
+	//	indiv.flush_repr_litter_DAVE(0.01);
+	//}
 
 }
 
@@ -6356,19 +6356,25 @@ void storage_overflow(Individual& indiv) {
 	// Now deal with excess C and N that cannot be allocated because of stoichiometry or
 	// because they would lead to excessive growth.
 	if (indiv.cexcess > 0.0) {
-		// TODO: decide what to do with excess C if you are not in the reproductive phase
-		// Option 1: respire
-		indiv.report_flux(Fluxes::RA, indiv.cexcess);
-		indiv.report_flux(Fluxes::NPP, -indiv.cexcess);
+		
+		// part of it is respired and the other part goes to soil litter as root exudates
+		double fexcess_respire = 0.3;
+		double cexcess_to_resp = fexcess_respire * indiv.cexcess;
+		double cexcess_to_soil = indiv.cexcess - cexcess_to_resp;
 
-		// Option 2; root exudates
-		// TODO Adam: implement this.
+		// 1) autotrophic respiration
+		indiv.dnpp -= cexcess_to_resp;
+		indiv.aresp += cexcess_to_resp;
 
-		// Option 3?
+		indiv.report_flux(Fluxes::RA, cexcess_to_resp);
+		indiv.report_flux(Fluxes::NPP, -cexcess_to_resp);
+
+		// 2) root exudates / rhizodeposition (approximated by input to root litter)
+		ppft.cmass_litter_leaf += cexcess_to_soil;
+		indiv.ctolitter += cexcess_to_soil;
 
 		// Reset cexcess to 0.0
-		// Now done at the beginning of the day in storage_growth_partitioning_dave() so that mass balance checks work.
-		// indiv.cexcess = 0.0;
+		indiv.cexcess = 0.0;
 	}
 
 	if (indiv.nexcess > 0.0) {

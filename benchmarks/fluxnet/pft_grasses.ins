@@ -349,7 +349,7 @@ group "grass" (
 
 	! Annual turnover of grass seedbank (reproductive litter) to root litter as
 	! a proportion of reproductive litter C biomass (patch-basis).
-	turnover_repr_litter 0.2
+	turnover_repr_litter 0.3
 
 	! Minimum forest-floor PAR for establishment (J/m2/day).
 	parff_min 1000000
@@ -371,7 +371,7 @@ group "grass" (
     dphen_activity_max 0.2
 
 	! Maintenance respiration coefficient.
-	respcoeff 1.1
+	respcoeff 1.0
 
 	! Turgor loss point (MPa). Only used with davehydraulics.
 	tlp -1.0
@@ -380,15 +380,15 @@ group "grass" (
 	crelocfrac 0
 
 	! Baseline senescence rate for dave grasses (d-1).
-	senesc_base 0.00045
+	senesc_base 0.0008
 
 	! Senescence coefficient for dormancy in dave grasses. Senescence rate is
 	! increased by this factor when phenology is changing at the maximum rate.
-	senesc_scal_dorm 30
+	senesc_scal_dorm 20
 
 	! Senescence coefficient for water stress in dave grasses. Senescence rate
 	! is increased by this factor under max water stress.
-	senesc_scal_water 100
+	senesc_scal_water 80
 
 	! senescence coefficient for freezing temperatures.
 	senesc_scal_temp 5
@@ -478,7 +478,7 @@ group "perennial" (
 
 	! Senescence coefficient for reproductive phase in dave grasses.
 	! Senescence rate is increased by this factor during reproductive phase.
-	senesc_scal_repr 50
+	senesc_scal_repr 30
 
 	! Exponent shaping development-driven senescence for dave grasses. Higher
 	! values delay senescence (less early, more late in the reproductive

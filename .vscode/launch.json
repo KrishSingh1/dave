@@ -569,6 +569,7 @@
                 ],
             },
             "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
                 "MIMode": "gdb"
             },
             "preLaunchTask": "build"

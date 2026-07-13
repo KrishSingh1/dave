@@ -4742,7 +4742,7 @@ void ndemand_grass(Individual &indiv) {
 	const Pft &pft = indiv.pft;
 
 	// Parameters
-	const double frac_nchange = 0.05;
+	const double frac_nchange = 0.10;
 
 	// Local	
 	double cton_demand_leaf = 0.0;
@@ -5466,7 +5466,7 @@ void senescence_dave_grass(Individual &indiv) {
 	}
 
 	// Self-shading
-	double kshade = 6.5;
+	double kshade = 10.0;
 	double senesc_fshade = kshade * indiv.fpc;
 	double senesc_fshade_norm = senesc_fshade / (1.0 + senesc_fshade);
 
@@ -5856,9 +5856,9 @@ void turnover_dave_grass(Individual &indiv) {
 
 	// Reproductive turnover
 	//double repr_turnover_time = 75.0;    // d
-	//if (indiv.growth_stage == reproductive && indiv.cmass_repr > indiv.cmass_crown){
-	//	indiv.flush_repr_litter_DAVE(0.01);
-	//}
+	if (indiv.growth_stage == reproductive){
+		indiv.flush_repr_litter_DAVE(pft.senesc_base);
+	}
 
 }
 

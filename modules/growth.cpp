@@ -502,9 +502,10 @@ void state_accounting_dave(Vegetation &vegetation, Climate &climate) {
 			Patchpft &ppft = vegetation.patch.pft[i];
 			//double dormancy_depth_add = ppft.dormancy_depth + (Date::MAX_YEAR_LENGTH - ppft.ndays_alive);
 			//double wscal_add = ppft.wscal_cum + (Date::MAX_YEAR_LENGTH - ppft.ndays_alive) * ppft.pft.wscal_min;
+			// Note: if plant is struggling (mortality), add a wscal that's a bit lower than the long-term mean
 			if (ppft.ndays_alive < 90){
 				ppft.dormancy_depth_historical.add(ppft.dormancy_depth_historical.mean());
-				ppft.wscal_historical.add(ppft.wscal_historical.mean());
+				ppft.wscal_historical.add(ppft.wscal_historical.mean() - 0.005);
 			} else {
 				ppft.dormancy_depth_historical.add(ppft.dormancy_depth / ppft.ndays_alive);
 				ppft.wscal_historical.add(ppft.wscal_cum / ppft.ndays_alive);

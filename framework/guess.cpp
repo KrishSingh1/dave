@@ -1802,18 +1802,18 @@ size_t get_response_window(double dormancy_depth) {
 	double mindorm = 0.2;
 	double maxdorm = 0.7;
 	int minwin = 2;
-	int maxwin = 15;
+	int maxwin = 10;
 	double slope = (maxwin - minwin) / (maxdorm - mindorm);
 	return round(slope * (maxdorm - min(maxdorm,max(mindorm,dormancy_depth))) + minwin);
 }
 
 double calc_root_beta(double wscal_avg) {
 	// min and max values from range presented in Jackson et al. 1996
-	const double wscal_min = 0.3; // TODO: use existing wscal_min parameter (?)
+	const double wscal_min = 0.5; // TODO: use existing wscal_min parameter (?)
 	const double ROOT_BETA_MIN = 0.94;
 	const double ROOT_BETA_MAX = 0.98;
-	double slope = (ROOT_BETA_MAX - ROOT_BETA_MIN) / (1.0 - wscal_min);
-	return slope * (1.0 - max(wscal_min,wscal_avg)) + ROOT_BETA_MIN;
+	double x = (1.0 - max(wscal_min,wscal_avg)) / (1.0 - wscal_min);
+    return ROOT_BETA_MIN + (ROOT_BETA_MAX - ROOT_BETA_MIN) * pow(x,2.0);
 }
 
 // Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)

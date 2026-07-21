@@ -353,6 +353,10 @@ group "grass" (
 	! cropgreen).
 	phenology "any"
 
+	! Fraction of reproductive biomass consisting of seeds (the rest being
+	! supporting structures).
+	frac_seed 0.65
+
 	! Annual turnover of grass seedbank (reproductive litter) to root litter as
 	! a proportion of reproductive litter C biomass (patch-basis).
 	turnover_repr_litter 0.2
@@ -369,6 +373,14 @@ group "grass" (
 	! Water stress threshold during dormancy and vegetative regrowth. Should be
 	! <0.6 (the base threshold). Units are wscal (0-1).
 	wscal_min 0.4
+
+	! Water stress threshold during dormancy and reproductive phase. Should be
+	! >wscal_min (the base threshold). Units are wscal (0-1).
+	wscal_min_dormant 0.6
+
+	! Maximum physiological up/down-regulation in and out of dormancy (fraction
+	! d-1).
+	dphen_activity_max 0.2
 
 	! Juergen's grass parameters
 
@@ -389,13 +401,8 @@ group "grass" (
 	! is increased by this factor under max water stress.
 	senesc_scal_water 100
 
-	! Increase in senescence rate per 1℃, for temperatures below 0 ℃
-	! (Johnson & Thornley 1983).
-	temp_senesc1 1.0
-
-	! Increase in senescence rate per 1℃, for temperatures above 0 ℃
-	! (Johnson & Thornley 1983).
-	temp_senesc2 0.05
+	! Senescence coefficient for freezing temperatures.
+	senesc_scal_temp 5
 )
 
 group "broadleaved" (

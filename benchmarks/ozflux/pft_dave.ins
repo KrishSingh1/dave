@@ -347,7 +347,7 @@ group "grass" (
 
 	! Shape parameter for initialisation of root distribtion.
 	!root_beta 0.9555
-	root_beta 0.97
+	root_beta 0.96
 
 	! Leaf phenology (raingreen, summergreen, evergreen, raingreen, summergreen,
 	! cropgreen).
@@ -359,7 +359,7 @@ group "grass" (
 
 	! Annual turnover of grass seedbank (reproductive litter) to root litter as
 	! a proportion of reproductive litter C biomass (patch-basis).
-	turnover_repr_litter 0.2
+	turnover_repr_litter 0.3
 
 	! Minimum forest-floor PAR for establishment (J/m2/day).
 	parff_min 1000000
@@ -370,8 +370,7 @@ group "grass" (
 	! Aerodynamic conductance (m s-1). Only used for VOCs.
 	ga 0.030
 
-	! Water stress threshold during dormancy and vegetative regrowth. Should be
-	! <0.6 (the base threshold). Units are wscal (0-1).
+	! Base water stress threshold below which dormancy is triggered. Units are wscal (0-1).
 	wscal_min 0.4
 
 	! Water stress threshold during dormancy and reproductive phase. Should be
@@ -382,8 +381,6 @@ group "grass" (
 	! d-1).
 	dphen_activity_max 0.2
 
-	! Juergen's grass parameters
-
 	! Turgor loss point (MPa).
 	tlp -1.0
 
@@ -391,15 +388,15 @@ group "grass" (
 	crelocfrac 0
 
 	! Baseline senescence rate for dave grasses (d-1).
-	senesc_base 0.0002
+	senesc_base 0.0005
 
 	! Senescence coefficient for dormancy in dave grasses. Senescence rate is
 	! increased by this factor when phenology is changing at the maximum rate.
-	senesc_scal_dorm 300
+	senesc_scal_dorm 30
 
 	! Senescence coefficient for water stress in dave grasses. Senescence rate
 	! is increased by this factor under max water stress.
-	senesc_scal_water 100
+	senesc_scal_water 80
 
 	! Senescence coefficient for freezing temperatures.
 	senesc_scal_temp 5
@@ -1054,6 +1051,9 @@ group "C3G" (
 	! forest-floor assimilation (elsewhere g1x is used).
 	g1 4.5
 
+	! Stomatal sensitivity to water deficit (0-1). See Ripley et al. 2013, JXB.
+	qs 0.75
+
 	! Cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma
 	! et al. (2019)) (mol m-2 s-1).
 	gcutic 0.0012
@@ -1095,13 +1095,13 @@ group "perennial" (
 	! Exponent shaping development-driven senescence for dave grasses. Higher
 	! values delay senescence (less early, more late in the reproductive
 	! phase). Unitless.
-	qdev_senesc 2
+	qdev_senesc 2.5
 
 	! Exponent shaping water stress-driven senescence for DAVE grasses. q = 1
 	! gives a linear response. q > 1 increases senescence at moderate stress;
 	! 0 < q < 1 reduces it. No effect at the extremes (wscal = 0 or 1).
 	! Unitless.
-	qwater_senesc 0.8
+	qwater_senesc 2.5
 )
 
 group "annual" (
@@ -1152,7 +1152,7 @@ pft "C3G_perennial" (
 	crownfrac          0.2
 
 	! Fraction of shoot allocated to culms (=culm / (culm + leaves)).
-	culmfrac           0.5
+	culmfrac           0.4
 
 	! Nitrogen extinction coefficient within the canopy (Hikosaka et al. 2016).
 	extkn              0.17
@@ -1204,9 +1204,11 @@ group "C4G" (
 	! Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1).
 	g0 0.049
 
-	! Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5). Used only for
-	! forest-floor assimilation (elsewhere g1x is used).
+	! Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5).
 	g1 1.62
+
+	! Stomatal sensitivity to water deficit (0-1). See Ripley et al. 2013, JXB.
+	qs 0.5
 
 	! Cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma
 	! et al. (2019)) (mol m-2 s-1).

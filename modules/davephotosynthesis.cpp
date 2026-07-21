@@ -693,8 +693,9 @@ double calc_c4_ac_full(const C4Biochemistry &biochemistry,
 
 	double anc;
 	if (solve_quadratic(a_c, b_c, c_c, anc, true)) {
-		if (anc < -rd || anc > 2.0 * vcmax){
-			fail("implausible Anc value with the lower root!");
+		if (anc < -rd || anc > 2.0 * vcmax) {
+			log_warning("Implausible Anc value with the lower root! anc=%f, rd=%f, vcmax=%f",
+				 anc, rd, vcmax);
 		}
 		return anc;
 	}
@@ -762,8 +763,9 @@ double calc_c4_aj_full(const C4Biochemistry &biochemistry,
 
 	double anj;
 	if (solve_quadratic(a_j, b_j, c_j, anj, false)) {
-		if (anj < -rd || anj > biochemistry.jmax){
-			printf("implausible Anj value with the higher root!");
+		if (anj < -rd || anj > biochemistry.jmax) {
+			log_warning("Implausible Anj value with the higher root! anj=%f, rd=%f, jmax=%f",
+						anj, rd, biochemistry.jmax);
 		}
 		return anj;
 	}

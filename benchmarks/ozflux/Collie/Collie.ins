@@ -1,0 +1,18 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! Collie master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: Collie"
+
+file_met_forcing        "../forcing/met/Collie.nc"
+file_met_spinup         "../forcing/met/Collie.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"

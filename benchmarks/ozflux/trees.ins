@@ -1,0 +1,645 @@
+!///////////////////////////////////////////////////////////////////////////////
+! Tree PFTs
+!///////////////////////////////////////////////////////////////////////////////
+
+pft "BNE" (
+
+	! Boreal needleleaved evergreen tree
+
+	include 0
+	tree
+	needleleaved
+	shade_tolerant
+	evergreen
+	boreal
+	leaflong 3
+	turnover_leaf 0.33
+	tcmin_surv -31
+	tcmin_est -30
+	tcmax_est -1
+	twmin_est 5
+	gdd5min_est 500
+	longevity 500
+	fireresist 0.3
+	eps_iso 8.0
+	seas_iso 0
+	formfactor 1
+	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+)
+
+pft "BINE" (
+
+	! Boreal needleleaved evergreen tree
+
+	include 0
+	tree
+	needleleaved
+	shade_intolerant
+	evergreen
+	boreal
+	leaflong 3
+	turnover_leaf 0.33
+	tcmin_surv -31
+	tcmin_est -30
+	tcmax_est -1
+	twmin_est 5
+	gdd5min_est 500
+	longevity 500
+	fireresist 0.3
+	eps_iso 8.0
+	seas_iso 0
+	formfactor 1
+	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+)
+
+pft "BNS" (
+
+	! Boreal needleleaved summergreen tree
+
+	include 0
+	tree
+	needleleaved
+	shade_intolerant
+	summergreen
+	boreal
+	tcmin_surv -1000	! no limit
+	tcmin_est -1000		! no limit
+	tcmax_est -2
+	twmin_est -1000		! no limit
+	twminusc 43		! AA from TH 03-11 added this
+	gdd5min_est 350		! Changed 2013-04-30 from value 500
+	phengdd5ramp 100	! Changed 2013-04-30 from value 200
+	longevity 300
+	fireresist 0.3
+	eps_iso 8.0
+	seas_iso 1
+	eps_mon 3.18 0.72 0.18 0.12 0.14 0.11 0.2 0.13 0.02
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+	formfactor 1
+)
+
+pft "TeNE" (
+
+	! Temperate needleleaved evergreen tree
+
+	include 0
+	tree
+	needleleaved
+	shade_intolerant ! cf Jun_oxy, Pin_hal in europe.ins
+	evergreen
+	temperate
+	leaflong 3
+	turnover_leaf 0.33
+	tcmin_surv -2 		! As in Sitch et al. (2003), a little lower than TeBE
+	tcmin_est -2 		! As in Sitch et al. (2003), a little lower than TeBE
+	tcmax_est 10 		! Hickler et al. (2012) have 9 degC for Pin_hal
+	twmin_est 5  		! low, since Hickler et al. (2012) have -1000 for Jun_oxy
+	gdd5min_est 2000 	! Changed 2013-04-30 from value 900. As TeBE, a little lower than Jun_oxy, Pin_hal in europe.ins
+	longevity 300  		! Hickler et al. (2012) have 350 for Pin_hal
+	fireresist 0.3 		! Hickler et al. (2012) have 0.2 for Pin_hal and 0.4 for Jun_oxy
+	eps_iso 8.0		! Values set to be the same as those for BNE and BINE
+	seas_iso 0		! Values set to be the same as those for BNE and BINE
+	eps_mon 1.7 0.7 0.4 0.24 0.24 0.2 0.84 0.26 0.22	! Values set to be the same as those for BNE and BINE
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5	! Values set to be the same as those for BNE and BINE
+
+	sla 13.17
+	cton_leaf_min 29.01
+	! As calculated by ifcalcsla and ifcalccton.
+	! sla 9.300558
+	! cton_leaf_min 38.336164
+	formfactor 1
+)
+
+pft "TeBS" (
+
+	! Shade-tolerant temperate broadleaved summergreen tree
+
+	include 0
+	tree
+	broadleaved
+	shade_tolerant
+	summergreen
+	temperate
+	tcmin_surv -14
+	tcmin_est -13
+	tcmax_est 6
+	twmin_est 5
+	gdd5min_est 1100
+	longevity 400
+	fireresist 0.1
+	eps_iso 45.0
+	seas_iso 1
+	eps_mon 0.52 0.14 0.1 0.04 0.49 0.01 0.04 0.18 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+	formfactor 1
+)
+
+pft "IBS" (
+
+	! Shade-intolerant broadleaved summergreen tree
+
+	include 0
+	tree
+	broadleaved
+	shade_intolerant
+	summergreen
+	boreal
+	tcmin_surv -30
+	tcmin_est -30
+	tcmax_est 7
+	twmin_est -1000  !no limit
+	gdd5min_est 350 !from TH 2010-03-10 AA
+	longevity 300 !from TH 2010-04-07 was 300 AA
+	fireresist 0.1
+	eps_iso 45.0
+	seas_iso 1
+	eps_mon 0.52 0.14 0.1 0.04 0.49 0.01 0.04 0.18 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.
+	formfactor 1
+	greff_min 0.135 		! Version 4.1 update. Improves B(I)NE/IBS balance in boreal regions.
+)
+
+pft "TeBE" (
+
+	! Temperate broadleaved evergreen tree
+
+	include 0
+	tree
+	broadleaved
+	shade_tolerant
+	evergreen
+	temperate
+	leaflong 3
+	turnover_leaf 1
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 18.8
+	twmin_est 5
+	gdd5min_est 2000
+	longevity 300 		! from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+	formfactor 1
+	! As calculated by ifcalcsla and ifcalccton.
+	sla 13.171494
+	cton_leaf_min 29.010140
+
+	turnover_sap 0.1
+	!wooddens 300  ! Used E. obliqua value for Warra from Peters (2021)
+    !vcmax_25 69 ! NEED A VALUE - using Warra's
+    !sla 10.4 ! approximated from Pritzkow (2020b) Figure 4
+    !respcoeff 0.8 
+)
+
+pft "TeBE_Assaf" (
+
+	! Temperate broadleaved evergreen tree
+
+	include 1
+	tree
+	broadleaved
+	shade_intolerant
+	evergreen
+	temperate
+	! leaflong 3
+	leaflong 2 ! old
+	! leaflong 1 ! CUP
+	! turnover_leaf 0.33
+	turnover_leaf 0.5 ! old
+	! turnover_leaf 1 ! CUP
+	! turnover_root 0.7
+	turnover_root 0.5
+	turnover_sap 0.2
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 18.8
+	twmin_est 5
+	! gdd5min_est 2000
+	gdd5min_est 500
+	longevity 500 		! from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	g0 0.034017
+	gmin 0.0005 ! gcutic (gmin used for trunk only)
+	sla 13.17
+	! sla 9.2 ! CUP
+
+	cton_leaf_min 29.01
+	! k_allom2 22.7
+	! k_allom3 0.54
+
+	! k_allom2 60 ! CUP
+	! k_allom3 0.67 ! CUP
+	wooddens 330 ! CUP
+
+	k_allom2 47.48 ! WMBT
+  	k_allom3 0.64 ! WMBT
+	sla 8.8 ! WMBT
+	! sla 5.5 ! Belinda?
+	ltor_max 1.5 ! just testing
+	! As calculated by ifcalcsla and ifcalccton.
+	! sla 13.171494
+	! cton_leaf_min 29.010140
+	vcmax_25 0.0000585
+	jmax_25 0.000111249
+	ha_v 72.76654829
+	ds_v 639.707183
+	ha_j 32.6630188394226
+	ds_j 634.559695
+	formfactor 1.0
+)
+
+pft "TrBE" (
+
+	! Tropical broadleaved evergreen tree
+
+	include 0
+	tree
+	broadleaved
+	shade_tolerant
+	evergreen
+	tropical
+	leaflong 2
+	turnover_leaf 0.5
+	longevity 500   	! from Thomas H 2010-03-30 new 500 instead of 600 2010-04-07
+	fireresist 0.1
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.32 0.09 0.07 0.06 0.06 0.04 0.04 0.07 0.05
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	sla 13.17
+	sla 20 
+	cton_leaf_min 29.01
+	! As calculated by ifcalcsla and ifcalccton.
+	! sla 15.365607
+	! cton_leaf_min 25.376967
+	formfactor 1
+)
+
+pft "TrIBE" (
+
+	! Tropical broadleaved evergreen tree
+
+	include 0
+	tree
+	broadleaved
+	shade_intolerant
+	evergreen
+	tropical
+	leaflong 2
+	turnover_leaf 0.5
+	longevity 200
+	fireresist 0.1
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.32 0.09 0.07 0.06 0.06 0.04 0.04 0.07 0.05
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	sla 13.17
+	cton_leaf_min 29.01
+	! As calculated by ifcalcsla and ifcalccton.
+	! sla 15.365607
+	! cton_leaf_min 25.376967
+	formfactor 1
+)
+
+pft "TrBR" (
+
+	! Tropical broadleaved raingreen tree
+
+	include 0
+	tree
+	broadleaved
+	shade_intolerant
+	tropical
+	phenology "raingreen"
+	fnstorage 0.15
+	leaflong 0.5
+	turnover_leaf 1
+	longevity 400    	! from Thomas h 2010-03-30
+	fireresist 0.3
+	eps_iso 45.0
+	seas_iso 0
+	eps_mon 0.95 0.26 0.22 0.18 0.18 0.13 0.12 0.22 0.14
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+	formfactor 1
+)
+
+pft "ASM" (
+
+	! Alice Springs Mulga - acacia aneura, based on TeBE with added hydraulic, vcmax and sla parameters
+
+	include 0
+	tree
+	broadleaved
+	shade_intolerant
+	evergreen
+	temperate
+	leaflong 2
+	turnover_leaf 0.5
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 40
+	twmin_est 5
+	gdd5min_est 2000
+	longevity 300 		! from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	k_latosa 1000 ! Aaranya estimated 400 - 1630 in the field
+
+	! hydraulic traits
+	wooddens 388  ! value for Acacia aneura from Peters (2021)
+	kmax 10 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
+	stom_clos -6.72   ! value for Acacia aneura from Peters (2021)
+	p50 -10.37   ! value for Acacia aneura from Peters (2021)
+	p88 -11.59   ! value for Acacia aneura from Peters (2021)
+	g1x 2.8  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014) - estimated highest value of g1_leaf for ASM in Fig 1 of Bloomfield (2019)
+	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
+
+	vcmax_25 100 ! need a value, Bloomfield is no good because stomata seem to be shut when measurements taken
+	sla 7.19 ! see ST6 (supp table 2) from Bloomfield et al. (2018)
+
+	respcoeff 0.15 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
+	formfactor 1
+)
+
+pft "WAR_ov" (
+
+	! Warra overstory, eucalyptus obliqua, based on TeBE with added hydraulic, vcmax and sla parameters
+
+	include 0
+	tree
+	broadleaved
+	shade_intolerant
+	evergreen
+	temperate
+	leaflong 2
+	turnover_leaf 0.5
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 18.8
+	twmin_est 5
+	gdd5min_est 1000
+	longevity 300 		! from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	! hydraulic traits
+	wooddens 300  ! Peters et al (2021)
+	kmax 20 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
+	stom_clos -1.5   ! Peters et al (2021)
+	p50 -3.03   ! Peters et al (2021)
+	p88 -3.84   ! Peters et al (2021)
+	g1x 4.1  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for Warra in Fig 1 of Bloomfield (2019)
+	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
+
+	vcmax_25 69 ! see ST7 (supp table 2) from Bloomfield et al. (2018)
+	sla 10.05 ! see ST6 (supp table 2) from Bloomfield et al. (2018)
+	formfactor 1
+)
+
+pft "WAR_un" (
+
+	! Warra understory, mixed, based on TeBE with added hydraulic, vcmax and sla parameters
+
+	include 0
+	tree
+	crownarea_max 10 ! from group 'shrub'
+	broadleaved
+	shade_tolerant
+	evergreen
+	temperate
+	leaflong 2
+	turnover_leaf 0.5
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 18.8
+	twmin_est 5
+	gdd5min_est 1000
+	longevity 300 		! from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	ltor_max 0.9
+	k_allom1 100	! from group 'shrub'
+	k_allom2 5		! from group 'shrub'
+	k_allom3 0.67 	! from group 'shrub'
+	k_rp 1.6		! from group 'shrub'
+
+	! hydraulic traits
+	wooddens 279  ! Peters et al (2021) - weighted average of understory species
+	kmax 20 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
+	stom_clos -1.5   ! Peters et al (2021)
+	p50 -3.41   ! Peters et al (2021)
+	p88 -5.10   ! Peters et al (2021)
+	g1x 4.1  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for Warra in Fig 1 of Bloomfield (2019) 
+	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
+
+	vcmax_25 44.0 ! see ST7 (supp table 2) from Bloomfield et al. (2018)
+	sla 16.0 ! see ST6 (supp table 2) from Bloomfield et al. (2018)
+	formfactor 1
+)
+
+pft "Calp" (
+
+	! Calperum mallees, eucalyptus socialis and dumosa, based on TeBE with added hydraulic, vcmax and sla parameters
+
+	include 0
+	tree
+	broadleaved
+	shade_intolerant
+	evergreen
+	temperate
+	leaflong 2.44 ! See Wright et al (2002) supp
+	turnover_leaf 0.41
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 30
+	twmin_est 5
+	gdd5min_est 2000
+	longevity 300 		! from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	rootdist 0.16 0.16 0.16 0.16 0.16 0.03 0.03 0.03 0.03 0.03 0.01 0.01 0.01 0.01 0.01
+
+	k_latosa 2865 ! mean of Austraits values for socialis and dumosa is 2865
+
+	! hydraulic traits
+	wooddens 400  ! Peters et al (2021) - average of euc species
+	kmax 3.5 ! maximum hydraulic conductance (mol/m2[xylem area]/s/MPa) per unit xylem area - to be tuned
+	stom_clos -3.25   ! Point of stomatal closure, usually p12 or turgor loss point (MPa), -3.25
+	p50 -7.47   ! Peters et al (2021) - average of euc species
+	p88 -10.06   ! Peters et al (2021) - value for euc socialis (NA reported for dumosa)
+	g1x 2.2  !  at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for Calperum in Fig 1 of Bloomfield (2019), 2.2
+	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
+
+	vcmax_25 80.0 ! see ST7 (supp table 2) from Bloomfield et al. (2018), 0.000080 overall or 0.000098 in winter (growing season)
+	sla 5.24 ! see ST6 (supp table 2) from Bloomfield et al. (2018), 5.24
+
+	respcoeff 0.5 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
+	formfactor 1
+)
+
+pft "Wombat" (
+
+	! Wombat, eucalyptus obliqua, based on TeBE with added hydraulic, vcmax and sla parameters
+
+	include 0
+	tree
+	broadleaved
+	shade_intolerant
+
+	!est_max 0.05
+	!parff_min 350000
+	!alphar 2.0
+	!greff_min 0.03
+	!turnover_sap 0.05
+
+	evergreen
+	temperate
+	leaflong 2.0 
+	turnover_leaf 0.33
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 18.8
+	twmin_est 5
+	gdd5min_est 1000
+	longevity 300 		! from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	rootdist 0.12 0.12 0.12 0.12 0.12 0.06 0.06 0.06 0.06 0.06 0.02 0.02 0.02 0.02 0.02
+
+	k_latosa 6000 ! 6000 estimated from Austraits
+
+	! hydraulic traits
+	wooddens 300  ! Used E. obliqua value for Warra from Peters (2021)
+	kmax 15  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned
+	stom_clos -3.5   ! Estimated based on Figure 5a in Pritzkow (2021), -2.5
+	p50 -4.0   ! Used E. obliqua value for Warra from Peters (2021), -3.03
+	p88 -4.5   ! Used E. obliqua value for Warra from Peters (2021). -3.84
+	g1x 4.1  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for Warra in Fig 1 of Bloomfield (2019) = 4.1 
+	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
+
+	vcmax_25 69 ! NEED A VALUE - using Warra's
+	sla 10.4 ! approximated from Pritzkow (2020b) Figure 4
+	
+	respcoeff 0.8 
+	formfactor 1
+
+)
+
+pft "Eucface" (
+
+	! Eucface, eucalyptus tereticornis, based on TeBE with added hydraulic, vcmax and sla parameters
+
+	include 0
+	tree
+	broadleaved
+	shade_intolerant
+	evergreen
+	temperate
+	leaflong 2
+	turnover_leaf 0.5
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 18.8
+	twmin_est 5
+	gdd5min_est 1000
+	longevity 300 		! from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	k_latosa 6000 ! 6000 estimated from Austraits
+
+	! hydraulic traits
+	wooddens 275  ! Eucalyptus tereticornis value from CuP, Peters (2021)
+	kmax 20  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned
+	stom_clos -2.21  ! Eucalyptus tereticornis value from CuP, Peters (2021)
+	p50 -4.07   ! Eucalyptus tereticornis value from CuP, Peters (2021)
+	p88 -5.50   ! Eucalyptus tereticornis value from CuP, Peters (2021)
+	g1x 5.0  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), taken from Yang et al. (2020) 
+	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
+
+	vcmax_25 91.0 ! taken from Yang et al. (2020) 
+	sla 10.7 ! E. tereticornis value from Austraits
+	
+	respcoeff 0.15 ! testing decreased respiration to increase productivity, suspect this is otherwise too high at dry sites because it doesn't account for soil moisture
+	formfactor 1
+)
+
+
+pft "CuP" ( ### used for testing hydraulics model
+
+	! Cumberland Plain, eucalyptus moluccana and eucalyptus fibrosa, based on TeBE with added hydraulic, vcmax and sla parameters
+
+	include 1
+	tree
+	broadleaved
+	shade_intolerant
+	evergreen
+	temperate
+	leaflong 1.0 
+	turnover_leaf 1.0
+	tcmin_surv -1
+	tcmin_est 0
+	tcmax_est 18.8
+	twmin_est 5
+	gdd5min_est 1000
+	longevity 300 		! from TH 2010-04-07 was 350 AA
+	fireresist 0.3
+	eps_iso 24.0
+	seas_iso 0
+	eps_mon 0.74 0.2 0.2 0.09 0.13 0.08 0.02 0.08 0.08
+	storfrac_mon 0.4 0.8 0.8 0.4 0.4 0.5 0.8 0.2 0.5
+
+	rootdist 0.14 0.14 0.14 0.14 0.14 0.04 0.04 0.04 0.04 0.04 0.02 0.02 0.02 0.02 0.02
+
+	k_latosa 6000 ! 6000 estimated from Austraits
+
+	! hydraulic traits
+	wooddens 350  ! Peters (2021)
+	kmax 10  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
+	stom_clos -3.2   ! Peters (2021)
+	p50 -5.8   ! Peters (2021)
+	p88 -7.7  ! Peters (2021)
+	g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9
+	gcutic 0.001 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, assume lower for sclerophyll?
+
+	vcmax_25 36 ! Average of two euc species from Bloomfield (2018)
+	jmax_25 61.2 ! 1.7 * vcmax_25
+	sla 9.2 ! Average of two euc species from Bloomfield (2018)
+	
+	respcoeff 0.6
+	formfactor 1
+)

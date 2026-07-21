@@ -1,0 +1,19 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! Yarramundi Degraded master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: YarCon (Yarramundi Degraded)"
+
+file_met_forcing        "../forcing/met/YarCon.nc"
+file_met_spinup         "../forcing/met/YarCon.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs.ins"
+import                  "../settings.ins"
+import                  "landcover_YarCon.ins"
+import                  "../soiln.ins"

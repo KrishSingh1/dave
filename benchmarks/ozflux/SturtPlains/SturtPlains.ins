@@ -1,0 +1,18 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! SturtPlains master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: SturtPlains"
+
+file_met_forcing        "../forcing/met/SturtPlains.nc"
+file_met_spinup         "../forcing/met/SturtPlains.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"

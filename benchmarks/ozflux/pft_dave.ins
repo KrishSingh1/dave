@@ -1,0 +1,1407 @@
+!///////////////////////////////////////////////////////////////////////////////
+!// PARAMETERS FOR PFTS
+!// Run GUESS with -help option for list of keywords and their meanings
+!///////////////////////////////////////////////////////////////////////////////
+
+! This file contains the DAVE PFTs. For the trunk(ish) PFTs, see:
+! - trees.ins
+! - grasses.ins
+! - shrubberies.ins
+!
+! data/ins/global.ins and friends also contain the "official" trunk PFTs.
+!
+! The following parameters will be needed before we turn on VOCs:
+! - eps_iso
+! - seas_iso
+! - eps_mon
+! - storfrac_mon
+
+group "common" (
+	! Parameters common to all PFTs
+
+	! Landcover type in which this PFT can appear.
+	landcover "natural"
+
+	! Maximum evapotranspiration rate (mm/day).
+	! Only used if using rootdist water uptake method.
+	emax 10
+
+	! Drought tolerance level (0 = very -> 1 = not at all) (unitless). Used to
+	! implement drought-limited establishment. Also affects water uptake if
+	! using species-specific water uptake. Small value ensures that this has
+	! little effect even if ifdroughtlimitedestab is turned on.
+	drought_tolerance 0.0001
+
+	! Minimum mean winter monthly snow needed for establishment/survival (mm).
+	! No restriction here.
+	min_snow 0.0
+
+	! Max annual GDD0 for establishment (℃ day). No restriction here.
+	gdd0_max 100000
+
+	! Min annual GDD0 for establishment (℃ day). No restriction here.
+	gdd0_min 0
+
+	! Maximum rate of drawdown on C storage for grasses, and N storage for both
+	! grasses and trees (as fraction of pool size).
+	max_mobil_cstorage 0.2
+
+	! Photosynthesis parameters.
+
+	! Cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma
+	! et al. (2019)) (mol m-2 s-1).
+	gcutic 0.0005
+
+	! Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1).
+	g0 0.005
+
+	! Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5). Used only for
+	! forest-floor assimilation (elsewhere g1x is used). TODO: should we use g1x
+	! for FF photosyn as well?
+	g1 3.4
+
+	! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014).
+	g1x 2
+
+	! Activation energy for vcmax (kJ mol-1).
+	ha_v 59.70
+
+	! Activation energy for jmax (kJ mol-1)
+	ha_j 40.71
+
+	! Entropy term (deltaS) for vcmax (J mol-1 K-1).
+	ds_v 639.43
+
+	! Entropy term (deltaS) for jmax (J mol-1 K-1).
+	ds_j 642.97
+
+	! Nitrogen extinction coefficient within the canopy (Hikosaka et al. 2016).
+	extkn 0.15
+
+	! Sensitivity parameter indicating steepness of decline in Vcmax with water
+	! stress (Zhou 2014 eqn 7). Only used when ifzhou = 1.
+	s_f 1.0
+
+	! Reference value at which Vcmax or Jmax is half it's non-water-stresed
+	! value (Zhou 2014 eqn 7). Only used when ifzhou = 1.
+	psi_f -2.0
+
+	! The acclimation sensitivity coefficient for respiration (1/degC).
+	! Placeholder value.
+	racclim 1
+
+	! Hydraulics parameters.
+
+	! Maximum hydraulic conductance per unit xylem area (mol/m2/s/MPa).
+	kmax 20
+
+	! Water potential at which stomata close and roots disconnect from soil (MPa).
+	stom_clos -1.5
+
+	! Water potential at 50% loss of xylem conductance (MPa).
+	p50 -3
+
+	! Water potential at 88% loss of xylem conductance (MPa).
+	p88 -4
+
+	! Quantum yield of electron transport (mol (electrons) mol-1 (photon)).
+	! Medlyn et al. 2002 (Plant, Cell and Environment).
+	alpha 0.3
+
+	! Fraction of PAR absorbed by the leaf area (0-1).
+	absorptance_par 0.85
+
+	! Fraction of NIR absorbed by the leaf area (0-1). Placeholder value.
+	absorptance_nir 0.3
+
+	! Leaf width (m).
+	leaf_width 0.02
+
+	! Reference temperature (°C) at which 50% damage occurs after 1 minute of
+	! exposure.
+	t50 55
+
+	! Temperature sensitivity coefficient (°C). Controls how rapidly damage
+	! changes with temperature; smaller values produce a steeper damage response
+	! curve.
+	z 5
+)
+
+group "tree" (
+
+	! Parameters common to all trees
+
+	common
+
+	! Whether vcmax is calculated from leaf nutrient content (alt: prescribed).
+	ifcalcvcmax 0
+
+	! vcmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0.
+	vcmax_25 91.0
+
+	! jmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0.
+	jmax_25 154.7
+
+	! vpmax  at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0.
+	vpmax_25 100.0
+
+	! Lifeform (tree, grass, or moss).
+	lifeform "tree"
+
+	! Maximum crown area (m2).
+	crownarea_max 50
+
+	! Fraction of NPP allocated to reproduction.
+	reprfrac 0.02
+
+	! Maximum leaf:root ratio under non-water-stressed conditions.
+	ltor_max 1
+
+	! Root turnover rate for trees (fraction of biomass turned over per year).
+	turnover_root 0.7
+
+	! Fraction of roots in each soil layer. Only used when rootdistribution is
+	! set to "jackson".
+	!rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
+
+	! Shape parameter for initialisation of root distribtion.
+	root_beta 0.982
+
+	! Constant in allometry equations.
+	k_allom2 60
+
+	! Constant in allometry equations.
+	k_allom3 0.67
+
+	! Constant in allometry equations.
+	k_rp 1.6
+
+	! Sapwood and heartwood density (kgC/m3).
+	wooddens 200
+
+	! Biochemical pathway for photosynthesis (C3 or C4).
+	pathway "c3"
+
+	! Maintenance respiration coefficient (0-1).
+	respcoeff 1.0
+
+	! Constant used in calculation of sapling establishment rate when spatial
+	! mass effect enabled.
+	kest_repr 200
+
+	! Background recruitment rate (unitless). Only used when ifbgestab = 1.
+	kest_bg 0.1
+
+	! Recruitment rate  (unitless) used when spatial mass effect is disabled.
+	kest_pres 1
+
+	! Constant in equation for budburst chilling time requirement (Sykes et al
+	! 1996). Only used if phengdd5ramp > 0.
+	k_chilla 0
+
+	! Coefficient in equation for budburst chilling time requirement. Only used
+	! if phengdd5ramp > 0.
+	k_chillb 100
+
+	! Exponent in equation for budburst chilling time requirement. Only used if
+	! phengdd5ramp > 0.
+	k_chillk 0.05
+
+	! Bole height as a fraction of tree height (0-1).
+	boleht_frac 0.7
+
+	! Annual turnover of grass seedbank (reproductive litter) to root litter as
+	! a proportion of reproductive litter C biomass (patch-basis). This is
+	! really about the grass seedbank, but trees do technically have a seedbank,
+	! even if we decided not to use it for daily establishment in the same way
+	! we did for grasses. Nonetheless, I'm leaving this parameter here as a
+	! placeholder in case someone ever decides to play with this in the future.
+	turnover_repr_litter 0.25
+
+	! Annual turnover rate of live reproductive litter for trees as a fraction
+	! of reproductive cmass.
+	turnover_repr 0.5
+
+	! 95% percentile NSC concentrations from eucface.
+
+	! Maximum NSC concentration in leaves.
+	max_leaf_nsc_conc  0.243
+
+	! Maximum NSC concentration in wood.
+	max_wood_nsc_conc  0.0797
+
+	! Scalar for initial tree biomass.
+	sapsize 0.1
+
+	! Form factor to use in tree height calculations that takes into account the
+	! relationship between the difference in tree mass between the cylindrical
+	! stem hypothesis and measured mass of tree log with its branches.
+	formfactor 1.0
+
+	! Inflection point of sigmoidal carbon starvation as a function of storage
+	! fraction full. Higher values mean carbon starvation starts at higher
+	! storage levels.
+	cstarv_inflect 0.1
+
+	! Maximum fraction of cohort killed per year by carbon starvation mortality
+	! when storage levels are low.
+	! TODO: Check if this makes sense by comparing total mortality from C
+	! starvation and greff.
+	cstarv_max 0.3
+
+	! Tree density at which carbon starvation mortality kills the entire cohort
+	! (trees per m2).
+	cstarv_killdens 0.001
+)
+
+group "shrub" (
+
+	! Parameters common to all shrubs.
+
+	common
+
+	! Lifeform (tree, grass, or moss).
+	lifeform "tree"
+
+	! Leaf physiognomy (needleleaf, broadleaf).
+	leafphysiognomy "broadleaf"
+
+	! Biochemical pathway for photosynthesis (C3 or C4).
+	pathway "c3"
+
+	! Whether vcmax is calculated from leaf nutrient content (alt: prescribed).
+	ifcalcvcmax 0
+
+	! vcmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0.
+	vcmax_25 91.0
+
+	! jmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0.
+	jmax_25 154.7
+
+	! vpmax  at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0.
+	vpmax_25 100.0
+
+	! Maximum crown area (m2).
+	crownarea_max 10
+
+	! Maximum leaf:root ratio under non-water-stressed conditions.
+	ltor_max 1
+
+	! Constant in allometry equations.
+	k_allom1 100
+
+	! Constant in allometry equations.
+	k_allom2 5
+
+	! Constant in allometry equations.
+	k_allom3 0.67
+
+	! Constant in allometry equations.
+	k_rp 1.6
+
+	! Sapwood and heartwood density (kgC/m3).
+	wooddens 250
+
+	! Constant used in calculation of sapling establishment rate when spatial
+	! mass effect enabled.
+	kest_repr 200
+
+	! Background recruitment rate (unitless). Only used when ifbgestab = 1.
+	kest_bg 0.1
+
+	! Recruitment rate  (unitless) used when spatial mass effect is disabled.
+	kest_pres 1
+
+	! Fraction of roots in each soil layer. Only used when rootdistribution is
+	! set to "jackson".
+	rootdist 0.12 0.12 0.12 0.12 0.12 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04 0.04
+
+	! Shape parameter for initialisation of root distribtion.
+	root_beta 0.982
+
+	! Expected longevity under non-stressed conditions.
+	longevity 100
+
+	! Bole height as a fraction of tree height (0-1).
+	boleht_frac 0
+)
+
+group "grass" (
+
+	! Parameters common to all grasses
+
+	common
+
+	! Leaf physiognomy (needleleaf, broadleaf).
+	leafphysiognomy "broadleaf"
+
+	! Whether vcmax is calculated from leaf nutrient content (alt: prescribed).
+	ifcalcvcmax 1
+
+	! Maximum leaf:root ratio under non-water-stressed conditions.
+	ltor_max 2.0
+
+	! Fraction of roots in each soil layer. Only used when rootdistribution is
+	! set to "jackson".
+	!rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
+
+	! Shape parameter for initialisation of root distribtion.
+	!root_beta 0.9555
+	root_beta 0.97
+
+	! Leaf phenology (raingreen, summergreen, evergreen, raingreen, summergreen,
+	! cropgreen).
+	phenology "any"
+
+	! Annual turnover of grass seedbank (reproductive litter) to root litter as
+	! a proportion of reproductive litter C biomass (patch-basis).
+	turnover_repr_litter 0.2
+
+	! Minimum forest-floor PAR for establishment (J/m2/day).
+	parff_min 1000000
+
+	! Interception coefficient (unitless).
+	intc 0.01
+
+	! Aerodynamic conductance (m s-1). Only used for VOCs.
+	ga 0.030
+
+	! Water stress threshold during dormancy and vegetative regrowth. Should be
+	! <0.6 (the base threshold). Units are wscal (0-1).
+	wscal_min 0.4
+
+	! Juergen's grass parameters
+
+	! Turgor loss point (MPa).
+	tlp -1.0
+
+	! Fraction of senesced carbon retranslocated back to storage.
+	crelocfrac 0
+
+	! Baseline senescence rate for dave grasses (d-1).
+	senesc_base 0.0002
+
+	! Senescence coefficient for dormancy in dave grasses. Senescence rate is
+	! increased by this factor when phenology is changing at the maximum rate.
+	senesc_scal_dorm 300
+
+	! Senescence coefficient for water stress in dave grasses. Senescence rate
+	! is increased by this factor under max water stress.
+	senesc_scal_water 100
+
+	! Increase in senescence rate per 1℃, for temperatures below 0 ℃
+	! (Johnson & Thornley 1983).
+	temp_senesc1 1.0
+
+	! Increase in senescence rate per 1℃, for temperatures above 0 ℃
+	! (Johnson & Thornley 1983).
+	temp_senesc2 0.05
+)
+
+group "broadleaved" (
+
+	! Parameters common to all broadleaved trees
+
+	! Leaf physiognomy (needleleaf, broadleaf).
+	leafphysiognomy "broadleaf"
+
+	! Constant in allometry equations.
+	k_allom1 250
+
+	! Tree leaf area to sapwood area ratio.
+	k_latosa 6000
+
+	! Interception coefficient (unitless).
+	intc 0.02
+
+	! Aerodynamic conductance (m s-1). Only used for VOCs.
+	ga 0.040
+)
+
+group "needleleaved" (
+
+	! Parameters common to all needleleaved trees
+
+	! Leaf physiognomy (needleleaf, broadleaf).
+	leafphysiognomy "needleleaf"
+
+	! Constant in allometry equations.
+	k_allom1 150
+
+	! Tree leaf area to sapwood area ratio.
+	k_latosa 5000
+
+	! Interception coefficient (unitless).
+	intc 0.06
+
+	! Aerodynamic conductance (m s-1). Only used for VOCs.
+	ga 0.140
+)
+
+group "evergreen" (
+
+	! Parameters common to all evergreen trees
+
+	! Leaf phenology (raingreen, summergreen, evergreen, raingreen, summergreen,
+	! cropgreen).
+	phenology "evergreen"
+
+	! Growing degree sum on 5 degree base required for full leaf cover.
+	phengdd5ramp 0
+)
+
+group "summergreen" (
+
+	! Parameters common to all summergreen trees
+
+	! Leaf phenology (raingreen, summergreen, evergreen, raingreen, summergreen,
+	! cropgreen).
+	phenology "summergreen"
+
+	! Growing degree sum on 5 degree base required for full leaf cover.
+	phengdd5ramp 200
+
+	! Annual leaf turnover as a proportion of leaf C biomass.
+	turnover_leaf 1
+)
+
+group "boreal" (
+
+	! Parameters common to all boreal trees
+
+	! Maintenance respiration coefficient (0-1).
+	respcoeff 1.0
+)
+
+group "temperate" (
+
+	! Parameters common to all temperate trees
+
+	! Maintenance respiration coefficient (0-1).
+	respcoeff 1.0
+)
+
+group "tropical" (
+
+	! Parameters common to all tropical trees
+
+	! Minimum 20-year coldest month mean temperature for survival (℃).
+	tcmin_surv 15.5
+
+	! Minimum 20-year coldest month mean temperature for establishment (℃).
+	tcmin_est 15.5
+
+	! Maximum 20-year coldest month mean temperature for establishment (℃).
+	tcmax_est 1000
+
+	! Minimum warmest month mean temperature for establishment (℃).
+	twmin_est -1000
+
+	! Minimum degree day sum on 5 deg C base for establishment.
+	gdd5min_est 0
+
+	! Maintenance respiration coefficient (0-1).
+	respcoeff 0.15
+)
+
+! greff_min values below calibrated for the smooth (ifsmoothgreffmort 1) option
+group "shade_tolerant" (
+
+	! Maximum sapling establishment rate (saplings/m2/year).
+	est_max 0.05
+
+	! Minimum forest-floor PAR for establishment (J/m2/day).
+	parff_min 350000
+
+	! Parameter capturing non-linearity in recruitment rate relative to
+	! understory growing conditions for trees (Fulton 1991).
+	alphar 2.0
+
+	! Threshold growth efficiency for imposition of growth suppression mortality
+	! (kgC/m2 leaf/year).
+	greff_min 0.03
+
+	! Annual sapwood turnover as a proportion of sapwood C biomass.
+	turnover_sap 0.05
+)
+
+! So far only example values; not used in this global version
+group "intermediate_shade_tolerant" (
+
+	! Maximum sapling establishment rate (saplings/m2/year).
+	est_max 0.15
+
+	! Minimum forest-floor PAR for establishment (J/m2/day).
+	parff_min 2000000
+
+	! Parameter capturing non-linearity in recruitment rate relative to
+	! understory growing conditions for trees (Fulton 1991).
+	alphar 7.0
+
+	! Threshold growth efficiency for imposition of growth suppression mortality
+	! (kgC/m2 leaf/year).
+	greff_min 0.06
+
+	! Annual sapwood turnover as a proportion of sapwood C biomass.
+	turnover_sap 0.075
+)
+
+group "shade_intolerant" (
+
+	! Maximum sapling establishment rate (saplings/m2/year).
+	est_max 0.2
+
+	! Minimum forest-floor PAR for establishment (J/m2/day).
+	parff_min 5000000
+
+	! Parameter capturing non-linearity in recruitment rate relative to
+	! understory growing conditions for trees (Fulton 1991).
+	alphar 11.0
+
+	! Threshold growth efficiency for imposition of growth suppression mortality
+	! (kgC/m2 leaf/year).
+	greff_min 0.09
+
+	! Annual sapwood turnover as a proportion of sapwood C biomass.
+	turnover_sap 0.1
+)
+
+group "extreme_shade_intolerant" (
+
+	! Maximum sapling establishment rate (saplings/m2/year).
+	est_max 0.2
+
+	! Minimum forest-floor PAR for establishment (J/m2/day).
+	parff_min 5000000
+
+	! Parameter capturing non-linearity in recruitment rate relative to
+	! understory growing conditions for trees (Fulton 1991).
+	alphar 50.0
+
+	! Threshold growth efficiency for imposition of growth suppression mortality
+	! (kgC/m2 leaf/year).
+	greff_min 0.09
+
+	! Annual sapwood turnover as a proportion of sapwood C biomass.
+	turnover_sap 0.1
+)
+
+group "no_bioclimatic_limits" (
+
+	! Remove all bioclimatic limits.
+
+	! Minimum 20-year coldest month mean temperature for survival (℃).
+  	tcmin_surv -1000
+
+	! Minimum 20-year coldest month mean temperature for establishment (℃).
+  	tcmin_est  -1000
+
+	! Maximum 20-year coldest month mean temperature for establishment (℃).
+  	tcmax_est   1000
+
+	! Minimum warmest month mean temperature for establishment (℃).
+  	twmin_est  -1000
+
+	! Minimum degree day sum on 5 deg C base for establishment.
+  	gdd5min_est 0
+)
+
+pft "SRS" (
+
+	! Short Resprouter Sclerophyll
+
+	include 0
+
+	! Inherited parameters.
+	tree
+	broadleaved
+	shade_intolerant
+	evergreen
+	temperate
+	no_bioclimatic_limits
+
+	! Sapwood and heartwood density (kgC/m3).
+	wooddens 370
+
+	! Specific leaf area (m2/kgC).
+	sla 6.2
+
+	! Annual leaf turnover as a proportion of leaf C biomass.
+	turnover_leaf 0.42
+
+	! Annual sapwood turnover as a proportion of sapwood C biomass.
+	turnover_sap 0.04
+
+	! Root turnover rate for trees (fraction of biomass turned over per year).
+	! ?? to have higher root allocation?
+	turnover_root 1
+
+	! Tree leaf area to sapwood area ratio.
+	k_latosa 4400
+
+	! Maximum leaf:root ratio under non-water-stressed conditions.
+	ltor_max 0.4
+	ltor_max 1
+
+	! Constant in allometry equations.
+	k_allom2 22
+
+	! Constant in allometry equations.
+	k_allom3 0.67
+
+	! Expected longevity under non-stressed conditions. Value from TH 2010-04-07
+	! (was 350 AA).
+	longevity 100
+
+	! Minimum leaf C:N mass ratio.
+	cton_leaf_min 35.35
+
+	! vcmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0.
+	vcmax_25 51
+
+	! jmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0.
+	jmax_25 92
+
+	! Activation energy for vcmax (kJ mol-1). Dushan's data from GWW.
+	ha_v 45.4
+
+	! Activation energy for jmax (kJ mol-1). Dushan's data from GWW
+	ha_j 18
+
+	! Entropy term (deltaS) for vcmax (J mol-1 K-1). Dushan's data from GWW
+	ds_v 636
+
+	! Entropy term (deltaS) for jmax (J mol-1 K-1). Dushan's data from GWW
+	ds_j 620
+
+	! Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5). Used only for
+	! forest-floor assimilation (elsewhere g1x is used).
+	g1 1.85 ! Austraits
+
+	! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014).
+	g1x 2.2 ! Austraits?
+
+	! Shape parameter for initialisation of root distribtion.
+	root_beta 0.988
+)
+
+pft "MRS" (
+
+	! Medium Resprouter Sclerophyll
+
+	include 1
+
+	! Inherited parameters.
+	tree
+	broadleaved
+	extreme_shade_intolerant
+	shade_intolerant
+	evergreen
+	temperate
+	no_bioclimatic_limits
+
+	! Expected longevity under non-stressed conditions. Value from TH 2010-04-07
+	! (was 350 AA).
+	longevity 300
+
+	! Minimum leaf C:N mass ratio as calculated by the model.
+	cton_leaf_min 29.010140
+
+	! Specific leaf area (m2/kgC).
+	sla 10
+
+	! Annual leaf turnover as a proportion of leaf C biomass.
+	turnover_leaf 1
+
+	! Annual sapwood turnover as a proportion of sapwood C biomass.
+	turnover_sap 0.07
+
+	! Root turnover rate for trees (fraction of biomass turned over per year).
+	! ?? to have higher root allocation?
+	turnover_root 1
+
+	! Maximum leaf:root ratio under non-water-stressed conditions.
+	ltor_max 0.67
+
+	! Tree leaf area to sapwood area ratio.
+	k_latosa 4000
+
+	! Constant in allometry equations.
+	k_allom2 35
+
+	! Expected longevity under non-stressed conditions. Value from TH 2010-04-07
+	! (was 350 AA).
+	longevity 300
+
+	! vcmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0.
+	vcmax_25 60 ! apprx from Dushan (EucFACE) - 91
+
+	! jmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0.
+	jmax_25 96 ! apprx from Dushan (EucFACE) - 138
+
+	! Activation energy for vcmax (kJ mol-1). Dushan's data from GWW.
+	ha_v 60 ! apprx from Dushan (EucFACE)
+
+	! Activation energy for jmax (kJ mol-1). Dushan's data from GWW.
+	ha_j 28 ! apprx from Dushan (EucFACE)
+
+	! Entropy term (deltaS) for vcmax (J mol-1 K-1). Dushan's data from GWW.
+	ds_v 638 ! apprx from Dushan (EucFACE)
+
+	! Entropy term (deltaS) for jmax (J mol-1 K-1). Dushan's data from GWW.
+	ds_j 638 ! apprx from Dushan (EucFACE)
+
+	! Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5). Used only for
+	! forest-floor assimilation (elsewhere g1x is used).
+	g1 3.38 ! Austraits
+
+	! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014).
+	g1x 3.9 ! Austraits
+
+	! hydraulic traits
+
+	! Sapwood and heartwood density (kgC/m3).
+	wooddens 350  ! Peters (2021)
+
+	! Maximum hydraulic conductance per unit xylem area (mol/m2/s/MPa).
+	kmax 5
+
+	! Water potential at which stomata close and roots disconnect from soil (MPa).
+    ! Peters (2021)
+	stom_clos -4.1 !-3.2
+
+	! Water potential at 50% loss of xylem conductance (MPa).
+	! Peters (2021)
+	p50 -5.0 !-5.8
+
+	! Water potential at 88% loss of xylem conductance (MPa).
+	! Peters (2021)
+	p88 -5.8 !-7.7
+
+	! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014). Estimated
+	! highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9.
+	g1x 3.9
+
+	! Cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma
+	! et al. (2019)) (mol m-2 s-1).
+	! Need a value. Cochard has ~0.002, Erick's data at 25deg generally comes in
+	! around 0.0025 for E tereticornis.
+	gcutic 0.0025
+
+	! Sensitivity parameter indicating steepness of decline in Vcmax with water
+	! stress (Zhou 2014 eqn 7). Only used when ifzhou = 1.
+	s_f 1.5
+
+	! Reference value at which Vcmax or Jmax is half it's non-water-stresed
+	! value (Zhou 2014 eqn 7). Only used when ifzhou = 1.
+	psi_f -2.0
+
+	! Fraction of roots in each soil layer. Only used when rootdistribution is
+	! set to "jackson".
+	rootdist 0.1 0.1 0.1 0.1 0.1 0.06 0.06 0.06 0.06 0.06 0.04 0.04 0.04 0.04 0.04
+
+	!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	! ! WOMBAT (Clare) - fixedLAI = 2.253
+	! shade_intolerant
+	! turnover_leaf 0.5
+	! ltor_max 0.3
+	! g1x 3.9  				! FOR CUP (see Clare's notes)
+	! wooddens 300  ! Used E. obliqua value for Warra from Peters (2021)
+	! kmax 15  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned
+	! stom_clos -3.5   ! Estimated based on Figure 5a in Pritzkow (2021), -2.5
+	! p50 -4.0   ! Used E. obliqua value for Warra from Peters (2021), -3.03
+	! p88 -4.5   ! Used E. obliqua value for Warra from Peters (2021). -3.84
+	! g1x 4.1  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for Warra in Fig 1 of Bloomfield (2019) = 4.1
+	! gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
+	! vcmax_25 69 ! NEED A VALUE - using Warra's
+	! sla 10.4 ! approximated from Pritzkow (2020b) Figure 4
+	! respcoeff 0.8
+
+	!! ! CUP (Clare) - fixedLAI = 1.545
+	!!shade_intolerant
+	!rootdist 0.1 0.1 0.1 0.1 0.1 0.06 0.06 0.06 0.06 0.06 0.04 0.04 0.04 0.04 0.04
+	!!k_latosa 6000 ! 6000 estimated from Austraits
+	!!wooddens 350  ! Peters (2021)
+	!kmax 20  ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - tuned, 10
+	!stom_clos -3.2   ! Peters (2021) -3.2
+	!p50 -5.8   ! Peters (2021)
+	!p88 -7.7  ! Peters (2021)
+	!g1x 3.9  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), 3.9
+	!gcutic 0.0015 ! cuticular conductance at 20 degC - need a value. Cochard has ~0.002, maybe should be lower for sclerophyll?
+	!!vcmax_25 36 ! Average of two euc species from Bloomfield (2018)
+	!!jmax_25 61.2 ! 1.7 * vcmax_25
+	!!sla 9.2 ! Average of two euc species from Bloomfield (2018)
+
+	! ! Warra (Clare) - fixedLAI = 5.164s
+	!shade_intolerant
+	!wooddens 300  ! Peters et al (2021)
+	!kmax 20 ! maximum hydraulic conductance (mol/m2/s/MPa) per unit xylem area - to be tuned
+	!stom_clos -1.5   ! Peters et al (2021)
+	!p50 -3.03   ! Peters et al (2021)
+	!p88 -3.84   ! Peters et al (2021)
+	!g1x 4.1  ! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), estimated highest value of g1_leaf for Warra in Fig 1 of Bloomfield (2019)
+	!gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
+	!vcmax_25 69 ! see ST7 (supp table 2) from Bloomfield et al. (2018)
+	!sla 10.05 ! see ST6 (supp table 2) from Bloomfield et al. (2018)
+)
+
+pft "TRS" (
+
+	! Tall Resprouter Sclerophyll
+
+	include 0
+
+	! Inherited parameters.
+
+	tree
+	broadleaved
+	shade_intolerant
+	evergreen
+	temperate
+	no_bioclimatic_limits
+
+	! Sapwood and heartwood density (kgC/m3).
+	wooddens 270
+
+	! Specific leaf area (m2/kgC).
+	sla 10.54
+
+	! Annual leaf turnover as a proportion of leaf C biomass.
+	turnover_leaf 1
+
+	! Annual sapwood turnover as a proportion of sapwood C biomass.
+	turnover_sap 0.1
+
+	! Root turnover rate for trees (fraction of biomass turned over per year).
+	! ?? to have higher root allocation?
+	turnover_root 1
+
+	! Tree leaf area to sapwood area ratio.
+	k_latosa 1840
+	! k_latosa 6000 ! TEST
+
+	! Maximum leaf:root ratio under non-water-stressed conditions.
+	ltor_max 1 ! can be also 1.5 (Warra)
+
+	! Constant in allometry equations.
+	k_allom2 45
+
+	! Constant in allometry equations.
+	k_allom3 0.67
+
+	! Expected longevity under non-stressed conditions. Value from TH 2010-04-07
+	! (was 350 AA).
+	longevity 300
+
+	! Minimum leaf C:N mass ratio as calculated by the model.
+	cton_leaf_min 31.6
+
+	! vcmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0.
+	!vcmax_25 77.47 ! Austraits
+	vcmax_25 93 ! Dushan's estimate at Tumbarumba
+
+	! jmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0.
+	!jmax_25 148.25 ! Austraits
+	jmax_25 190 ! Dushan's estimate at Tumbarumba
+
+	! Activation energy for vcmax (kJ mol-1).
+	ha_v 75 ! Dushan's estimate at Tumbarumba
+
+	! Activation energy for jmax (kJ mol-1).
+	ha_j 50 ! Dushan's estimate at Tumbarumba
+
+	! Entropy term (deltaS) for vcmax (J mol-1 K-1).
+	ds_v 638 ! Dushan's estimate at Tumbarumba
+
+	! Entropy term (deltaS) for jmax (J mol-1 K-1).
+	ds_j 636 ! Dushan's estimate at Tumbarumba
+
+	! Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5). Used only for
+	! forest-floor assimilation (elsewhere g1x is used).
+	g1 3.67 ! Austraits
+
+	! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014).
+	g1x 4.1 ! Bloomfield for "Warra"
+
+	! Shape parameter for initialisation of root distribtion.
+	root_beta 0.96
+)
+
+pft "TeRF" (
+
+	! Temperate rainforest
+
+	include 0
+
+	! Inherited parameters.
+
+	tree
+	broadleaved
+	shade_tolerant ! Shade Tolerant
+	evergreen
+	temperate
+	no_bioclimatic_limits
+
+	! Expected longevity under non-stressed conditions. Value from TH 2010-04-07
+	! (was 350 AA).
+	longevity 300
+
+	! Sapwood and heartwood density (kgC/m3).
+	wooddens 260
+
+	! Specific leaf area (m2/kgC).
+	sla 18
+
+	! Annual leaf turnover as a proportion of leaf C biomass.
+	turnover_leaf 1
+
+	! Annual sapwood turnover as a proportion of sapwood C biomass.
+	turnover_sap 0.05
+
+	! Root turnover rate for trees (fraction of biomass turned over per year).
+	turnover_root 0.7
+
+	! Tree leaf area to sapwood area ratio.
+	k_latosa 2616
+
+	! Maximum leaf:root ratio under non-water-stressed conditions.
+	ltor_max 1 ! can be also 1.5
+
+	! Constant in allometry equations.
+	k_allom2 45
+
+	! Constant in allometry equations.
+	k_allom3 0.67
+
+	! Expected longevity under non-stressed conditions. Value from TH 2010-04-07
+	! (was 350 AA).
+	longevity 500
+
+	! Minimum leaf C:N mass ratio as calculated by the model.
+	cton_leaf_min 23.72
+
+	! vcmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0.
+	!vcmax_25 45.94 ! Austraits
+	vcmax_25 36 ! Camille for N. cunninghamii
+
+	! jmax at 25degC in μmol/m2/s. Only used if ifcalcvcmax = 0.
+	!jmax_25 94.6 ! Austraits
+	jmax_25 98 ! Camille for N. cunninghamii
+
+	! Activation energy for vcmax (kJ mol-1).
+	ha_v 54 ! Camille for N. cunninghamii
+
+	! Activation energy for jmax (kJ mol-1).
+	ha_j 33 ! Camille for N. cunninghamii
+
+	! Entropy term (deltaS) for vcmax (J mol-1 K-1).
+	ds_v 640 ! Camille for N. cunninghamii
+
+	! Entropy term (deltaS) for jmax (J mol-1 K-1).
+	ds_j 635 ! Camille for N. cunninghamii
+
+	! Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5). Used only for
+	! forest-floor assimilation (elsewhere g1x is used).
+	g1 2.62 ! Austraits
+
+	! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014).
+	!g1x 4.1 ! Bloomfield for "Warra"
+
+	! COPIED FROM warra_pfts
+
+	! Minimum forest-floor PAR for establishment (J/m2/day).
+	!parff_min 1500000 ! increase to prevent establishment with low LAI of Eucs
+  	parff_min 500000
+
+	! Parameter capturing non-linearity in recruitment rate relative to
+	! understory growing conditions for trees (Fulton 1991).
+  	alphar 7.0 ! increase to prevent establishment with low LAI of Eucs
+
+	! Threshold growth efficiency for imposition of growth suppression mortality
+	! (kgC/m2 leaf/year).
+  	greff_min 0.03
+)
+
+!///////////////////////////////////////////////////////////////////////////////
+! Grass PFT parameters
+!///////////////////////////////////////////////////////////////////////////////
+
+group "C3G" (
+
+	! Cool (C3) grass
+
+	include 0
+
+	! Inherited parameters.
+
+	grass
+	no_bioclimatic_limits
+
+	! Biochemical pathway for photosynthesis (C3 or C4).
+	pathway "c3"
+
+	! Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1).
+	g0 0.161
+
+	! Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5). Used only for
+	! forest-floor assimilation (elsewhere g1x is used).
+	g1 4.5
+
+	! Cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma
+	! et al. (2019)) (mol m-2 s-1).
+	gcutic 0.0012
+
+	! Maintenance respiration coefficient (0-1).
+	respcoeff 1.0
+
+	! Activation energy for growth temperature relationship (kJ mol-1)
+	! (Parent & Tardieu 2012).
+	Ha_growth 63.3
+
+	! Parameter 'T0' in growth temperature relationship (K)
+	! (Parent & Tardieu 2012).
+	T0_growth 30.6
+
+	! Parameter 'A' in growth temperature relationship (K-1)
+	! (Parent & Tardieu 2012).
+	A_growth 4.64411906e8
+
+	! Temperature below which plants fall dormant (degC).
+	temp_dormancy 5.0
+)
+
+group "perennial" (
+
+	! Parameters common to all perennial grasses.
+
+	! Lifeform (tree, grass, or moss).
+	lifeform "grass_perennial"
+
+	! Senescence coefficient for water stress in dave grasses. Senescence rate
+	! is increased by this factor under max water stress.
+	!senesc_scal_water 50
+
+	! Senescence coefficient for reproductive phase in dave grasses.
+	! Senescence rate is increased by this factor during reproductive phase.
+	senesc_scal_repr 30
+
+	! Exponent shaping development-driven senescence for dave grasses. Higher
+	! values delay senescence (less early, more late in the reproductive
+	! phase). Unitless.
+	qdev_senesc 2
+
+	! Exponent shaping water stress-driven senescence for DAVE grasses. q = 1
+	! gives a linear response. q > 1 increases senescence at moderate stress;
+	! 0 < q < 1 reduces it. No effect at the extremes (wscal = 0 or 1).
+	! Unitless.
+	qwater_senesc 0.8
+)
+
+group "annual" (
+
+	! Parameters common to all annual grasses.
+
+	! Lifeform (tree, grass, or moss).
+	lifeform "grass_annual"
+
+	! Senescence coefficient for reproductive phase in dave grasses.
+	! Senescence rate is increased by this factor during reproductive phase.
+	senesc_scal_repr 120
+
+	! Exponent shaping development-driven senescence for dave grasses. Higher
+	! values delay senescence (less early, more late in the reproductive
+	! phase). Unitless.
+	qdev_senesc 35
+
+	! Exponent shaping water stress-driven senescence for DAVE grasses. q = 1
+	! gives a linear response. q > 1 increases senescence at moderate stress;
+	! 0 < q < 1 reduces it. No effect at the extremes (wscal = 0 or 1).
+	! Unitless.
+	qwater_senesc 1
+)
+
+pft "C3G_perennial" (
+
+	! Inherited parameters.
+
+	C3G
+	perennial
+
+	include 0
+
+	! Specific leaf area (m2/kgC).
+	sla                35.0
+
+	! Minimum leaf C:N mass ratio.
+    cton_leaf_min      13.7
+
+	! Maximum NSC mobilisation rate from C storage (d-1).
+	max_mobil_cstorage 0.2
+
+	! Fraction of NPP allocated to reproduction.
+	reprfrac           0.2
+
+	! Fraction of NPP allocated to crowns.
+	crownfrac          0.2
+
+	! Fraction of shoot allocated to culms (=culm / (culm + leaves)).
+	culmfrac           0.5
+
+	! Nitrogen extinction coefficient within the canopy (Hikosaka et al. 2016).
+	extkn              0.17
+)
+
+pft "C3G_annual" (
+
+	! Inherited parameters.
+
+	C3G
+	annual
+
+	include 0
+
+	! Specific leaf area (m2/kgC).
+	sla                53.1
+
+	! Minimum leaf C:N mass ratio.
+	cton_leaf_min      13.7
+
+	! Maximum NSC mobilisation rate from C storage (d-1).
+	max_mobil_cstorage 0.7
+
+	! Fraction of NPP allocated to reproduction.
+	reprfrac           0.6
+
+	! Fraction of NPP allocated to crowns.
+	crownfrac          0.02
+
+	! Fraction of shoot allocated to culms (=culm / (culm + leaves)).
+	culmfrac           0.2
+
+	! Nitrogen extinction coefficient within the canopy (Hikosaka et al. 2016).
+	extkn              0.23
+)
+
+group "C4G" (
+
+	! Warm (C4) grass
+
+	include 0
+
+	grass
+	no_bioclimatic_limits
+
+	! Biochemical pathway for photosynthesis (C3 or C4).
+	pathway "c4"
+
+	! Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1).
+	g0 0.049
+
+	! Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5). Used only for
+	! forest-floor assimilation (elsewhere g1x is used).
+	g1 1.62
+
+	! Cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma
+	! et al. (2019)) (mol m-2 s-1).
+	gcutic 0.0012
+
+	! Maintenance respiration coefficient (0-1).
+	respcoeff 1.0
+
+	! Activation energy for growth temperature relationship (kJ mol-1)
+	! (Parent & Tardieu 2012).
+	Ha_growth 60.6
+
+	! Parameter 'T0' in growth temperature relationship (K)
+	! (Parent & Tardieu 2012).
+	T0_growth 37.3
+
+	! Parameter 'A' in growth temperature relationship (K-1)
+	! (Parent & Tardieu 2012).
+	A_growth 9.3006791e7
+
+	! Temperature below which plants fall dormant (degC).
+	temp_dormancy 15.0
+)
+
+pft "C4G_perennial" (
+
+	! Inherited parameters.
+
+	C4G
+	perennial
+
+	!include 0
+
+	! Specific leaf area (m2/kgC).
+	sla    	           35.0
+
+	! Minimum leaf C:N mass ratio.
+	cton_leaf_min      17.1
+
+	! Maximum NSC mobilisation rate from C storage (d-1).
+    max_mobil_cstorage 0.2
+
+	! Fraction of NPP allocated to reproduction.
+	reprfrac           0.2
+
+	! Fraction of NPP allocated to crowns.
+	crownfrac          0.2
+
+	! Fraction of shoot allocated to culms (=culm / (culm + leaves)).
+	culmfrac           0.6
+
+	! Nitrogen extinction coefficient within the canopy (Hikosaka et al. 2016).
+	extkn              0.17
+)
+
+pft "C4G_annual" (
+
+	! Inherited parameters.
+	C4G
+	annual
+
+	!include 0
+
+	! Specific leaf area (m2/kgC).
+	sla  	           53.1
+
+	! Minimum leaf C:N mass ratio.
+	cton_leaf_min      17.1
+
+	! Maximum NSC mobilisation rate from C storage (d-1).
+	max_mobil_cstorage 0.7
+
+	! Fraction of NPP allocated to reproduction.
+	reprfrac           0.6
+
+	! Fraction of NPP allocated to crowns.
+	crownfrac          0.02
+
+	! Fraction of shoot allocated to culms (=culm / (culm + leaves)).
+	culmfrac           0.2
+
+	! Nitrogen extinction coefficient within the canopy (Hikosaka et al. 2016).
+	extkn              0.23
+)
+
+! Clare's Cumberland Plain PFT for hydraulics - hydraulic parameters adjusted
+! for drought mortality sites.
+pft "CuP" (
+
+	! Cumberland Plain, eucalyptus moluccana and eucalyptus fibrosa, based on
+	! TeBE with added hydraulic, vcmax and sla parameters.
+
+	include 0
+	tree
+	broadleaved
+
+	! TeBE was shade tolerant.
+	shade_intolerant
+
+	evergreen
+	temperate
+
+	! TeBE had 0.33.
+	turnover_leaf 1.0
+
+	! Minimum 20-year coldest month mean temperature for survival (℃).
+	tcmin_surv -1
+
+	! Minimum 20-year coldest month mean temperature for establishment (℃).
+	tcmin_est 0
+
+	! Maximum 20-year coldest month mean temperature for establishment (℃).
+	tcmax_est 18.8
+
+	! Minimum warmest month mean temperature for establishment (℃).
+	twmin_est 5
+
+	! Minimum degree day sum on 5 deg C base for establishment. TeBE had 2000.
+	gdd5min_est 1000
+
+	! Expected longevity under non-stressed conditions.
+	! from TH 2010-04-07 was 350 AA
+	longevity 300
+
+	!!! new params from MRS !!!
+
+	! Annual sapwood turnover as a proportion of sapwood C biomass.
+	turnover_sap 0.07
+
+	! Root turnover rate for trees (fraction of biomass turned over per year).
+	turnover_root 1
+
+	! Maximum leaf:root ratio under non-water-stressed conditions.
+	ltor_max 0.67
+
+	! Constant in allometry equations.
+	k_allom2 35
+
+	!!! end new params from MRS !!!
+
+	! Tree leaf area to sapwood area ratio. TeBE had 6000 (from Austraits).
+	k_latosa 4000
+
+	! Fraction of roots in each soil layer. Only used when rootdistribution is
+	! set to "jackson".
+	!rootdist 0.1 0.1 0.1 0.1 0.1 0.06 0.06 0.06 0.06 0.06 0.04 0.04 0.04 0.04 0.04
+
+	! Unsure where this root distribution came from; do we want to get an
+	! equivalent root_beta?
+
+	! hydraulic traits
+
+	! Sapwood and heartwood density (kgC/m3).
+	wooddens 350  ! Peters (2021)
+
+	! Maximum hydraulic conductance per unit xylem area (mol/m2/s/MPa).
+	kmax 20
+
+	! Water potential at which stomata close and roots disconnect from soil
+	! (MPa). Value from Peters (2021).
+	stom_clos -3.2
+
+	! Water potential at 50% loss of xylem conductance (MPa). Value from Peters
+	! (2021).
+	p50 -5.8
+
+	! Water potential at 88% loss of xylem conductance (MPa). Value from Peters
+	! (2021)
+	p88 -7.7
+
+	! g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014). Estimated
+	! highest value of g1_leaf for CuP in Fig 1 of Bloomfield (2019), -3.9.
+	g1x 3.9
+
+	! Cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma
+	! et al. (2019)) (mol m-2 s-1).
+	! Need a value. Cochard has ~0.002, Erick's data at 25deg generally comes in
+	! around 0.0025 for E tereticornis. TeBE had 0.001.
+	gcutic 0.0025
+
+	! Sensitivity parameter indicating steepness of decline in Vcmax with water
+	! stress (Zhou 2014 eqn 7). Only used when ifzhou = 1.
+	s_f 1.5
+
+	! Reference value at which Vcmax or Jmax is half it's non-water-stresed
+	! value (Zhou 2014 eqn 7). Only used when ifzhou = 1.
+	psi_f -2.2
+
+	! Average of two euc species from Bloomfield (2018) is 36.
+	! Somewhere between values for dry and wet euc species in Zhou (2014).
+	vcmax_25 70
+
+	! 1.7 * vcmax_25 (TeBE had 61.2).
+	jmax_25 119
+
+	! Average of two euc species from Bloomfield (2018).
+	! TeBE had 13.2.
+	sla 9.2
+
+	! Maintenance respiration coefficient (0-1).
+	respcoeff 1.0
+
+	! As calculated by ifcalccton.
+	cton_leaf_min 29.010140
+)

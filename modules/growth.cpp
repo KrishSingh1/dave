@@ -504,7 +504,7 @@ void state_accounting_dave(Vegetation &vegetation, Climate &climate) {
 			// Note: if plant is struggling (mortality), add a wscal that's a bit lower than the long-term mean
 			if (ppft.ndays_alive < 90){
 				ppft.dormancy_depth_historical.add(ppft.dormancy_depth_historical.mean());
-				ppft.wscal_historical.add(ppft.wscal_historical.mean() - 0.005);
+				ppft.wscal_historical.add(max(0.0, ppft.wscal_historical.mean() - 0.005));
 			} else {
 				ppft.dormancy_depth_historical.add(ppft.dormancy_depth / ppft.ndays_alive);
 				ppft.wscal_historical.add(ppft.wscal_cum / ppft.ndays_alive);

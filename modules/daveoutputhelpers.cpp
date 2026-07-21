@@ -262,7 +262,7 @@ double mean(const double *array, size_t n) {
 double weight_by_lai(const Individual &indiv, double (*selector)(const Individual&)) {
 	double total_lai = 0;
 	for (size_t i = 0; i < indiv.vegetation.nobj; i++) {
-		if (indiv.pft.id == indiv.vegetation[i].id) {
+		if (indiv.pft.id == indiv.vegetation[i].pft.id) {
 			total_lai += indiv.vegetation[i].lai;
 		}
 	}

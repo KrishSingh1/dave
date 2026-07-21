@@ -685,6 +685,11 @@ void establishment_daily(Patch& patch, Climate& climate) {
 					double cmass_total_seed = cmass_seed + cmass_ext_seed;
 					double nmass_total_seed = nmass_seed + nmass_ext_seed;
 
+					if (is_zero(cmass_total_seed) || is_zero(nmass_total_seed)) {
+						// no seeds to germinate
+						continue;
+					}
+
 					double cmass_before = ppft.cmass_litter_repr + indiv->ccont() + ppft.cmass_ext_seed;
 					double nmass_before = ppft.nmass_litter_repr + indiv->ncont() + ppft.nmass_ext_seed;
 			

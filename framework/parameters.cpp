@@ -2211,9 +2211,6 @@ void plib_callback(int callback) {
 			if (ppft->phenology==RAINGREEN || ppft->phenology==ANY ||
 				(ppft->dave_allocation() && ppft->is_grass()))
 				if (!itemparsed("wscal_min")) badins("wscal_min");
-				if (!itemparsed("wscal_min_dormant")) badins("wscal_min_dormant");
-				if (!itemparsed("dphen_activity_max")) badins("dphen_activity_max");
-				if (!itemparsed("frac_seed")) badins("frac_seed");
 			if (!itemparsed("leafphysiognomy")) badins("leafphysiognomy");
 			if (!itemparsed("pathway")) badins("pathway");
 			if (!ifdavephotosyn) {
@@ -2301,6 +2298,9 @@ void plib_callback(int callback) {
 					if (!itemparsed("senesc_scal_repr")) badins("senesc_scal_repr");
 					if (!itemparsed("qdev_senesc")) badins("qdev_senesc");
 					if (!itemparsed("qwater_senesc")) badins("qwater_senesc");
+					if (!itemparsed("wscal_min_dormant")) badins("wscal_min_dormant");
+					if (!itemparsed("dphen_activity_max")) badins("dphen_activity_max");
+					if (!itemparsed("frac_seed")) badins("frac_seed");
 				}
 				if (ppft->lifeform == TREE) {
 					if (!itemparsed("boleht_frac")) badins("boleht_frac");

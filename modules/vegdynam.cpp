@@ -575,7 +575,7 @@ void establishment_daily(Patch& patch, Climate& climate) {
 			}
 
 			Patchpft &ppft = vegetation.patch.pft[pft.id];
-				
+
 			// Check conditions for germination (germination fraction)
 			// TODO: Add germination fraction calculation for TREES.
 			double frac_germ = germination_fraction(ppft, patch, climate);
@@ -633,6 +633,7 @@ void establishment_daily(Patch& patch, Climate& climate) {
 					}
 
 					// Establish new individual.
+					log_info("Establishing %s...", (const char *)pft.name);
 					Individual& individual = vegetation.createobj(pft, vegetation);
 					indiv = &individual; // & gets address of the variable (* is the opposite)
 					//indiv->height=0.0;  // -> access properties of a pointer (pointer is the address of the object)

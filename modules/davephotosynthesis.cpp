@@ -1358,14 +1358,14 @@ void photosynthesis_gs(Patch& patch) {
 					clim, outputs, diagnostics, pft.pathway,
 					energy_balance_maxiter, energy_balance_eps);
 
-				//if (balance.get_converged()) {
-				//	log_diagnostic("Energy balance solver converged for individual %d (%s) in layer %d at day period %d in %d iterations.",
-				//				   indiv.id, (const char *)pft.name, j, day.period, balance.get_niter());
-				//} else {
-				//	log_warning("Energy balance solver did not converge for individual %d (%s) in layer %d at day period %d after %d iterations (tleaf_diff = %g).",
-				//				indiv.id, (const char *)pft.name, j, day.period,
-				//				balance.get_niter(), balance.get_delta_tleaf());
-				//}
+				if (balance.get_converged()) {
+					log_debug("Energy balance solver converged for individual %d (%s) in layer %d at day period %d in %d iterations.",
+								   indiv.id, (const char *)pft.name, j, day.period, balance.get_niter());
+				} else {
+					log_diagnostic("Energy balance solver did not converge for individual %d (%s) in layer %d at day period %d after %d iterations (tleaf_diff = %g).",
+								indiv.id, (const char *)pft.name, j, day.period,
+								balance.get_niter(), balance.get_delta_tleaf());
+				}
 
 				indiv.ps_inputs_layerwise[day.period][j] = inputs;
 				indiv.ps_outputs_layerwise[day.period][j] = outputs;

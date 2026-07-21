@@ -464,9 +464,6 @@ extern double epsiresolution;
 /// whether approximated solution for C4 photosynthesis is used
 extern bool ifapproximate_C4;
 
-/// whether to use growing degree days for grass development
-extern bool ifusegdd;
-
 /// whether to compress output files
 extern bool gzip_output;
 

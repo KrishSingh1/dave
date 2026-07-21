@@ -1,0 +1,18 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! Yanco master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: Yanco"
+
+file_met_forcing        "../forcing/met/Yanco_L6.nc"
+file_met_spinup         "../forcing/met/Yanco_L6.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs_grasses.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"

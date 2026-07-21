@@ -1,0 +1,18 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! US-PAS master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: US-PAS"
+
+file_met_forcing        "../forcing/met/US-PAS.nc"
+file_met_spinup         "../forcing/met/US-PAS.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs_grasses.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"

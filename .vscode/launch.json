@@ -15,7 +15,7 @@
                 "Abisko.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Abisko",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Abisko",
             "osx": {
                 "MIMode": "lldb"
             },
@@ -53,7 +53,7 @@
                 "AdelaideRiver.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/AdelaideRiver",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/AdelaideRiver",
             "osx": {
                 "MIMode": "lldb"
             },
@@ -91,7 +91,7 @@
                 "AliceSpringsMulga.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/AliceSpringsMulga",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/AliceSpringsMulga",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -129,7 +129,7 @@
                 "Boyagin.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Boyagin",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Boyagin",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -167,7 +167,7 @@
                 "Calperum.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Calperum",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Calperum",
             "osx": {
                 "MIMode": "lldb"
             },
@@ -205,7 +205,7 @@
                 "CapeTribulation.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/CapeTribulation",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CapeTribulation",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -243,7 +243,7 @@
                 "ClimGrass.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/ClimGrass",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/ClimGrass",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -281,7 +281,7 @@
                 "Collie.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Collie",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Collie",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -319,7 +319,7 @@
                 "CowBay.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/CowBay",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CowBay",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -357,7 +357,7 @@
                 "CumberlandPlain.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/CumberlandPlain",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CumberlandPlain",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -395,7 +395,7 @@
                 "DalyPasture.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/DalyPasture",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/DalyPasture",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -433,7 +433,7 @@
                 "DalyUncleared.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/DalyUncleared",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/DalyUncleared",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -471,7 +471,7 @@
                 "DryRiver.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/DryRiver",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/DryRiver",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -509,7 +509,7 @@
                 "Emerald.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Emerald",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Emerald",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -547,7 +547,7 @@
                 "FletcherView.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/FletcherView",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/FletcherView",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -569,6 +569,7 @@
                 ],
             },
             "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
                 "MIMode": "gdb"
             },
             "preLaunchTask": "build"
@@ -584,7 +585,7 @@
                 "FoggDam.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/FoggDam",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/FoggDam",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -622,7 +623,7 @@
                 "Gingin.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Gingin",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Gingin",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -660,7 +661,7 @@
                 "Goulburn.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Goulburn",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Goulburn",
             "osx": {
                 "MIMode": "lldb"
             },
@@ -697,7 +698,7 @@
                 "GreatWesternWoodlands.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/GreatWesternWoodlands",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/GreatWesternWoodlands",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -735,7 +736,7 @@
                 "HenryBayly.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/HenryBayly",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/HenryBayly",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -773,7 +774,7 @@
                 "HowardSprings.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/HowardSprings",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/HowardSprings",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -811,7 +812,7 @@
                 "Litchfield.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Litchfield",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Litchfield",
             "environment": [],
             "externalConsole": false,
             // "MIMode": "lldb",
@@ -829,7 +830,7 @@
                 "Longreach.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Longreach",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Longreach",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -867,82 +868,7 @@
                 "MtAlex.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/MtAlex",
-            "environment": [],
-            "externalConsole": false,
-            "osx": {
-                "MIMode": "lldb"
-            },
-            "linux": {
-                "MIMode": "gdb",
-                "setupCommands": [
-                    {
-                        "description": "Enable pretty-printing for gdb",
-                        "text": "-enable-pretty-printing",
-                        "ignoreFailures": true
-                    },
-                    {
-                        "description":  "Set Disassembly Flavor to Intel",
-                        "text": "-gdb-set disassembly-flavor intel",
-                        "ignoreFailures": true
-                    }
-                ],
-            },
-            "windows": {
-                "program": "${workspaceFolder}/build/guesscmd.exe",
-                "MIMode": "gdb"
-            },
-            "preLaunchTask": "build"
-        },
-        {
-            "name": "MtDuval",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/guess",
-            "args": [
-                "-input",
-                "nc",
-                "MtDuval.ins"
-            ],
-            "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/MtDuval",
-            "osx": {
-                "MIMode": "lldb"
-            },
-            "linux": {
-                "MIMode": "gdb",
-                "setupCommands": [
-                    {
-                        "description": "Enable pretty-printing for gdb",
-                        "text": "-enable-pretty-printing",
-                        "ignoreFailures": true
-                    },
-                    {
-                        "description":  "Set Disassembly Flavor to Intel",
-                        "text": "-gdb-set disassembly-flavor intel",
-                        "ignoreFailures": true
-                    }
-                ],
-            },
-            "windows": {
-                "MIMode": "gdb"
-            },
-            "environment": [],
-            "externalConsole": false,
-            "preLaunchTask": "build"
-        },
-        {
-            "name": "Mt. Majura",
-            "type": "cppdbg",
-            "request": "launch",
-            "program": "${workspaceFolder}/build/guess",
-            "args": [
-                "-input",
-                "nc",
-                "MtMajura.ins"
-            ],
-            "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/MtMajura",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/MtAlex",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -980,7 +906,7 @@
                 "Otway.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Otway",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Otway",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1018,7 +944,7 @@
                 "RedDirtMelonFarm.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/RedDirtMelonFarm",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/RedDirtMelonFarm",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1056,7 +982,7 @@
                 "Ridgefield.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Ridgefield",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Ridgefield",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1094,7 +1020,7 @@
                 "RiggsCreek.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/RiggsCreek",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/RiggsCreek",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1132,7 +1058,7 @@
                 "RobsonCreek.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/RobsonCreek",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/RobsonCreek",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1170,7 +1096,7 @@
                 "Samford.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Samford",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Samford",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1208,7 +1134,7 @@
                 "Sevilletagrass.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Sevilletagrass",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Sevilletagrass",
             "osx": {
                 "MIMode": "lldb"
             },
@@ -1246,7 +1172,7 @@
                 "SilverPlains.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/SilverPlains",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/SilverPlains",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1284,7 +1210,7 @@
                 "SturtPlains.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/SturtPlains",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/SturtPlains",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1322,7 +1248,7 @@
                 "TiTreeEast.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/TiTreeEast",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/TiTreeEast",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1360,7 +1286,7 @@
                 "Tumbarumba.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Tumbarumba",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Tumbarumba",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1398,7 +1324,7 @@
                 "UNE.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/UNE",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/UNE",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1436,7 +1362,7 @@
                 "WallabyCreek.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/WallabyCreek",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/WallabyCreek",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1474,7 +1400,7 @@
                 "Warra.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Warra",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Warra",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1512,7 +1438,7 @@
                 "Whroo.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Whroo",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Whroo",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1550,7 +1476,7 @@
                 "WombatStateForest.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/WombatStateForest",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/WombatStateForest",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1588,7 +1514,7 @@
                 "Yanco.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/Yanco",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Yanco",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1616,17 +1542,17 @@
             "preLaunchTask": "build"
         },
         {
-            "name": "YarCon",
+            "name": "YarramundiControl",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/guess",
             "args": [
                 "-input",
                 "nc",
-                "YarCon.ins"
+                "YarramundiControl.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/YarCon",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/YarramundiControl",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1654,17 +1580,17 @@
             "preLaunchTask": "build"
         },
         {
-            "name": "YarIrr",
+            "name": "YarramundiIrrigated",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/guess",
             "args": [
                 "-input",
                 "nc",
-                "YarIrr.ins"
+                "YarramundiIrrigated.ins"
             ],
             "stopAtEntry": false,
-            "cwd": "${workspaceRoot}/benchmarks/ozflux/YarIrr",
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/YarramundiIrrigated",
             "environment": [],
             "externalConsole": false,
             "osx": {
@@ -1690,6 +1616,2674 @@
                 "MIMode": "gdb"
             },
             "preLaunchTask": "build"
+        },
+        {
+            "name": "Neustift",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Neustift.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Neustift",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "NL-Hor",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "NL-Hor.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/NL-Hor",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "DK-Eng",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "DK-Eng.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/DK-Eng",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "IT-Tor",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "IT-Tor.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/IT-Tor",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Abisko",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "Abisko.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/Abisko",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "CG-Tch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CG-Tch.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CG-Tch",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "PA-SPs",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "PA-SPs.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/PA-SPs",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "RU-Ha1",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "RU-Ha1.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/RU-Ha1",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "CN-Cng",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CN-Cng.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CN-Cng",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "CN-Dan",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CN-Dan.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CN-Dan",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "CN-Du2",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CN-Du2.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CN-Du2",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "CN-Du3",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CN-Du3.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CN-Du3",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "CN-HaM",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CN-HaM.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CN-HaM",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "CN-Sw2",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CN-Sw2.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CN-Sw2",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-KFS",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-KFS.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-KFS",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-xDS",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-xDS.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-xDS",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "PR-xLA",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "PR-xLA.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/PR-xLA",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-xKZ",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-xKZ.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-xKZ",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-xDC",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-xDC.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-xDC",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-xCP",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-xCP.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-xCP",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-xAE",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-xAE.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-xAE",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-xMB",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-xMB.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-xMB",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-xJR",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-xJR.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-xJR",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-Seg",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-Seg.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-Seg",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-SRG",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-SRG.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/US-SRG",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-StJ",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-StJ.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-StJ",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-Mo2",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-Mo2.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-Mo2",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-Var",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-Var.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-Var",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-xWD",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-xWD.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/US-xWD",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-xNG",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-xNG.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-xNG",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-xCL",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-xCL.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-xCL",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-Snf",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-Snf.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-Snf",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-Ro4",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-Ro4.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-Ro4",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-PAS",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-PAS.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-PAS",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-NGC",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-NGC.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-NGC",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-Kon",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-Kon.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-Kon",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-KLS",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-KLS.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-KLS",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-Hn2",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-Hn2.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-Hn2",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-Cop",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-Cop.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-Cop",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-CGG",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-CGG.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-CGG",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-CAK",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-CAK.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-CAK",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-BRG",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-BRG.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-BRG",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-Arc",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-Arc.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-Arc",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-A32",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-A32.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/US-A32",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "CA-Mtk",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CA-Mtk.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/CA-Mtk",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "CA-MA3",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CA-MA3.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/CA-MA3",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "AR-CCg",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "AR-CCg.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ameriflux/AR-CCg",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "ZM-Mon",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "ZM-Mon.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/ZM-Mon",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-UiD",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-UiD.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/US-UiD",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "US-LS1",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "US-LS1.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/US-LS1",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "CN-Aro",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CN-Aro.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CN-Aro",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "SN-Dhr",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "SN-Dhr.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/SN-Dhr",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "MN-Nkh",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "MN-Nkh.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/MN-Nkh",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "MN-Kbu",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "MN-Kbu.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/MN-Kbu",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "MN-Hst",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "MN-Hst.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/MN-Hst",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "KE-Kpt",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "KE-Kpt.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/KE-Kpt",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "JP-Tmd",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "JP-Tmd.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/JP-Tmd",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "GL-ZaH",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "GL-ZaH.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/GL-ZaH",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "FR-CLt",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "FR-CLt.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/FR-CLt",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "ES-Pzb",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "ES-Pzb.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/ES-Pzb",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "CN-You",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CN-You.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CN-You",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "CN-Xi2",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CN-Xi2.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CN-Xi2",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "CN-Jng",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CN-Jng.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CN-Jng",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "CN-GuT",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CN-GuT.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CN-GuT",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "CN-Erg",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CN-Erg.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CN-Erg",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "CN-Dsh",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CN-Dsh.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CN-Dsh",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "CN-Dda",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CN-Dda.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/fluxnet/CN-Dda",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+    ],
+    "inputs": [
+        {
+            "id": "site",
+            "type": "command",
+            "command": "extension.commandvariable.pickStringRemember",
+            "args":
+            {
+                "key": "sitename",
+                "description": "Name of the fluxnet site to run",
+                "default": "SturtPlains",
+                "options": [
+                    "Abisko",
+                    "AdelaideRiver",
+                    "AliceSpringsMulga",
+                    "Boyagin",
+                    "Calperum",
+                    "CapeTribulation",
+                    "ClimGrass",
+                    "Collie",
+                    "CowBay",
+                    "CumberlandPlain",
+                    "DalyPasture",
+                    "DalyUncleared",
+                    "DryRiver",
+                    "Emerald",
+                    "FoggDam",
+                    "Gingin",
+                    "GreatWesternWoodlands",
+                    "HenryBayly",
+                    "HowardSprings",
+                    "IT-Tor",
+                    "Litchfield",
+                    "Longreach",
+                    "MtAlex",
+                    "MtMajura",
+                    "Neustift",
+                    "Otway",
+                    "RedDirtMelonFarm",
+                    "Ridgefield",
+                    "RiggsCreek",
+                    "RobsonCreek",
+                    "Samford",
+                    "SilverPlains",
+                    "SturtPlains",
+                    "TiTreeEast",
+                    "Tumbarumba",
+                    "UNE",
+                    "WallabyCreek",
+                    "Warra",
+                    "Whroo",
+                    "WombatStateForest",
+                    "Yanco",
+                    "YarramundiControl",
+                    "YarramundiIrrigated",
+                    "CG-Tch",
+                    "PA-SPs",
+                    "RU-Ha1",
+                    "CN-Cng",
+                    "CN-Dan",
+                    "CN-Du2",
+                    "CN-Du3",
+                    "CN-HaM",
+                    "CN-Sw2",
+                    "US-FR1",
+                    "US-KFS",
+                    "US-xDS",
+                    "PR-xLA",
+                    "US-xKZ",
+                    "US-xDC",
+                    "US-xCP",
+                    "US-xAE",
+                    "US-xMB",
+                    "US-xJR",
+                    "US-Seg",
+                    "US-SRG",
+                    "US-StJ",
+                    "US-Mo2",
+                    "US-Var",
+                    "US-xWD",
+                    "US-xNG",
+                    "US-xCL",
+                    "US-Snf",
+                    "US-Ro4",
+                    "US-PAS",
+                    "US-NGC",
+                    "US-Kon",
+                    "US-KLS",
+                    "US-Hn2",
+                    "US-Cop",
+                    "US-CGG",
+                    "US-CAK",
+                    "US-BRG",
+                    "US-Arc",
+                    "US-A32",
+                    "CA-Mtk",
+                    "CA-MA3",
+                    "AR-CCg",
+                    "ZM-Mon",
+                    "US-UiD",
+                    "US-LS1",
+                    "SN-Dhr",
+                    "MN-Nkh",
+                    "MN-Kbu",
+                    "MN-Hst",
+                    "KE-Kpt",
+                    "JP-Tmd",
+                    "GL-ZaH",
+                    "FR-CLt",
+                    "ES-Pzb",
+                    "CN-You",
+                    "CN-Xi2",
+                    "CN-Jng",
+                    "CN-HaM",
+                    "CN-GuT",
+                    "CN-Erg",
+                    "CN-Dsh",
+                    "CN-Dda",
+                    "CN-Aro"
+                ],
+            }
         }
     ]
 }

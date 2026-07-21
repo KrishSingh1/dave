@@ -47,11 +47,11 @@ void nstore_usage(Vegetation& vegetation);
 double get_co2(const Patch& p, const Climate& climate, const Pft& pft);
 
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
-	double respcoeff, double cton_sap, double cton_root, double cton_crown,
-	double cmass_sap, double cmass_root_today, double cmass_crown, double cmass_repr, 
-	double growth, double fphen_activity, double assim, double resp_leaf,
+	double respcoeff, double cton_sap, double cton_shoot, double cton_root, double cton_crown,
+	double cmass_sap, double cmass_culm, double cmass_root_today, double cmass_crown, double cmass_repr, 
+	double growth, double fphen_resp, double assim, double resp_leaf,
 	double& resp, double &resp_maintenance, double &resp_growth,
-	double &resp_repr, double &resp_crown, double &resp_root, double &resp_sap);
+	double &resp_repr, double &resp_culm, double &resp_crown, double &resp_root, double &resp_sap);
 
 /// Leaf senescence for crops Eqs. 8,9,13 and 14 in Olin 2015
 void leaf_senescence(Vegetation& vegetation);
@@ -169,14 +169,14 @@ const double HA_GS = 37.83;  // Gamma* (Bernacchi et al. 2001)
 const double HD = 200.0;
 
 // Exponents in soil water stress function (wscal^q)
-const double qs = 0.5;   // stomatal conductance
+// const double qs = 0.5;    // stomatal conductance --> moved to ins file as pft parameter
 const double qb = 1.0;   // biochemistry, including Rd - default is 1.0, CS testing change
 
 /// -----------------------------------------------
 /// C4 photosynthesis parameters
 /// -----------------------------------------------
 // Maximum Rubisco carboxylation rate at 25 degC relative to Vpmax25 (Fan et al. dataset)
-const double rVC4 = 0.56;
+const double rVC4 = 0.69;
 // Maximum electron transport rate at 25 degC relative to Vcmax25 (von Caemmerer 2021)
 const double rJC4 = 6.2;
 // PEP regeneration rate relative to Vcmax25 (von Caemmerer 2021)
@@ -220,14 +220,16 @@ const double KO25_C4 = 292E-3;   // (mol mol-1)
 const double HA_KC_C4 = 64.2;   // activation energy for KC_C4 (kJ mol-1), Boyd et al. 2015
 const double HA_KO_C4 = 10.5;   // activation energy for KO_C4 (kJ mol-1), Boyd et al. 2015
 
-// Half the reciprocal of Rubisco specificity
-const double lgamstar = 0.0003817;  // Boyd et al. 2015
+// Half the reciprocal of Rubisco specificity and its activation energy
+const double lgamstar25 = 0.0003817;  // Boyd et al. 2015
+const double HA_lgamstar = 31.1;  // (kJ mol-1)
 
-// Ratio of solubility and diffusivity of O2 to CO2
-const double a0 = 0.047;
+// Ratio of solubility and diffusivity of O2 to CO2 and its activation energy
+const double a025 = 0.047;
+const double HA_a0 = 1.63;  // (kJ mol-1)
 
 // Fraction of PSII activity in the bundle sheath
-const double alpha_PSII = 0.2;  // assumed 0 in von Caemmerer 2000, but so is Rd...
+const double alpha_PSII = 0.01;  // assumed 0 in von Caemmerer 2000, but so is Rd...
 
 
 

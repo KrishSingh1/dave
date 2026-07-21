@@ -1,0 +1,18 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! RU-Ha1 master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: RU-Ha1"
+
+file_met_forcing        "../forcing/met/RU-Ha1.nc"
+file_met_spinup         "../forcing/met/RU-Ha1.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs_grasses.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"

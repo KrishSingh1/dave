@@ -430,7 +430,7 @@ double aggregate_indiv(const Patch &patch, double (*read_indiv)(const Individual
 		const Individual &indiv = vegetation[i];
 		elems[i] = read_indiv(indiv);
 	}
-	return aggregate(&elems.front(), vegetation.nobj);
+	return elems.size() ? aggregate(&elems.front(), vegetation.nobj) : 0;
 }
 
 /*

@@ -517,7 +517,9 @@ double resp_water_scalar(const Individual &indiv) {
 	}
 
 	double wscal = indiv.get_wscal();
-	return 0.5 * (1.0 + wscal);
+	double scalar = 0.5 * (1.0 + wscal);
+	scalar = max(min(scalar, 1.0), 0.0);
+	return scalar;
 }
 
 /*

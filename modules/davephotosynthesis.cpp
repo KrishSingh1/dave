@@ -509,6 +509,18 @@ double resp_temp_acclimation_scalar(double tgrowth, double racclim) {
 }
 
 /*
+Get the water stress effect on respiration.
+*/
+double resp_water_scalar(const Individual &indiv) {
+	if (indiv.pft.lifeform != TREE) {
+		return 1.0;
+	}
+
+	double wscal = indiv.get_wscal();
+	return 0.5 * (1.0 + wscal);
+}
+
+/*
 No photosynthesis (stomata closed - night time, water stress, etc).
 
 Sets gross assimilation to 0, net assimilation to -Rd, and Ci to Ca.
@@ -1751,9 +1763,10 @@ void npp_dave(Patch& patch) {
         // Get scalar encapsulating the effect of temperature acclimation. This
         // will be 1 if acclimation is disabled.
         double scalar = resp_temp_acclimation_scalar(tgrowth, pft.racclim);
+        double wscalar = resp_water_scalar(indiv);
 
 		// Respiration coefficient is reduced based on temperature acclimation.
-        double respcoeff = pft.respcoeff * scalar;
+        double respcoeff = pft.respcoeff * scalar * wscalar;
 
 		double resp = 0;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,

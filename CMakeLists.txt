@@ -176,28 +176,29 @@ else()
   set(guess_command_name "guess")
 endif()
 
+# Build the common model code once, then link it into the executables below.
+add_library(guess_core STATIC ${guess_sources})
+
 # Specify the executable to build, and which sources to build it from
-add_executable(${guess_command_name} ${guess_sources} command_line_version/main.cpp)
+add_executable(${guess_command_name} command_line_version/main.cpp)
+target_link_libraries(${guess_command_name} guess_core ${LIBS})
 
 # Rule for building the unit test binary
 if(BENCHMARK)
   message("We are in benchmarks, not creating executable for tests.")
 else()
-  add_executable(runtests ${guess_sources} ${test_sources})
-  target_link_libraries(runtests ${LIBS})
+  add_executable(runtests ${test_sources})
+  target_link_libraries(runtests guess_core ${LIBS})
   # Some unit tests require C++14
   set_property(TARGET runtests PROPERTY CXX_STANDARD 14)
 endif()
 
-# Specify libraries to link to the executable
-target_link_libraries(${guess_command_name} ${LIBS})
-
 if (WIN32)
   # Create guess.dll (used with the graphical Windows shell)
-  add_library(guess SHARED ${guess_sources} windows_version/dllmain.cpp)
+  add_library(guess SHARED windows_version/dllmain.cpp)
 
   # Specify libraries to link to the dll
-  target_link_libraries(guess ${LIBS})
+  target_link_libraries(guess guess_core ${LIBS})
 endif (WIN32)
 
 # The custom build rule for generating the submit script from a template.

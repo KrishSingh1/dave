@@ -405,6 +405,7 @@ DaveOutput::DaveOutput() {
 	add_pft_output("file_dave_cmass_standing_heart"        , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_heart; }, "Seedbank cmass (kgC/m2)", true);
 	add_pft_output("file_dave_nmass_standing_heart"        , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_heart; }, "Seedbank nmass (kgN/m2)",  true);
 	add_pft_output("file_dave_dresp"                       , DAILY, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::RA, pft.id); }, "Total daily pft-level autotrophic Respiration (kgC/m2)", true);
+	add_pft_output("file_dave_dcmass_mort"                 , DAILY, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].dcmass_mort_kill; }, "Daily live vegetation C removed at Individual::kill() events (kgC/m2/day)", true);
 	add_pft_output("file_dave_cmass_seed_ext"              , DAILY, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].cmass_ext_seed; }, "Total daily pft-level hypothetical seedbank (kgC/m2)", true);
 	add_pft_output("file_dave_dncohort"                    , DAILY, get_nindiv, "Get the number of cohorts of this PFT currently established in this patch");
 	add_pft_output("file_dave_dmort_cstarve_ntree"         , DAILY, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].dmort_cstarve_ntree; }, "Daily PFT-level carbon starvation-related mortality, expressed as fraction of individuals within the cohort which died this day, summed across all indivs of a given PFT.");

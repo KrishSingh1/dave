@@ -796,6 +796,8 @@ void plib_declarations(int id,xtring setname) {
 			"Shape parameter to determine fraction of roots in each soil layer");
  		declareitem("rootdist",ppft->input_rootdist,0.0,1.0,NSOILLAYER,CB_ROOTFRAC,
 			"Fraction of roots in each soil layer (first value=upper layer)");
+		declareitem("gmin",&ppft->gmin,0.0,1.0,1,CB_NONE,
+			"Canopy conductance not assoc with photosynthesis (mm/s)");
 		declareitem("emax",&ppft->emax,0.0,50.0,1,CB_NONE,
 			"Maximum evapotranspiration rate (mm/day)");
 		// guess2008 - increased the upper limit to possible respcoeff values (was 1.2)
@@ -2218,6 +2220,7 @@ void plib_callback(int callback) {
 				if (!itemparsed("pstemp_low")) badins("pstemp_low");
 				if (!itemparsed("pstemp_high")) badins("pstemp_high");
 				if (!itemparsed("pstemp_max")) badins("pstemp_max");
+				if (!itemparsed("gmin")) badins("gmin");
 			}
 			if (!itemparsed("lambda_max") && !ifdavephotosyn) badins("lambda_max");
 			if (rootdistribution == ROOTDIST_FIXED) {

@@ -2457,6 +2457,8 @@ public:
 
 	/// shape parameter for initialisation of root distribtion
 	double root_beta;
+	/// canopy conductance component not associated with photosynthesis (mm/s)
+	double gmin;
 	/// Scalar for Vpmax25 (C4 photosynthesis only)
 	double vpmax_scal;
     /// Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)

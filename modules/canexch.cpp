@@ -1443,10 +1443,10 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 			               pft.lambda_max, 1.0, -1, 
 			               leafon_photosynthesis);
 
-			double gp_leafon = gpterm(leafon_photosynthesis.adtmm, pftco2, pft.lambda_max, daylength);
+			double gp_leafon = gpterm(leafon_photosynthesis.adtmm, pftco2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc;
 
 			// Increment patch sums of non-water-stressed gp by individual value
-			gp_patch +=  (date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm);
+			gp_patch +=  (date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm) + pft.gmin * indiv.fpc_today();
 			gp_leafon_patch += gp_leafon;
 		}
 
@@ -2122,8 +2122,10 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day, Indi
 
 		// Fix, valid for monocultures, for faulty equation, manifesting itself in problems with crops in high scenario CO2-levels.
 		// No fix for natural vegetation yet.
+		double gmin = pft.phenology==CROPGREEN ? ppft.phen * pft.gmin : pft.gmin;
 
-		ppft.gcbase = ppft.wstress ? max(gc_monteith(ppft.wsupply, patch.eet_net_veg), 0.0) : 0;
+		ppft.gcbase = ppft.wstress ? max(gc_monteith(ppft.wsupply, patch.eet_net_veg)-
+					gmin * ppft.wsupply / patch.wdemand, 0.0) : 0;
 
 		if (!date.diurnal()) {
 			ppft.wstress_day = ppft.wstress;

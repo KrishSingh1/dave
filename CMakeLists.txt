@@ -176,29 +176,37 @@ else()
   set(guess_command_name "guess")
 endif()
 
-# Build the common model code once, then link it into the executables below.
-add_library(guess_core STATIC ${guess_sources})
+# Build the common model code once, then include all of its objects in the
+# executables below. This ensures that static input/output module registration
+# initializers are not discarded by the static-library linker.
+add_library(guess_core OBJECT ${guess_sources})
 
 # Specify the executable to build, and which sources to build it from
-add_executable(${guess_command_name} command_line_version/main.cpp)
-target_link_libraries(${guess_command_name} guess_core ${LIBS})
+add_executable(${guess_command_name}
+  command_line_version/main.cpp
+  $<TARGET_OBJECTS:guess_core>)
+target_link_libraries(${guess_command_name} ${LIBS})
 
 # Rule for building the unit test binary
 if(BENCHMARK)
   message("We are in benchmarks, not creating executable for tests.")
 else()
-  add_executable(runtests ${test_sources})
-  target_link_libraries(runtests guess_core ${LIBS})
+  add_executable(runtests
+    ${test_sources}
+    $<TARGET_OBJECTS:guess_core>)
+  target_link_libraries(runtests ${LIBS})
   # Some unit tests require C++14
   set_property(TARGET runtests PROPERTY CXX_STANDARD 14)
 endif()
 
 if (WIN32)
   # Create guess.dll (used with the graphical Windows shell)
-  add_library(guess SHARED windows_version/dllmain.cpp)
+  add_library(guess SHARED
+    windows_version/dllmain.cpp
+    $<TARGET_OBJECTS:guess_core>)
 
   # Specify libraries to link to the dll
-  target_link_libraries(guess guess_core ${LIBS})
+  target_link_libraries(guess ${LIBS})
 endif (WIN32)
 
 # The custom build rule for generating the submit script from a template.

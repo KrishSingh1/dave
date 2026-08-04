@@ -5717,6 +5717,10 @@ public:
 	double nmass_ext_seed;
 	/// carbon lost during mortality
 	double cmass_mort;
+	/// carbon removed from live vegetation by Individual::kill() today
+	double dcmass_mort_kill;
+	/// annual carbon removed from live vegetation by Individual::kill()
+	double acmass_mort_kill;
 	/// carbon lost during fire
 	double cmass_fire;
 	/// carbon lost during ´disturbance
@@ -5835,6 +5839,8 @@ public:
 		cmass_litter_heart = 0.0;
 		cmass_litter_repr = 0.0;
 		cmass_ext_seed = 0.0;
+		dcmass_mort_kill = 0.0;
+		acmass_mort_kill = 0.0;
 
 		nmass_litter_leaf  = 0.0;
 		nmass_litter_root  = 0.0;

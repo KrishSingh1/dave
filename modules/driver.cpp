@@ -992,6 +992,7 @@ void dailyaccounting_patch(Patch& patch) {
 		for(unsigned int i=0;i<pftlist.nobj;i++) {
 			Patchpft& patchpft = patch.pft[i];
 			patchpft.cmass_mort = 0.0;
+			patchpft.acmass_mort_kill = 0.0;
 			patchpft.cmass_fire = 0.0;
 			patchpft.cmass_dist = 0.0;
 			patchpft.cmass_leaf_root_turnover = 0.0;

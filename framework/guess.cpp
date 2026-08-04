@@ -513,6 +513,7 @@ void Patchpft::daily_accounting(const Patch &patch) {
 
 	airtemp_10.add(patch.get_climate().temp);
 	wscal_set_today = false;
+	dcmass_mort_kill = 0.0;
 	dmort_cstarve_ntree = 0.0;
 }
 
@@ -525,6 +526,7 @@ void Patchpft::annual_accounting(const Patch &patch) {
 	if (pft.phenology==CROPGREEN || pft.isintercropgrass) {
 		cropphen->growingdays_y = 0;
 	}
+	acmass_mort_kill = 0.0;
 	amort_cstarve = 0.0;
 	amort_cstarve_ntree = 0.0;
 }
@@ -3567,6 +3569,12 @@ void Individual::kill(bool harvest /* = false */) {
 	double harv_eff = 0.0;
 	double harvest_slow_frac = 0.0;
 	double res_outtake = 0.0;
+
+	if (alive || istruecrop_or_intercropgrass()) {
+		double cmass_mort_kill = ccont(1.0, false, true);
+		ppft.dcmass_mort_kill += cmass_mort_kill;
+		ppft.acmass_mort_kill += cmass_mort_kill;
+	}
 	
 	// Remove hypothetical seed biomass from the system to avoid fertilisation
 	// effect.

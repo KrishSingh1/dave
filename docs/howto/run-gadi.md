@@ -102,6 +102,30 @@ module purge                # unload all modules
     `submit_to_gadi.sh` (described below) are designed to ensure consistency —
     use them rather than loading modules manually.
 
+### DAVE Shared Environment
+
+DAVE helper scripts and custom module files are available to all members of the
+`pt17` group on Gadi. To make them available automatically at login, add this
+line to your own `~/.bashrc` file:
+
+```bash
+source /scratch/pt17/.bin/.bashrc
+```
+
+That shared file adds `/scratch/pt17/.bin` to `PATH`, making the DAVE helper
+scripts available as normal shell commands. It also adds the DAVE custom module
+directory to `MODULEPATH`, so `module avail` and `module load` can see the
+project-specific modules. One of these modules is `lpj-guess-utils`, which
+provides Gadi-compiled versions of the standard LPJ-GUESS utilities such as
+`aslice`, `tslice`, `gmap`, etc.
+
+After editing `~/.bashrc`, either log out and back in, or source it in the
+current shell:
+
+```bash
+source ~/.bashrc
+```
+
 ## Storage
 
 Gadi provides three types of storage, with very different properties.
@@ -198,8 +222,10 @@ as a starting point. **Do not use `~`** for home directory expansion — use
 
 ## Helper Scripts
 
-Several helper scripts are available to all DAVE team members on Gadi (on
-`$PATH`) from the
+Several helper scripts are available to all DAVE team members on Gadi under
+`/scratch/pt17/.bin`. If you have sourced the shared startup file described in
+[DAVE Shared Environment](#dave-shared-environment), they will be available on
+`PATH`. Many of these scripts are maintained in the
 [`hol430/gadi-scripts`](https://github.com/hol430/gadi-scripts) repository.
 
 ### `nci_account` — Check SU Balance

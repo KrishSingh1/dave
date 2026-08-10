@@ -1336,6 +1336,7 @@ void photosynthesis_gs(Patch& patch) {
 			indiv.ps_inputs_layerwise[day.period].assign(nlayer, PhotosynthesisInputs{});
 			indiv.ps_outputs_layerwise[day.period].assign(nlayer, PhotosynthesisOutputs{});
 			indiv.energy_balance_layerwise[day.period].assign(nlayer, EnergyBalance(0, 0, 0, false, 0, 0));
+			indiv.ps_diagnostics_layerwise[day.period].assign(nlayer, PhotosynthesisDiagnostics{});
 
 		    for (size_t j = 0; j < nlayer; j++) {
 

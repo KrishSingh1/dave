@@ -462,6 +462,11 @@ Get the columns used in the high-fidelity energy balance output file.
 */
 std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> energy_balance_cols();
 
+/*
+Get the columns used in the high-fidelity photosynthesis diagnostics output file.
+*/
+std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_diagnostics_cols();
+
 } // namespace GuessOutput
 
 #endif // LPJ_GUESS_DAVE_OUTPUT_HELPERS_H

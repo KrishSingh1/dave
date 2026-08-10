@@ -909,6 +909,13 @@ public:
 	double jmax;
 };
 
+class PhotosynthesisDiagnostics {
+public:
+	double g1;
+	double g0;
+	double gcutic_adj;
+};
+
 class EnergyBalance {
 public:
 	EnergyBalance(double tleaf, size_t niter, double delta_tleaf,
@@ -3885,6 +3892,8 @@ public:
 	/// Per-subdaily-timestep, per-canopy-layer energy balance outputs.
 	/// Indexed as [timestep][layer]. Reinitialised each day in photosynthesis_gs().
 	std::vector<std::vector<EnergyBalance>> energy_balance_layerwise;
+
+	std::vector<std::vector<PhotosynthesisDiagnostics>> ps_diagnostics_layerwise;
 
 	/// Photosynthesis values for this individual under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;

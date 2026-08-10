@@ -2201,6 +2201,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 		ps_inputs_layerwise.resize(date.subdaily);
 		ps_outputs_layerwise.resize(date.subdaily);
 		energy_balance_layerwise.resize(date.subdaily);
+		ps_diagnostics_layerwise.resize(date.subdaily);
 	}
 }
 
@@ -3924,6 +3925,7 @@ void Individual::daily_accounting() {
 		ps_inputs_layerwise[i].clear();
 		ps_outputs_layerwise[i].clear();
 		energy_balance_layerwise[i].clear();
+		ps_diagnostics_layerwise[i].clear();
 	}
 	canopy.clear();
 

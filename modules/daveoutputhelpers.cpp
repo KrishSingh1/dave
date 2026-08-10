@@ -1342,6 +1342,9 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_
 		{"s_f",          [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].s_f; }},
 		{"psi_f",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].psi_f; }},
 		{"tgrowth",      [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].tgrowth; }},
+		{"g0",         [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].g0; }},
+		{"g1",         [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].g1; }},
+		{"gcutic_adj", [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].gcutic_adj; }},
 	};
 }
 
@@ -1368,6 +1371,14 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ene
 		{"tleaf",        [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_tleaf(); }},
 		{"tair",         [](const Individual &i, int t, int l) { return i.vegetation.patch.get_climate().temps[t]; }},
 		{"rnet",         [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_rnet(); }},
+	};
+}
+
+std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_diagnostics_cols() {
+	return {
+		{"g0",         [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].g0; }},
+		{"g1",         [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].g1; }},
+		{"gcutic_adj", [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].gcutic_adj; }},
 	};
 }
 

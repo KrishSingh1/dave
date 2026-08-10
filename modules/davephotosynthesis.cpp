@@ -56,13 +56,6 @@ private:
 	double vpd;
 };
 
-class PhotosynthesisDiagnostics {
-public:
-	double g1;
-	double g0;
-	double gcutic_adj;
-};
-
 /*
 Describes the state of a cohort relevant for photosynthesis calculations.
 */
@@ -1386,6 +1379,7 @@ void photosynthesis_gs(Patch& patch) {
 				indiv.ps_inputs_layerwise[day.period][j] = inputs;
 				indiv.ps_outputs_layerwise[day.period][j] = outputs;
 				indiv.energy_balance_layerwise[day.period][j] = balance;
+				indiv.ps_diagnostics_layerwise[day.period][j] = diagnostics;
 
 				// TODO drew: multiply by LAI only once, after canopy loop.
 

@@ -431,6 +431,8 @@ DaveOutput::DaveOutput() {
 	// Subdaily cohort-level per-layer energy balance.
 	add_indiv_layer_timestep_output("file_dave_energy_balance", energy_balance_cols(), "Subdaily layered cohort-level energy balance outputs");
 
+	add_indiv_layer_timestep_output("file_dave_ps_diagnostics", ps_diagnostics_cols(), "Subdaily layered cohort-level photosynthesis diagnostics");
+
 	// Daily patch-level array outputs.
 	add_patch_array_output("file_dave_sw"                       , DAILY, "sw_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", true, false);
 	add_patch_array_output("file_dave_swmm"                     , DAILY, "swmm_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.awc[i] + p.soil.soiltype.wp[i]; }, "Soil water content (mm)", true, false);

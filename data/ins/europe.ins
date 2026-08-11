@@ -13,7 +13,7 @@
 !// are commented with ! THdiff
 !//
 !// Lar_dec is adapted from Scherstjanoi, M., Kaplan, J. O., and Lischke, H.: Application of a computationally 
-!// efficient method to approximate gap model results with a probabilistic approach, Geosci. Model Dev., 7, 1543–
+!// efficient method to approximate gap model results with a probabilistic approach, Geosci. Model Dev., 7, 1543ï¿½
 !// 1571, https://doi.org/10.5194/gmd-7-1543-2014, 2014.
 !///////////////////////////////////////////////////////////////////////////////////////
 
@@ -125,6 +125,7 @@ npatch 25             		! Number of replicate patches to simulate
 patcharea 1000        		! Patch area (m2)
 estinterval 5         		! Years between establishment events in cohort mode
 ifdisturb 1           		! Whether generic patch-destroying disturbances enabled
+disttype "STOCHASTIC"       ! "NONE", "STOCHASTIC", "DETERMINISTIC"
 distinterval 100      		! Average return time for generic patch-destroying disturbances
 				! Hickler et al. (2011) used 200
 ifbgestab 1           		! Whether background establishment enabled
@@ -142,7 +143,8 @@ ifsmoothgreffmort 1		! Whether to vary mort_greff smoothly with growth efficienc
 ifdroughtlimitedestab 1		! Whether establishment is limited by growing season drought
 ifrainonwetdaysonly 1		! Whether to rain on wet days only (1), or to rain a bit every day (0)
 ifbvoc 0			! Whether to include BVOC calculations (1) or not (0)
-ifdailygrass 1	      ! whether to use daily carbon allocation for grasses.
+ifdailygrass 0	      ! whether to use daily carbon allocation for grasses.
+ifdailytree 0
 
 
 !///////////////////////////////////////////////////////////////////////////////////////
@@ -352,7 +354,6 @@ group "grass" (
 
 	turnover_harv_prod 1 ! Turnover rate for long-lived harvested products (wood) : 1-year turnover time for GRASS
 	harvest_slow_frac 0
-	stor 0.43414		! storage growth to root ratio	
 )
 
 

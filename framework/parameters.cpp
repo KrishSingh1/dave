@@ -2526,11 +2526,6 @@ void plib_callback(int callback) {
 				if (!itemparsed("fireresist")) badins("fireresist");
 			}
 			if (ifcalcsla) {
-				if (!itemparsed("leaflong")) {
-					sendmessage("Error",
-								"Value required for leaflong when ifcalcsla enabled");
-					plibabort();
-				}
 				if (itemparsed("sla") && !(ppft->phenology == CROPGREEN && ifnlim))
 					sendmessage("Warning",
 								"Specified sla value not used when ifcalcsla enabled");
@@ -2540,11 +2535,6 @@ void plib_callback(int callback) {
 			}
 
 			if (ifcalccton) {
-				if (!itemparsed("leaflong")) {
-					sendmessage("Error",
-								"Value required for leaflong when ifcalccton enabled");
-					plibabort();
-				}
 				if (itemparsed("cton_leaf_min") && !(ppft->phenology == CROPGREEN && ifnlim))
 					sendmessage("Warning",
 								"Specified cton_leaf_min value not used when ifcalccton enabled");

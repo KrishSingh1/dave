@@ -1565,6 +1565,7 @@ void plib_callback(int callback) {
 		if (strparam.upper()=="TREE") ppft->lifeform=TREE;
 		else if (strparam.upper() == "GRASS_PERENNIAL") ppft->lifeform = GRASS_PERENNIAL;
 		else if (strparam.upper() == "GRASS_ANNUAL") ppft->lifeform = GRASS_ANNUAL;
+		else if (strparam.upper() == "GRASS" && !ppft->dave_allocation()) ppft->lifeform = GRASS_PERENNIAL; // for compat with upstream - no difference between annual/perennial if we're using trunk allocation
 		else if (strparam.upper() == "MOSS") ppft->lifeform = MOSS;
 		else {
 			sendmessage("Error",

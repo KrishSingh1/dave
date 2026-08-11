@@ -3921,15 +3921,15 @@ void Individual::daily_accounting() {
 	closs_temp = 0;
 	nloss_temp = 0;
 	loss_temp = 0;
-	for (size_t i = 0; i < date.subdaily; i++) {
-		ps_inputs_layerwise[i].clear();
-		ps_outputs_layerwise[i].clear();
-		energy_balance_layerwise[i].clear();
-		ps_diagnostics_layerwise[i].clear();
-	}
 	canopy.clear();
 
 	if (ifdavephotosyn) {
+		for (size_t i = 0; i < date.subdaily; i++) {
+			ps_inputs_layerwise[i].clear();
+			ps_outputs_layerwise[i].clear();
+			energy_balance_layerwise[i].clear();
+			ps_diagnostics_layerwise[i].clear();
+		}
 		ps_subdaily.clear();
 		photosynthesis.clear();
 	}

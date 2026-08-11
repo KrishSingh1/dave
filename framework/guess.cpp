@@ -187,19 +187,15 @@ void WeatherGenState::serialize(ArchiveStream& arch) {
 
 Fluxes::Fluxes(Patch& p)
   : patch(p),
-    annual_fluxes_per_pft(npft, std::vector<double>(NPERPFTFLUXTYPES)) {
-
-	// Resize daily_fluxes_per_pft to required sizes
-	// Order  daily_fluxes_per_pft[day][pft][type]
-	daily_fluxes_per_pft.resize(date.year_length());
-	for (int day = 0; day < date.year_length(); ++day) {
-		daily_fluxes_per_pft[day].resize(npft);
-		for (int pft = 0; pft < npft; ++pft) {
-			daily_fluxes_per_pft[day][pft].resize(NPERPFTFLUXTYPES, 0.0);
-		}
-	}
+    annual_fluxes_per_pft(npft, std::vector<double>(NPERPFTFLUXTYPES)),
+    daily_fluxes_per_pft(size_t(date.year_length()) * size_t(npft) * size_t(NPERPFTFLUXTYPES), 0.0) {
 
 	reset();
+}
+
+size_t Fluxes::daily_flux_index(int day, int pft_id, PerPFTFluxType flux_type) const {
+	const size_t pft_count = annual_fluxes_per_pft.size();
+	return (size_t(day) * pft_count + size_t(pft_id)) * size_t(NPERPFTFLUXTYPES) + size_t(flux_type);
 }
 
 void Fluxes::reset() {
@@ -215,10 +211,8 @@ void Fluxes::reset() {
 	for (int d = 0; d < date.year_length(); ++d) {
 		std::fill_n(daily_fluxes_pft[d], int(NPERPFTFLUXTYPES), 0);
 		std::fill_n(daily_fluxes_patch[d], int(NPERPATCHFLUXTYPES), 0);
-		for (int pft = 0; pft < npft; ++pft) {
-			std::fill_n(daily_fluxes_per_pft[d][pft].begin(), int(NPERPFTFLUXTYPES), 0);
-		}
 	}
+	std::fill(daily_fluxes_per_pft.begin(), daily_fluxes_per_pft.end(), 0);
 }
 
 void Fluxes::serialize(ArchiveStream& arch) {
@@ -231,7 +225,7 @@ void Fluxes::report_flux(PerPFTFluxType flux_type, int pft_id, double value) {
 	annual_fluxes_per_pft[pft_id][flux_type] += value;
 	monthly_fluxes_pft[date.month][flux_type] += value;
 	daily_fluxes_pft[date.day][flux_type] += value;	//Var = value ???
-	daily_fluxes_per_pft[date.day][pft_id][flux_type] += value;
+	daily_fluxes_per_pft[daily_flux_index(date.day, pft_id, flux_type)] += value;
 }
 
 void Fluxes::report_flux(PerPatchFluxType flux_type, double value) {
@@ -240,7 +234,7 @@ void Fluxes::report_flux(PerPatchFluxType flux_type, double value) {
 }
 
 double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day, int pft_id) const {
-	return daily_fluxes_per_pft[day][pft_id][flux_type];
+	return daily_fluxes_per_pft[daily_flux_index(day, pft_id, flux_type)];
 }
 
 double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day) const {

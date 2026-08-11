@@ -336,7 +336,6 @@ group "grass" (
 	gmin 0.5
 	phenology "any"
 	phengdd5ramp 100		! C3 har 50 hos Thomas
-	leaflong 0.5			! Leaf longevity (years)
 	turnover_leaf 1
 	turnover_root 0.7		! 0.5 hos guess2008
 	!cton_leaf_min 16
@@ -364,7 +363,6 @@ group "broadleaved" (
 	leafphysiognomy "broadleaf"
 	k_allom1 250
 	k_latosa 5000
-	leaflong 0.5		! PMxx: new default
 	turnover_leaf 1		! PMxx: new default
 	ga 0.040
 )
@@ -455,7 +453,6 @@ pft "Abi_alb" (
 	gmin 0.3
 	phenology "evergreen"
 	fnstorage 0.05
-	leaflong 3		! THdiff: 4
 	turnover_leaf 0.33	! THdiff: 0.25
 	phengdd5ramp 0
 	tcmin_surv -7.5		! from GS. THdiff: -4.5 ! Sykes96: -4.5 ; ML
@@ -494,7 +491,6 @@ pft "BES" (
 !	sla 9.3			! Not used if ifcalcsla is set
 	gmin 0.3
 	phenology "evergreen"
-	leaflong 2
 	turnover_leaf 0.5
 	turnover_sap 0.05	! THdiff: 0.1 (shade intolerant value)
 	phengdd5ramp 0
@@ -731,7 +727,6 @@ pft "Jun_oxy" (
 	gmin 0.5
 	phenology "evergreen"
 	fnstorage 0.05
-	leaflong 1.5
 	turnover_leaf 0.6667
 	phengdd5ramp 0
 	tcmin_surv 0
@@ -765,7 +760,6 @@ pft "Lar_dec" (
 	gmin 0.3		! needle-leaf value
 	phenology "summergreen"	! Sch
 	fnstorage 0.05		! needle-leaf value
-	leaflong 0.5		! Sch			
 	turnover_leaf 1		! (Sch)
 	phengdd5ramp 100	! Sch
 	tcmin_surv -30		! (Sch)
@@ -803,7 +797,6 @@ pft "MRS" (
 !	sla 10			! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "raingreen"
-	leaflong 0.5
 	turnover_leaf 1
 	phengdd5ramp 0
 	tcmin_surv 0		! ThomasH
@@ -839,7 +832,6 @@ pft "Pic_abi" (
 	gmin 0.3
 	phenology "evergreen"
 	fnstorage 0.05
-	leaflong 3		! THdiff: 4
 	turnover_leaf 0.33	! THdiff: 0.25
 	phengdd5ramp 0
 	tcmin_surv -30
@@ -878,7 +870,6 @@ pft "Pic_sit" (
 	gmin 0.3
 	phenology "evergreen"
 	fnstorage 0.05
-	leaflong 4				! 5 !?
 	turnover_leaf 0.25			! 0.2 !?
 	phengdd5ramp 0
 	tcmin_surv -18				! Bjarki
@@ -916,7 +907,6 @@ pft "Pin_syl" (
 	gmin 0.3
 	phenology "evergreen"
 	fnstorage 0.05
-	leaflong 2
 	turnover_leaf 0.5
 	phengdd5ramp 0
 	tcmin_surv -30
@@ -953,7 +943,6 @@ pft "Pin_hal" (
 	gmin 0.3
 	phenology "evergreen"
 	fnstorage 0.05
-	leaflong 2
 	turnover_leaf 0.5
 	phengdd5ramp 0
 	tcmin_surv 3
@@ -1025,7 +1014,6 @@ pft "Que_coc" (
 !	sla 10				! Not used if ifcalcsla is set
 	gmin 0.5
 	phenology "evergreen"
-	leaflong 1.5
 	turnover_leaf 0.6667
 	phengdd5ramp 0
 	tcmin_surv 0
@@ -1062,7 +1050,6 @@ pft "Que_ile" (
 	gmin 0.5
 	phenology "evergreen"
 	fnstorage 0.05
-	leaflong 2
 	turnover_leaf 0.5
 	phengdd5ramp 0
 	tcmin_surv 3			! THdiff: -2

@@ -1509,7 +1509,7 @@ double calc_water_uptake_dave(Individual &indiv) {
 
     if (spft.irrigated && pft.id == patch.stand.pftid) {
         Day day;
-        return irrigated_water_uptake(patch, pft, day, indiv);
+        return irrigated_water_uptake(patch, pft, day, indiv.rootdist, indiv.fwuptake);
     }
 
     // Available water in each layer, as a fraction of water holding

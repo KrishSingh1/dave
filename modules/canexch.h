@@ -60,7 +60,7 @@ void ndemand(Patch& patch, Vegetation& vegetation);
 
 void nitrogen_uptake(Vegetation &vegetation);
 
-double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual &indiv);
+double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, double rootdist[NSOILLAYER], double fwuptake[NSOILLAYER]);
 
 double water_uptake_twolayer(double wcont[NSOILLAYER], double awc[NSOILLAYER],
 	double rootdist[NSOILLAYER], double emax, double fpc_rescale,

@@ -1787,7 +1787,7 @@ double water_uptake_twolayer(double wcont[NSOILLAYER], double awc[NSOILLAYER],
  *                   but with fractional uptake from different layers according
  *                   to prescribed root distribution
  */
-double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual &indiv) {
+double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, double rootdist[NSOILLAYER], double fwuptake[NSOILLAYER]) {
 	Patchpft& ppft = patch.pft[pft.id];
 	
 	// Prepare for water balance tests
@@ -1813,9 +1813,9 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual
 	for (int i=0;i<NSOILLAYER;i++) {
 		wcont_cp[i] = patch.soil.get_layer_soil_water(i);
 		if (i < NSOILLAYER_UPPER)
-			grootdist[0] += indiv.rootdist[i];
+			grootdist[0] += rootdist[i];
 		else
-			grootdist[1] += indiv.rootdist[i];
+			grootdist[1] += rootdist[i];
 	}
 
 	if (day.isstart) {
@@ -1846,8 +1846,8 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual
 				for (int i = 0; i<NSOILLAYER_UPPER; i++) {
 					wcont_opt[i] = (wr_opt * pft.emax - min(patch.soil.get_soil_water_lower() * awc1 * patch.fpc_rescale, pft.emax * grootdist[1])/ NSOILLAYER_UPPER) / patch.soil.soiltype.awc[i] / patch.fpc_rescale;
 			
-					if (wcont_opt[i] * patch.soil.soiltype.awc[i] * patch.fpc_rescale > pft.emax * indiv.rootdist[i]) {
-						wcont_opt[i] = pft.emax * indiv.rootdist[i] / patch.soil.soiltype.awc[i] / patch.fpc_rescale;
+					if (wcont_opt[i] * patch.soil.soiltype.awc[i] * patch.fpc_rescale > pft.emax * rootdist[i]) {
+						wcont_opt[i] = pft.emax * rootdist[i] / patch.soil.soiltype.awc[i] / patch.fpc_rescale;
 					}
 
 					if (wcont_cp[i] > wcont_opt[i]) {
@@ -2012,11 +2012,11 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual
 
 
 	if (iftwolayersoil) 
-		return water_uptake_twolayer(wcont_cp, patch.soil.soiltype.awc, indiv.rootdist, pft.emax, patch.fpc_rescale,
-				indiv.fwuptake, pft.lifeform == TREE, pft.drought_tolerance);
+		return water_uptake_twolayer(wcont_cp, patch.soil.soiltype.awc, rootdist, pft.emax, patch.fpc_rescale,
+				fwuptake, pft.lifeform == TREE, pft.drought_tolerance);
 	else
-		return water_uptake(wcont_cp, patch.soil.soiltype.awc, indiv.rootdist, pft.emax, patch.fpc_rescale,
-				indiv.fwuptake, pft.lifeform == TREE, pft.drought_tolerance, Rs_r_default); // i.e. use upland awc instead of awc_peat - never irrigate on peatlands
+		return water_uptake(wcont_cp, patch.soil.soiltype.awc, rootdist, pft.emax, patch.fpc_rescale,
+				fwuptake, pft.lifeform == TREE, pft.drought_tolerance, Rs_r_default); // i.e. use upland awc instead of awc_peat - never irrigate on peatlands
 
 };
 
@@ -2025,7 +2025,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual
 /** Soil water supply at the roots available to meet the transpirational demand
  *  Fundamentally, water stress = supply < demand
  */
-void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day, Individual &indiv) {
+void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 	// Supply function for evapotranspiration and determination of water stress leading
 	// to down-regulation of stomatal conductance. Actual evapotranspiration determined
@@ -2055,7 +2055,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day, Indi
 			double wr;
  
 			if (patch.stand.isirrigated) {
-				wr = irrigated_water_uptake(patch, pft, day, indiv);
+				wr = irrigated_water_uptake(patch, pft, day, pft.input_rootdist, ppft.fwuptake);
 			} 
 			else {
 				double wcont_local[NSOILLAYER];
@@ -2065,17 +2065,17 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day, Indi
 
 			if (iftwolayersoil) 
 				wr = water_uptake_twolayer(wcont_local, patch.soil.soiltype.awc,
-							indiv.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
+							pft.input_rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance);
 			else {
 
 				if (patch.stand.is_highlatitude_peatland_stand()) // Use awc_peat
 					wr = water_uptake(wcont_local, patch.soil.soiltype.awc_peat,
-							indiv.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
+							pft.input_rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance, Rs_r_default);
 				else
 					wr = water_uptake(wcont_local, patch.soil.soiltype.awc,
-							indiv.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
+							pft.input_rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance, Rs_r_default);
 
 				}
@@ -2901,7 +2901,6 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 
 	// Retrieve Vegetation and Climate objects for this patch
 	Vegetation& vegetation = patch.vegetation;
-	Individual& indiv=vegetation.getobj();
 
 	// Initial no-stress canopy exchange processes
 	init_canexch(patch, climate, vegetation);
@@ -2925,7 +2924,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		for (Day day; day.period != date.subdaily; day.next()) {
 
 			wdemand(patch, climate, vegetation, day);
-			aet_water_stress(patch, vegetation, day, indiv);
+			aet_water_stress(patch, vegetation, day);
 			water_scalar(patch, vegetation, day);
 			npp(patch, climate, vegetation, day);
 		}

@@ -554,7 +554,8 @@ void Soil::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 		Individual& indiv = vegetation.getobj();
 
 		for (int s = 0; s<NSOILLAYER; s++) {
-			aet = indiv.fwuptake[s] * indiv.aet;
+			double fwuptake = ifdavephotosyn ? indiv.fwuptake[s] : indiv.patchpft().fwuptake[s];
+			aet = fwuptake * indiv.aet;
 			aet_total += aet;
 			if (s < NSOILLAYER_UPPER)
 				aet_twolayer[0] += aet;
@@ -895,7 +896,8 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		Individual& indiv = vegetation.getobj();
 
 		for (int ly = 0; ly<NSOILLAYER; ly++) {
-			aet = indiv.fwuptake[ly] * indiv.aet;
+			double fwuptake = ifdavephotosyn ? indiv.fwuptake[ly] : indiv.patchpft().fwuptake[ly];
+			aet = fwuptake * indiv.aet;
 			aet_layer[ly] += aet;
 			aet_total += aet;
 

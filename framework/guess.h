@@ -5773,6 +5773,10 @@ public:
 	double wsupply;
 	double wsupply_leafon;
 
+	/// Fractional uptake of water from each soil layer today. This is only used
+	/// when trunk photosynthesis is active. Under DAVE photosynthesis, this can
+	/// vary per cohort.
+	double fwuptake[NSOILLAYER];
 
 	/// whether water-stress conditions for this PFT
 	bool wstress;
@@ -5877,6 +5881,9 @@ public:
 
 		for (int mth = 0; mth < 12; mth++)
 			mphen[mth] = 0.0;
+
+		for (int i = 0; i < NSOILLAYER; i++)
+			fwuptake[i] = 0.0;
 
 		cropphen = NULL;
 		cmass_harvested_products_slow = 0.0;

@@ -501,6 +501,14 @@ void declare_parameter(const char* name, bool* param, const char* help) {
 	boolParams.push_back(boolParam(name, param, help));
 }
 
+void clear_parameter_declarations() {
+	xtringParams.clear();
+	stringParams.clear();
+	intParams.clear();
+	doubleParams.clear();
+	boolParams.clear();
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // The following code uses functionality from the PLIB library to process an

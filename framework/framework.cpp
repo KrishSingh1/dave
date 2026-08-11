@@ -15,6 +15,7 @@
 #include "commandlinearguments.h"
 #include "guessserializer.h"
 #include "parallel.h"
+#include "parameters.h"
 
 #include "inputmodule.h"
 #include "driver.h"
@@ -189,6 +190,8 @@ int framework(const CommandLineArguments& args) {
 	using std::unique_ptr;
 
 	const char* input_module_name = args.get_input_module();
+
+	clear_parameter_declarations();
 
 	unique_ptr<InputModule> input_module(InputModuleRegistry::get_instance().create_input_module(input_module_name));
 

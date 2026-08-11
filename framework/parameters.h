@@ -631,4 +631,11 @@ void declare_parameter(const char* name, double* param, double min, double max, 
  */
 void declare_parameter(const char* name, bool* param, const char* help = "");
 
+/// Clears parameters declared by input/output modules.
+/** This is needed before constructing modules for a new in-process framework()
+ *  run, because module instances own some of the variables referenced by these
+ *  declarations.
+ */
+void clear_parameter_declarations();
+
 #endif // LPJ_GUESS_PARAMETERS_H

@@ -992,6 +992,7 @@ void dailyaccounting_patch(Patch& patch) {
 		for(unsigned int i=0;i<pftlist.nobj;i++) {
 			Patchpft& patchpft = patch.pft[i];
 			patchpft.cmass_mort = 0.0;
+			patchpft.acmass_mort_kill = 0.0;
 			patchpft.cmass_fire = 0.0;
 			patchpft.cmass_dist = 0.0;
 			patchpft.cmass_leaf_root_turnover = 0.0;
@@ -1356,14 +1357,16 @@ void daylengthinsoleet(Climate& climate) {
 
 		// If using diurnal data with SWRAD or SWRAD_TS insolation type move
 		// the following if-clause outside and below this if-else clause.
-		climate.pars.resize(date.subdaily);
-		climate.rads.resize(date.subdaily);
-		for (int i=0; i<date.subdaily; i++) {
-			climate.rads[i] = climate.insols[i] * net_coeff * averaging_period;
-			if (ifdavephotosyn) {
-				climate.pars[i] = climate.insols[i] * FRADPAR;
-			} else {
-				climate.pars[i] = climate.rads[i] * FRADPAR;
+		if (date.diurnal()) {
+			climate.pars.resize(date.subdaily);
+			climate.rads.resize(date.subdaily);
+			for (int i=0; i<date.subdaily; i++) {
+				climate.rads[i] = climate.insols[i] * net_coeff * averaging_period;
+				if (ifdavephotosyn) {
+					climate.pars[i] = climate.insols[i] * FRADPAR;
+				} else {
+					climate.pars[i] = climate.rads[i] * FRADPAR;
+				}
 			}
 		}
 

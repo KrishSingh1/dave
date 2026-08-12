@@ -262,7 +262,7 @@ double mean(const double *array, size_t n) {
 double weight_by_lai(const Individual &indiv, double (*selector)(const Individual&)) {
 	double total_lai = 0;
 	for (size_t i = 0; i < indiv.vegetation.nobj; i++) {
-		if (indiv.pft.id == indiv.vegetation[i].id) {
+		if (indiv.pft.id == indiv.vegetation[i].pft.id) {
 			total_lai += indiv.vegetation[i].lai;
 		}
 	}
@@ -430,7 +430,7 @@ double aggregate_indiv(const Patch &patch, double (*read_indiv)(const Individual
 		const Individual &indiv = vegetation[i];
 		elems[i] = read_indiv(indiv);
 	}
-	return aggregate(&elems.front(), vegetation.nobj);
+	return elems.size() ? aggregate(&elems.front(), vegetation.nobj) : 0;
 }
 
 /*
@@ -1342,6 +1342,9 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_
 		{"s_f",          [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].s_f; }},
 		{"psi_f",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].psi_f; }},
 		{"tgrowth",      [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].tgrowth; }},
+		{"g0",         [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].g0; }},
+		{"g1",         [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].g1; }},
+		{"gcutic_adj", [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].gcutic_adj; }},
 	};
 }
 
@@ -1368,6 +1371,14 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ene
 		{"tleaf",        [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_tleaf(); }},
 		{"tair",         [](const Individual &i, int t, int l) { return i.vegetation.patch.get_climate().temps[t]; }},
 		{"rnet",         [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_rnet(); }},
+	};
+}
+
+std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_diagnostics_cols() {
+	return {
+		{"g0",         [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].g0; }},
+		{"g1",         [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].g1; }},
+		{"gcutic_adj", [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].gcutic_adj; }},
 	};
 }
 

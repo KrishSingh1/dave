@@ -1,0 +1,379 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# validate_outputs: verify consistency between output parameters defined in
+# modules/daveoutput.cpp and those present (commented or not) in an instruction file.
+#
+# Usage:
+#     benchmarks/ozflux/validate_outputs [-i|--ins-file FILE] [-f|--fix]
+#
+# Checks performed:
+# 1) Every output parameter name defined in modules/daveoutput.cpp must appear
+#    in the instruction file (even if commented out with '!').
+# 2) Every parameter in the instruction file that starts with 'file_dave'
+#    must be defined in modules/daveoutput.cpp.
+# 3) With --fix, missing params are inserted (with default value and description),
+#    and extraneous 'file_dave*' params are removed, preserving C++-defined order.
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd -- "${SCRIPT_DIR}/../.." && pwd)"
+CPP_FILE="${REPO_ROOT}/modules/daveoutput.cpp"
+DEFAULT_INS_FILE="${SCRIPT_DIR}/outputs.ins"
+
+INS_FILE="${DEFAULT_INS_FILE}"
+DO_FIX=0
+
+print_help() {
+    cat <<EOF
+Usage: ${0##*/} [options]
+
+Options:
+  -i, --ins-file FILE   Path to instruction (.ins) file. Default: ${DEFAULT_INS_FILE}
+  -f, --fix             Modify the instruction file to fix detected issues.
+  -d, --debug           Print debug information.
+  -h, --help            Show this help and exit.
+EOF
+}
+
+# Parse CLI options
+while [[ $# -gt 0 ]]; do
+    case "${1}" in
+        -i|--ins-file)
+            shift
+            [[ $# -gt 0 ]] || { echo "Error: --ins-file requires an argument" >&2; exit 2; }
+            INS_FILE="${1}"
+            ;;
+        -f|--fix)
+            DO_FIX=1
+            ;;
+        -d|--debug)
+            set -x
+            ;;
+        -h|--help)
+            print_help
+            exit 0
+            ;;
+        *)
+            echo "Error: unknown option: ${1}" >&2
+            print_help >&2
+            exit 2
+            ;;
+    esac
+    shift
+done
+
+if [[ ! -f "${INS_FILE}" ]]; then
+    echo "Error: instruction file not found: ${INS_FILE}" >&2
+    exit 2
+fi
+
+if [[ ! -f "${CPP_FILE}" ]]; then
+    echo "Error: cannot find daveoutput.cpp at expected path: ${CPP_FILE}" >&2
+    exit 2
+fi
+
+# Extract parameter names and descriptions from C++ (robust to multi-line calls).
+# We accumulate text between an 'add_*output(' and its closing ');',
+# then extract quoted strings from that buffer (first is name, last is description).
+mapfile -t CPP_INFO < <(
+    awk '
+        function flush_block() {
+            if (buf != "") {
+                n=0; s=buf
+                while (match(s, /"[^"]+"/)) {
+                    q[++n] = substr(s, RSTART+1, RLENGTH-2)
+                    s = substr(s, RSTART+RLENGTH)
+                }
+                if (n >= 1) {
+                    name = q[1]
+                    desc = (n >= 2 ? q[n] : "")
+                    printf("%s\t%s\n", name, desc)
+                }
+                for (i=1; i<=n; i++) delete q[i]
+                buf=""
+            }
+        }
+        {
+            line=$0
+            if (!inblk) {
+                if (line ~ /add_.*output\(/) {
+                    inblk=1; buf=line
+                    if (line ~ /\)\s*;/) { flush_block(); inblk=0 }
+                }
+            } else {
+                buf = buf " " line
+                if (line ~ /\)\s*;/) { flush_block(); inblk=0 }
+            }
+        }
+        END { if (inblk) flush_block() }
+    ' "${CPP_FILE}" |
+    awk -F"\t" '!seen[$1]++'
+)
+
+# Build ordered params, description map, and sets
+CPP_PARAMS=()
+declare -A CPP_DESC=()
+declare -A CPP_SET=()
+for ROW in "${CPP_INFO[@]}"; do
+    NAME="${ROW%%$'\t'*}"
+    DESC="${ROW#*$'\t'}"
+    CPP_PARAMS+=("${NAME}")
+    CPP_DESC["${NAME}"]="${DESC}"
+    CPP_SET["${NAME}"]=1
+done
+
+# Extract parameter names from the instruction file (commented or not)
+mapfile -t INS_PARAMS_ALL < <(
+    awk '
+        {
+            line=$0
+            sub(/^[ \t]+/,"",line)
+            if (line=="") next
+            if (substr(line,1,1)=="!") { line=substr(line,2); sub(/^[ \t]+/,"",line) }
+            split(line,a,/[^A-Za-z0-9_\-\.]+/)
+            if (a[1] != "") print a[1]
+        }
+    ' "${INS_FILE}" |
+    sort -u
+)
+
+declare -A INS_SET=()
+for P in "${INS_PARAMS_ALL[@]}"; do
+    INS_SET["${P}"]=1
+done
+
+# Determine discrepancies
+MISSING_IN_INS=()
+for P in "${CPP_PARAMS[@]}"; do
+    if [[ -z ${INS_SET[${P}]:-} ]]; then
+        MISSING_IN_INS+=("${P}")
+    fi
+done
+
+UNKNOWN_IN_CPP=()
+for P in "${INS_PARAMS_ALL[@]}"; do
+    if [[ ${P} == file_dave* && -z ${CPP_SET[${P}]:-} ]]; then
+        UNKNOWN_IN_CPP+=("${P}")
+    fi
+done
+
+STATUS=0
+
+if (( ${#MISSING_IN_INS[@]} > 0 )); then
+    echo "Missing in instruction file (defined in C++ but not present in INS):" >&2
+    for P in "${MISSING_IN_INS[@]}"; do
+        echo "    - ${P}" >&2
+    done
+    STATUS=1
+fi
+
+if (( ${#UNKNOWN_IN_CPP[@]} > 0 )); then
+    echo "Unknown in C++ (present in INS starting with 'file_dave' but not defined in C++):" >&2
+    for P in "${UNKNOWN_IN_CPP[@]}"; do
+        echo "    - ${P}" >&2
+    done
+    STATUS=1
+fi
+
+# If not fixing, exit with status
+if (( DO_FIX == 0 )); then
+    if (( STATUS == 0 )); then
+        echo "Success: instruction file matches daveoutput.cpp definitions."
+        echo "    Total outputs defined in C++: ${#CPP_PARAMS[@]}"
+        INS_FILE_PARAMS_COUNT=$(printf "%s\n" "${INS_PARAMS_ALL[@]}" | grep -c '^file_\|^file_dave' || true)
+        echo "    Total output parameters found in INS: ${INS_FILE_PARAMS_COUNT}"
+    fi
+    exit ${STATUS}
+fi
+
+# --fix: Modify the INS file in place
+TMP_FILE="${INS_FILE}.tmp.$$"
+
+# Load original lines
+mapfile -t ALL_LINES < "${INS_FILE}"
+
+# Map parameters to their first occurrence line index in INS (0-based)
+mapfile -t INS_PARAM_LINES < <(
+    awk '
+        {
+            idx=NR-1
+            line=$0
+            sub(/^[ \t]+/,"",line)
+            if (line=="") next
+            if (substr(line,1,1)=="!") { line=substr(line,2); sub(/^[ \t]+/,"",line) }
+            split(line,a,/[^A-Za-z0-9_\-\.]+/)
+            if (a[1] != "") print idx "\t" a[1]
+        }
+    ' "${INS_FILE}"
+)
+
+declare -A PARAM_TO_LINE=()
+for ROW in "${INS_PARAM_LINES[@]}"; do
+    IDX="${ROW%%$'\t'*}"
+    NAME="${ROW#*$'\t'}"
+    if [[ -z ${PARAM_TO_LINE[${NAME}]+x} ]]; then
+        PARAM_TO_LINE["${NAME}"]="${IDX}"
+    fi
+done
+
+# Mark deletions for unknown file_dave* params
+declare -A DELETE_LINE=()
+for NAME in "${UNKNOWN_IN_CPP[@]}"; do
+    if [[ -n ${PARAM_TO_LINE[${NAME}]+x} ]]; then
+        DELETE_LINE["${PARAM_TO_LINE[${NAME}]}"]=1
+    fi
+done
+
+# Map original line index -> new sequential index after deletions
+declare -A OLD_TO_NEW=()
+NEW_IDX=0
+for (( I=0; I<${#ALL_LINES[@]}; I++ )); do
+    if [[ -z ${DELETE_LINE[${I}]:-} ]]; then
+        OLD_TO_NEW["${I}"]="${NEW_IDX}"
+        NEW_IDX=$((NEW_IDX+1))
+    fi
+done
+
+# Helper to generate default filename from parameter name
+suggest_filename() {
+    local name="$1"
+    local base="${name#file_}"
+    echo "${base}.out"
+}
+
+# Format a line aligned to a neighbor's columns (quote and bang),
+# accounting for an initial '!' on the neighbor. Falls back to
+# NAME "file"    ! desc with single spaces if alignment unavailable.
+format_aligned_line() {
+    local name="$1" file="$2" desc="$3" neighbor="$4"
+    local tn commented=0
+    tn="${neighbor#${neighbor%%[![:space:]]*}}" # ltrim
+    if [[ "${tn}" == '!'* ]]; then
+        commented=1
+    fi
+    # Find positions (1-based) of first quote and first bang after it
+    local qpos bpos
+    read -r qpos bpos < <(awk '{
+        q=index($0,"\""); b=0;
+        if (q>0) { rest=substr($0,q+1); b=index(rest,"!"); if (b>0) b=b+q; }
+        print q, b;
+    }' <<< "${neighbor}")
+
+    # If no quote found, fall back
+    if [[ -z "${qpos}" || "${qpos}" -le 0 ]]; then
+        printf '%s "%.s%s"    ! %s' "${name}" "" "${file}" "${desc}"
+        return
+    fi
+
+    local target_quote_col=$(( qpos - commented ))
+    if (( target_quote_col < 2 )); then
+        target_quote_col=0
+    fi
+
+    local name_len=${#name}
+    local quote_token="\"${file}\""
+    local quote_len=${#quote_token}
+
+    # spaces between name and quote
+    local spaces1=1
+    if (( target_quote_col > 0 )); then
+        spaces1=$(( target_quote_col - name_len ))
+        (( spaces1 < 1 )) && spaces1=1
+    fi
+
+    local line_pre
+    printf -v line_pre '%s%*s%s' "${name}" "${spaces1}" '' "${quote_token}"
+
+    # Align comment bang if neighbor has one
+    if [[ -n "${bpos}" && "${bpos}" -gt 0 ]]; then
+        local target_bang_col=$(( bpos - commented ))
+        local pre_len=${#line_pre}
+        local spaces2=$(( target_bang_col - pre_len ))
+        (( spaces2 < 1 )) && spaces2=1
+        printf '%s%*s! %s' "${line_pre}" "${spaces2}" '' "${desc}"
+    else
+        # No bang in neighbor: use single space before !
+        printf '%s %s %s' "${line_pre}" '!' "${desc}"
+    fi
+}
+
+# Collect insertions anchored to kept (post-deletion) lines; or to EOF if none
+declare -A INSERT_BEFORE_NEW=()
+declare -A INSERT_AFTER_NEW=()
+APPEND_AT_EOF=""
+
+for (( i=0; i<${#CPP_PARAMS[@]}; i++ )); do
+    NAME="${CPP_PARAMS[$i]}"
+    if [[ -n ${INS_SET[${NAME}]:-} ]]; then
+        continue
+    fi
+
+    # Find next existing kept anchor by C++ order
+    TARGET_OLD=-1
+    for (( j=i+1; j<${#CPP_PARAMS[@]}; j++ )); do
+        NEXT_NAME="${CPP_PARAMS[$j]}"
+        if [[ -n ${PARAM_TO_LINE[${NEXT_NAME}]+x} ]]; then
+            CANDIDATE_OLD=${PARAM_TO_LINE[${NEXT_NAME}]}
+            if [[ -n ${OLD_TO_NEW[${CANDIDATE_OLD}]+x} ]]; then
+                TARGET_OLD=${CANDIDATE_OLD}
+                break
+            fi
+        fi
+    done
+
+    if (( TARGET_OLD >= 0 )); then
+        TARGET_NEW=${OLD_TO_NEW[${TARGET_OLD}]}
+        NEIGHBOR_LINE="${ALL_LINES[${TARGET_OLD}]}"
+        INSERT_BEFORE_NEW["${TARGET_NEW}"]+="$(format_aligned_line "${NAME}" "$(suggest_filename "${NAME}")" "${CPP_DESC[${NAME}]:-}" "${NEIGHBOR_LINE}")\n"
+    else
+        # Try previous existing kept anchor
+        PREV_OLD=-1
+        for (( j=i-1; j>=0; j-- )); do
+            PREV_NAME="${CPP_PARAMS[$j]}"
+            if [[ -n ${PARAM_TO_LINE[${PREV_NAME}]+x} ]]; then
+                CANDIDATE_OLD=${PARAM_TO_LINE[${PREV_NAME}]}
+                if [[ -n ${OLD_TO_NEW[${CANDIDATE_OLD}]+x} ]]; then
+                    PREV_OLD=${CANDIDATE_OLD}
+                    break
+                fi
+            fi
+        done
+        if (( PREV_OLD >= 0 )); then
+            PREV_NEW=${OLD_TO_NEW[${PREV_OLD}]}
+            NEIGHBOR_LINE="${ALL_LINES[${PREV_OLD}]}"
+            INSERT_AFTER_NEW["${PREV_NEW}"]+="$(format_aligned_line "${NAME}" "$(suggest_filename "${NAME}")" "${CPP_DESC[${NAME}]:-}" "${NEIGHBOR_LINE}")\n"
+        else
+            # No anchors at all; append at EOF
+            APPEND_AT_EOF+="${NAME} \"$(suggest_filename "${NAME}")\"    ! ${CPP_DESC[${NAME}]:-}\n"
+        fi
+    fi
+done
+
+# Emit new file applying deletions and insertions using NEW indices
+{
+    NEW_POS=0
+    for (( K=0; K<${#ALL_LINES[@]}; K++ )); do
+        if [[ -n ${DELETE_LINE[${K}]:-} ]]; then
+            continue
+        fi
+        if [[ -n ${INSERT_BEFORE_NEW[${NEW_POS}]:-} ]]; then
+            printf "%b" "${INSERT_BEFORE_NEW[${NEW_POS}]}"
+        fi
+        printf "%s\n" "${ALL_LINES[$K]}"
+        if [[ -n ${INSERT_AFTER_NEW[${NEW_POS}]:-} ]]; then
+            printf "%b" "${INSERT_AFTER_NEW[${NEW_POS}]}"
+        fi
+        NEW_POS=$((NEW_POS+1))
+    done
+    if [[ -n "${APPEND_AT_EOF}" ]]; then
+        printf "%b" "${APPEND_AT_EOF}"
+    fi
+} > "${TMP_FILE}"
+
+# Replace original file
+mv "${TMP_FILE}" "${INS_FILE}"
+
+echo "Applied fixes to: ${INS_FILE}" >&2
+
+# Re-run validation to report final status
+exec "${BASH_SOURCE[0]}" --ins-file "${INS_FILE}"

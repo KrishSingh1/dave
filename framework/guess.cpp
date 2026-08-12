@@ -187,19 +187,15 @@ void WeatherGenState::serialize(ArchiveStream& arch) {
 
 Fluxes::Fluxes(Patch& p)
   : patch(p),
-    annual_fluxes_per_pft(npft, std::vector<double>(NPERPFTFLUXTYPES)) {
-
-	// Resize daily_fluxes_per_pft to required sizes
-	// Order  daily_fluxes_per_pft[day][pft][type]
-	daily_fluxes_per_pft.resize(date.year_length());
-	for (int day = 0; day < date.year_length(); ++day) {
-		daily_fluxes_per_pft[day].resize(npft);
-		for (int pft = 0; pft < npft; ++pft) {
-			daily_fluxes_per_pft[day][pft].resize(NPERPFTFLUXTYPES, 0.0);
-		}
-	}
+    annual_fluxes_per_pft(npft, std::vector<double>(NPERPFTFLUXTYPES)),
+    daily_fluxes_per_pft(size_t(date.year_length()) * size_t(npft) * size_t(NPERPFTFLUXTYPES), 0.0) {
 
 	reset();
+}
+
+size_t Fluxes::daily_flux_index(int day, int pft_id, PerPFTFluxType flux_type) const {
+	const size_t pft_count = annual_fluxes_per_pft.size();
+	return (size_t(day) * pft_count + size_t(pft_id)) * size_t(NPERPFTFLUXTYPES) + size_t(flux_type);
 }
 
 void Fluxes::reset() {
@@ -215,10 +211,8 @@ void Fluxes::reset() {
 	for (int d = 0; d < date.year_length(); ++d) {
 		std::fill_n(daily_fluxes_pft[d], int(NPERPFTFLUXTYPES), 0);
 		std::fill_n(daily_fluxes_patch[d], int(NPERPATCHFLUXTYPES), 0);
-		for (int pft = 0; pft < npft; ++pft) {
-			std::fill_n(daily_fluxes_per_pft[d][pft].begin(), int(NPERPFTFLUXTYPES), 0);
-		}
 	}
+	std::fill(daily_fluxes_per_pft.begin(), daily_fluxes_per_pft.end(), 0);
 }
 
 void Fluxes::serialize(ArchiveStream& arch) {
@@ -231,7 +225,7 @@ void Fluxes::report_flux(PerPFTFluxType flux_type, int pft_id, double value) {
 	annual_fluxes_per_pft[pft_id][flux_type] += value;
 	monthly_fluxes_pft[date.month][flux_type] += value;
 	daily_fluxes_pft[date.day][flux_type] += value;	//Var = value ???
-	daily_fluxes_per_pft[date.day][pft_id][flux_type] += value;
+	daily_fluxes_per_pft[daily_flux_index(date.day, pft_id, flux_type)] += value;
 }
 
 void Fluxes::report_flux(PerPatchFluxType flux_type, double value) {
@@ -240,7 +234,7 @@ void Fluxes::report_flux(PerPatchFluxType flux_type, double value) {
 }
 
 double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day, int pft_id) const {
-	return daily_fluxes_per_pft[day][pft_id][flux_type];
+	return daily_fluxes_per_pft[daily_flux_index(day, pft_id, flux_type)];
 }
 
 double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day) const {
@@ -513,6 +507,7 @@ void Patchpft::daily_accounting(const Patch &patch) {
 
 	airtemp_10.add(patch.get_climate().temp);
 	wscal_set_today = false;
+	dcmass_mort_kill = 0.0;
 	dmort_cstarve_ntree = 0.0;
 }
 
@@ -525,6 +520,7 @@ void Patchpft::annual_accounting(const Patch &patch) {
 	if (pft.phenology==CROPGREEN || pft.isintercropgrass) {
 		cropphen->growingdays_y = 0;
 	}
+	acmass_mort_kill = 0.0;
 	amort_cstarve = 0.0;
 	amort_cstarve_ntree = 0.0;
 }
@@ -1820,18 +1816,22 @@ void cropindiv_struct::serialize(ArchiveStream& arch) {
 		& isintercropgrass;
 }
 
-size_t get_response_window(size_t nday_dormant) {
-	int x_intercept = -3;
-	int y_intercept = 15;
-	double slope = -1.0 * (y_intercept - x_intercept) / Date::MAX_YEAR_LENGTH;
-	return max(1.0,slope * nday_dormant + y_intercept);
+size_t get_response_window(double dormancy_depth) {
+	double mindorm = 0.2;
+	double maxdorm = 0.7;
+	int minwin = 2;
+	int maxwin = 10;
+	double slope = (maxwin - minwin) / (maxdorm - mindorm);
+	return round(slope * (maxdorm - min(maxdorm,max(mindorm,dormancy_depth))) + minwin);
 }
 
-double calc_root_beta(size_t nday_dormant) {
+double calc_root_beta(double wscal_avg) {
+	// min and max values from range presented in Jackson et al. 1996
+	const double wscal_min = 0.5; // TODO: use existing wscal_min parameter (?)
 	const double ROOT_BETA_MIN = 0.94;
 	const double ROOT_BETA_MAX = 0.98;
-	double slope = (ROOT_BETA_MAX - ROOT_BETA_MIN) / Date::MAX_YEAR_LENGTH;
-	return slope * nday_dormant + ROOT_BETA_MIN;
+	double x = (1.0 - max(wscal_min,wscal_avg)) / (1.0 - wscal_min);
+    return ROOT_BETA_MIN + (ROOT_BETA_MAX - ROOT_BETA_MIN) * pow(x,2.0);
 }
 
 // Inits root fractions in each soil layer through a shape parameter beta (see Jackson et al., 1996)
@@ -1867,6 +1867,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	aresp			  = 0.0;
 	aet               = 0.0;
 	fpc               = 0.0;
+	fpc_greenbrown    = 0.0;
 	fpc_daily		  = 0.0;
 	rpc               = 0.0;
 	densindiv         = 0.0;
@@ -1874,7 +1875,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_root        = 0.0;
 	cmass_crown       = 0.0;
 	cmass_repr        = 0.0;
-	cmass_struct      = 0.0;
 	cmass_sap         = 0.0;
 	cmass_heart       = 0.0;
 	cmass_debt        = 0.0;
@@ -1906,7 +1906,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	growth_stage      = 0.0;
 	frepr_cstorage    = 0.0;
 	fdev_growth       = 1.0;
-	lai_flowering	  = 0.0;
+	cmass_crown_flowering = 0.0;
 	fdev_senesc       = 1.0;
 	senesc_root       = 0.0;
 	growth_stage_days = 0;
@@ -1956,15 +1956,19 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	anp_frac                    = 0.0;
 
 	Patchpft &ppft = patchpft();
-	size_t nday_dormant = ppft.nday_dormant_historical.mean();
-	size_t response_window = get_response_window(nday_dormant);
+	double dormancy_depth = ppft.dormancy_depth_historical.mean();
+	double wscal_avg = ppft.wscal_historical.mean();
+	size_t response_window = get_response_window(dormancy_depth);
 	assert(response_window > 0);
 	wscal_dynamic.set_capacity(response_window);
 	soiltemp_dynamic.set_capacity(response_window);
+	dphen_activity_max = pft.dphen_activity_max;  // TODO: OK to initialise like this for both ifadaptive_rootdist cases?
+	max_mobil_cstorage = pft.max_mobil_cstorage;
+	temp_dormancy = pft.temp_dormancy;
 
 	// Initialise dynamic root_beta and rootdist to the pft-level values.
 	if (ifadaptive_rootdist && pft.is_grass() && pft.dave_allocation()) {
-		root_beta = calc_root_beta(nday_dormant);
+		root_beta = calc_root_beta(wscal_avg);
 		calc_root_distribution(root_beta, rootdist);
 	} else { // Take PFT-level default
 		root_beta = pft.root_beta;
@@ -2111,6 +2115,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	// additional initialisation
 	age               = 0.0;
+	age_active        = 0.0;
 	height            = 0.0;
 	diam              = 0.0;
 	d_height		  = 0.0;
@@ -2133,6 +2138,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	lai               = 0.0;
 	lai_layer         = 0.0;
 	lai_indiv         = 0.0;
+	lai_brown_indiv   = 0.0;
 	lai_daily       = 0.0;
 	lai_indiv_daily = 0.0;
 	alive             = false;
@@ -2156,6 +2162,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	resp_maintenance  = 0.0;
 	resp_growth       = 0.0;
 	resp_leaf         = 0.0;
+	resp_culm         = 0.0;
 	resp_sap          = 0.0;
 	resp_root         = 0.0;
 	resp_repr         = 0.0;
@@ -2188,6 +2195,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 		ps_inputs_layerwise.resize(date.subdaily);
 		ps_outputs_layerwise.resize(date.subdaily);
 		energy_balance_layerwise.resize(date.subdaily);
+		ps_diagnostics_layerwise.resize(date.subdaily);
 	}
 }
 
@@ -2208,6 +2216,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_sap_limit
 		& last_turnover_day
 		& fpc
+		& fpc_greenbrown
 		& fpc_daily
 		& rpc
 		& fpar
@@ -2235,11 +2244,13 @@ void Individual::serialize(ArchiveStream& arch) {
 		& nmass_leafs
 		& cmass_storage
 		& cmass_storage_dynam
-		&ftemp
-		&fwater
-		&fstorage
-		&cgrow_pot
+		& ftemp
+		& fwater
+		& fstorage
+		& cgrow_pot
+		& lai_20
 		& cmass_storage_20
+		& cexcess_npp_5
 		& cstorage_dynam_14
 		& cstorage_max
 		& nmass_storage
@@ -2259,11 +2270,14 @@ void Individual::serialize(ArchiveStream& arch) {
 		& lai
 		& lai_layer
 		& lai_indiv
+		& lai_brown_indiv
 		& lai_daily
 		& lai_indiv_daily
+		& lai_trend_max
 		& greff_5
 		& cmass_wood_inc_5
 		& age
+		& age_active
 		& mlai
 		& fpar_leafon
 		& lai_leafon_layer
@@ -2327,6 +2341,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& andemand_sap
 		& andemand
 		& resp_leaf
+		& resp_culm
 		& resp_sap
 		& resp_root
 		& resp_repr
@@ -3416,6 +3431,18 @@ double Individual::fpc_today() const {
 	}
 }
 
+/// Gets the individual's daily fpc value including green and brown leaves
+double Individual::fpc_greenbrown_today() const {
+
+	// TODO: adjust for vegtypes other than grasses, if needed
+	if (pft.phenology == CROPGREEN)
+		return patchpft().cropphen->growingseason ? fpc_daily : 0;
+	else if (pft.is_grass() && ifdailygrass)
+		return fpc_greenbrown;
+	else
+		return fpc * phen;  
+}
+
 /// Gets the individual's daily lai value
 double Individual::lai_today() const {
 
@@ -3537,6 +3564,12 @@ void Individual::kill(bool harvest /* = false */) {
 	double harv_eff = 0.0;
 	double harvest_slow_frac = 0.0;
 	double res_outtake = 0.0;
+
+	if (alive || istruecrop_or_intercropgrass()) {
+		double cmass_mort_kill = ccont(1.0, false, true);
+		ppft.dcmass_mort_kill += cmass_mort_kill;
+		ppft.acmass_mort_kill += cmass_mort_kill;
+	}
 	
 	// Remove hypothetical seed biomass from the system to avoid fertilisation
 	// effect.
@@ -3597,7 +3630,7 @@ void Individual::kill(bool harvest /* = false */) {
 		ppft.cmass_litter_root += cmass_storage;	// storage growth to litter
 		if (ifdavegrowth) {
 			ppft.cmass_litter_leaf += cmass_leafs[brown];
-			flush_repr_litter_DAVE();
+			flush_repr_litter_DAVE(1.0);
 		} else {
 			ppft.cmass_litter_leaf += cmass_leafs[3];	// add senescing leaves and growth storage to litter
 		}
@@ -3811,41 +3844,48 @@ void Individual::kill(bool harvest /* = false */) {
 }
 
 // Flush reproductive carbon and nitrogen to ppft-level reproductive litter (=seedbank).
-// Happens every year at the end of the reproductive period.
-void Individual::flush_repr_litter_DAVE() {
+// Happens every day (flush_fraction = daily turnover) as well as at the end of 
+// the reproductive period or after mortality (flush_fraction - 1.0).
+void Individual::flush_repr_litter_DAVE(double flush_fraction) {
 
-	// TODO: where to define this??
-	const double frac_seed = 0.7;
 	Patchpft &ppft = patchpft();
 
 	if (pft.lifeform == TREE) {
 		return;
 	}
 
+	// C and N removed from the repr. pool 
+	double cflush_removed = flush_fraction * cmass_repr;
+	double nflush_removed = flush_fraction * nmass_repr;
+
+	// C and N going to litter or seedbank (can be higher than the one removed from the repr.pool because of initialc and initialn)
+	double cflush_export = cflush_removed;
+	double nflush_export = nflush_removed;
+
 	// Time to pay our debts.
 	if (initialc > 0) {
-		double cvoid = min(cmass_repr, initialc);
-		cmass_repr -= cvoid;
+		double cvoid = min(cflush_export, initialc);
+		cflush_export -= cvoid;
 		initialc -= cvoid;
 		vegetation.patch.fluxes.report_flux(Fluxes::ESTC, cvoid);
 		ctolitter += cvoid; // For mass balance checks; not an actual pool
 	}
 
 	if (initialn > 0) {
-		double nvoid = min(nmass_repr, initialn);
-		nmass_repr -= nvoid;
+		double nvoid = min(nflush_export, initialn);
+		nflush_export -= nvoid;
 		initialn -= nvoid;
 		vegetation.patch.fluxes.report_flux(Fluxes::ESTN, nvoid);
 		ntolitter += nvoid; // For mass balance checks; not an actual pool
 	}
 
-	// only a fraction of cmass_repr (actual seeds) goes to the seedbank.
+	// only a fraction of cmass_export (actual seeds) goes to the seedbank.
 	// the rest (e.g. panicles, husks) goes to the litter pool.
-	double cflux_seed = frac_seed * cmass_repr;
-	double nflux_seed = frac_seed * nmass_repr;
+	double cflux_seed = pft.frac_seed * cflush_export;
+	double nflux_seed = pft.frac_seed * nflush_export;
 
-	double cflux_litter = cmass_repr - cflux_seed;
-	double nflux_litter = nmass_repr - nflux_seed; 
+	double cflux_litter = cflush_export - cflux_seed;
+	double nflux_litter = nflush_export - nflux_seed; 
 
 	ppft.cmass_litter_repr += cflux_seed;
 	ppft.nmass_litter_repr += nflux_seed;
@@ -3853,17 +3893,17 @@ void Individual::flush_repr_litter_DAVE() {
 	ppft.cmass_litter_leaf += cflux_litter;
 	ppft.nmass_litter_leaf += nflux_litter;			
 
-	assert(equal(cmass_repr, cflux_seed + cflux_litter));
-	assert(equal(nmass_repr, nflux_seed, nflux_litter));
+	assert(equal(cflush_export, cflux_seed + cflux_litter));
+	assert(equal(nflush_export, nflux_seed + nflux_litter));
 
-	ctolitter += cmass_repr;
-	ntolitter += nmass_repr;
+	ctolitter += cflush_export;
+	ntolitter += nflush_export;
 
-	cturnover_repr = cmass_repr;
-	nturnover_repr = nmass_repr;
+	cturnover_repr = cflush_export;
+	nturnover_repr = nflush_export;
 
-	cmass_repr = 0.0;
-	nmass_repr = 0.0;
+	cmass_repr -= cflush_removed;
+	nmass_repr -= nflush_removed;
 }
 
 void Individual::daily_accounting() {
@@ -3875,14 +3915,15 @@ void Individual::daily_accounting() {
 	closs_temp = 0;
 	nloss_temp = 0;
 	loss_temp = 0;
-	for (size_t i = 0; i < date.subdaily; i++) {
-		ps_inputs_layerwise[i].clear();
-		ps_outputs_layerwise[i].clear();
-		energy_balance_layerwise[i].clear();
-	}
 	canopy.clear();
 
 	if (ifdavephotosyn) {
+		for (size_t i = 0; i < date.subdaily; i++) {
+			ps_inputs_layerwise[i].clear();
+			ps_outputs_layerwise[i].clear();
+			energy_balance_layerwise[i].clear();
+			ps_diagnostics_layerwise[i].clear();
+		}
 		ps_subdaily.clear();
 		photosynthesis.clear();
 	}

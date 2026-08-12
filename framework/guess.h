@@ -909,6 +909,13 @@ public:
 	double jmax;
 };
 
+class PhotosynthesisDiagnostics {
+public:
+	double g1;
+	double g0;
+	double gcutic_adj;
+};
+
 class EnergyBalance {
 public:
 	EnergyBalance(double tleaf, size_t niter, double delta_tleaf,
@@ -963,6 +970,10 @@ struct C4Biochemistry {
 	double ko;
 	// Effective Michaelis-Menten constant of Rubisco for CO2 in the presence of O2 (mol mol-1).
 	double km;
+	// Ratio of solubility and diffusivity of O2 to CO2.
+	double a0;
+	// Half the reciprocal of Rubisco specificity.
+	double lgamstar;
 };
 
 struct C4IterationState {
@@ -1895,6 +1906,8 @@ public:
 
 private:
 
+	size_t daily_flux_index(int day, int pft_id, PerPFTFluxType flux_type) const;
+
 	/// Stores one flux value per PFT and flux type
 	std::vector<std::vector<double> > annual_fluxes_per_pft;
 
@@ -1907,8 +1920,8 @@ private:
 	double monthly_fluxes_pft[12][NPERPFTFLUXTYPES];
 
 	/// Stores one flux value per day, flux type and PFT
-	//  Order daily_fluxes_per_pft[day][pft][type]
-	std::vector<std::vector<std::vector<double>>> daily_fluxes_per_pft;
+	//  Flattened order: [day][pft][type]
+	std::vector<double> daily_fluxes_per_pft;
 
 	/// Stores one flux value per day and flux type
 	double daily_fluxes_patch[365][NPERPATCHFLUXTYPES];
@@ -2430,6 +2443,10 @@ public:
 	double phengdd5mat;
 	/// water stress threshold for leaf abscission (range 0-1; raingreen PFTs)
 	double wscal_min;
+	/// water stress threshold when plants are dormant (grasses only)
+	double wscal_min_dormant;
+	/// Maximum physiological up/down-regulation in and out of dormancy (fraction d-1)
+    double dphen_activity_max;
 	/// biochemical pathway for photosynthesis (C3 or C4)
 	pathwaytype pathway;
 	/// approximate low temperature limit for photosynthesis (deg C)
@@ -2449,12 +2466,18 @@ public:
 
 	/// shape parameter for initialisation of root distribtion
 	double root_beta;
+	/// canopy conductance component not associated with photosynthesis (mm/s)
+	double gmin;
+	/// Scalar for Vpmax25 (C4 photosynthesis only)
+	double vpmax_scal;
     /// Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)
     double g0;
 	/// Cuticular conductance (mol m-2 s-1)
 	double gcutic;
     /// Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5)
     double g1;
+	/// Stomatal sensitivity to water stress (0-1)
+	double qs;
 	/// Stomatal intercept parameter at leaf water potential = -0.3 Mpa (Zhou et al. 2014), (kPa^0.5)
     double g1x;
 	/// maximum evapotranspiration rate (mm/day)
@@ -2556,6 +2579,8 @@ public:
 	double crelocfrac;
 	/// Baseline senescence rate for dave grasses (d-1).
 	double senesc_base;
+	/// Senescence coefficient for freezing temperatures in dave greasses
+	double senesc_scal_temp;
 	/// Senescence coefficient for dormancy in dave grasses. Senescence rate is
 	/// increased by this factor when phenology is changing at the maximum rate.
 	double senesc_scal_dorm;
@@ -2574,12 +2599,6 @@ public:
 	/// 0 < q < 1 reduces it. No effect at the extremes (wscal = 0 or 1).
 	/// Unitless.
 	double qwater_senesc;
-	/// Increase in senescence rate per 1℃, for temperatures below 0 ℃
-	/// (Johnson & Thornley 1983).
-	double temp_senesc1;
-	/// Increase in senescence rate per 1℃, for temperatures above 0 ℃
-	/// (Johnson & Thornley 1983).
-	double temp_senesc2;
 
 	// Maximum NSC concentration in leaves.
 	double max_leaf_nsc_conc;
@@ -2618,6 +2637,8 @@ public:
 	double k_latosa;
 	/// specific leaf area (m2/kgC)
 	double sla;
+	/// fraction of reproductive biomass consisting of seeds (the rest being supporting structures)
+	double frac_seed;
 	/// leaf to root mass ratio under non-water-stressed conditions
 	double ltor_max;
 	/// litter moisture flammability threshold (fraction of AWC)
@@ -3044,6 +3065,7 @@ public:
 		g0=0.0;
 		g1=0.0;
 		gcutic=0.0;
+		qs=0.0;
 
 		stom_clos=0.0;
 		p50=0.0;
@@ -3057,13 +3079,12 @@ public:
 		turnover_repr = 0.0;
 		crelocfrac = 0.0;
 		senesc_base = 0;
+		senesc_scal_temp = 0;
 		senesc_scal_dorm = 0;
 		senesc_scal_water = 0;
 		senesc_scal_repr = 0;
 		qdev_senesc = 0;
 		qwater_senesc = 0;
-		temp_senesc1 = 0;
-		temp_senesc2 = 0;
 
 		extkn = 0;
 		racclim = 0;
@@ -3669,8 +3690,6 @@ public:
 	double cmass_crown;
 	/// reproductive tissue C biomass (kgC/m2)
 	double cmass_repr;
-	/// peak aboveground leaf biomass (kgC/m2)
-	double cmass_struct;
 	/// sapwood C biomass on modelled area basis (kgC/m2)
 	double cmass_sap;
 	/// Total annual C biomass allocated to leaf on modelled area basis (kgC/m2)
@@ -3743,8 +3762,9 @@ public:
 	double growth_demand;
 	/// development factor used for calculating growth demand.
 	double fdev_growth;
-	/// LAI at flowering (vegetative - reproductive switch).
-	double lai_flowering;
+	/// cmass_crown at flowering (vegetative - reproductive switch).
+	double cmass_crown_flowering;
+	double lai_trend_max;
 	/// fraction of reproductive biomass to storage capacity.
 	double frepr_cstorage;
 	/// development factor used for calculating senescence.
@@ -3820,6 +3840,8 @@ public:
 
 	/// foliar projective cover (FPC) under full leaf cover as fraction of modelled area
 	double fpc;
+	/// foliar projective cover (FPC) under full leaf cover as fraction of modelled area accounting for green and brown pools
+	double fpc_greenbrown;
 	/// foliar projective cover (FPC) this day as fraction of modelled area
 	double fpc_daily;
 	/// root projective cover (RPC)
@@ -3873,6 +3895,8 @@ public:
 	/// Indexed as [timestep][layer]. Reinitialised each day in photosynthesis_gs().
 	std::vector<std::vector<EnergyBalance>> energy_balance_layerwise;
 
+	std::vector<std::vector<PhotosynthesisDiagnostics>> ps_diagnostics_layerwise;
+
 	/// Photosynthesis values for this individual under non-water-stress conditions
 	PhotosynthesisResult photosynthesis;
 
@@ -3889,10 +3913,17 @@ public:
 	double anj_frac;
 	double anp_frac;
 
+	/// Adaptive parameters (i.e. changing with the environment)
 	/// Adaptive N-day moving avegage of soil temperature.
 	HistoricDynamic<double> soiltemp_dynamic;
 	/// Dynamic root beta value used in dave version.
 	double root_beta;
+	// Maximum physiological up/down-regulation in and out of dormancy (fraction d-1)
+	double dphen_activity_max;
+	// Maximum C storage remobilisation rate (d-1)
+	double max_mobil_cstorage;
+	// Dormancy temperature (deg C)
+	double temp_dormancy;
 
 	/// Dynamic root distribution used in dave version. This is the fraction of
 	/// roots in each soil layer.
@@ -3939,12 +3970,14 @@ public:
 	/// mean root age of the individual (y)
 	double meanrootage;
 
+	/// 20-day record of LAI (0-1)
+	Historic<double, 20> lai_20;
 	/// 20-day record of NSC pool (kgC/m2/d)
 	Historic<double, 20> cmass_storage_20;
 	/// 10-day record of daily reproduction pool (kgC/m2/d)
 	Historic<double, 10> cmass_repr_10;
-	/// 20-day record of daaily cgrow reporduction (kgC/m2/d)
-	Historic<double, 20> cgrow_repr_20;
+	/// 5-day record of excess C relative to NPP (cexcess/npp)
+	Historic<double, 5> cexcess_npp_5;
 	/// 14-day record of storage dynamics (kgC/m2/d)
 	Historic<double, 14> cstorage_dynam_14;
 	/// Maximum capacity of C storage pool (kgC/m2)
@@ -4033,6 +4066,8 @@ public:
 	double lai_layer;
 	/// individual leaf area index (individual and cohort modes only)
 	double lai_indiv;
+	/// individual leaf area index of brown leaves (individual and cohort modes only; grasses only)
+	double lai_brown_indiv;
 	/// patch-level individual leaf area index (individual and cohort modes only)
 	double lai_daily;
 	/// daily individual leaf area index (individual and cohort modes only)
@@ -4043,6 +4078,8 @@ public:
 	Historic<double, 10> cmass_wood_inc_5;
 	/// individual/cohort age (years)
 	double age;
+	/// idndividual/cohort age accounting for active/dormant phases (years)
+	double age_active;
 	/// monthly LAI (including phenology component)
 	double mlai[12];
 	/// monthly maximum LAI (including phenology component)
@@ -4207,6 +4244,9 @@ public:
 	// Leaf respiration today (kgC/m2)
 	double resp_leaf;
 
+	// Culm respiration today (kgC/m2)
+	double resp_culm;
+
 	// Sapwood respiration today (kgC/m2)
 	double resp_sap;
 
@@ -4348,7 +4388,7 @@ public:
 	}
 
 	// Flush reproductive pool to litter
-	void flush_repr_litter_DAVE();
+	void flush_repr_litter_DAVE(double flush_fraction);
 
 	/// Whether harvest and turnover is done on actual C and N on harvest or turnover day, which can occur any day of the year.
 	bool has_daily_turnover() const;
@@ -4495,6 +4535,9 @@ public:
 
 	/// Gets the individual's daily fpc value
 	double fpc_today() const;
+
+	/// Gets the individual's daily fpc value accounting for green and brown leaves
+	double fpc_greenbrown_today() const;
 
 	/// Gets the growingseason status for crop individual. Non-crop individuals always return true.
 	bool growingseason() const;
@@ -4833,6 +4876,8 @@ private:
 	double temp25;
 	/// water content of soil layers [0=upper layer] as fraction of available water holding capacity;
 	double wcont[NSOILLAYER];
+	/// water content (including ice) of soil layers [0=upper layer] as fraction of available water holding capacity;
+	double wcont_tot[NSOILLAYER]; 
 	/// water content of sublayer of upper soil layer for which evaporation from the bare soil surface is possible
 	/** fraction of available water holding capacity */
 	double wcont_evap;
@@ -5300,6 +5345,9 @@ public:
 	/// return wcont for a certain layer
 	double get_layer_soil_water(int layer) const;
 
+	/// return wcont_tot for a certain layer
+	double get_layer_soil_water_tot(int layer) const;
+
 	/// return wcont_evap
 	double get_layer_soil_water_evap() const;
 
@@ -5682,6 +5730,10 @@ public:
 	double nmass_ext_seed;
 	/// carbon lost during mortality
 	double cmass_mort;
+	/// carbon removed from live vegetation by Individual::kill() today
+	double dcmass_mort_kill;
+	/// annual carbon removed from live vegetation by Individual::kill()
+	double acmass_mort_kill;
 	/// carbon lost during fire
 	double cmass_fire;
 	/// carbon lost during ´disturbance
@@ -5723,6 +5775,10 @@ public:
 	double wsupply;
 	double wsupply_leafon;
 
+	/// Fractional uptake of water from each soil layer today. This is only used
+	/// when trunk photosynthesis is active. Under DAVE photosynthesis, this can
+	/// vary per cohort.
+	double fwuptake[NSOILLAYER];
 
 	/// whether water-stress conditions for this PFT
 	bool wstress;
@@ -5750,11 +5806,16 @@ public:
 	/// [0,1] - a measure of the inundation stress. Daily photosynthesis is reduced by this factor.
 	double inund_stress;
 
-	// Number of days this indiv has spent dormant this year.
-	size_t nday_active;
-	// Moving average over N years of the total number of days this cohort is
-	// dormant per year.
-	HistoricDynamic<size_t> nday_dormant_historical;
+	// Cumulative dormancy depth (1-fphen_activity) this year.
+	double dormancy_depth;
+	// Cumulative wscal this year.
+	double wscal_cum;
+	// Number of days this Pft has been established/alive.
+	int ndays_alive;
+	// Moving average over N years of the annual dormancy depth of this cohort.
+	HistoricDynamic<double> dormancy_depth_historical;
+    // Historical average over N years of the wscal of this cohort.
+	HistoricDynamic<double> wscal_historical;
 
 	// Maximum total LAI recorded on any day this year (m2/m2).
 	double lai_ymax;
@@ -5795,6 +5856,8 @@ public:
 		cmass_litter_heart = 0.0;
 		cmass_litter_repr = 0.0;
 		cmass_ext_seed = 0.0;
+		dcmass_mort_kill = 0.0;
+		acmass_mort_kill = 0.0;
 
 		nmass_litter_leaf  = 0.0;
 		nmass_litter_root  = 0.0;
@@ -5821,6 +5884,9 @@ public:
 		for (int mth = 0; mth < 12; mth++)
 			mphen[mth] = 0.0;
 
+		for (int i = 0; i < NSOILLAYER; i++)
+			fwuptake[i] = 0.0;
+
 		cropphen = NULL;
 		cmass_harvested_products_slow = 0.0;
 		nmass_harvested_products_slow = 0.0;
@@ -5844,14 +5910,15 @@ public:
 		cmass_harv_tolitter = 0.0;
 		cmass_harv_killed = 0.0;
 
-		nday_active                = 0;
+		dormancy_depth = 0;
 
 		// 30 years by default.
-		nday_dormant_historical.set_capacity(30);
+		dormancy_depth_historical.set_capacity(30);
+		wscal_historical.set_capacity(30);
 
-		// Initial value of 105 dormant days, which corresponds to a response
-		// window size of 10 days.
-		nday_dormant_historical.add(105);
+		// Initial values for long-term mean dormancy_depth and wscal
+		dormancy_depth_historical.add(0.5);
+		wscal_historical.add(0.7);
 
 		senescence_reason.reset();
 		lai_ymax = 0;
@@ -6940,13 +7007,13 @@ conditions.
 
 @param nday_dormant: The number of dormant days in a year.
 */
-size_t get_response_window(size_t nday_dormant);
+size_t get_response_window(double dormancy_depth);
 
 /*
 Calculate the root beta value corresponding to the specified number of dormant
 days in a year.
 */
-double calc_root_beta(size_t nday_dormant);
+double calc_root_beta(double wscal_avg);
 
 #endif // LPJ_GUESS_GUESS_H
 

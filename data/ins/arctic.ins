@@ -325,7 +325,6 @@ group "grass" (
 	gmin 0.5
 	phenology "any"
 	phengdd5ramp 100
-	leaflong 0.5		! Leaf longevity (years)
 	turnover_leaf 1
 	turnover_root 0.7
 	!cton_leaf_min 16
@@ -384,7 +383,6 @@ group "summergreen" (
 	phenology "summergreen"
 	fnstorage 0.15
 	phengdd5ramp 200
-	leaflong 0.5
 	turnover_leaf 1
 )
 
@@ -446,7 +444,6 @@ pft "BNE" (
 	shade_tolerant
 	evergreen
 	boreal
-	leaflong 4		! global.ins has 3
 	turnover_leaf 0.25
 	tcmin_surv -31
 	tcmin_est -30
@@ -473,7 +470,6 @@ pft "BINE" (
 	shade_intolerant
 	evergreen
 	boreal
-	leaflong 3
 	turnover_leaf 0.33
 	tcmin_surv -31
 	tcmin_est -30
@@ -762,7 +758,6 @@ pft "HSE" (
 
 	k_allom1 28
 
-	leaflong 3
 	turnover_leaf 0.333
 
 	est_max 0.2		! overrides group value
@@ -824,7 +819,6 @@ pft "LSE" (
 	boreal
 	evergreen
 
- 	leaflong 3
 	turnover_leaf 0.33
  
 	est_max 0.25 		! overrides group value
@@ -902,7 +896,6 @@ pft "EPDS" (
 	evergreen
 	boreal
 
-	leaflong 2
 	turnover_leaf 0.5
 
 	k_latosa 100		! Overrides value in needleleaved
@@ -964,7 +957,6 @@ group "C4G" (
 	rootdist 0.18 0.18 0.18 0.18 0.18 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01 0.01
 	gmin 0.5
 	phenology "any"
-	leaflong 0.5
 	turnover_leaf 1
 	turnover_root 0.7
 	phengdd5ramp 100

@@ -259,6 +259,7 @@ void Soil::init_states() {
 
 	for (int sl = 0; sl<NSOILLAYER; sl++) {
 		wcont[sl] = 0.0;
+		wcont_tot[sl] = 0.0;
 		alwhc[sl] = 0.0;
 		alwhc_init[sl] = 0.0;
 		psi_layer[sl] = 0.0;
@@ -553,7 +554,8 @@ void Soil::hydrology_lpjf_twolayer(const Climate& climate, double fevap) {
 		Individual& indiv = vegetation.getobj();
 
 		for (int s = 0; s<NSOILLAYER; s++) {
-			aet = indiv.fwuptake[s] * indiv.aet;
+			double fwuptake = ifdavephotosyn ? indiv.fwuptake[s] : indiv.patchpft().fwuptake[s];
+			aet = fwuptake * indiv.aet;
 			aet_total += aet;
 			if (s < NSOILLAYER_UPPER)
 				aet_twolayer[0] += aet;
@@ -894,7 +896,8 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 		Individual& indiv = vegetation.getobj();
 
 		for (int ly = 0; ly<NSOILLAYER; ly++) {
-			aet = indiv.fwuptake[ly] * indiv.aet;
+			double fwuptake = ifdavephotosyn ? indiv.fwuptake[ly] : indiv.patchpft().fwuptake[ly];
+			aet = fwuptake * indiv.aet;
 			aet_layer[ly] += aet;
 			aet_total += aet;
 
@@ -962,6 +965,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 		// Update wcont
 		wcont[ly] = Faw_layer[ly] / soiltype.awc[ly]; // mm
+		wcont_tot[ly] = (Faw_layer[ly] + ice_layer[ly]) / soiltype.awc[ly]; // mm
 
 		if (ly < NSOILLAYER_UPPER)
 			Faw_layer1 += Faw_layer[ly]; // mm
@@ -1024,6 +1028,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 			potential_layer[s] += proportion; // potential INCREASES
 			wcont[s] = Faw_layer[s] / soiltype.awc[s];
+			wcont_tot[s] = (Faw_layer[s] + ice_layer[s]) / soiltype.awc[s]; // mm
 			oob_check_wcont(wcont[s]);
 		}
 	} // > 0.0?
@@ -1068,6 +1073,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 				Faw_layer[s] += water_input_ly;
 				potential_layer[s] -= water_input_ly;
 				wcont[s] = Faw_layer[s] / soiltype.awc[s];
+				wcont_tot[s] = (Faw_layer[s] + ice_layer[s]) / soiltype.awc[s]; // mm
 				oob_check_wcont(wcont[s]);
 			}
 
@@ -1083,6 +1089,7 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 				Faw_layer[s] += potential_layer[s];
 				potential_layer[s] = 0.0;
 				wcont[s] = Faw_layer[s] / soiltype.awc[s];
+				wcont_tot[s] = (Faw_layer[s] + ice_layer[s]) / soiltype.awc[s]; // mm
 			}
 
 			// Update surface runoff
@@ -1170,7 +1177,9 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 				potential_layer[s] += perc_layer;
 
 				wcont[s] = Faw_layer[s] / soiltype.awc[s];
+				wcont_tot[s] = (Faw_layer[s] + ice_layer[s]) / soiltype.awc[s]; // mm
 				oob_check_wcont(wcont[s]);
+				oob_check_wcont(wcont_tot[s]);
 			}
 		}
 
@@ -1210,7 +1219,9 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 				Faw_layer[s] += water_input_ly;
 				potential_layer[s] -= water_input_ly;
 				wcont[s] = Faw_layer[s] / soiltype.awc[s];
+				wcont_tot[s] = (Faw_layer[s] + ice_layer[s]) / soiltype.awc[s]; // mm
 				oob_check_wcont(wcont[s]);
+				oob_check_wcont(wcont_tot[s]);
 
  				Faw_perc_layer_2 += Faw_layer[s];
 				awc_perc_layer_2 += soiltype.awc[s];
@@ -1264,7 +1275,9 @@ void Soil::hydrology_lpjf(const Climate& climate, double fevap) {
 
 				potential_layer[s] += proportion;
 				wcont[s] = Faw_layer[s] / soiltype.awc[s];
+				wcont_tot[s] = (Faw_layer[s] + ice_layer[s]) / soiltype.awc[s]; // mm
 				oob_check_wcont(wcont[s]);
+				oob_check_wcont(wcont_tot[s]);
 			}
 		}
 
@@ -2003,6 +2016,15 @@ double Soil::get_layer_soil_water(int layer) const {
 		return wcont[layer];
 }
 
+// return wcont_tot for a certain layer
+double Soil::get_layer_soil_water_tot(int layer) const {
+
+	if (layer < 0 || layer > NSOILLAYER-1 || layer != int(layer))
+		return -999.0;
+	else
+		return wcont_tot[layer];
+}
+
 
 // return wcont for a subset of soil layers
 double Soil::get_soil_water(int layer1, int layer2) const {
@@ -2104,10 +2126,13 @@ double Soil::add_layer_soil_water(int layer, double extrawater) {
 		potential_layer -= extrawater;
 
 		// wcont is the available, nonfrozen water in the layer, divided by the capacity of that layer to hold water. 
-		if (patch.stand.is_highlatitude_peatland_stand())
+		if (patch.stand.is_highlatitude_peatland_stand()) {
 			wcont[layer] = Faw_layer / soiltype.awc_peat[layer];
-		else
+			wcont_tot[layer] = (Faw_layer + ice_layer) / soiltype.awc_peat[layer];
+		} else {
 			wcont[layer] = Faw_layer / soiltype.awc[layer];
+			wcont_tot[layer] = (Faw_layer + ice_layer) / soiltype.awc[layer];
+		}
 
 		oob_check_wcont(wcont[layer]);
 		Frac_water[layer + IDX] = Faw_layer / Dz[layer + IDX];

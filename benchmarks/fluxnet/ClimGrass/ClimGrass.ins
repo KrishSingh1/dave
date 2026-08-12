@@ -1,0 +1,66 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! ClimGrass master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: ClimGrass"
+
+file_met_forcing        "../forcing/met/ClimGrass/CG_C0T0D0_met.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"
+
+! Soil Data
+file_soildata           "soilmap_center_ClimGrass.dat"  
+
+! Names of variabels in met input file.
+variable_lon                 "longitude"
+variable_lat                 "latitude"
+variable_time                "time"
+variable_temp                "Tair"
+variable_insol               "SWdown"
+variable_precip              "Precip"
+variable_co2                 "CO2air"
+variable_vpd                 "VPD"
+variable_ps                  "Psurf"  ! Atmospheric Pressure (Pa)
+variable_tmax                "" ! "tmax" ! Empty string means it will be calculated from subdaily temperature
+variable_tmin                "" ! "tmin" ! Empty string means it will be calculated from subdaily temperature
+variable_wind                ""
+
+! Name of the nhx nitrogen deposition variable in the NetCDF file (optional).
+! If not set, file_ndep must be set.
+variable_ndep_nhx            "Ndep_nhx"
+!variable_ndep_nhx            ""
+
+! Name of the noy nitrogen deposition variable in the NetCDF file (optional).
+! If not set, file_ndep must be set.
+variable_ndep_noy            "Ndep_noy"
+!variable_ndep_noy            ""
+
+has_leap_years 1
+
+! Number of timesteps per day.
+nsteps_day            			48
+
+ifdisturb 0            ! Whether generic patch-destroying disturbances enabled
+npatch 10              ! No effect for pastures...
+
+
+! ////////////////////////////////
+! Landcover information
+! ////////////////////////////////
+
+import "landcover_climgrass.ins"
+
+
+!///////////////////////////////////////////////////////////////////////////////
+! PFT parameters
+!///////////////////////////////////////////////////////////////////////////////
+
+import "c3g_climgrass.ins"

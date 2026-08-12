@@ -1,0 +1,18 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! Gingin master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: Gingin"
+
+file_met_forcing        "../forcing/met/Gingin.nc"
+file_met_spinup         "../forcing/met/Gingin.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../settings.ins"
+import                  "../outputs.ins"
+import                  "../soiln.ins"

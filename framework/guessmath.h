@@ -259,7 +259,7 @@ inline double mean(double x, double y) {
 
 inline double safe_divide(double x, double y,
                           const char *file, int line, const char *func) {
-	if (is_zero(y, 0)) {
+	if (is_zero(y)) {
 		fail("Divide by 0: %f / %f at %s:%d (%s)", x, y, file, line, func);
 	}
 	return x / y;

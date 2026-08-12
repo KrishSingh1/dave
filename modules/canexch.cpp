@@ -1443,10 +1443,10 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 			               pft.lambda_max, 1.0, -1, 
 			               leafon_photosynthesis);
 
-			double gp_leafon = gpterm(leafon_photosynthesis.adtmm, pftco2, pft.lambda_max, daylength);
+			double gp_leafon = gpterm(leafon_photosynthesis.adtmm, pftco2, pft.lambda_max, daylength) + pft.gmin * indiv.fpc;
 
 			// Increment patch sums of non-water-stressed gp by individual value
-			gp_patch +=  (date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm);
+			gp_patch +=  (date.diurnal() ? indiv.gpterms[day.period] : indiv.gpterm) + pft.gmin * indiv.fpc_today();
 			gp_leafon_patch += gp_leafon;
 		}
 
@@ -1787,7 +1787,7 @@ double water_uptake_twolayer(double wcont[NSOILLAYER], double awc[NSOILLAYER],
  *                   but with fractional uptake from different layers according
  *                   to prescribed root distribution
  */
-double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual &indiv) {
+double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, double rootdist[NSOILLAYER], double fwuptake[NSOILLAYER]) {
 	Patchpft& ppft = patch.pft[pft.id];
 	
 	// Prepare for water balance tests
@@ -1813,9 +1813,9 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual
 	for (int i=0;i<NSOILLAYER;i++) {
 		wcont_cp[i] = patch.soil.get_layer_soil_water(i);
 		if (i < NSOILLAYER_UPPER)
-			grootdist[0] += indiv.rootdist[i];
+			grootdist[0] += rootdist[i];
 		else
-			grootdist[1] += indiv.rootdist[i];
+			grootdist[1] += rootdist[i];
 	}
 
 	if (day.isstart) {
@@ -1846,8 +1846,8 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual
 				for (int i = 0; i<NSOILLAYER_UPPER; i++) {
 					wcont_opt[i] = (wr_opt * pft.emax - min(patch.soil.get_soil_water_lower() * awc1 * patch.fpc_rescale, pft.emax * grootdist[1])/ NSOILLAYER_UPPER) / patch.soil.soiltype.awc[i] / patch.fpc_rescale;
 			
-					if (wcont_opt[i] * patch.soil.soiltype.awc[i] * patch.fpc_rescale > pft.emax * indiv.rootdist[i]) {
-						wcont_opt[i] = pft.emax * indiv.rootdist[i] / patch.soil.soiltype.awc[i] / patch.fpc_rescale;
+					if (wcont_opt[i] * patch.soil.soiltype.awc[i] * patch.fpc_rescale > pft.emax * rootdist[i]) {
+						wcont_opt[i] = pft.emax * rootdist[i] / patch.soil.soiltype.awc[i] / patch.fpc_rescale;
 					}
 
 					if (wcont_cp[i] > wcont_opt[i]) {
@@ -2012,11 +2012,11 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual
 
 
 	if (iftwolayersoil) 
-		return water_uptake_twolayer(wcont_cp, patch.soil.soiltype.awc, indiv.rootdist, pft.emax, patch.fpc_rescale,
-				indiv.fwuptake, pft.lifeform == TREE, pft.drought_tolerance);
+		return water_uptake_twolayer(wcont_cp, patch.soil.soiltype.awc, rootdist, pft.emax, patch.fpc_rescale,
+				fwuptake, pft.lifeform == TREE, pft.drought_tolerance);
 	else
-		return water_uptake(wcont_cp, patch.soil.soiltype.awc, indiv.rootdist, pft.emax, patch.fpc_rescale,
-				indiv.fwuptake, pft.lifeform == TREE, pft.drought_tolerance, Rs_r_default); // i.e. use upland awc instead of awc_peat - never irrigate on peatlands
+		return water_uptake(wcont_cp, patch.soil.soiltype.awc, rootdist, pft.emax, patch.fpc_rescale,
+				fwuptake, pft.lifeform == TREE, pft.drought_tolerance, Rs_r_default); // i.e. use upland awc instead of awc_peat - never irrigate on peatlands
 
 };
 
@@ -2025,7 +2025,7 @@ double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, Individual
 /** Soil water supply at the roots available to meet the transpirational demand
  *  Fundamentally, water stress = supply < demand
  */
-void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day, Individual &indiv) {
+void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day) {
 
 	// Supply function for evapotranspiration and determination of water stress leading
 	// to down-regulation of stomatal conductance. Actual evapotranspiration determined
@@ -2055,7 +2055,7 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day, Indi
 			double wr;
  
 			if (patch.stand.isirrigated) {
-				wr = irrigated_water_uptake(patch, pft, day, indiv);
+				wr = irrigated_water_uptake(patch, pft, day, pft.input_rootdist, ppft.fwuptake);
 			} 
 			else {
 				double wcont_local[NSOILLAYER];
@@ -2065,17 +2065,17 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day, Indi
 
 			if (iftwolayersoil) 
 				wr = water_uptake_twolayer(wcont_local, patch.soil.soiltype.awc,
-							indiv.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
+							pft.input_rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance);
 			else {
 
 				if (patch.stand.is_highlatitude_peatland_stand()) // Use awc_peat
 					wr = water_uptake(wcont_local, patch.soil.soiltype.awc_peat,
-							indiv.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
+							pft.input_rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance, Rs_r_default);
 				else
 					wr = water_uptake(wcont_local, patch.soil.soiltype.awc,
-							indiv.rootdist, pft.emax, patch.fpc_rescale, indiv.fwuptake,
+							pft.input_rootdist, pft.emax, patch.fpc_rescale, ppft.fwuptake,
 							pft.lifeform == TREE, pft.drought_tolerance, Rs_r_default);
 
 				}
@@ -2122,8 +2122,10 @@ void aet_water_stress(Patch& patch, Vegetation& vegetation, const Day& day, Indi
 
 		// Fix, valid for monocultures, for faulty equation, manifesting itself in problems with crops in high scenario CO2-levels.
 		// No fix for natural vegetation yet.
+		double gmin = pft.phenology==CROPGREEN ? ppft.phen * pft.gmin : pft.gmin;
 
-		ppft.gcbase = ppft.wstress ? max(gc_monteith(ppft.wsupply, patch.eet_net_veg), 0.0) : 0;
+		ppft.gcbase = ppft.wstress ? max(gc_monteith(ppft.wsupply, patch.eet_net_veg)-
+					gmin * ppft.wsupply / patch.wdemand, 0.0) : 0;
 
 		if (!date.diurnal()) {
 			ppft.wstress_day = ppft.wstress;
@@ -2363,11 +2365,11 @@ void assimilation_wstress(const Pft& pft, double co2, double temp, double par,
 // Internal function (do not call directly from framework)
 
 void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
-	double respcoeff, double cton_sap, double cton_root, double cton_crown,
-	double cmass_sap, double cmass_root_today, double cmass_crown, double cmass_repr, 
-	double growth, double fphen_activity, double assim, double resp_leaf,
-	double& resp, double &resp_maintenance, double &resp_growth,
-	double &resp_repr, double &resp_crown, double &resp_root, double &resp_sap) {
+	double respcoeff, double cton_sap, double cton_shoot, double cton_root, double cton_crown,
+	double cmass_sap, double cmass_culm, double cmass_root_today,
+	double cmass_crown, double cmass_repr, double growth, double fphen_resp, 
+	double assim, double resp_leaf, double& resp, double &resp_maintenance, double &resp_growth, 
+	double &resp_repr, double &resp_culm, double &resp_crown, double &resp_root, double &resp_sap) {
 
 	// DESCRIPTION
 	// Calculation of daily maintenance and growth respiration for individual with
@@ -2411,6 +2413,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	const double base_resp = 0.000001;
 	// const double base_resp = 0.0;
 	resp_sap = 0;    // sapwood respiration (kg/m2/day)
+	resp_culm = 0;   // culm respiration (kg/m2/day)
 	resp_root = 0;   // root respiration (kg/m2/day)
 	resp_crown = 0;  // crown respiration (kg/m2/day)
 	resp_repr = 0;   // reproductive respiration (kg/m2/day)
@@ -2502,25 +2505,31 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 		if (ifdavegrowth) {
 
 			// Handle respiration differently in DAVE: 
-			// -> scale down resp_root during dormancy
+			// -> scale down maintenance respiration during dormancy using fphen_activitiy
+
+			// Culm respiration
+			// TODO: might overestimate this one because we partly account for it through leaf Rd 
+			resp_culm = (respcoeff * K * cmass_culm / cton_shoot * gtemp_air) * fphen_resp;
 
 			// Root respiration
-			// Reduction factor of resp_root during dormancy (fphen_activity)
-			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_activity;
+			resp_root = (respcoeff * K * cmass_root_today / cton_root * gtemp_soil) * fphen_resp;
 
-			// TODO: at some point, replace respiration functions here!
-			resp_crown = (0.75 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_activity;
+			// Crown respiration
+			// TODO: could replace gtemp_soil (at 25cm) with gtemp at surface (as done for turnover of brown shoots).
+			// Alternatively we might want to take gtemp_air here.
+			resp_crown = (0.8 * respcoeff * K * cmass_crown / cton_crown * gtemp_soil) * fphen_resp;
 
+			// Reproductive respiration
 			// TODO: reduce resp_repr with senescence.
-			// TODO: replace cton_root with cton_repr if necessary. 
-			resp_repr = (respcoeff * K * cmass_repr / cton_root * gtemp_soil) * fphen_activity;
+			// TODO: replace cton_root with cton_repr. 
+			resp_repr = (respcoeff * K * cmass_repr / cton_root * gtemp_air) * fphen_resp;
 			
 			// Growth respiration
-			if (ifdavegrowth && ifdailygrass) {
+			if (ifdailygrass) {
 				// In the DAVE version, growth respiration depends on growth.
 				resp_growth = 0;
 			} else {
-				resp_growth = (assim - resp_leaf - resp_root - resp_crown - resp_repr) * 0.25;
+				resp_growth = (assim - resp_leaf - resp_culm - resp_root - resp_crown - resp_repr) * 0.25;
 			}
 		} else {
 			
@@ -2544,8 +2553,9 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 
 	// Maintenance respiration the same for all pfts.
 	// resp_sap will be 0 for grasses.
-	// resp_crown will be 0 for trees.
-	resp_maintenance = resp_leaf + resp_root + resp_repr + resp_crown + resp_sap;
+	// resp_crown and resp_culm will be 0 for trees.
+	// resp_leaf is an input (calculated in photosynthesis routine)
+	resp_maintenance = resp_leaf + resp_culm + resp_root + resp_repr + resp_crown + resp_sap;
 	
 	if (lifeform == TREE) {
 		// always have a minimum respiration rate. Reason: so small cohorts (with 
@@ -2665,10 +2675,10 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		// only treated differently in dave photosynthesis.
 		indiv.resp_leaf = phot.rd_g * KG_PER_G;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-			indiv.pft.respcoeff, cton_sap, cton_root, 0.0,
-			indiv.cmass_sap, cmass_root, 0.0, 0.0, 0.0, 0.0,
+			indiv.pft.respcoeff, cton_sap, 0.0, cton_root, 0.0,
+			indiv.cmass_sap, 0.0, cmass_root, 0.0, 0.0, 0.0, 0.0,
 			assim, 0.0, resp, indiv.resp_maintenance,
-			indiv.resp_growth, indiv.resp_repr, indiv.resp_crown,
+			indiv.resp_growth, indiv.resp_repr, indiv.resp_culm, indiv.resp_crown,
 			indiv.resp_root, indiv.resp_sap);
 
 		// Convert to averages for this period for accounting purposes
@@ -2891,7 +2901,6 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 
 	// Retrieve Vegetation and Climate objects for this patch
 	Vegetation& vegetation = patch.vegetation;
-	Individual& indiv=vegetation.getobj();
 
 	// Initial no-stress canopy exchange processes
 	init_canexch(patch, climate, vegetation);
@@ -2915,7 +2924,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 		for (Day day; day.period != date.subdaily; day.next()) {
 
 			wdemand(patch, climate, vegetation, day);
-			aet_water_stress(patch, vegetation, day, indiv);
+			aet_water_stress(patch, vegetation, day);
 			water_scalar(patch, vegetation, day);
 			npp(patch, climate, vegetation, day);
 		}

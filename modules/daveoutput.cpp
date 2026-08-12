@@ -91,13 +91,14 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_amort_greff"         , ANNUAL, [](const Individual &i) { return i.mort_greff; }, "Annual PFT-level growth-efficiency-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.", sum);
 	add_aggregated_indiv_output("file_dave_amort_age"           , ANNUAL, [](const Individual &i) { return i.mort_age; }, "Annual PFT-level age-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.", sum);
 	add_aggregated_indiv_output("file_dave_acmass_germ"         , ANNUAL, [](const Individual &i) { return i.cmass_germ; }, "Annual germinated C mass (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_aroot_beta"          , ANNUAL, [](const Individual &i) { return i.root_beta; }, "Annual output of pft-level root beta value (0-1)", mean);
 
 	// Annual per-patch pft-level outputs.
 	add_pft_output("file_dave_anpp"                             , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id); }, "Total individual-level Annual NPP (kgC/m2/year)", true);
 	add_pft_output("file_dave_agpp"                             , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id); }, "Total individual-level Annual GPP (kgC/m2/year)", true);
 	add_pft_output("file_dave_acue"                             , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id) ? patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id) / patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id) : 0; }, "Annual CUE (unitless)", true);
 	add_pft_output("file_dave_aresp"                            , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::RA, pft.id); }, "Total individual-level Annual autotrophic Respiration (kgC/m2/year)", true);
-	add_pft_output("file_dave_acmass_mort"                      , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].cmass_mort; }, "Mass of annual killed vegetation (kgC/m2/year)", true);
+	add_pft_output("file_dave_acmass_mort"                      , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].acmass_mort_kill; }, "Annual live vegetation C removed at Individual::kill() events (kgC/m2/year)", true);
 	add_pft_output("file_dave_ancohort"                         , ANNUAL, get_nindiv, "Get the number of cohorts of this PFT currently established in this patch");
 	add_pft_output("file_dave_anetps_ff"                        , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].anetps_ff; }, "Annual net photosynthesis at forest floor (kgC/m2)", true);
 	add_pft_output("file_dave_ansapling"                        , ANNUAL, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].nsapling; }, "Number of saplings of each PFT ready to establish (trees only)", true);
@@ -404,6 +405,7 @@ DaveOutput::DaveOutput() {
 	add_pft_output("file_dave_cmass_standing_heart"        , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].cmass_litter_heart; }, "Seedbank cmass (kgC/m2)", true);
 	add_pft_output("file_dave_nmass_standing_heart"        , DAILY, [](const Patch &p, const Pft &pft) { return p.pft[pft.id].nmass_litter_heart; }, "Seedbank nmass (kgN/m2)",  true);
 	add_pft_output("file_dave_dresp"                       , DAILY, [](const Patch &patch, const Pft &pft) { return patch.fluxes.get_annual_flux(Fluxes::RA, pft.id); }, "Total daily pft-level autotrophic Respiration (kgC/m2)", true);
+	add_pft_output("file_dave_dcmass_mort"                 , DAILY, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].dcmass_mort_kill; }, "Daily live vegetation C removed at Individual::kill() events (kgC/m2/day)", true);
 	add_pft_output("file_dave_cmass_seed_ext"              , DAILY, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].cmass_ext_seed; }, "Total daily pft-level hypothetical seedbank (kgC/m2)", true);
 	add_pft_output("file_dave_dncohort"                    , DAILY, get_nindiv, "Get the number of cohorts of this PFT currently established in this patch");
 	add_pft_output("file_dave_dmort_cstarve_ntree"         , DAILY, [](const Patch &patch, const Pft &pft) { return patch.pft[pft.id].dmort_cstarve_ntree; }, "Daily PFT-level carbon starvation-related mortality, expressed as fraction of individuals within the cohort which died this day, summed across all indivs of a given PFT.");
@@ -428,6 +430,8 @@ DaveOutput::DaveOutput() {
 
 	// Subdaily cohort-level per-layer energy balance.
 	add_indiv_layer_timestep_output("file_dave_energy_balance", energy_balance_cols(), "Subdaily layered cohort-level energy balance outputs");
+
+	add_indiv_layer_timestep_output("file_dave_ps_diagnostics", ps_diagnostics_cols(), "Subdaily layered cohort-level photosynthesis diagnostics");
 
 	// Daily patch-level array outputs.
 	add_patch_array_output("file_dave_sw"                       , DAILY, "sw_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", true, false);

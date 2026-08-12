@@ -56,13 +56,6 @@ private:
 	double vpd;
 };
 
-class PhotosynthesisDiagnostics {
-public:
-	double g1;
-	double g0;
-	double gcutic_adj;
-};
-
 /*
 Describes the state of a cohort relevant for photosynthesis calculations.
 */
@@ -214,7 +207,7 @@ void vcmax_from_N(Individual &indiv) {
 		} 
 		else if (indiv.pft.pathway == C4) {
 
-			indiv.ps_subdaily.vpmax25 = calc_vpmax25(nmass_leaf0);
+			indiv.ps_subdaily.vpmax25 = indiv.pft.vpmax_scal * calc_vpmax25(nmass_leaf0);
 
 		} else {
 			fail("Unknown photosynthetic pathway");
@@ -261,7 +254,7 @@ double calc_water_stress_dave(const Soil &soil, const double weight[NSOILLAYER],
 	double wstress = 0;
 	double total_weight = 0;
 	for (size_t i = 0; i < max_layers; i++) {
-		double stress_base = soil.get_layer_soil_water(i) / wcont_crit;
+		double stress_base = soil.get_layer_soil_water_tot(i) / wcont_crit;
 
 		// Clamp to [0, 1].
 		stress_base = max(min(stress_base, 1.0), 0.0);
@@ -355,8 +348,8 @@ void get_temp_acclimation_parameters(const Climate &climate, const Pft &pft,
 Calculate stomatal term (Medlyn et al. 2011).
 X needs to represent gs for CO2, hence no 1.6 factor.
 */
-double stomatal_conductance_term(double wscal, double g1, double vpd, double ca) {
-	return divide(divide(1.0 + pow(wscal, qs) * g1, sqrt(max(vpd, 0.1))), ca);
+double stomatal_conductance_term(double wscal, double g1, double qs, double vpd, double ca) {
+	return divide(1.0 + divide(pow(wscal, qs) * g1, sqrt(max(vpd, 0.1))), ca);
 }
 
 /*
@@ -364,7 +357,7 @@ Residual stomatal conductance term.
 Note: g0 is for H20, here conversion to conductances to CO2.
 TODO: do we need a different qs here?
 */
-double stomatal_conductance_residual(double g0, double wscal) {
+double stomatal_conductance_residual(double g0, double qs, double wscal) {
 	return divide(max(0.0, g0 * pow(wscal, qs)), DWDC);
 }
 
@@ -509,6 +502,20 @@ double resp_temp_acclimation_scalar(double tgrowth, double racclim) {
 }
 
 /*
+Get the water stress effect on respiration.
+*/
+double resp_water_scalar(const Individual &indiv) {
+	if (indiv.pft.lifeform != TREE) {
+		return 1.0;
+	}
+
+	double wscal = indiv.get_wscal();
+	double scalar = 0.5 * (1.0 + wscal);
+	scalar = max(min(scalar, 1.0), 0.0);
+	return scalar;
+}
+
+/*
 No photosynthesis (stomata closed - night time, water stress, etc).
 
 Sets gross assimilation to 0, net assimilation to -Rd, and Ci to Ca.
@@ -548,9 +555,7 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	double jmax25_mol  = inputs.jmax25  / UMOL_PER_MOL;
 	double resp_scalar = resp_temp_acclimation_scalar(inputs.tgrowth, inputs.racclim);
 
-	// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
-	// Note: fphen_activity is always 1 for trees.
-	double rd = inputs.fphen_activity * pow(inputs.wscal, qb) * BC3 * vcmax25_mol * inputs.nscal *
+	double rd = pow(inputs.wscal, qb) * BC3 * vcmax25_mol * inputs.nscal *
 			respiration_temp_response(inputs.tleaf) * light_inhibition(inputs.ipar()) * resp_scalar;
 
 	if (is_zero(inputs.ipar())) {
@@ -564,7 +569,7 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	double gamstar = Arrhenius_temp_response(GAMSTAR25, inputs.tleaf, HA_GS, 0.0, 0.0);
 
 	// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax.
-	double pslim = inputs.fphen_activity * inputs.ps_sink_lim * inputs.nscal;
+	double pslim = inputs.ps_sink_lim * inputs.nscal;
 
 	// apply water stress scaling to vcmax / jmax
 	if (ifzhou) {
@@ -677,11 +682,11 @@ double calc_c4_ac_full(const C4Biochemistry &biochemistry,
 	double ci = state.ci;
 	double vcmax = biochemistry.vcmax;
 	double rd = biochemistry.rd;
+	double a0 = biochemistry.a0;
+	double lgamstar = biochemistry.lgamstar;
 
 	// kc * (1 + om / ko)
 	double km = biochemistry.km;
-
-	// TODO: check value of alpha_PSII.
 
 	// Equations 22-24
 	double a_c = alpha_PSII / a0 * kc / ko;
@@ -692,6 +697,10 @@ double calc_c4_ac_full(const C4Biochemistry &biochemistry,
 
 	double anc;
 	if (solve_quadratic(a_c, b_c, c_c, anc, true)) {
+		if (anc < -rd || anc > 2.0 * vcmax) {
+			log_warning("Implausible Anc value with the lower root! anc=%f, rd=%f, vcmax=%f",
+				 anc, rd, vcmax);
+		}
 		return anc;
 	}
 	log_warning("No solution to C4 photosynthesis quadratic equation for Ac. A value of -Rd (%g) will be used for Ac. a_c: %g, b_c: %g, c_c: %g",
@@ -745,6 +754,8 @@ double calc_c4_aj_full(const C4Biochemistry &biochemistry,
 	double rm = biochemistry.rm;
 	double ci = state.ci;
 	double rd = biochemistry.rd;
+	double a0 = biochemistry.a0;
+	double lgamstar = biochemistry.lgamstar;
 
 	// Equations 41-43
 	double a_j = 1.0 - (7.0 * lgamstar * alpha_PSII) / (3.0 * a0);
@@ -755,7 +766,11 @@ double calc_c4_aj_full(const C4Biochemistry &biochemistry,
 			gbs * lgamstar * O2atm * (divide(zj,3.0) * (1.0 - xj) * je + divide((7.0 * rd),3.0));
 
 	double anj;
-	if (solve_quadratic(a_j, b_j, c_j, anj, true)) {
+	if (solve_quadratic(a_j, b_j, c_j, anj, false)) {
+		if (anj < -rd || anj > biochemistry.jmax) {
+			log_warning("Implausible Anj value with the higher root! anj=%f, rd=%f, jmax=%f",
+						anj, rd, biochemistry.jmax);
+		}
 		return anj;
 	}
 
@@ -878,8 +893,8 @@ C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
 	double resp_scalar = resp_temp_acclimation_scalar(inputs.tgrowth, inputs.racclim);
 
 	// Daytime (mitochondrial) leaf respiration (mol m-2 s-1).
-	result.rd = inputs.fphen_activity * pow(inputs.wscal, qb) * BC4 * vcmax25_c4 * inputs.nscal *
-			respiration_temp_response(inputs.tleaf) * light_inhibition(inputs.ipar()) * resp_scalar;
+	result.rd = pow(inputs.wscal, qb) * BC4 * vcmax25_c4 * inputs.nscal *
+			    respiration_temp_response(inputs.tleaf) * light_inhibition(inputs.ipar()) * resp_scalar;
 
 	// Rd in the mesophyll cells.
 	result.rm = 0.5 * result.rd;
@@ -888,7 +903,7 @@ C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
 	result.rs = result.rd - result.rm;
 
 	// Nitrogen and water scaling and temp. dependencies of Vcmax and Jmax
-	double pslim = inputs.fphen_activity * inputs.ps_sink_lim * inputs.nscal;
+	double pslim = inputs.ps_sink_lim * inputs.nscal;
 
 	// apply water stress scaling to vcmax / jmax
 	if (ifzhou) {
@@ -912,6 +927,8 @@ C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
 	result.kc = Arrhenius_temp_response(KC25_C4, inputs.tleaf, HA_KC_C4, 0.0, 0.0);
 	result.ko = Arrhenius_temp_response(KO25_C4, inputs.tleaf, HA_KO_C4, 0.0, 0.0);
 	result.km = result.kc * (1.0 + divide(O2atm, result.ko));
+	result.a0 = Arrhenius_temp_response(a025, inputs.tleaf, HA_a0, 0.0, 0.0);
+	result.lgamstar = Arrhenius_temp_response(lgamstar25, inputs.tleaf, HA_lgamstar, 0.0, 0.0);
 
 	return result;
 }
@@ -1045,12 +1062,12 @@ PhotosynthesisDiagnostics get_photosynthesis_inputs(const CohortState &cohort,
 	} else {
 		// Stomatal term (Medlyn et al. 2011)
 		// X needs to represent gs for CO2, hence no 1.6 factor
-		inputs.X = stomatal_conductance_term(inputs.wscal, pft.g1, inputs.vpd, inputs.ca);
+		inputs.X = stomatal_conductance_term(inputs.wscal, pft.g1, pft.qs, inputs.vpd, inputs.ca);
 
 		// Residual stomatal conductance term
 		// Note: g0 is for H20, here conversion to conductances to CO2
 		// TODO: do we need a different qs here?
-		inputs.gdark = stomatal_conductance_residual(pft.g0, inputs.wscal);
+		inputs.gdark = stomatal_conductance_residual(pft.g0, pft.qs, inputs.wscal);
 	}
 
 	// LAI of this individual in this layer.
@@ -1139,8 +1156,8 @@ EnergyBalanceResult energy_balance_dave(double tleaf, double tair, double gs,
 	if (ea < 0 && ea > -100.0) {
 		ea = 0.0;
 	} else if (ea < 0) {
-		fail("energy_balance_dave(): ea < 0, this means saturation vapour pressure is less than actual vapour pressure, which shouldn't happen. east=%f kPa, vpd=%f kPa, tair=%f °C",
-			 esat(tair, m), vpd, tair);
+		log_warning("energy_balance_dave(): ea < 0, this means saturation vapour pressure is less than actual vapour pressure, which shouldn't happen. east=%f kPa, vpd=%f kPa, tair=%f °C",
+			        esat(tair, m), vpd, tair);
 	}
 
 	double ema = 0.642 * pow(ea / tair_k, 1.0 / 7.0);
@@ -1316,6 +1333,7 @@ void photosynthesis_gs(Patch& patch) {
 			indiv.ps_inputs_layerwise[day.period].assign(nlayer, PhotosynthesisInputs{});
 			indiv.ps_outputs_layerwise[day.period].assign(nlayer, PhotosynthesisOutputs{});
 			indiv.energy_balance_layerwise[day.period].assign(nlayer, EnergyBalance(0, 0, 0, false, 0, 0));
+			indiv.ps_diagnostics_layerwise[day.period].assign(nlayer, PhotosynthesisDiagnostics{});
 
 		    for (size_t j = 0; j < nlayer; j++) {
 
@@ -1348,10 +1366,10 @@ void photosynthesis_gs(Patch& patch) {
 					energy_balance_maxiter, energy_balance_eps);
 
 				if (balance.get_converged()) {
-					log_diagnostic("Energy balance solver converged for individual %d (%s) in layer %d at day period %d in %d iterations.",
+					log_debug("Energy balance solver converged for individual %d (%s) in layer %d at day period %d in %d iterations.",
 								   indiv.id, (const char *)pft.name, j, day.period, balance.get_niter());
 				} else {
-					log_warning("Energy balance solver did not converge for individual %d (%s) in layer %d at day period %d after %d iterations (tleaf_diff = %g).",
+					log_diagnostic("Energy balance solver did not converge for individual %d (%s) in layer %d at day period %d after %d iterations (tleaf_diff = %g).",
 								indiv.id, (const char *)pft.name, j, day.period,
 								balance.get_niter(), balance.get_delta_tleaf());
 				}
@@ -1359,6 +1377,7 @@ void photosynthesis_gs(Patch& patch) {
 				indiv.ps_inputs_layerwise[day.period][j] = inputs;
 				indiv.ps_outputs_layerwise[day.period][j] = outputs;
 				indiv.energy_balance_layerwise[day.period][j] = balance;
+				indiv.ps_diagnostics_layerwise[day.period][j] = diagnostics;
 
 				// TODO drew: multiply by LAI only once, after canopy loop.
 
@@ -1487,7 +1506,7 @@ double calc_water_uptake_dave(Individual &indiv) {
 
     if (spft.irrigated && pft.id == patch.stand.pftid) {
         Day day;
-        return irrigated_water_uptake(patch, pft, day, indiv);
+        return irrigated_water_uptake(patch, pft, day, indiv.rootdist, indiv.fwuptake);
     }
 
     // Available water in each layer, as a fraction of water holding
@@ -1576,8 +1595,11 @@ void water_uptake_dave(Patch &patch) {
 	for (int i = 0; i < vegetation.nobj; i++) {
 		Individual &indiv = vegetation[i];
 
-		indiv.aet = transpiration_dave(indiv);
-		// indiv.aet = calc_transp_old(indiv);
+		if (penman_monteith) {
+			indiv.aet = transpiration_dave(indiv);
+		} else {
+			indiv.aet = calc_transp_old(indiv);
+		}
 
 		// Note: aet may be further limited by the water supply (see below).
 		// This also means that we can't update aaet here (also see below).
@@ -1633,6 +1655,7 @@ void water_uptake_dave(Patch &patch) {
 
 struct CtonRatios {
 	double sap;
+	double leaf;
 	double root;
 	double crown;
 };
@@ -1652,11 +1675,13 @@ CtonRatios cton_effective(const Individual &indiv) {
 
 	if (ifnlim) {
 		cton.sap   = indiv.cton_sap();
+		cton.leaf  = indiv.cton_leaf();
 		cton.root  = indiv.cton_root();
 		cton.crown = indiv.cton_crown();
 	} else {
 		cton.sap   = indiv.pft.cton_sap_avr;
 		cton.root  = indiv.pft.cton_root_avr;
+		cton.leaf  = indiv.pft.cton_leaf_avr;
 		// Crowns use root stoichiometric limits.
 		cton.crown = indiv.pft.cton_root_avr;
 	}
@@ -1664,6 +1689,7 @@ CtonRatios cton_effective(const Individual &indiv) {
 	if (!indiv.pft.dave_allocation()) {
 		// Set C:N ratios if not using DAVE allocation (since trunk
 		// allocation + DAVE photosynthesis can give unrealistic values).
+		cton.leaf  = min(cton.leaf, indiv.pft.cton_leaf_max);
 		cton.sap   = min(cton.sap, indiv.pft.cton_sap_max);
 		cton.root  = min(cton.root, indiv.pft.cton_root_max);
 		// Non-DAVE allocated PFTs don't have crowns.
@@ -1706,6 +1732,9 @@ void npp_dave(Patch& patch) {
 		double cmass_root = indiv.cmass_root_today();
 
 		// 0 for trees
+		double cmass_culm = indiv.get_cmass_leaf() * pft.culmfrac;
+
+		// 0 for trees
 		double cmass_crown = indiv.get_cmass_crown();
 
 		// 0 for PFTs using annual (trunk) allocation
@@ -1713,6 +1742,11 @@ void npp_dave(Patch& patch) {
 
 		// Get effective C:N ratios for sap, root, and crown.
 		CtonRatios cton = cton_effective(indiv);
+
+		// Calculate respiration scalar due to dormancy
+		double fphen_resp = indiv.fphen_activity + (1.0 - indiv.fphen_activity) *
+		                    max(0.0,(indiv.get_wscal_moving_average() - indiv.pft.wscal_min_dormant) / (1.0 - indiv.pft.wscal_min_dormant));
+
 
 		// Set leaf respiration.
 		indiv.resp_leaf = indiv.photosynthesis.rd_g * KG_PER_G;
@@ -1723,16 +1757,17 @@ void npp_dave(Patch& patch) {
         // Get scalar encapsulating the effect of temperature acclimation. This
         // will be 1 if acclimation is disabled.
         double scalar = resp_temp_acclimation_scalar(tgrowth, pft.racclim);
+        double wscalar = resp_water_scalar(indiv);
 
 		// Respiration coefficient is reduced based on temperature acclimation.
-        double respcoeff = pft.respcoeff * scalar;
+        double respcoeff = pft.respcoeff * scalar * wscalar;
 
 		double resp = 0;
 		respiration(gtemp, patch.soil.gtemp, indiv.pft.lifeform,
-			respcoeff, cton.sap, cton.root, cton.crown, indiv.cmass_sap,
-			cmass_root, cmass_crown, cmass_repr, indiv.cgrow, indiv.fphen_activity,
+			respcoeff, cton.sap, cton.leaf, cton.root, cton.crown, indiv.cmass_sap,
+			cmass_culm, cmass_root, cmass_crown, cmass_repr, indiv.cgrow, fphen_resp,
 			assim, indiv.resp_leaf, resp, indiv.resp_maintenance,
-			indiv.resp_growth, indiv.resp_repr, indiv.resp_crown,
+			indiv.resp_growth, indiv.resp_repr, indiv.resp_culm, indiv.resp_crown,
 			indiv.resp_root, indiv.resp_sap);
 
 		// Update accumulated annual NPP and daily vegetation-atmosphere flux

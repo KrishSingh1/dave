@@ -86,6 +86,8 @@ bool ifdailycstarvmort;
 bool ifgrote;
 bool ifdavegrowth;
 bool ifdavehydrology;
+bool penman_monteith;
+bool est_live_repr;
 int soildepth_evap;
 bool ifzhou;
 bool ifdavehydraulics;
@@ -95,7 +97,6 @@ double epsiresolution;
 bool ifevenlaidist;
 bool ifadaptive_rootdist;
 bool ifapproximate_C4;
-bool ifusegdd;
 bool ifstoreuptake;
 bool gzip_output;
 bool spinup_output;
@@ -293,6 +294,8 @@ void initsettings() {
 	ifleafdamage = false;
 	ifdavehydraulics = false;
 	ifdavehydrology = false;
+	penman_monteith = false;
+	est_live_repr = false;
 	ifstoreuptake = true;
 	soildepth_evap = 200.0;// Default in trunk
 	ifzhou = false;
@@ -498,6 +501,14 @@ void declare_parameter(const char* name, bool* param, const char* help) {
 	boolParams.push_back(boolParam(name, param, help));
 }
 
+void clear_parameter_declarations() {
+	xtringParams.clear();
+	stringParams.clear();
+	intParams.clear();
+	doubleParams.clear();
+	boolParams.clear();
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // The following code uses functionality from the PLIB library to process an
@@ -683,6 +694,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifgrote", &ifgrote, 1, CB_NONE, "Turn on/off grote tree allocation (requires ifdailytree 1)");
 		declareitem("ifdavegrowth", &ifdavegrowth, 1, CB_NONE, "Use DAVE growth routine (grasses only at the moment)");
 		declareitem("ifdavehydrology", &ifdavehydrology, 1, CB_NONE, "Use DAVE hydrology updates");
+		declareitem("penman_monteith", &penman_monteith, 1, CB_NONE, "Whether to use penman-monteith equation to calculate transpiration, or the relationship with VPD.");
+		declareitem("est_live_repr", &est_live_repr, 1, CB_NONE, "Whether to use live reproductive biomass (true) or total allocation to reproduction (false) for spatial mass effect.");
 		declareitem("soildepth_evap", &soildepth_evap, 0, 1500, 1, CB_NONE, "Depth of sublayer at top of upper soil layer, from which evaporation is possible (NB: must not exceed value of global constant SOILDEPTH_UPPER) Must be a multiple of Dz_soil");
 	    declareitem("ifdavehydraulics", &ifdavehydraulics, 1, CB_NONE, "Use DAVE hydraulics routine");
 	    declareitem("ifzhou", &ifzhou, 1, CB_NONE, "Use Zhou response of photosynthesis to water stress via water potential (requires ifdavehydrology)");
@@ -696,7 +709,6 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("energy_balance_eps", &energy_balance_eps, 0, 20, 1, CB_NONE, "Convergence criterion for DAVE energy balance (K). Iteration for tleaf will cease when the change in tleaf between iterations is less than this value.");
 		declareitem("ifapproximate_C4", &ifapproximate_C4, 1, CB_NONE, "Approximate solution of von Caemmerer 2000 C4 photosynthesis model");
 		declareitem("ifstoreuptake", &ifstoreuptake, 1, CB_NONE, "Whether N uptake should go into long-term storage pool");
-		declareitem("ifusegdd", &ifusegdd, 1, CB_NONE, "Use growing degree days to infer growth stage");
 		declareitem("nindiv_max", &nindiv_max, 0, 1024, 1, CB_NONE, "Maximum number of individuals allowed to establish at once per pft (0 = unlimited)");
 		declareitem("grazing_duration", &grazing_duration, 0, 1024, 1, CB_NONE, "Number of days that animals are allowed to graze a particular set of patches (default: 1).");
 		declareitem("ifforcedlai", &ifforcedlai, 1, CB_NONE, "Maximum number of individuals allowed to establish at once per pft (0 = unlimited)");
@@ -772,6 +784,10 @@ void plib_declarations(int id,xtring setname) {
 			"GDD on 5 deg C base to attain full maturity/senescence");
 		declareitem("wscal_min",&ppft->wscal_min,0.0,1.0,1,CB_NONE,
 			"Water stress threshold for leaf abscission (raingreen PFTs)");
+		declareitem("wscal_min_dormant",&ppft->wscal_min_dormant,0.0,1.0,1,CB_NONE,
+			"Water stress threshold during dormancy (grasses only)");	
+		declareitem("dphen_activity_max",&ppft->dphen_activity_max,0.0,1.0,1,CB_NONE,
+			"Maximum physiological up/down-regulation in and out of dormancy (fraction d-1)");		
 		declareitem("pathway",&strparam,16,CB_PATHWAY,
 			"Biochemical pathway (\"C3\" or \"C4\")");
 		declareitem("pstemp_min",&ppft->pstemp_min,-50.0,50.0,1,CB_NONE,
@@ -788,6 +804,8 @@ void plib_declarations(int id,xtring setname) {
 			"Shape parameter to determine fraction of roots in each soil layer");
  		declareitem("rootdist",ppft->input_rootdist,0.0,1.0,NSOILLAYER,CB_ROOTFRAC,
 			"Fraction of roots in each soil layer (first value=upper layer)");
+		declareitem("gmin",&ppft->gmin,0.0,1.0,1,CB_NONE,
+			"Canopy conductance not assoc with photosynthesis (mm/s)");
 		declareitem("emax",&ppft->emax,0.0,50.0,1,CB_NONE,
 			"Maximum evapotranspiration rate (mm/day)");
 		// guess2008 - increased the upper limit to possible respcoeff values (was 1.2)
@@ -795,6 +813,8 @@ void plib_declarations(int id,xtring setname) {
 			"Respiration coefficient (0-1)");
 		
 		///Dave Parameters
+		declareitem("vpmax_scal",&ppft->vpmax_scal,0.0,100.0,1,CB_NONE,
+			"Scalar for Vpmax25 (C4 photosynthesis only)");
 		// Subdaily photosynthesis parameters
 		declareitem("g0",&ppft->g0,0.0,1.0,1,CB_NONE,
 			"Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1)");
@@ -803,6 +823,8 @@ void plib_declarations(int id,xtring setname) {
 		// Subdaily photosynthesis parameters, Zhou model
 		declareitem("g1x",&ppft->g1x,0,20.0,1,CB_NONE,
 			"g1 at leaf water potential = -0.3 Mpa (Zhou et al. 2014), units are (kPa^0.5)");
+		declareitem("qs",&ppft->qs,0,5.0,1,CB_NONE,
+			"Stomatal sensitivty to water stress (0-1)");
 		// Hydraulic parameters
 		declareitem("stom_clos",&ppft->stom_clos,-1000.0,0.0,1,CB_NONE, 
 			"Water potential at which stomatal close and roots disconnect from soil (MPa)");
@@ -898,6 +920,8 @@ void plib_declarations(int id,xtring setname) {
 			"Fraction of senesced carbon retranslocated back to storage.");
 		declareitem("senesc_base", &ppft->senesc_base, 0.0, 1e10, 1, CB_NONE,
 			"Baseline senescence rate for dave grasses (d-1).");
+		declareitem("senesc_scal_temp", &ppft->senesc_scal_temp, 0.0, 1e10, 1, CB_NONE,
+			"Senescence coefficient for freezing temperature stress in dave grasses.");
 		declareitem("senesc_scal_dorm", &ppft->senesc_scal_dorm, 0.0, 1e10, 1, CB_NONE,
 			"Senescence coefficient for dormancy in dave grasses. Senescence rate is increased by this factor when phenology is changing at the maximum rate.");
 		declareitem("senesc_scal_water", &ppft->senesc_scal_water, 0.0, 1e10, 1, CB_NONE,
@@ -908,10 +932,6 @@ void plib_declarations(int id,xtring setname) {
 			"Exponent shaping development-driven senescence for dave grasses. Higher values delay senescence (less early, more late in the reproductive phase). Unitless.");
 		declareitem("qwater_senesc", &ppft->qwater_senesc, 0.0, 1e10, 1, CB_NONE,
 			"Exponent shaping water stress-driven senescence for dave grasses. q = 1 gives a linear response. q > 1 increases senescence at moderate stress; 0 < q < 1 reduces it. No effect at the extremes (wscal = 0 or 1). Unitless.");
-		declareitem("temp_senesc1", &ppft->temp_senesc1, 0.0, 1e10, 1, CB_NONE,
-			"Increase in senescence rate per 1℃, for temperatures below 0 ℃ (Johnson & Thornley 1983).");
-		declareitem("temp_senesc2", &ppft->temp_senesc2, 0.0, 1e10, 1, CB_NONE,
-			"Increase in senescence rate per 1℃, for temperatures above 0 ℃ (Johnson & Thornley 1983).");
 		declareitem("turnover_leaf",&ppft->turnover_leaf,0.0,1.0,1,CB_NONE,
 			"Leaf turnover (fraction/year)");
 		declareitem("turnover_root",&ppft->turnover_root,0.0,1.0,1,CB_NONE,
@@ -954,6 +974,8 @@ void plib_declarations(int id,xtring setname) {
 			"Maximum sapwood C:N mass ratio");
 		declareitem("ltor_max",&ppft->ltor_max,0.1,10.0,1,CB_NONE,
 			"Non-water-stressed leaf:fine root mass ratio");
+		declareitem("frac_seed",&ppft->frac_seed,0,1.0,1,CB_NONE,
+			"Fraction of reproductive biomass consisting of seeds");
 		declareitem("litterme",&ppft->litterme,0.0,1.0,1,CB_NONE,
 			"Litter moisture flammability threshold (fraction of AWC)");
 		declareitem("fireresist",&ppft->fireresist,0.0,1.0,1,CB_NONE,
@@ -1543,6 +1565,7 @@ void plib_callback(int callback) {
 		if (strparam.upper()=="TREE") ppft->lifeform=TREE;
 		else if (strparam.upper() == "GRASS_PERENNIAL") ppft->lifeform = GRASS_PERENNIAL;
 		else if (strparam.upper() == "GRASS_ANNUAL") ppft->lifeform = GRASS_ANNUAL;
+		else if (strparam.upper() == "GRASS" && !ppft->dave_allocation()) ppft->lifeform = GRASS_PERENNIAL; // for compat with upstream - no difference between annual/perennial if we're using trunk allocation
 		else if (strparam.upper() == "MOSS") ppft->lifeform = MOSS;
 		else {
 			sendmessage("Error",
@@ -2206,6 +2229,7 @@ void plib_callback(int callback) {
 				if (!itemparsed("pstemp_low")) badins("pstemp_low");
 				if (!itemparsed("pstemp_high")) badins("pstemp_high");
 				if (!itemparsed("pstemp_max")) badins("pstemp_max");
+				if (!itemparsed("gmin")) badins("gmin");
 			}
 			if (!itemparsed("lambda_max") && !ifdavephotosyn) badins("lambda_max");
 			if (rootdistribution == ROOTDIST_FIXED) {
@@ -2280,13 +2304,15 @@ void plib_callback(int callback) {
 					if (!itemparsed("culmfrac")) badins("culmfrac");
 					if (!itemparsed("crelocfrac")) badins("crelocfrac");
 					if (!itemparsed("senesc_base")) badins("senesc_base");
+					if (!itemparsed("senesc_scal_temp")) badins("senesc_scal_temp");
 					if (!itemparsed("senesc_scal_dorm")) badins("senesc_scal_dorm");
 					if (!itemparsed("senesc_scal_water")) badins("senesc_scal_water");
 					if (!itemparsed("senesc_scal_repr")) badins("senesc_scal_repr");
 					if (!itemparsed("qdev_senesc")) badins("qdev_senesc");
 					if (!itemparsed("qwater_senesc")) badins("qwater_senesc");
-					if (!itemparsed("temp_senesc1")) badins("temp_senesc1");
-					if (!itemparsed("temp_senesc2")) badins("temp_senesc2");
+					if (!itemparsed("wscal_min_dormant")) badins("wscal_min_dormant");
+					if (!itemparsed("dphen_activity_max")) badins("dphen_activity_max");
+					if (!itemparsed("frac_seed")) badins("frac_seed");
 				}
 				if (ppft->lifeform == TREE) {
 					if (!itemparsed("boleht_frac")) badins("boleht_frac");
@@ -2501,11 +2527,6 @@ void plib_callback(int callback) {
 				if (!itemparsed("fireresist")) badins("fireresist");
 			}
 			if (ifcalcsla) {
-				if (!itemparsed("leaflong")) {
-					sendmessage("Error",
-								"Value required for leaflong when ifcalcsla enabled");
-					plibabort();
-				}
 				if (itemparsed("sla") && !(ppft->phenology == CROPGREEN && ifnlim))
 					sendmessage("Warning",
 								"Specified sla value not used when ifcalcsla enabled");
@@ -2515,11 +2536,6 @@ void plib_callback(int callback) {
 			}
 
 			if (ifcalccton) {
-				if (!itemparsed("leaflong")) {
-					sendmessage("Error",
-								"Value required for leaflong when ifcalccton enabled");
-					plibabort();
-				}
 				if (itemparsed("cton_leaf_min") && !(ppft->phenology == CROPGREEN && ifnlim))
 					sendmessage("Warning",
 								"Specified cton_leaf_min value not used when ifcalccton enabled");

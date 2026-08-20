@@ -1598,7 +1598,7 @@ double calc_creserve_opt_grote(const Individual &indiv) {
 }
 
 // Capacity of C storage (kg C m-2)
-double cstorage_capacity(Individual& indiv) {
+double cstorage_capacity(const Individual& indiv) {
 
 	if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 		return cstorage_max_temp * (indiv.get_cmass_leaf() + indiv.cmass_root) + cstorage_max_perm * indiv.cmass_crown;
@@ -3915,7 +3915,7 @@ bool carbon_starvation_mortality(Individual &indiv) {
 		
 	// calculate probability of mortality due to carbon starvation (unitless)
 	double pmort_cstarve = max_mort_frac / (1.0 + pow(storage_state / pft.cstarv_inflect, 5.0));
-	
+
     if (ifdailycstarvmort) {
 		// Start thinning.
         if (indiv.densindiv > pft.cstarv_killdens) {

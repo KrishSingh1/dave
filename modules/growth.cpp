@@ -3833,17 +3833,16 @@ void reduce_tree_biomass(Individual &indiv, double frac) {
 	leaf_to_litter(soil, pft, cmass_leaf_litter, nmass_leaf_litter);
 	root_to_litter(soil, pft, cmass_root_litter, nmass_root_litter);
 
-	// Sapwood turnover to heartwood.
-	indiv.cmass_heart += cmass_sap_litter;
-	indiv.nmass_heart += nmass_sap_litter;
+	// Sapwood turnover to litter - not to heartwood.
+	sap_to_litter(soil, pft, cmass_sap_litter, nmass_sap_litter);
 
 	// See comment in turnover_dave_tree(). How should repr be handled? For now,
 	// treat it the same as root litter.
 	root_to_litter(soil, pft, cmass_repr_litter, nmass_repr_litter);
 
 	// Used by DAVE mass balance checks; not an actual litter pool.
-	indiv.ctolitter += cmass_leaf_litter + cmass_root_litter + cmass_repr_litter;
-	indiv.ntolitter += nmass_leaf_litter + nmass_root_litter + nmass_repr_litter;
+	indiv.ctolitter += cmass_leaf_litter + cmass_root_litter + cmass_repr_litter + cmass_sap_litter;
+	indiv.ntolitter += nmass_leaf_litter + nmass_root_litter + nmass_repr_litter + nmass_sap_litter;
 
 	double frac_remain = 1.0 - frac;
 

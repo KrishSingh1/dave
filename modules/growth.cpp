@@ -1972,7 +1972,7 @@ double solve_csap(double bminit, const Pft &pft, double ltor, double init_storfr
 
 	for (int i = 0; i < NITER_MAX; i++) {
 		double csap = (lowbound + highbound) / 2.0;
-		double height = pow(2.0 * csap * pow(k2, 2.0 / k3) / (PI * rho), 1.0 / (1.0 + 2.0 / k3));
+		double height = pow(4.0 * csap * pow(k2, 2.0 / k3) / (PI * rho), 1.0 / (1.0 + 2.0 / k3));
 		double diam   = pow(height / k2, 1.0 / k3);
 		// v = h * pi * r^2 = h * pi * d^2 / 4
 		double cleaf  = k * csap / (height * rho * sla);

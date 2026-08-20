@@ -6362,11 +6362,19 @@ void storage_overflow(Individual& indiv) {
 		double cexcess_to_soil = indiv.cexcess - cexcess_to_resp;
 
 		// 1) autotrophic respiration
-		indiv.dnpp -= cexcess_to_resp;
-		indiv.aresp += cexcess_to_resp;
+		if (indiv.dnpp > cexcess_to_resp) {
+			// We assimilated this carbon but then didn't use it - e.g. due to
+			// nutrient limitation.
+			indiv.dnpp -= cexcess_to_resp;
+			indiv.aresp += cexcess_to_resp;
 
-		indiv.report_flux(Fluxes::RA, cexcess_to_resp);
-		indiv.report_flux(Fluxes::NPP, -cexcess_to_resp);
+			indiv.report_flux(Fluxes::RA, cexcess_to_resp);
+			indiv.report_flux(Fluxes::NPP, -cexcess_to_resp);
+		} else {
+			// Small or negative NPP.
+			cexcess_to_resp = 0.0;
+			cexcess_to_soil = indiv.cexcess;
+		}
 
 		// 2) root exudates / rhizodeposition (approximated by input to root litter)
 		ppft.cmass_litter_leaf += cexcess_to_soil;

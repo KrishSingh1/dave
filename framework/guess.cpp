@@ -1885,6 +1885,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	cmass_sap_turnover = 0.0;
 	kmax_drought_affected = pft.kmax;
 	max_k_loss = 0.0;
+	xylem_loss_frac = 0.0;
 	cmass_tot_luc     = 0.0;
 	cmass_leaf_limit  = 0.0;
 	cmass_root_limit  = 0.0;
@@ -3915,6 +3916,7 @@ void Individual::daily_accounting() {
 	closs_temp = 0;
 	nloss_temp = 0;
 	loss_temp = 0;
+	xylem_loss_frac = 0.0;
 	canopy.clear();
 
 	if (ifdavephotosyn) {

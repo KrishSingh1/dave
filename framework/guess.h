@@ -3722,6 +3722,8 @@ public:
 	double kmax_drought_affected;
 	/// daily loss of maximum hydraulic conductivity due to xylem embolism
 	double max_k_loss;
+	/// Daily fraction of xylem lost to hydraulic stress.
+	double xylem_loss_frac;
 	/// target leaf C mass (kgC/m2) 
 	double cmass_leaf_limit;
 	/// target root C mass (kgC/m2) 

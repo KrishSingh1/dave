@@ -549,9 +549,6 @@ timestep.
 */
 void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOutputs &outputs) {
 
-	// Daytime (mitochondrial) leaf respiration (mol m-2 s-1)
-	// Note: fphen_activity is always 1 for trees.
-
 	// vcmax25/jmax25 are input in μmol m-2 s-1, but the equations expect them
 	// in mol m-2 s-1.
 	double vcmax25_mol = inputs.vcmax25 / UMOL_PER_MOL;
@@ -1155,12 +1152,12 @@ EnergyBalanceResult energy_balance_dave(double tleaf, double tair, double gs,
 	// double Rlongup = EMISSIVITY * BOLTZ * pow(Tk(tleaf), 4);
 	double rsol = (abs_par + abs_nir) * ppfd / UMOL_PER_J; // J m-2 s-1 - absorbed SW radiation = 2 * APAR
 	// double Rnet = rsol - Rlongup;
-	double ea = 1000.0 * (esat(tair, m) - vpd); // In Pa. If this is negative we have a problem
-	if (ea < 0 && ea > -100.0) {
+	double es = esat(tair, m);
+	double ea = 1000.0 * (es - vpd); // In Pa. If this is negative we have a problem
+	if (ea < 0) {
+		log_error("energy_balance_dave(): ea < 0, this means VPD exceeds saturation vapour pressure, which shouldn't happen. esat=%f kPa, vpd=%f kPa, tair=%f °C",
+			        es, vpd, tair);
 		ea = 0.0;
-	} else if (ea < 0) {
-		log_warning("energy_balance_dave(): ea < 0, this means saturation vapour pressure is less than actual vapour pressure, which shouldn't happen. east=%f kPa, vpd=%f kPa, tair=%f °C",
-			        esat(tair, m), vpd, tair);
 	}
 
 	double ema = 0.642 * pow(ea / tair_k, 1.0 / 7.0);

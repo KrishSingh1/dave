@@ -153,8 +153,9 @@ Calculate maximum carboxylation rate at 25 degC (μmol m-2 s-1).
 @param pmass_leaf: Leaf P content at the top of the canopy (kgP m-2 per green leaf area).
 TODO: check default for pmass_leaf!
 */
-double calc_vcmax25(double nmass_leaf, double pmass_leaf) {
-	return exp(4.308 + 0.298 * log(pmass_leaf * G_PER_KG) + 0.197 *
+double calc_vcmax25(double nmass_leaf, double pmass_leaf, const Pft &pft) {
+	// TODO: parameterise these intercepts and slopes.
+	return exp(pft.vcmax25_intercept + pft.vcmax25p_slope * log(pmass_leaf * G_PER_KG) + pft.vcmax25n_slope *
 							   log(nmass_leaf * G_PER_KG));
 }
 
@@ -164,8 +165,8 @@ Calculate maximum electron transport rate at 25 degC (μmol m-2 s-1).
 @param nmass_leaf: Leaf N content at the top of the canopy (kgN m-2 per green leaf area).
 @param pmass_leaf: Leaf P content at the top of the canopy (kgP m-2 per green leaf area).
 */
-double calc_jmax25(double nmass_leaf, double pmass_leaf) {
-	return exp(5.139 + 0.325 * log(pmass_leaf * G_PER_KG) + 0.112 *
+double calc_jmax25(double nmass_leaf, double pmass_leaf, const Pft &pft) {
+	return exp(pft.jmax25_intercept + pft.jmax25p_slope * log(pmass_leaf * G_PER_KG) + pft.jmax25n_slope *
 							   log(nmass_leaf * G_PER_KG));
 }
 
@@ -174,8 +175,8 @@ Calculate maximum PEP carboxylation rate at 25 degC (μmol m-2 s-1).
 
 @param nmass_leaf: Leaf N content at the top of the canopy (kgN m-2 per green leaf area).
 */
-double calc_vpmax25(double nmass_leaf) {
-	return exp(3.118 + 0.751 * log(nmass_leaf * G_PER_KG));
+double calc_vpmax25(double nmass_leaf, const Pft &pft) {
+	return exp(pft.vpmax25_intercept + pft.vpmax25n_slope * log(nmass_leaf * G_PER_KG));
 }
 
 /*
@@ -202,13 +203,12 @@ void vcmax_from_N(Individual &indiv) {
 			// nmass_leaf is in kgN m-2 leaf area 
 			double pmass_leaf0 = nmass_leaf0 / C3_LEAF_NTOP;
 
-			indiv.ps_subdaily.vcmax25 = calc_vcmax25(nmass_leaf0, pmass_leaf0);
-			indiv.ps_subdaily.jmax25 = calc_jmax25(nmass_leaf0, pmass_leaf0);
+			indiv.ps_subdaily.vcmax25 = calc_vcmax25(nmass_leaf0, pmass_leaf0, pft);
+			indiv.ps_subdaily.jmax25 = calc_jmax25(nmass_leaf0, pmass_leaf0, pft);
 		} 
 		else if (indiv.pft.pathway == C4) {
 
-			indiv.ps_subdaily.vpmax25 = indiv.pft.vpmax_scal * calc_vpmax25(nmass_leaf0);
-
+			indiv.ps_subdaily.vpmax25 = indiv.pft.vpmax_scal * calc_vpmax25(nmass_leaf0, pft);
 		} else {
 			fail("Unknown photosynthetic pathway");
 		}

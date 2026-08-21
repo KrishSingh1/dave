@@ -869,6 +869,22 @@ void plib_declarations(int id,xtring setname) {
 			"Maximum electron transport rate at 25 degC (μmol m-2 s-1).");
 		declareitem("vpmax_25",&ppft->vpmax_25,-5000.0,5000.0,1,CB_NONE,
 			"Maximum PEP carboxylation rate at 25 degC (μmol m-2 s-1).");
+		declareitem("vcmax25n_slope",&ppft->vcmax25n_slope,-5000.0,5000.0,1,CB_NONE,
+			"Slope of relationship between vcmax25 and leaf nitrogen content in log scale.");
+		declareitem("vcmax25p_slope",&ppft->vcmax25p_slope,-5000.0,5000.0,1,CB_NONE,
+			"Slope of relationship between vcmax25 and leaf phosphorus content in log scale.");
+		declareitem("vcmax25_intercept",&ppft->vcmax25_intercept,-5000.0,5000.0,1,CB_NONE,
+			"Intercept of relationship between vcmax25 and leaf nutrient content.");
+		declareitem("jmax25n_slope",&ppft->jmax25n_slope,-5000.0,5000.0,1,CB_NONE,
+			"Slope of relationship between jmax25 and leaf nitrogen content in log scale.");
+		declareitem("jmax25p_slope",&ppft->jmax25p_slope,-5000.0,5000.0,1,CB_NONE,
+			"Slope of relationship between jmax25 and leaf phosphorus content in log scale.");
+		declareitem("jmax25_intercept",&ppft->jmax25_intercept,-5000.0,5000.0,1,CB_NONE,
+			"Intercept of relationship between jmax25 and leaf nutrient content.");
+		declareitem("vpmax25n_slope", &ppft->vpmax25n_slope, -5000.0, 5000.0, 1, CB_NONE,
+			"Slope of relationship between vpmax25 and leaf nitrogen content in log scale.");
+		declareitem("vpmax25_intercept", &ppft->vpmax25_intercept, -5000.0, 5000.0, 1, CB_NONE,
+			"Intercept of relationship between vpmax25 and leaf nitrogen content.");
 		declareitem("ha_v",&ppft->ha_v,-5000,5000,1,CB_NONE,
 			"activation energy for vcmax (kJ mol-1).");
 		declareitem("ha_j",&ppft->ha_j,-5000,5000,1,CB_NONE,
@@ -2373,6 +2389,19 @@ void plib_callback(int callback) {
 					if (!itemparsed("jmax_25")) badins("jmax_25");
 					if (ppft->is_grass() && ppft->pathway == C4) {
 						if (!itemparsed("vpmax_25")) badins("vpmax_25");
+					}
+				} else if (ppft->ifcalcvcmax) {
+					if (ppft->pathway == C3) {
+						if (!itemparsed("vcmax25n_slope")) badins("vcmax25n_slope");
+						if (!itemparsed("vcmax25p_slope")) badins("vcmax25p_slope");
+						if (!itemparsed("vcmax25_intercept")) badins("vcmax25_intercept");
+						if (!itemparsed("jmax25n_slope")) badins("jmax25n_slope");
+						if (!itemparsed("jmax25p_slope")) badins("jmax25p_slope");
+						if (!itemparsed("jmax25_intercept")) badins("jmax25_intercept");
+					} else if (ppft->pathway == C4) {
+						if (!itemparsed("vpmax25n_slope")) badins("vpmax25n_slope");
+						if (!itemparsed("vpmax25_intercept")) badins("vpmax25_intercept");
+						if (!itemparsed("vpmax_scal")) badins("vpmax_scal");
 					}
 				}
 			}

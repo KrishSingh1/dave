@@ -128,6 +128,9 @@ group "common" (
 )
 
 group "C3" (
+	! Biochemical pathway for photosynthesis (C3 or C4).
+	pathway "c3"
+
 	! Slope of relationship between vcmax25 and leaf N content in log scale.
 	vcmax25n_slope 0.197
 
@@ -199,9 +202,6 @@ group "tree" (
 
 	! Sapwood and heartwood density (kgC/m3).
 	wooddens 200
-
-	! Biochemical pathway for photosynthesis (C3 or C4).
-	pathway "c3"
 
 	! Maintenance respiration coefficient (0-1).
 	respcoeff 1.0
@@ -287,9 +287,6 @@ group "shrub" (
 
 	! Leaf physiognomy (needleleaf, broadleaf).
 	leafphysiognomy "broadleaf"
-
-	! Biochemical pathway for photosynthesis (C3 or C4).
-	pathway "c3"
 
 	! Whether vcmax is calculated from leaf nutrient content (alt: prescribed).
 	ifcalcvcmax 0
@@ -1063,9 +1060,6 @@ group "C3G" (
 	grass
 	no_bioclimatic_limits
 	C3
-
-	! Biochemical pathway for photosynthesis (C3 or C4).
-	pathway "c3"
 
 	! Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1).
 	g0 0.161

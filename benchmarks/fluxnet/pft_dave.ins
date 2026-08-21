@@ -127,11 +127,32 @@ group "common" (
 	z 5
 )
 
+group "C3" (
+	! Slope of relationship between vcmax25 and leaf N content in log scale.
+	vcmax25n_slope 0.197
+
+	! Slope of relationship between vcmax25 and leaf P content in log scale.
+	vcmax25p_slope 0.298
+
+	! Intercept of relationship between vcmax25 and leaf nutrient content.
+	vcmax25_intercept 4.308
+
+	! Slope of relationship between jmax25 and leaf N content in log scale.
+	jmax25n_slope 0.112
+
+	! Slope of relationship between jmax25 and leaf P content in log scale.
+	jmax25p_slope 0.325
+
+	! Intercept of relationship between jmax25 and leaf nutrient content.
+	jmax25_intercept 5.139
+)
+
 group "tree" (
 
 	! Parameters common to all trees
 
 	common
+	C3
 
 	! Whether vcmax is calculated from leaf nutrient content (alt: prescribed).
 	ifcalcvcmax 0
@@ -259,6 +280,7 @@ group "shrub" (
 	! Parameters common to all shrubs.
 
 	common
+	C3
 
 	! Lifeform (tree, grass, or moss).
 	lifeform "tree"
@@ -1036,6 +1058,7 @@ group "C3G" (
 
 	grass
 	no_bioclimatic_limits
+	C3
 
 	! Biochemical pathway for photosynthesis (C3 or C4).
 	pathway "c3"
@@ -1190,6 +1213,12 @@ group "C4G" (
 
 	grass
 	no_bioclimatic_limits
+
+	! Slope of relationship between vpmax25 and leaf N content in log scale.
+	vpmax25n_slope 0.751
+
+	! Intercept of relationship between vpmax25 and leaf nutrient content.
+	vpmax25_intercept 3.118
 
 	! Biochemical pathway for photosynthesis (C3 or C4).
 	pathway "c4"

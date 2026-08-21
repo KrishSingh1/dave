@@ -32,8 +32,10 @@ struct NCInputOptions {
     CacheStrategy cache_strategy;
     // Whether to perform strict checks on the input data.
     bool nc_check_inputs;
-    // Whether the blaze fire module is enabled.
-    bool blaze_enabled;
+    // Whether wind speed data is required.
+    bool wind_required;
+    // Whether daily diurnal temperature range (Tmax/Tmin) data is required.
+    bool dtr_required;
     // Whether to allow constant air pressure.
     bool allow_fixed_pressure;
     // Whether to allow NetCDF CO2 data.

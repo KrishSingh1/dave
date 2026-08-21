@@ -109,8 +109,10 @@ enum class WsMode {
 Options for how to resolve variables from the inventory.
 */
 struct ResolveOptions {
-    // Whether BLAZE fire module is enabled.
-    bool blaze_enabled;
+    /// Whether daily diurnal temperature range (Tmax/Tmin) data is required.
+    bool dtr_required;
+    // Whether wind speed data is required.
+    bool wind_required;
     // Whether to allow using a fixed/constant pressure value, if available. If
     // this is false, air pressure is always a hard requirement. Note that this
     // constant air pressure may later be used to estimate VPD.

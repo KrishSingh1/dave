@@ -3724,6 +3724,10 @@ public:
 	double max_k_loss;
 	/// Daily fraction of xylem lost to hydraulic stress.
 	double xylem_loss_frac;
+	/// Daily carbon lost to xylem embolism (kgC/m2).
+	double closs_embolism;
+	/// Daily nitrogen lost to xylem embolism (kgN/m2).
+	double nloss_embolism;
 	/// target leaf C mass (kgC/m2) 
 	double cmass_leaf_limit;
 	/// target root C mass (kgC/m2) 

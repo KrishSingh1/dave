@@ -1076,6 +1076,8 @@ std::vector<ColumnDefinition<Individual>> indiv_hydraulics_columns() {
 	columns.push_back(ColumnDefinition<Individual>("minimum_lwp", [](const Individual &i) { return min(i.lwp); }));
 	columns.push_back(ColumnDefinition<Individual>("soil_water_potential", [](const Individual &i) { return i.weighted_psi; }));
 	columns.push_back(ColumnDefinition<Individual>("xylem_loss_frac", [](const Individual &i) { return i.xylem_loss_frac; }));
+	columns.push_back(ColumnDefinition<Individual>("closs_embolism", [](const Individual &i) { return i.closs_embolism; }));
+	columns.push_back(ColumnDefinition<Individual>("nloss_embolism", [](const Individual &i) { return i.nloss_embolism; }));
 
 	return columns;
 }

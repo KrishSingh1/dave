@@ -516,6 +516,9 @@ void adjust_kmax(Patch &patch) {
                 indiv.cmass_root -= closs_root;
                 indiv.nmass_root -= nloss_root;
                 root_to_litter(patch.soil, pft, closs_root, nloss_root);
+
+                indiv.closs_embolism += closs_sap + closs_leaf + closs_root;
+                indiv.nloss_embolism += nloss_sap + nloss_leaf + nloss_root;
             }
         }
 

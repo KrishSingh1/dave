@@ -214,10 +214,10 @@ void resolve_wind_speed(const NCInventory &inventory,
         log_diagnostic("Resolved variable via standard name: %s (file: %s)",
                  ws.name.c_str(), ws.file.c_str());
         writer.set_direct(ws);
-    } else if (options.blaze_enabled) {
-        throw std::runtime_error("Blaze fire module is enabled but no variable found with standard name '" + STD_WIND + "'");
+    } else if (options.wind_required) {
+        throw std::runtime_error("No variable found with standard name '" + STD_WIND + "'");
     } else {
-        log_diagnostic("No variable found with standard name '%s', but blaze fire module is not enabled. Wind speed will not be available, but this is not a problem since the fire module is disabled.", STD_WIND.data());
+        log_diagnostic("No variable found with standard name '%s', but wind speed is not required.", STD_WIND.data());
         writer.set_not_needed();
     }
 }
@@ -279,8 +279,8 @@ void resolve_dtr(const NCInventory &inventory,
             log_diagnostic("Resolved variable via standard name: %s (file: %s)",
                 tmin.name.c_str(), tmin.file.c_str());
             writer.set_direct(tmax, tmin);
-        } else if (!options.blaze_enabled) {
-            log_warning("Data is daily, and tmin/tmax variables couldn't both be located. However, BLAZE fire module is not enabled, so diurnal temperature range will be treated as optional.");
+        } else if (!options.dtr_required) {
+            log_warning("Data is daily, and tmin/tmax variables couldn't both be located. However, diurnal temperature range is not required.");
             writer.set_not_needed();
         } else {
             if (!has_tmax) {

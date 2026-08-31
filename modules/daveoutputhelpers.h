@@ -164,6 +164,11 @@ Get the columns used in the patch-level closs hydraulics output file.
 std::vector<ColumnDefinition<Individual>> get_closs_hydraulics_cols();
 
 /*
+Get the columns used in the indiv-level transpiration debug file.
+*/
+std::vector<ColumnDefinition<Individual>> transp_check_columns();
+
+/*
 Get the columns used in the patch-level npool veg file.
 */
 std::vector<ColumnDefinition<Patch>> npool_veg_columns();
@@ -482,6 +487,11 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_
 Get the columns used in the high-fidelity energy balance output file.
 */
 std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> energy_balance_cols();
+
+/*
+Get the columns used in the high-fidelity photosynthesis diagnostics output file.
+*/
+std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_diagnostics_cols();
 
 } // namespace GuessOutput
 

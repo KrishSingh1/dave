@@ -65,6 +65,7 @@ file_dave_alai                     "dave_alai.out"                     ! Annual 
 file_dave_amort_cstarve            "dave_amort_cstarve.out"            ! Annual PFT-level carbon starvation-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.
 !file_dave_amort_cstarve_ntree      "dave_amort_cstarve_ntree.out"      ! Annual number of trees killed by carbon starvation
 !file_dave_acmass_germ              "dave_acmass_germ.out"              ! Annual germinated C mass (kgC/m2)
+!file_dave_aroot_beta               "dave_aroot_beta.out"               ! Annual root beta value (unitless)
 
 ! Annual pft-level per-patch outputs.
 !file_dave_anpp                     "dave_anpp.out"                     ! Total Annual Pft-Level NPP (kgC/m2/year)
@@ -206,6 +207,7 @@ file_dave_lai                      "dave_lai.out"                      ! LAI by 
 !file_dave_cmass_standing_heart     "dave_cmass_standing_heart.out"     ! Standing Dead Heartwood C Mass (kgC/m2)
 !file_dave_nmass_standing_heart     "dave_nmass_standing_heart.out"     ! Standing Dead Heartwood N Mass (kgN/m2)
 !file_dave_dresp                    "dave_dresp.out"                    ! Total daily pft-level autotrophic Respiration (kgC/m2)
+!file_dave_dcmass_mort              "dave_dcmass_mort.out"              ! Daily pft-level C mass of killed cohorts (kgC/m2/day)
 !file_dave_cturnover_leaf           "dave_cturnover_leaf.out"           ! Daily leaf C turnover flux (kgC/m2/day)
 !file_dave_cturnover_root           "dave_cturnover_root.out"           ! Daily root C turnover flux (kgC/m2/day)
 !file_dave_cturnover_sap            "dave_cturnover_sap.out"            ! Daily sapwood C turnover flux (kgC/m2/day)
@@ -263,6 +265,7 @@ file_dave_lai                      "dave_lai.out"                      ! LAI by 
 !file_dave_indiv_cgrow_storage      "dave_indiv_cgrow_storage.out"      ! daily reproduction allocation of individual (kgC/m2/d)
 !file_dave_indiv_litter_pools       "dave_indiv_litter_pools.out"       ! daily litter pools of individual (kgC/m2/d)
 !file_dave_closs_hydraulics         "dave_closs_hydraulics.out"         ! Daily C leaf loss due to hydraulic stress (kgC/m2/day)
+!file_dave_transpiration_check      "dave_transpiration_check.out"      ! Daily transpiration calculated new (Penman-Monteith) and old (from VPD) methods, for testing purposes (mm/day)
 
 ! Subdaily indiv-level per-patch outputs.
 !file_dave_dncohort                 "dave_dncohort.out"                 ! Get the number of cohorts of this PFT currently established in this patch
@@ -278,6 +281,7 @@ file_dave_lai                      "dave_lai.out"                      ! LAI by 
 !file_dave_ps_inputs                "dave_ps_inputs.out"                ! Subdaily layered cohort-level photosynthesis inputs
 !file_dave_ps_outputs               "dave_ps_outputs.out"               ! Subdaily layered cohort-level photosynthesis outputs
 !file_dave_energy_balance           "dave_energy_balance.out"           ! Subdaily layered energy balance diagnostics
+!file_dave_ps_diagnostics           "dave_ps_diagnostics.out"           ! Subdaily layered photosynthesis diagnostics
 !file_dave_ksoil_layer               "dave_ksoil_layer.out"              ! Soil hydraulic conductivity (cm/hr)
 !file_dave_met_subdaily_temp        "dave_met_subdaily_temp.out"        ! Subdaily temperature (°C)
 !file_dave_met_subdaily_par         "dave_met_subdaily_par.out"         ! Subdaily PAR (J/m2/timestep)

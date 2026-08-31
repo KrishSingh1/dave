@@ -1,0 +1,44 @@
+
+!///////////////////////////////////////////////////////////////////////////////////////
+! Input files
+!///////////////////////////////////////////////////////////////////////////////////////
+
+! File paths are relative to the site directory.
+param "file_lu"      (str "landuse.txt")
+param "file_grossLUC" (str "")
+param "file_lucrop"  (str "")
+param "file_lupasture"  (str "")
+param "file_lunatural"  (str "")
+param "file_luforest"  (str "")
+param "file_woodharv_frac"      (str "")
+param "file_woodharv_cmass"      (str "")
+param "file_Nfert_st" (str "")
+param "file_cutinterval_st" (str "")
+param "file_firstmanageyear_st" (str "")
+
+
+!///////////////////////////////////////////////////////////////////////////////////////
+!// LANDCOVER PARAMETERS
+!///////////////////////////////////////////////////////////////////////////////////////
+
+run_landcover 1				! Whether to use (and change) landcover fractions (1) or not (0)
+
+run_urban 0				! Whether to simulate barren land (1) or not (0)
+run_crop 0				! Whether to simulate crop vegetation (1) or not (0)
+run_forest 0				! Whether to simulate managed forest (1) or not (0)
+run_pasture 1				! Whether to simulate pasture (1) or not (0)
+run_natural 1				! Whether to simulate natural vegetation (1) or not (0)
+run_peatland 0				! Whether to simulate peatland (1) or not (0)
+run_barren 0				! Whether to simulate barren land (1) or not (0)
+
+st "Pasture" (
+
+	common_stand
+	stinclude 1
+	landcover "pasture"
+	grazeintens 0.0
+	mowdates 152 213 274 152 152
+	mowintens 0.8
+
+)
+

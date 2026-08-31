@@ -1,0 +1,20 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! Calperum master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: Calperum"
+
+file_met_forcing        "../forcing/met/Calperum.nc"
+file_met_spinup         "../forcing/met/Calperum.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs_grasses.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"
+
+fixed_lai 0.41

@@ -1,0 +1,18 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! CN-Aro master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: CN-Aro"
+
+file_met_forcing        "../forcing/met/CN-Aro.nc"
+file_met_spinup         "../forcing/met/CN-Aro.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs_grasses.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"

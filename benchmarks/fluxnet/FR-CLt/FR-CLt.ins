@@ -1,0 +1,18 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! FR-CLt master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: FR-CLt"
+
+file_met_forcing        "../forcing/met/FR-CLt.nc"
+file_met_spinup         "../forcing/met/FR-CLt.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs_grasses.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"

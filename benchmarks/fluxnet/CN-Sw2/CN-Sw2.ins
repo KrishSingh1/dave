@@ -1,0 +1,18 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! CN-Sw2 master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: CN-Sw2"
+
+file_met_forcing        "../forcing/met/CN-Sw2.nc"
+file_met_spinup         "../forcing/met/CN-Sw2.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs_grasses.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"

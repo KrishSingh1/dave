@@ -1,0 +1,18 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! US-Mo2 master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: US-Mo2"
+
+file_met_forcing        "../forcing/met/US-Mo2.nc"
+file_met_spinup         "../forcing/met/US-Mo2.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs_grasses.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"

@@ -134,11 +134,35 @@ group "common" (
 	ligcfrac_wood 0.3
 )
 
+group "C3" (
+	! Biochemical pathway for photosynthesis (C3 or C4).
+	pathway "c3"
+
+	! Slope of relationship between vcmax25 and leaf N content in log scale.
+	vcmax25n_slope 0.197
+
+	! Slope of relationship between vcmax25 and leaf P content in log scale.
+	vcmax25p_slope 0.298
+
+	! Intercept of relationship between vcmax25 and leaf nutrient content.
+	vcmax25_intercept 4.308
+
+	! Slope of relationship between jmax25 and leaf N content in log scale.
+	jmax25n_slope 0.112
+
+	! Slope of relationship between jmax25 and leaf P content in log scale.
+	jmax25p_slope 0.325
+
+	! Intercept of relationship between jmax25 and leaf nutrient content.
+	jmax25_intercept 5.139
+)
+
 group "tree" (
 
 	! Parameters common to all trees
 
 	common
+	C3
 
 	! Whether vcmax is calculated from leaf nutrient content (alt: prescribed).
 	ifcalcvcmax 0
@@ -185,9 +209,6 @@ group "tree" (
 
 	! Sapwood and heartwood density (kgC/m3).
 	wooddens 200
-
-	! Biochemical pathway for photosynthesis (C3 or C4).
-	pathway "c3"
 
 	! Maintenance respiration coefficient (0-1).
 	respcoeff 1.0
@@ -269,15 +290,13 @@ group "shrub" (
 	! Parameters common to all shrubs.
 
 	common
+	C3
 
 	! Lifeform (tree, grass, or moss).
 	lifeform "tree"
 
 	! Leaf physiognomy (needleleaf, broadleaf).
 	leafphysiognomy "broadleaf"
-
-	! Biochemical pathway for photosynthesis (C3 or C4).
-	pathway "c3"
 
 	! Whether vcmax is calculated from leaf nutrient content (alt: prescribed).
 	ifcalcvcmax 0
@@ -357,15 +376,19 @@ group "grass" (
 
 	! Shape parameter for initialisation of root distribtion.
 	!root_beta 0.9555
-	root_beta 0.97
+	root_beta 0.96
 
 	! Leaf phenology (raingreen, summergreen, evergreen, raingreen, summergreen,
 	! cropgreen).
 	phenology "any"
 
+	! Fraction of reproductive biomass consisting of seeds (the rest being
+	! supporting structures).
+	frac_seed 0.65
+
 	! Annual turnover of grass seedbank (reproductive litter) to root litter as
 	! a proportion of reproductive litter C biomass (patch-basis).
-	turnover_repr_litter 0.2
+	turnover_repr_litter 0.3
 
 	! Minimum forest-floor PAR for establishment (J/m2/day).
 	parff_min 1000000
@@ -376,11 +399,16 @@ group "grass" (
 	! Aerodynamic conductance (m s-1). Only used for VOCs.
 	ga 0.030
 
-	! Water stress threshold during dormancy and vegetative regrowth. Should be
-	! <0.6 (the base threshold). Units are wscal (0-1).
+	! Base water stress threshold below which dormancy is triggered. Units are wscal (0-1).
 	wscal_min 0.4
 
-	! Juergen's grass parameters
+	! Water stress threshold during dormancy and reproductive phase. Should be
+	! >wscal_min (the base threshold). Units are wscal (0-1).
+	wscal_min_dormant 0.6
+
+	! Maximum physiological up/down-regulation in and out of dormancy (fraction
+	! d-1).
+	dphen_activity_max 0.2
 
 	! Turgor loss point (MPa).
 	tlp -1.0
@@ -389,23 +417,18 @@ group "grass" (
 	crelocfrac 0
 
 	! Baseline senescence rate for dave grasses (d-1).
-	senesc_base 0.0002
+	senesc_base 0.0005
 
 	! Senescence coefficient for dormancy in dave grasses. Senescence rate is
 	! increased by this factor when phenology is changing at the maximum rate.
-	senesc_scal_dorm 300
+	senesc_scal_dorm 30
 
 	! Senescence coefficient for water stress in dave grasses. Senescence rate
 	! is increased by this factor under max water stress.
-	senesc_scal_water 100
+	senesc_scal_water 80
 
-	! Increase in senescence rate per 1℃, for temperatures below 0 ℃
-	! (Johnson & Thornley 1983).
-	temp_senesc1 1.0
-
-	! Increase in senescence rate per 1℃, for temperatures above 0 ℃
-	! (Johnson & Thornley 1983).
-	temp_senesc2 0.05
+	! Senescence coefficient for freezing temperatures.
+	senesc_scal_temp 5
 )
 
 group "broadleaved" (
@@ -1046,9 +1069,7 @@ group "C3G" (
 
 	grass
 	no_bioclimatic_limits
-
-	! Biochemical pathway for photosynthesis (C3 or C4).
-	pathway "c3"
+	C3
 
 	! Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1).
 	g0 0.161
@@ -1056,6 +1077,9 @@ group "C3G" (
 	! Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5). Used only for
 	! forest-floor assimilation (elsewhere g1x is used).
 	g1 4.5
+
+	! Stomatal sensitivity to water deficit (0-1). See Ripley et al. 2013, JXB.
+	qs 0.75
 
 	! Cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma
 	! et al. (2019)) (mol m-2 s-1).
@@ -1098,13 +1122,13 @@ group "perennial" (
 	! Exponent shaping development-driven senescence for dave grasses. Higher
 	! values delay senescence (less early, more late in the reproductive
 	! phase). Unitless.
-	qdev_senesc 2
+	qdev_senesc 2.5
 
 	! Exponent shaping water stress-driven senescence for DAVE grasses. q = 1
 	! gives a linear response. q > 1 increases senescence at moderate stress;
 	! 0 < q < 1 reduces it. No effect at the extremes (wscal = 0 or 1).
 	! Unitless.
-	qwater_senesc 0.8
+	qwater_senesc 2.5
 )
 
 group "annual" (
@@ -1155,7 +1179,7 @@ pft "C3G_perennial" (
 	crownfrac          0.2
 
 	! Fraction of shoot allocated to culms (=culm / (culm + leaves)).
-	culmfrac           0.5
+	culmfrac           0.4
 
 	! Nitrogen extinction coefficient within the canopy (Hikosaka et al. 2016).
 	extkn              0.17
@@ -1201,15 +1225,26 @@ group "C4G" (
 	grass
 	no_bioclimatic_limits
 
+	! Slope of relationship between vpmax25 and leaf N content in log scale.
+	vpmax25n_slope 0.751
+
+	! Intercept of relationship between vpmax25 and leaf nutrient content.
+	vpmax25_intercept 3.118
+
+	! Scalar for vpmax_25
+	vpmax_scal 1.1
+
 	! Biochemical pathway for photosynthesis (C3 or C4).
 	pathway "c4"
 
 	! Stomatal intercept parameter (Medlyn et al. 2011) (mol m-2 s-1).
 	g0 0.049
 
-	! Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5). Used only for
-	! forest-floor assimilation (elsewhere g1x is used).
+	! Stomatal slope parameter (Medlyn et al. 2011) (kPa^0.5).
 	g1 1.62
+
+	! Stomatal sensitivity to water deficit (0-1). See Ripley et al. 2013, JXB.
+	qs 0.5
 
 	! Cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma
 	! et al. (2019)) (mol m-2 s-1).

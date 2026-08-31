@@ -21,6 +21,14 @@ using namespace GuessNC::CF;
 
 namespace {
 
+time_t mktime_utc(tm* time) {
+#ifdef _WIN32
+	return _mkgmtime(time);
+#else
+	return timegm(time);
+#endif
+}
+
 bool verify_datetime(const DateTime& dt, 
                      int year, int month, int day, int hour, int minute, double second) {
 	return dt.get_year() == year &&
@@ -107,7 +115,7 @@ TEST_CASE("CF::DateTime/add_time", "[date]") {
 	// correct date
 	dt.add_time(365*25, DAYS, STANDARD);
 
-	tm start_tm;
+	tm start_tm = {};
 	start_tm.tm_sec = 0;
 	start_tm.tm_min = 0;
 	start_tm.tm_hour = 0;
@@ -116,8 +124,8 @@ TEST_CASE("CF::DateTime/add_time", "[date]") {
 	start_tm.tm_year = 82;
 	start_tm.tm_isdst = 0;
 
-	time_t end_t = mktime(&start_tm)+25*365*24*3600;
-	tm* end_tm = localtime(&end_t);
+	time_t end_t = mktime_utc(&start_tm)+25*365*24*3600;
+	tm* end_tm = gmtime(&end_t);
 
 	REQUIRE(verify_datetime(dt, 
 	                        1900+end_tm->tm_year, end_tm->tm_mon+1, end_tm->tm_mday,

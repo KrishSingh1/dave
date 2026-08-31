@@ -1,0 +1,20 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! Warra master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: Warra"
+
+file_met_forcing        "../forcing/met/Warra.nc"
+file_met_spinup         "../forcing/met/Warra.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"
+
+fixed_lai 5.16

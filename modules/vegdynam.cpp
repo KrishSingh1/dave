@@ -411,12 +411,14 @@ Individual* get_beneficiary(Patch& patch, Pft& pft) {
 }
 
 
-double germination_fraction_grass(Patchpft& ppft, Patch& patch) {
+double germination_fraction_grass(Patchpft& ppft, Patch& patch, Climate& climate) {
+
 	const Soil &soil = patch.soil;
 
 	// Water content and temperature of the first soil layer (0-10cm).
 	// wcont as fraction of available water holding capacity.
-	double tdorm = ppft.pft.temp_dormancy;
+	//double tdorm = ppft.pft.temp_dormancy; 
+	double tdorm = calc_temp_dormancy(ppft.pft.temp_dormancy,climate.mtemp_min20);
 	double fgerm_max25 = 0.6; // maximum daily germination rate at temperature optimum (fraction) 
 
 	// get average conditions over the last 3-5 (currently 4) days.
@@ -431,7 +433,7 @@ double germination_fraction_grass(Patchpft& ppft, Patch& patch) {
 	// TODO: parameterise this relationship from data
 	double fwater = wscal_growth(wcont, wscal0, bgrowth);
 	
-	double ftemp = temp_growth(tsoil,ppft.pft.Ha_growth,ppft.pft.T0_growth,ppft.pft.A_growth,ppft.pft.temp_dormancy);
+	double ftemp = temp_growth(tsoil,ppft.pft.Ha_growth,ppft.pft.T0_growth,ppft.pft.A_growth,tdorm);
 	double frac_germ = fgerm_max25 * ftemp * fwater; 
 	frac_germ = frac_germ > 0.01 ? frac_germ : 0.0;  // avoid very low germination rates
 
@@ -460,9 +462,10 @@ double germination_fraction_grass(Patchpft& ppft, Patch& patch) {
 }
 
 // Calculates the fraction of the seedbank that is germinating today.
-double germination_fraction(Patchpft& ppft, Patch& patch) {
+double germination_fraction(Patchpft& ppft, Patch& patch, Climate& climate) {
+
 	if (ppft.pft.is_grass()) {
-		return germination_fraction_grass(ppft, patch);
+		return germination_fraction_grass(ppft, patch, climate);
 	}
 	return 0;
 }
@@ -517,7 +520,7 @@ int get_nwoody_pfts(Patch& patch) {
 }
 
 // call every day
-void establishment_daily(Patch& patch) {
+void establishment_daily(Patch& patch, Climate& climate) {
 	// check conditions if germination is likely to occur 
 	// if yes, invest some of the seedbank into initial biomass
 	// if there is no seedbank, maybe don't try every day.
@@ -536,10 +539,10 @@ void establishment_daily(Patch& patch) {
 			}
 
 			Patchpft &ppft = vegetation.patch.pft[pft.id];
-				
+
 			// Check conditions for germination (germination fraction)
 			// TODO: Add germination fraction calculation for TREES.
-			double frac_germ = germination_fraction(ppft, patch);
+			double frac_germ = germination_fraction(ppft, patch, climate);
 
 			// calculate the C that would germinate
 			// Purpose of this is to avoid very low absolute germination rates 
@@ -594,6 +597,7 @@ void establishment_daily(Patch& patch) {
 					}
 
 					// Establish new individual.
+					log_info("Establishing %s...", (const char *)pft.name);
 					Individual& individual = vegetation.createobj(pft, vegetation);
 					indiv = &individual; // & gets address of the variable (* is the opposite)
 					//indiv->height=0.0;  // -> access properties of a pointer (pointer is the address of the object)
@@ -612,6 +616,7 @@ void establishment_daily(Patch& patch) {
 
 					indiv->fpc=1.0;  // TODO: is that right?
 					indiv->age=0.0;
+					indiv->age_active=0.0;
 					indiv->nscal_5.add(1.0);
 					indiv->growth_stage = vegetative;
 					indiv->frac_germ = frac_germ;
@@ -644,6 +649,11 @@ void establishment_daily(Patch& patch) {
 					double cmass_total_seed = cmass_seed + cmass_ext_seed;
 					double nmass_total_seed = nmass_seed + nmass_ext_seed;
 
+					if (is_zero(cmass_total_seed) || is_zero(nmass_total_seed)) {
+						// no seeds to germinate
+						continue;
+					}
+
 					double cmass_before = ppft.cmass_litter_repr + indiv->ccont() + ppft.cmass_ext_seed;
 					double nmass_before = ppft.nmass_litter_repr + indiv->ncont() + ppft.nmass_ext_seed;
 			
@@ -672,6 +682,20 @@ void establishment_daily(Patch& patch) {
 			}
 		}
 	}
+}
+
+double cmass_repr_tot(const Stand &stand, const Pft &pft) {
+	double total = 0;
+	for (size_t i = 0; i < stand.nobj; i++) {
+		const Vegetation &vegetation = stand[i].vegetation;
+		for (size_t j = 0; j < vegetation.nobj; j++) {
+			const Individual &indiv = vegetation[j];
+			if (indiv.pft.id == pft.id) {
+				total += indiv.cmass_repr;
+			}
+		}
+	}
+	return total;
 }
 
 void establishment_guess(Stand& stand,Patch& patch) {
@@ -862,7 +886,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					if (!present) {
 
 						// ... if not, add it
-						log_info("Establishing %s...", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1, date.year, (const char *)pft.name);
+						log_info("Establishing %s...", (const char *)pft.name);
 						Individual& indiv=vegetation.createobj(pft,vegetation);
 						indiv.height=0.0;
 						indiv.crownarea=1.0; // (value not used)
@@ -956,9 +980,14 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						// Spatial mass effect enabled?
 						// Eqns 2, 3, 4
+						double cmass_repr;
+						if (est_live_repr)
+							cmass_repr = cmass_repr_tot(stand, pft);
+						else
+							cmass_repr = stand.pft[pft.id].cmass_repr;
 
 						if (ifsme)
-							est=c*(pft.kest_repr*stand.pft[pft.id].cmass_repr+kest_bg);
+							est=c*(pft.kest_repr*cmass_repr+kest_bg);
 						else if (!negligible(stand.pft[pft.id].cmass_repr))
 							est=c*(pft.kest_pres+kest_bg);
 						else
@@ -2128,9 +2157,9 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 	}
 }
 
-void vegetation_dynamics_daily(Patch& patch) {
+void vegetation_dynamics_daily(Patch& patch, Climate& climate) {
 	if (ifdavegrowth){
-		establishment_daily(patch);
+		establishment_daily(patch, climate);
 		mortality_daily(patch); // TODO Assaf
 	}
 }

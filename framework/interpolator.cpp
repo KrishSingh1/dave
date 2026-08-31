@@ -30,7 +30,7 @@ void Interpolator::set_limits() {
 // Compute the interpolated function from the points contained in 'x' and 'y'.
 void Interpolator::initialise() {
     // https://stackoverflow.com/questions/17769114/stdis-sorted-and-strictly-less-comparison
-    if (not std::is_sorted(x.begin(), x.end(), std::less_equal<double>())) {
+    if (!std::is_sorted(x.begin(), x.end(), std::less_equal<double>())) {
         fail("spline control points must be unique and in ascending order");
     }
     if (x.size() > 0) {

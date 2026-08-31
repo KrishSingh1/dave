@@ -314,7 +314,6 @@ group "grass" (
 	gmin 0.5
 	phenology "any"
 	phengdd5ramp 100		! C3 har 50 hos Thomas
-	leaflong 0.5			! Leaf longevity (years)
 	turnover_leaf 1
 	turnover_root 0.7		! 0.5 hos guess2008
 	!cton_leaf_min 16
@@ -375,7 +374,6 @@ group "summergreen" (
 	phenology "summergreen"
 	fnstorage 0.15
 	phengdd5ramp 200
-	leaflong 0.5
 	turnover_leaf 1
 )
 
@@ -456,7 +454,6 @@ pft "BNE" (
 	shade_tolerant
 	evergreen
 	boreal
-	leaflong 3
 	turnover_leaf 0.33
 	tcmin_surv -31
 	tcmin_est -30
@@ -482,7 +479,6 @@ pft "BINE" (
 	shade_intolerant
 	evergreen
 	boreal
-	leaflong 3
 	turnover_leaf 0.33
 	tcmin_surv -31
 	tcmin_est -30
@@ -533,7 +529,6 @@ pft "TeNE" (
 	shade_intolerant ! cf Jun_oxy, Pin_hal in europe.ins
 	evergreen
 	temperate
-	leaflong 3
 	turnover_leaf 0.33
 	tcmin_surv -2 		! As in Sitch et al. (2003), a little lower than TeBE
 	tcmin_est -2 		! As in Sitch et al. (2003), a little lower than TeBE
@@ -606,7 +601,6 @@ pft "TeBE" (
 	shade_tolerant
 	evergreen
 	temperate
-	leaflong 3
 	turnover_leaf 0.33
 	tcmin_surv -1
 	tcmin_est 0
@@ -631,7 +625,6 @@ pft "TrBE" (
 	shade_tolerant
 	evergreen
 	tropical
-	leaflong 2
 	turnover_leaf 0.5
 	longevity 500   !from Thomas H 2010-03-30 new 500 instead of 600 2010-04-07
 	fireresist 0.1
@@ -652,7 +645,6 @@ pft "TrIBE" (
 	shade_intolerant
 	evergreen
 	tropical
-	leaflong 2
 	turnover_leaf 0.5
 	longevity 200
 	fireresist 0.1
@@ -675,7 +667,6 @@ pft "TrBR" (
 	tropical
 	phenology "raingreen"
 	fnstorage 0.15
-	leaflong 0.5
 	turnover_leaf 1
 	longevity 400    ! from Thomas h 2010-03-30
 	fireresist 0.3
@@ -771,7 +762,6 @@ pft "BLSE" (
 	needleleaved
 	evergreen
 
-	leaflong 3
 	turnover_leaf 0.333
 	tcmin_surv -32.5
 	tcmin_est -32.5 	! Estimated from map

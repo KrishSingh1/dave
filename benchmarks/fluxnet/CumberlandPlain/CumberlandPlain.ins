@@ -1,0 +1,20 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! CumberlandPlain master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess ozflux site: CumberlandPlain"
+
+file_met_forcing        "../forcing/met/CumberlandPlain.nc"
+file_met_spinup         "../forcing/met/CumberlandPlain.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"
+
+!fixed_lai 1.5

@@ -18,7 +18,9 @@
 
 ResolveOptions to_resolve_options(const NCInputOptions &options) {
     ResolveOptions resolve_options;
-    resolve_options.blaze_enabled = options.blaze_enabled;
+    // Wind speed is required by blaze and dave energy balance.
+    resolve_options.dtr_required = options.dtr_required;
+    resolve_options.wind_required = options.wind_required;
     resolve_options.allow_fixed_pressure = options.allow_fixed_pressure;
     resolve_options.allow_netcdf_co2 = options.allow_netcdf_co2;
     resolve_options.allow_netcdf_ndep = options.allow_netcdf_ndep;

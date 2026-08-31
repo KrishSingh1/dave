@@ -4,6 +4,7 @@
 #include "simfire.h"
 #include "blaze.h"
 #include "ncutil.h"
+#include "davephotosynthesis.h"
 
 namespace GuessOutput {
 
@@ -183,6 +184,13 @@ std::vector<ColumnDefinition<Individual>> get_pft_litter_pools() {
 	return columns;
 }
 
+std::vector<ColumnDefinition<Individual>> transp_check_columns() {
+	std::vector<ColumnDefinition<Individual>> columns;
+	columns.push_back(ColumnDefinition<Individual>("new", [](const Individual &i) { return i.aet; }));
+	columns.push_back(ColumnDefinition<Individual>("old", calc_transp_old));
+	return columns;
+}
+
 double get_pft_standing_dead_cmass(const Patch &patch, const Pft &pft) {
 	const Patchpft &ppft = patch.pft[pft.id];
 	return ppft.cmass_litter_leaf + ppft.cmass_litter_root + ppft.cmass_litter_sap + ppft.cmass_litter_heart + ppft.cmass_litter_repr;
@@ -267,7 +275,7 @@ double mean(const double *array, size_t n) {
 double weight_by_lai(const Individual &indiv, double (*selector)(const Individual&)) {
 	double total_lai = 0;
 	for (size_t i = 0; i < indiv.vegetation.nobj; i++) {
-		if (indiv.pft.id == indiv.vegetation[i].id) {
+		if (indiv.pft.id == indiv.vegetation[i].pft.id) {
 			total_lai += indiv.vegetation[i].lai;
 		}
 	}
@@ -455,7 +463,7 @@ double aggregate_indiv(const Patch &patch, double (*read_indiv)(const Individual
 		const Individual &indiv = vegetation[i];
 		elems[i] = read_indiv(indiv);
 	}
-	return aggregate(&elems.front(), vegetation.nobj);
+	return elems.size() ? aggregate(&elems.front(), vegetation.nobj) : 0;
 }
 
 /*
@@ -1100,6 +1108,7 @@ std::vector<ColumnDefinition<Individual>> indiv_hydraulics_columns() {
 	columns.push_back(ColumnDefinition<Individual>("transp", [](const Individual &i) { return i.aet; }));
 	columns.push_back(ColumnDefinition<Individual>("minimum_lwp", [](const Individual &i) { return min(i.lwp); }));
 	columns.push_back(ColumnDefinition<Individual>("soil_water_potential", [](const Individual &i) { return i.weighted_psi; }));
+	columns.push_back(ColumnDefinition<Individual>("xylem_loss_frac", [](const Individual &i) { return i.xylem_loss_frac; }));
 
 	return columns;
 }
@@ -1373,6 +1382,9 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_
 		{"s_f",          [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].s_f; }},
 		{"psi_f",        [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].psi_f; }},
 		{"tgrowth",      [](const Individual &i, int t, int l) { return i.ps_inputs_layerwise[t][l].tgrowth; }},
+		{"g0",         [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].g0; }},
+		{"g1",         [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].g1; }},
+		{"gcutic_adj", [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].gcutic_adj; }},
 	};
 }
 
@@ -1398,6 +1410,15 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ene
 		{"niter",        [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_niter() * 1.0; }},
 		{"tleaf",        [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_tleaf(); }},
 		{"tair",         [](const Individual &i, int t, int l) { return i.vegetation.patch.get_climate().temps[t]; }},
+		{"rnet",         [](const Individual &i, int t, int l) { return i.energy_balance_layerwise[t][l].get_rnet(); }},
+	};
+}
+
+std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_diagnostics_cols() {
+	return {
+		{"g0",         [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].g0; }},
+		{"g1",         [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].g1; }},
+		{"gcutic_adj", [](const Individual &i, int t, int l) { return i.ps_diagnostics_layerwise[t][l].gcutic_adj; }},
 	};
 }
 

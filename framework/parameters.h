@@ -463,6 +463,10 @@ extern bool ifdavehydrology;
 /// relationship with VPD.
 extern bool penman_monteith;
 
+/// Whether establishment should use live reproductive biomss (true) or total
+/// allocation to reproduction (false) for spatial mass effect.
+extern bool est_live_repr;
+
 /// Depth of sublayer at top of upper soil layer, from which evaporation is
 /// possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
 /// Must be a multiple of Dz_soil
@@ -488,9 +492,6 @@ extern double epsiresolution;
 
 /// whether approximated solution for C4 photosynthesis is used
 extern bool ifapproximate_C4;
-
-/// whether to use growing degree days for grass development
-extern bool ifusegdd;
 
 /// whether to compress output files
 extern bool gzip_output;
@@ -701,5 +702,12 @@ void declare_parameter(const char* name, double* param, double min, double max, 
  *  \param help     Documentation describing the parameter to the user
  */
 void declare_parameter(const char* name, bool* param, const char* help = "");
+
+/// Clears parameters declared by input/output modules.
+/** This is needed before constructing modules for a new in-process framework()
+ *  run, because module instances own some of the variables referenced by these
+ *  declarations.
+ */
+void clear_parameter_declarations();
 
 #endif // LPJ_GUESS_PARAMETERS_H

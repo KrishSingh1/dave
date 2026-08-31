@@ -17,4 +17,6 @@ Top-level DAVE canopy exhange function, called once per day.
 */
 void canopy_exchange_dave(Patch &patch);
 
+double calc_transp_old(const Individual &indiv);
+
 #endif // LPJ_GUESS_DAVEPHOTOSYNTHESIS_H

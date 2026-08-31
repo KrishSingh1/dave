@@ -456,17 +456,17 @@ void adjust_kmax(Patch &patch) {
             // Xylem capacity decreases proportionately to k_loss starting with
             // zero loss at p12 (we scale from here to avoid sudden 'threshold'
             // losses of 12%) but scaled by how affected it already is.
-            double xylem_loss_frac = (indiv.max_k_loss - 0.12) / (1.0 - 0.12) * indiv.kmax_drought_affected / pft.kmax;
+            indiv.xylem_loss_frac = (indiv.max_k_loss - 0.12) / (1.0 - 0.12) * indiv.kmax_drought_affected / pft.kmax;
 
-            indiv.kmax_drought_affected = indiv.kmax_drought_affected * (1.0 - xylem_loss_frac);
+            indiv.kmax_drought_affected = indiv.kmax_drought_affected * (1.0 - indiv.xylem_loss_frac);
             indiv.kmax_drought_affected = std::min(pft.kmax,indiv.kmax_drought_affected);
 
             if (pft.dave_allocation()) {
 
                 // Note dropping leaves causes problems due to fixed klatosa -
                 // consider adding back in with new allocation.
-                double closs_sap = indiv.cmass_sap * xylem_loss_frac;
-                double nloss_sap = indiv.nmass_sap * xylem_loss_frac;
+                double closs_sap = indiv.cmass_sap * indiv.xylem_loss_frac;
+                double nloss_sap = indiv.nmass_sap * indiv.xylem_loss_frac;
 
                 indiv.cmass_sap -= closs_sap;
                 indiv.cmass_heart += closs_sap;
@@ -475,11 +475,11 @@ void adjust_kmax(Patch &patch) {
 
                 // Note dropping leaves causes problems due to fixed klatosa -
                 // consider adding back in with new allocation.
-                double closs_leaf = indiv.get_cmass_leaf() * xylem_loss_frac;
-                double closs_root = indiv.cmass_root * xylem_loss_frac;
+                double closs_leaf = indiv.get_cmass_leaf() * indiv.xylem_loss_frac;
+                double closs_root = indiv.cmass_root * indiv.xylem_loss_frac;
 
-                double nloss_leaf = indiv.get_nmass_leaf() * xylem_loss_frac;
-                double nloss_root = indiv.nmass_root * xylem_loss_frac;
+                double nloss_leaf = indiv.get_nmass_leaf() * indiv.xylem_loss_frac;
+                double nloss_root = indiv.nmass_root * indiv.xylem_loss_frac;
 
                 // Lose leaves and roots in proportion to lost xylem.
                 // Lost leaves and roots go to litter.

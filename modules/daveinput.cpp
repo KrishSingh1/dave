@@ -170,7 +170,8 @@ void DaveInput::init(void) {
 		options.nsteps_day = nsteps_day;
 		options.cache_strategy = (CacheStrategy)cache_strategy;
 		options.nc_check_inputs = nc_check_inputs;
-		options.blaze_enabled = firemodel == BLAZE;
+		options.dtr_required = firemodel == BLAZE;
+		options.wind_required = firemodel == BLAZE || ifdavephotosyn;
 		options.allow_fixed_pressure = fixed_pressure > 0;
 		options.allow_netcdf_co2 = file_co2 == "";
 		options.allow_netcdf_ndep = !use_lamarque;

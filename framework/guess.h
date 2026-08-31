@@ -2677,6 +2677,31 @@ public:
 	double jmax_25;
 	// (Constant) Maximum PEP carboxylation rate at 25 degC (μmol m-2 s-1)
 	double vpmax_25;
+
+	// Slope of relationship between vcmax25 and leaf N content in log scale.
+	double vcmax25n_slope;
+
+	// Slope of relationship between vcmax25 and leaf P content in log scale.
+	double vcmax25p_slope;
+
+	// Intercept of relationship between vcmax25 and leaf nutrient content.
+	double vcmax25_intercept;
+
+	// Slope of relationship between jmax25 and leaf N content in log scale.
+	double jmax25n_slope;
+
+	// Slope of relationship between jmax25 and leaf P content in log scale.
+	double jmax25p_slope;
+
+	// Intercept of relationship between jmax25 and leaf nutrient content.
+	double jmax25_intercept;
+
+	// Slope of relationship between vpmax25 and leaf N content in log scale.
+	double vpmax25n_slope;
+
+	// Intercept of relationship between vpmax25 and leaf nutrient content.
+	double vpmax25_intercept;
+
 	// Activation energy for vcmax (kJ mol-1)
 	double ha_v;
 	// Activation energy for jmax (kJ mol-1)
@@ -2984,6 +3009,15 @@ public:
 		vcmax_25 = 0;
 		vpmax_25 = 0;
 		jmax_25  = 0;
+		vcmax25n_slope = 0;
+		vcmax25p_slope = 0;
+		vcmax25_intercept = 0;
+		jmax25n_slope = 0;
+		jmax25p_slope = 0;
+		jmax25_intercept = 0;
+		vpmax25n_slope = 0;
+		vpmax25_intercept = 0;
+		vpmax_scal = 0;
 		ha_v = 0;
 		ha_j = 0;
 		ds_v = 0;

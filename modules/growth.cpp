@@ -1592,7 +1592,22 @@ void allocation(double bminc, Individual& indiv, double ltor, double& cmass_leaf
 double calc_creserve_opt_grote(const Individual &indiv) {
 
 	double nsc_leaf = indiv.get_cmass_leaf() * indiv.pft.max_leaf_nsc_conc;
-	double nsc_wood = indiv.cmass_sap * indiv.pft.max_wood_nsc_conc;
+
+	double max_nsc_depth_m = indiv.pft.nsc_storage_depth / CM_PER_M;
+	double nsc_depth = min(indiv.sapwood_depth, max_nsc_depth_m);
+	// Area of outer ring of cylinder with depth nsc_depth.
+	// volume = volume_tot - volume_inner
+	double radius_tot = 0.5 * indiv.diam;
+	double radius_inner = radius_tot - nsc_depth;
+	double area_inner = PI * radius_inner * radius_inner;
+	double area_tot = PI * radius_tot * radius_tot;
+	double area_outer = area_tot - area_inner;
+
+	// Volume and mass of sapwood containing NSCs, scaled from per-stem to per-ground-area.
+	double nsc_wood_mass = area_outer * indiv.height * indiv.pft.formfactor *
+		indiv.pft.wooddens * indiv.densindiv;
+
+	double nsc_wood = nsc_wood_mass * indiv.pft.max_wood_nsc_conc;
 
 	return nsc_leaf + nsc_wood;
 }
@@ -6640,17 +6655,14 @@ void allometry_dave_tree(Individual& indiv) {
 			double const LATOSA_MAX = 8000.0;
 			// sapwood area (m^2)
 			indiv.sa = (indiv.cmass_sap) / (indiv.height * indiv.pft.formfactor * indiv.pft.wooddens);
-			// sd = (diam - diam_heart) / 2
-			// area_heart = PI * (diam_heart/2)^2
-			// diam_heart = sqrt(area_heart/PI) * 2
-			// volume_heart = mass_heart / wooddens
-			// volume_heart = area_heart * height * formfactor
-			// area_heart = volume_heart / (height * formfactor)
-			// diam_heart = sqrt(volume_heart / (height * formfactor) / PI) * 2
-			// diam_heart = sqrt((mass_heart / wooddens) / (height * formfactor) / PI) * 2
-			// sd = (diam - sqrt((mass_heart / wooddens) / (height * formfactor) / PI) * 2) / 2
-			double sd = (indiv.diam - sqrt((indiv.cmass_heart / indiv.pft.wooddens) / (indiv.height * indiv.pft.formfactor) / PI) * 2) / 2;
-			indiv.sapwood_depth = sd;
+			// Sapwood depth is a per-stem radial depth:
+			// sd = outer radius - heartwood radius
+			// area_heart = (mass_heart / densindiv) / (height * formfactor * wooddens)
+			// heartwood_radius = sqrt(area_heart / PI)
+			double heartwood_area = (indiv.cmass_heart / indiv.densindiv) /
+				(indiv.height * indiv.pft.formfactor * indiv.pft.wooddens);
+			double heartwood_radius = sqrt(heartwood_area / PI);
+			indiv.sapwood_depth = max(0.0, indiv.diam / 2.0 - heartwood_radius);
 			if (!is_zero(indiv.sa)) {
 				// leaf to sapwood area (unitelss)
 				indiv.latosa = indiv.lai / indiv.sa;

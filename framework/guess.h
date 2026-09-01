@@ -2606,6 +2606,9 @@ public:
 	// Maximum NSC concentration in wood.
 	double max_wood_nsc_conc;
 
+	// Maximum depth of stems to which NSCs are stored (cm).
+	double nsc_storage_depth;
+
 	// Fraction of dead woody biomass that is bark.
 	double bark_frac;
 

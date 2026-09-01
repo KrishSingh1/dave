@@ -930,6 +930,8 @@ void plib_declarations(int id,xtring setname) {
 			"Maximum NSC concentration in leaves.");
 		declareitem("max_wood_nsc_conc", &ppft->max_wood_nsc_conc, 0.0, 1.0, 1, CB_NONE,
 			"Maximum NSC concentration in wood.");
+		declareitem("nsc_storage_depth", &ppft->nsc_storage_depth, 0.0, 100.0, 1, CB_NONE,
+			"Maximum depth of stems to which NSCs are stored (cm).");
 		declareitem("bark_frac", &ppft->bark_frac, 0.0, 1.0, 1, CB_NONE,
 			"Fraction of dead woody biomass that is bark. Plucked out of thin air.");
 		declareitem("crelocfrac", &ppft->crelocfrac, 0.0, 1e10, 1, CB_NONE,
@@ -2311,6 +2313,7 @@ void plib_callback(int callback) {
 					if (!itemparsed("turnover_repr")) badins("turnover_repr");
 					if (!itemparsed("max_leaf_nsc_conc")) badins("max_leaf_nsc_conc");
 					if (!itemparsed("max_wood_nsc_conc")) badins("max_wood_nsc_conc");
+					if (!itemparsed("nsc_storage_depth")) badins("nsc_storage_depth");
 				}
 
 				if (ifdailygrass && ppft->is_grass() && ifdavegrowth) {

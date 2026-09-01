@@ -1888,6 +1888,19 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	xylem_loss_frac = 0.0;
 	closs_embolism = 0;
 	nloss_embolism = 0;
+	closs_starve = 0;
+	nloss_starve = 0;
+	closs_hydraulic = 0;
+	nloss_hydraulic = 0;
+	closs_blaze = 0;
+	nloss_blaze = 0;
+	closs_globfirm = 0;
+	nloss_globfirm = 0;
+	closs_mort = 0;
+	nloss_mort = 0;
+	closs_shade = 0;
+	nloss_shade = 0;
+	closs_drawdown = 0;
 	cmass_tot_luc     = 0.0;
 	cmass_leaf_limit  = 0.0;
 	cmass_root_limit  = 0.0;
@@ -2461,7 +2474,7 @@ void nstore_adjust(double& cmass_leaf,double& cmass_root, double& nmass_leaf, do
 	nmass_root += root_ndemand;
 }
 
-void Individual::reduce_biomass(double mortality, double mortality_fire) {
+void Individual::reduce_biomass(double mortality, double mortality_fire, double &closs, double &nloss) {
 
 	// This function needs to be modified if a new lifeform is added,
 	// specifically to deal with nstore().
@@ -2583,6 +2596,8 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 		// Reduce this Individual's biomass values
 
 		ppft.cmass_fire += mortality_fire * ccont();
+		closs = mortality * ccont();
+		nloss = mortality * ncont();
 
 		const double remaining = 1.0 - mortality;
 
@@ -2639,6 +2654,10 @@ void Individual::reduce_biomass(double mortality, double mortality_fire) {
 				nmass_crown   *= remaining;
 			}
 		}
+	} else {
+		// Negligible mortality.
+		closs = 0;
+		nloss = 0;
 	}
 }
 
@@ -3893,7 +3912,7 @@ void Individual::flush_repr_litter_DAVE(double flush_fraction) {
 
 	ppft.cmass_litter_repr += cflux_seed;
 	ppft.nmass_litter_repr += nflux_seed;
-	
+
 	ppft.cmass_litter_leaf += cflux_litter;
 	ppft.nmass_litter_leaf += nflux_litter;			
 
@@ -3922,6 +3941,19 @@ void Individual::daily_accounting() {
 	xylem_loss_frac = 0.0;
 	closs_embolism = 0;
 	nloss_embolism = 0;
+	closs_starve = 0;
+	nloss_starve = 0;
+	closs_hydraulic = 0;
+	nloss_hydraulic = 0;
+	closs_blaze = 0;
+	nloss_blaze = 0;
+	closs_globfirm = 0;
+	nloss_globfirm = 0;
+	closs_mort = 0;
+	nloss_mort = 0;
+	closs_shade = 0;
+	nloss_shade = 0;
+	closs_drawdown = 0;
 	canopy.clear();
 
 	if (ifdavephotosyn) {

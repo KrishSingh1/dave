@@ -579,7 +579,9 @@ bool blaze(Patch& patch, Climate& climate) {
 			killed=false;
 
 			// Apply fire by burned area
-			indiv.blaze_reduce_biomass(patch, (1.-fab));
+			indiv.blaze_reduce_biomass(patch, (1.-fab), 
+									   indiv.closs_blaze,
+									   indiv.nloss_blaze);
 
 			// Remove this cohort completely if all individuals killed
 			// (in individual mode: removes individual if killed)
@@ -614,7 +616,7 @@ bool blaze(Patch& patch, Climate& climate) {
 
 			if (indiv.pft.is_grass()) {
 				// Reduce individual live biomass and freshly created litter
-				indiv.reduce_biomass(MAX_GRASS_BURN,MAX_GRASS_BURN);
+				indiv.reduce_biomass(MAX_GRASS_BURN, MAX_GRASS_BURN, indiv.closs_blaze, indiv.nloss_blaze);
 				
 				if (!ifdailygrass || indiv.istruecrop_or_intercropgrass()) {
 
@@ -667,7 +669,9 @@ bool blaze(Patch& patch, Climate& climate) {
 
 				// Reduce individual biomass on patch area basis
 				// to account for loss of killed individuals
-				indiv.blaze_reduce_biomass(patch,frac_survive);
+				indiv.blaze_reduce_biomass(patch,frac_survive,
+										   indiv.closs_blaze,
+										   indiv.nloss_blaze);
 				
 				// Remove this cohort completely if all individuals killed
 				// (in individual mode: removes individual if killed)
@@ -762,7 +766,7 @@ bool blaze(Patch& patch, Climate& climate) {
  * in respective mode or will be (1-burned area) in case of POPULATION
  * mode.
  */
-void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
+void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive, double &closs, double &nloss) {
 
 	// When a fire doesn't provide enough heat to burn a tree
 	// and it still stochastically dies, use these flux parameters
@@ -775,7 +779,11 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 
 	double frac_killed = 1. - frac_survive;
 
-	if ( negligible(frac_killed) ) return;
+	if ( negligible(frac_killed) ) {
+		closs = 0;
+		nloss = 0;
+		return;
+	}
 
 	// local copies of live fluxes
 	double wood_to_atm = patch.wood_to_atm;
@@ -977,6 +985,17 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive) {
 
 	// Report C live -> atm flux 
 	patch.fluxes.report_flux(Fluxes::FIREC, cleaf2atm + csapw2atm + chrtw2atm + d_cstore);
+	closs = cleaf2atm + cleaf2met + cleaf2str
+		+ csapw2atm + csapw2str + csapw2fwd
+		+ chrtw2atm + chrtw2str + chrtw2cwd
+		+ croot2met + croot2str
+		+ d_cstore;
+
+	nloss = nleaf2atm + nleaf2met + nleaf2str
+		+ nsapw2atm + nsapw2str + nsapw2fwd
+		+ nhrtw2atm + nhrtw2str + nhrtw2cwd
+		+ nroot2met + nroot2str
+		+ d_nstore;
 
 	// Report N live -> atm flux 
 	report_fire_flux_n(patch, nleaf2atm + nsapw2atm + nhrtw2atm + d_nstore);

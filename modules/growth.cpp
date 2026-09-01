@@ -3627,6 +3627,9 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 
 		// Negative NPP
 
+		// Track the NPP amount for reporting purposes.
+		indiv.closs_drawdown = -indiv.dnpp;
+
 		// Respiration initially from storage (labile) pool
 		// Storage pool can meet demand. Still check if growth should occur.
 		if (indiv.cmass_storage + indiv.dnpp >= 0.0) {
@@ -3811,7 +3814,7 @@ double calculate_cgrow_tree(Individual &indiv) {
 	
 }
 
-void reduce_tree_biomass(Individual &indiv, double frac) {
+void reduce_tree_biomass(Individual &indiv, double frac, double &closs, double &nloss) {
 	// TODO DH: reconcile with Individual::reduce_biomass(). We don't want to
 	// remove cmass_storage here - that's the main difference. We just want to
 	// take leaves, roots, and sapwood.
@@ -3857,6 +3860,9 @@ void reduce_tree_biomass(Individual &indiv, double frac) {
 	indiv.nmass_repr *= frac_remain;
 
 	indiv.densindiv *= frac_remain;
+
+	closs = cmass_leaf_litter + cmass_root_litter + cmass_sap_litter + cmass_repr_litter;
+	nloss = nmass_leaf_litter + nmass_root_litter + nmass_sap_litter + nmass_repr_litter;
 }
 
 // Reduce density of indoviduals *daily* when carbon storage reduces below a threshold.
@@ -3926,7 +3932,10 @@ bool carbon_starvation_mortality(Individual &indiv) {
 			ppft.amort_cstarve_ntree += pmort_cstarve * indiv.densindiv * patcharea;
 			ppft.dmort_cstarve_ntree += pmort_cstarve * indiv.densindiv * patcharea;
 
-			reduce_tree_biomass(indiv, pmort_cstarve);
+			double closs, nloss;
+			reduce_tree_biomass(indiv, pmort_cstarve, closs, nloss);
+			indiv.closs_starve += closs;
+			indiv.nloss_starve += nloss;
         } else {
 			// kill individual
 			log_info("%s killed by carbon starvation: Cohort density (%g/m2) has fallen below kill threshold of %g/m2",
@@ -3966,6 +3975,10 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 	double cmass_storage_before = indiv.cmass_storage;
 	// first add NPP to storage.
 	indiv.cmass_storage += indiv.dnpp;
+
+	if (indiv.dnpp < 0) {
+		indiv.closs_drawdown = -indiv.dnpp;
+	}
 
 	// implement *daily* carbon starvation mortality/thinning here (ASSAF).
 	// note: we should keep the killing of the whole cohort when cmass_storage <0 
@@ -4106,6 +4119,7 @@ void storage_growth_partitioning_grote(Individual &indiv) {
 	if (bminc < 0) {
 		// Negative NPP.
 		indiv.cmass_storage += bminc;
+		indiv.closs_drawdown = -bminc;
 		bminc = 0;
 	}
 

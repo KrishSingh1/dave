@@ -154,6 +154,11 @@ Get the columns used in the indiv-level transpiration debug file.
 std::vector<ColumnDefinition<Individual>> transp_check_columns();
 
 /*
+Get the columns used in the indiv-level closs output file.
+*/
+std::vector<ColumnDefinition<Individual>> indiv_closs_columns();
+
+/*
 Get the columns used in the patch-level npool veg file.
 */
 std::vector<ColumnDefinition<Patch>> npool_veg_columns();

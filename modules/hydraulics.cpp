@@ -403,7 +403,7 @@ void hydraulic_mortality(Patch &patch) {
             double densindiv = indiv.densindiv;
             if (indiv.densindiv > KILL_THRESHOLD) {
                 log_info("Indiv %d (%s): biomass loss due to hydraulic failure", indiv.id, (const char *)pft.name);
-                indiv.reduce_biomass(MORT_FRAC, 0);
+                indiv.reduce_biomass(MORT_FRAC, 0, indiv.closs_hydraulic, indiv.nloss_hydraulic);
                 indiv.hydraulic_failure = false;
             } else {
                 log_info("Indiv %d (%s): mortality due to hydraulic failure", indiv.id, (const char *)indiv.pft.name);
@@ -517,8 +517,8 @@ void adjust_kmax(Patch &patch) {
                 indiv.nmass_root -= nloss_root;
                 root_to_litter(patch.soil, pft, closs_root, nloss_root);
 
-                indiv.closs_embolism += closs_sap + closs_leaf + closs_root;
-                indiv.nloss_embolism += nloss_sap + nloss_leaf + nloss_root;
+                indiv.closs_embolism += closs_leaf + closs_root;
+                indiv.nloss_embolism += nloss_leaf + nloss_root;
             }
         }
 
@@ -642,6 +642,9 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
                 indiv.cmass_leaf -= closs_leaf;
                 indiv.nmass_leaf -= nloss_leaf;
                 leaf_to_litter(indiv.vegetation.patch.soil, pft, closs_leaf, nloss_leaf);
+
+                indiv.closs_hydraulic += closs_leaf;
+                indiv.nloss_hydraulic += nloss_leaf;
             }
         }
     }

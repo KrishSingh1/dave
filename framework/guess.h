@@ -3762,6 +3762,32 @@ public:
 	double closs_embolism;
 	/// Daily nitrogen lost to xylem embolism (kgN/m2).
 	double nloss_embolism;
+	/// Daily carbon lost to hydraulic failure (kgC/m2).
+	double closs_hydraulic;
+	/// Daily nitrogen lost to hydraulic failure (kgN/m2).
+	double nloss_hydraulic;
+	/// Daily carbon lost to blaze fire (kgC/m2).
+	double closs_blaze;
+	/// Daily nitrogen lost to blaze fire (kgN/m2).
+	double nloss_blaze;
+	/// Daily carbon lost to globfirm fire (kgC/m2).
+	double closs_globfirm;
+	/// Daily nitrogen lost to globfirm fire (kgN/m2).
+	double nloss_globfirm;
+	/// Daily/annual carbon lost to mortality (kgC/m2).
+	double closs_mort;
+	/// Daily/annual nitrogen lost to mortality (kgN/m2).
+	double nloss_mort;
+	/// Daily/annual carbon lost to shading mortality (kgC/m2).
+	double closs_shade;
+	/// Daily/annual nitrogen lost to shading mortality (kgN/m2).
+	double nloss_shade;
+	/// Daily drawdown on storage used to satisfy negative NPP.
+	double closs_drawdown;
+	/// Carbon lost to starvation today (kgC/m2).
+	double closs_starve;
+	/// Nitrogen lost to starvation today (kgN/m2).
+	double nloss_starve;
 	/// target leaf C mass (kgC/m2) 
 	double cmass_leaf_limit;
 	/// target root C mass (kgC/m2) 
@@ -4464,10 +4490,10 @@ public:
 	 *  \param mortality_fire fraction of Individual's biomass killed due to
 	 *                        fire only
 	 */
-	void reduce_biomass(double mortality, double mortality_fire);
+	void reduce_biomass(double mortality, double mortality_fire, double &closs, double &nloss);
 
 	/// A version of the above reduce_biomass for the use with BLAZE
-	void blaze_reduce_biomass(Patch& patch, double frac_survive);
+	void blaze_reduce_biomass(Patch& patch, double frac_survive, double &closs, double &nloss);
 
 	/// Total storage of nitrogen
 	double nstore() const {

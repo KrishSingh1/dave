@@ -191,6 +191,23 @@ std::vector<ColumnDefinition<Individual>> transp_check_columns() {
 	return columns;
 }
 
+std::vector<ColumnDefinition<Individual>> indiv_closs_columns() {
+	std::vector<ColumnDefinition<Individual>> columns;
+	columns.push_back(ColumnDefinition<Individual>("closs_mort", [](const Individual &i) { return i.closs_mort; }));
+	columns.push_back(ColumnDefinition<Individual>("closs_blaze", [](const Individual &i) { return i.closs_blaze; }));
+	columns.push_back(ColumnDefinition<Individual>("closs_drawdown", [](const Individual &i) { return i.closs_drawdown; }));
+	columns.push_back(ColumnDefinition<Individual>("closs_starve", [](const Individual &i) { return i.closs_starve; }));
+	columns.push_back(ColumnDefinition<Individual>("closs_embolism", [](const Individual &i) { return i.closs_embolism; }));
+	columns.push_back(ColumnDefinition<Individual>("closs_globfirm", [](const Individual &i) { return i.closs_globfirm; }));
+	columns.push_back(ColumnDefinition<Individual>("closs_hydraulic", [](const Individual &i) { return i.closs_hydraulic; }));
+	columns.push_back(ColumnDefinition<Individual>("closs_shade", [](const Individual &i) { return i.closs_shade; }));
+	columns.push_back(ColumnDefinition<Individual>("closs_temp", [](const Individual &i) { return i.closs_temp; }));
+	columns.push_back(ColumnDefinition<Individual>("closs_senescence", [](const Individual &i) { return i.csenesc; }));
+	columns.push_back(ColumnDefinition<Individual>("closs_turnover", [](const Individual &i) { return i.cturnover_leaf + i.cturnover_crown + i.cturnover_root + i.cturnover_repr; }));
+	columns.push_back(ColumnDefinition<Individual>("closs_graze", [](const Individual &i) { return i.charvest_repr + i.charvest_green + i.charvest_brown; }));
+	return columns;
+}
+
 double get_pft_standing_dead_cmass(const Patch &patch, const Pft &pft) {
 	const Patchpft &ppft = patch.pft[pft.id];
 	return ppft.cmass_litter_leaf + ppft.cmass_litter_root + ppft.cmass_litter_sap + ppft.cmass_litter_heart + ppft.cmass_litter_repr;

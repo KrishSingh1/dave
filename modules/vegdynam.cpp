@@ -1356,7 +1356,14 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 
 			// Reduce population density and C biomass on modelled area basis
 			// to account for loss of killed individuals
-			indiv.reduce_biomass(mort, mort_fire);
+			double closs, nloss;
+			indiv.reduce_biomass(mort, mort_fire, closs, nloss);
+			if (mort > 0) {
+				indiv.closs_globfirm += closs * mort_fire / mort;
+				indiv.nloss_globfirm += nloss * mort_fire / mort;
+				indiv.closs_mort += closs * (1.0 - mort_fire / mort);
+				indiv.nloss_mort += nloss * (1.0 - mort_fire / mort);
+			}
 		}
 		else if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 
@@ -1390,7 +1397,14 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 
 			// Reduce C biomass on modelled area basis to account for biomass lost
 			// through mortality
-			indiv.reduce_biomass(mort, mort_fire);
+			double closs, nloss;
+			indiv.reduce_biomass(mort, mort_fire, closs, nloss);
+			if (mort > 0) {
+				indiv.closs_globfirm += closs * mort_fire / mort;
+				indiv.nloss_globfirm += nloss * mort_fire / mort;
+				indiv.closs_mort += closs * (1.0 - mort_fire / mort);
+				indiv.nloss_mort += nloss * (1.0 - mort_fire / mort);
+			}
 		}
 
 		// Remove this PFT population completely if all individuals killed
@@ -1532,7 +1546,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 					// GRASS AND MOSS PFTs
 
 					// Reduce individual biomass
-					indiv.reduce_biomass(mort_fire, mort_fire);
+					indiv.reduce_biomass(mort_fire, mort_fire,
+						                 indiv.closs_globfirm,
+										 indiv.nloss_globfirm);
 
 					// Update allometry
 
@@ -1568,7 +1584,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 					// Reduce individual biomass on patch area basis
 					// to account for loss of killed individuals
-					indiv.reduce_biomass(1.0 - frac_survive, 1.0 - frac_survive);
+					indiv.reduce_biomass(1.0 - frac_survive, 1.0 - frac_survive,
+										 indiv.closs_globfirm,
+										 indiv.nloss_globfirm);
 
 					// Remove this cohort completely if all individuals killed
 					// (in individual mode: removes individual if killed)
@@ -1737,7 +1755,8 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 				// Reduce individual density and biomass on patch area basis
 				// to account for loss of killed individuals
-				indiv.reduce_biomass(1.0 - frac_survive, 0.0);
+				indiv.reduce_biomass(1.0 - frac_survive, 0.0,
+				                     indiv.closs_mort, indiv.nloss_mort);
 
 				// Remove this cohort completely if all individuals killed
 				// (in individual mode: removes individual if killed)
@@ -1786,7 +1805,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 						// Reduce C biomass to account for biomass lost through shading mortality
 						if (mort_shade> 0.0) {
 							patchpft.cmass_mort += mort_shade * indiv.ccont();
-							indiv.reduce_biomass(mort_shade, 0.0);
+							indiv.reduce_biomass(mort_shade, 0.0,
+											     indiv.closs_shade,
+												 indiv.nloss_shade);
 							allometry(indiv);
 						}
 

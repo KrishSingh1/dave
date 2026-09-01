@@ -388,6 +388,7 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_indiv_sapwood_area"             , DAILY, "sapwood_area", [](const Individual &i) { return i.sa; }, "Sapwood area (m2)");
 	add_indiv_output("file_dave_indiv_sapwood_depth"            , DAILY, "sapwood_depth", [](const Individual &i) { return i.sapwood_depth; }, "Sapwood depth (m)");
 	add_indiv_output("file_dave_transpiration_check"            , DAILY, transp_check_columns, "Daily check of old vs new transpiration (mm/day)");
+	add_indiv_output("file_dave_indiv_closs"                    , DAILY, indiv_closs_columns, "Daily individual-level C loss components (kgC/m2/day)", true);
 
 	// Daily individual-level array outputs.
 	add_indiv_array_output("file_dave_layerwise_fpar"           , DAILY, "layer", get_nlayer_canopy, [](const Individual &indiv, int i) { return indiv.canopy[i].fipar; }, "Daily layered fpar [0-1]", mean);

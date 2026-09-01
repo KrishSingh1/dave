@@ -4093,6 +4093,8 @@ public:
 	double crownarea;
 	/// sapwood area (m2 sapwood/m2 ground)
 	double sa;
+	/// Sapwood depth (m).
+	double sapwood_depth;
 	/// dynamic leaf to sapwood area (unitless)
 	double latosa;
 	/// increment in fpc since last simulation year

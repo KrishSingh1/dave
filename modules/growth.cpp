@@ -6626,6 +6626,17 @@ void allometry_dave_tree(Individual& indiv) {
 			double const LATOSA_MAX = 8000.0;
 			// sapwood area (m^2)
 			indiv.sa = (indiv.cmass_sap) / (indiv.height * indiv.pft.formfactor * indiv.pft.wooddens);
+			// sd = (diam - diam_heart) / 2
+			// area_heart = PI * (diam_heart/2)^2
+			// diam_heart = sqrt(area_heart/PI) * 2
+			// volume_heart = mass_heart / wooddens
+			// volume_heart = area_heart * height * formfactor
+			// area_heart = volume_heart / (height * formfactor)
+			// diam_heart = sqrt(volume_heart / (height * formfactor) / PI) * 2
+			// diam_heart = sqrt((mass_heart / wooddens) / (height * formfactor) / PI) * 2
+			// sd = (diam - sqrt((mass_heart / wooddens) / (height * formfactor) / PI) * 2) / 2
+			double sd = (indiv.diam - sqrt((indiv.cmass_heart / indiv.pft.wooddens) / (indiv.height * indiv.pft.formfactor) / PI) * 2) / 2;
+			indiv.sapwood_depth = sd;
 			if (!is_zero(indiv.sa)) {
 				// leaf to sapwood area (unitelss)
 				indiv.latosa = indiv.lai / indiv.sa;
@@ -6636,6 +6647,7 @@ void allometry_dave_tree(Individual& indiv) {
 		} else {
 			indiv.sa = 0.0;
 			indiv.latosa = 0.0;
+			indiv.sapwood_depth = 0;
 		}
 	} else {
 		indiv.lai_indiv = 0.0;
@@ -6643,6 +6655,7 @@ void allometry_dave_tree(Individual& indiv) {
 		indiv.fpc = 0.0;
 		indiv.sa = 0.0;
 		indiv.latosa = 0.0;
+		indiv.sapwood_depth = 0;
 	}
 
 	// calculate new root projected cover, but aassumes that rpc does not change 

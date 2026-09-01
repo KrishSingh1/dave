@@ -2130,6 +2130,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	latosa 			  = 0.0;
 	boleht            = 0.0;
 	sa 				  = 0.0;
+	sapwood_depth     = 0.0;
 	fpar              = 0.0;
 	aphen_raingreen   = 0;
 	intercep          = 0.0;

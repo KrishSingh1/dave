@@ -233,6 +233,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_basalarea_inc"       , DAILY, [](const Individual &i) { return i.basalarea_inc * 10000; }, "Mean Basal Area increment (cm2/tree/day)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_density"             , DAILY, [](const Individual &i) { return i.densindiv; }, "Density of individuals over patch (/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_sapwood_area"        , DAILY, [](const Individual &i) { return i.sa; }, "sapwood area sum of individuals (m2/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_sapwood_depth"       , DAILY, [](const Individual &i) { return i.sapwood_depth; }, "Sapwood depth sum over individuals (m)", sum, true);
 	add_aggregated_indiv_output("file_dave_latosa"              , DAILY, [](const Individual &i) { return i.latosa /1000; }, "leaf area to sapwood area ratio / 1000 (unitless)", mean, true);
 	add_aggregated_indiv_output("file_dave_fpar"                , DAILY, [](const Individual &i) { return i.fpar; }, "Daily fpar [0-1]", sum, true);
 	add_aggregated_indiv_output("file_dave_indiv_gpp"           , DAILY, [](const Individual &i) { return i.dgpp * G_PER_KG; }, "Daily GPP (gC/m2/day)", sum, true);
@@ -384,6 +385,8 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_cohort_gpp"     	            , DAILY, "gpp", [](const Individual &i) { return i.dgpp; }, "daily gpp (kgC/m2/d)");
 	add_indiv_output("file_dave_cohort_npp"     	            , DAILY, "npp", [](const Individual &i) { return i.dnpp; }, "daily npp (kgC/m2/d)");
 	add_indiv_output("file_dave_indiv_litter_pools"             , DAILY, get_pft_litter_pools, "Total Daily PFT-Level C Mass in Litter (kgC/m2)", true);
+	add_indiv_output("file_dave_indiv_sapwood_area"             , DAILY, "sapwood_area", [](const Individual &i) { return i.sa; }, "Sapwood area (m2)");
+	add_indiv_output("file_dave_indiv_sapwood_depth"            , DAILY, "sapwood_depth", [](const Individual &i) { return i.sapwood_depth; }, "Sapwood depth (m)");
 	add_indiv_output("file_dave_transpiration_check"            , DAILY, transp_check_columns, "Daily check of old vs new transpiration (mm/day)");
 
 	// Daily individual-level array outputs.

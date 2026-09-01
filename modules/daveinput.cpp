@@ -368,8 +368,11 @@ try {
 	}
 
 	if (wind_speed != 0) {
-		for (int i = 0; i < date.subdaily; i++) {
-			climate.winds[i] = wind_speed;
+		climate.winds.resize(date.subdaily);
+		if (date.subdaily > 1) {
+			for (int i = 0; i < date.subdaily; i++) {
+				climate.winds[i] = wind_speed;
+			}
 		}
 		climate.u10 = wind_speed;
 	}

@@ -318,6 +318,12 @@ private:
 	double precip_scalar;
 
 	/*
+	Constant wind speed value to be used if it's unavailable in the input data
+	(m s-1).
+	*/
+	double wind_speed;
+
+	/*
 	If true, each day's CO2 value will be the annual mean co2. Otherwise, a mean
 	of that day's subdaily data will be used.
 	*/

@@ -78,6 +78,7 @@ DaveInput::DaveInput() {
 	declare_parameter("temperature_delta", &temperature_delta, 0, 1e6, "Optional constant to be added to daily temperature (°C).");
 	declare_parameter("co2_delta", &co2_delta, 0, 1e6, "Optional constant to be added to daily co2 (ppm).");
 	declare_parameter("precip_scalar", &precip_scalar, -1e6, 1e6, "Optional scalar to multiply daily precipitation by.");
+	declare_parameter("wind_speed", &wind_speed, 0, 100, "Optional constant wind speed value to be used if it's unavailable in the input data (m s-1).");
 
 	declare_parameter("fixed_pressure", &fixed_pressure, 0, 200000
 	, "Optional fixed/constant air pressure to use in Pa");
@@ -108,6 +109,7 @@ DaveInput::DaveInput() {
 	bounds_rh.min = 0;
 
 	temperature_delta = 0;
+	wind_speed = 0;
 	co2_delta = 0;
 	precip_scalar = 1.0;
 
@@ -171,7 +173,7 @@ void DaveInput::init(void) {
 		options.cache_strategy = (CacheStrategy)cache_strategy;
 		options.nc_check_inputs = nc_check_inputs;
 		options.dtr_required = firemodel == BLAZE;
-		options.wind_required = firemodel == BLAZE || ifdavephotosyn;
+		options.wind_required = (firemodel == BLAZE || ifdavephotosyn) && wind_speed == 0;
 		options.allow_fixed_pressure = fixed_pressure > 0;
 		options.allow_netcdf_co2 = file_co2 == "";
 		options.allow_netcdf_ndep = !use_lamarque;
@@ -363,6 +365,13 @@ try {
 			climate.precs[i] *= precip_scalar;
 		}
 		climate.prec *= precip_scalar;
+	}
+
+	if (wind_speed != 0) {
+		for (int i = 0; i < date.subdaily; i++) {
+			climate.winds[i] = wind_speed;
+		}
+		climate.u10 = wind_speed;
 	}
 
 	// rads and pars are calculated automatically in daylengthinsoleet().

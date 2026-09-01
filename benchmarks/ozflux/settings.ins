@@ -128,6 +128,11 @@ co2_delta                    0
 ! Optional constant by which to multiply all precipitation values.
 precip_scalar                1
 
+! Constant wind speed value to be used if it's unavailable in the input data
+! (m s-1). If 0, wind speed must be provided in the input data. If non-zero,
+! this value will overwrite any wind speed values in the input data.
+wind_speed                   0
+
 ! Interval in seconds between progress reports; 0 for yearly or -1 for daily.
 progress_interval            0
 

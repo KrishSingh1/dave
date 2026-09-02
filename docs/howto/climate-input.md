@@ -180,12 +180,21 @@ as an error.
 
 ## Spinup Climate Cycling
 
-During spinup (`date.year < nyear_spinup`), the module maps each spinup year
+During spinup (the first `nyear_spinup` years), the module maps each spinup year
 to a calendar year of met data by cycling deterministically through the
-available years. The goal is for the met years used in spinup to arrive at
-the start of the main simulation data as naturally as possible — the year
-immediately before the simulation data begins is always the last full year
-of the spinup dataset.
+available years. Only complete calendar years are used for simulation. If a
+NetCDF file starts partway through a year, that first partial year is skipped;
+if it ends partway through a year, that final partial year is skipped.
+
+The goal is for the met years used in spinup to align with the transition
+into the main simulation period. When a separate spinup file is used, the
+usable spinup period ends at the earlier of:
+
+- the last complete year in `file_met_spinup`, and
+- the year immediately before the first complete year in `file_met_forcing`.
+
+Any overlap in `file_met_spinup` after the main forcing begins is ignored for
+the final spinup cycle and for the main simulation.
 
 ### How years are selected
 
@@ -193,10 +202,9 @@ The module cycles through the spinup dataset in order, wrapping back to the
 start when it reaches the end. The cycling is deterministic — the same run
 configuration always produces the same sequence.
 
-The wrap-around point is chosen so that the sequence ends exactly at the
-transition into the simulation data. Once the calendar year falls within the
-range covered by the spinup dataset, actual data years are used directly
-with no cycling.
+The wrap-around point is chosen so that the sequence ends at the transition
+into the main forcing. Once the calendar year falls within the usable spinup
+range, actual data years are used directly with no cycling.
 
 **Example** — suppose the spinup dataset covers 1990–1999 (10 years), the
 spinup runs for 30 years, and the main simulation begins in 2000:
@@ -221,6 +229,13 @@ spinup runs for 30 years, and the main simulation begins in 2000:
 The data cycles twice, and the transition into the simulation data at year
 2000 occurs naturally at the end of the final cycle year.
 
+If the spinup file overlaps the main forcing, the transition still occurs at
+the first complete year in `file_met_forcing`. For example, if
+`file_met_spinup` contains complete years 1900-2010 and `file_met_forcing`
+contains complete years 2001-2100, the final spinup cycle uses 1900-2000 from
+the spinup file, and the main forcing is used from 2001 onward. The overlapping
+spinup years 2001-2010 are not used.
+
 If `spinup_met_cycle_length` is set to a value greater than zero, only the
 **first N years** of the spinup dataset are used for cycling. This is useful
 when only a short pre-industrial baseline period should be repeated during
@@ -241,7 +256,10 @@ identical to `file_met_forcing`, the same file is used for both periods.
 
 When a separate spinup file is used, the module opens the spinup file first,
 determines the available years and timestep, and then switches to the main
-forcing file at the start of the transient simulation.
+forcing file at the first complete year available in the main forcing data.
+The spinup file must contain at least one complete year before that first main
+forcing year. A spinup file that starts in or after the main forcing period is
+not supported.
 
 ---
 

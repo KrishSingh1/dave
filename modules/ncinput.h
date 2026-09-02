@@ -103,30 +103,25 @@ public:
     bool read_day(int year, int day, Climate &climate);
 
     /*
-    Get the timepoint representing the start of the spinup period.
+    Get the complete first year in the spinup period.
     */
-    timepoint get_spinup_start() const;
+    int get_first_spinup_year() const;
 
     /*
-    Get the timepoint representing the end of the spinup period.
+    Get the last year in the spinup period which is complete before the main
+    simulation period starts.
     */
-    timepoint get_spinup_end() const;
+    int get_last_spinup_year_before_main() const;
 
     /*
-    Get the timepoint representing the first timestep of the main simulation
-    period.
+    Get the first complete year in the "main" simulation timeseries.
     */
-    timepoint get_first_timestep() const;
+    int get_first_main_year() const;
 
     /*
     Get the total number of years in the main simulation.
     */
     int get_simulation_length() const;
-
-    /*
-    Get the total number of years in the spinup period.
-    */
-    int get_spinup_length() const;
 
     /*
     Check if the input data contains CO2 information.
@@ -190,6 +185,22 @@ private:
         Spinup,
         Main,
         None
+    };
+
+    /*
+    Time coverage information for a dataset.
+    */
+    struct TimeCoverage {
+        timepoint literal_start;
+        timepoint literal_end;
+        int first_complete_year;
+        int last_complete_year;
+        int nyear() const {
+            return max(0, last_complete_year - first_complete_year + 1);
+        }
+        bool contains_complete_year(int year) const {
+            return year >= first_complete_year && year <= last_complete_year;
+        }
     };
 
     /*
@@ -360,12 +371,12 @@ private:
 	/*
 	Are we using a separate input file for the spinup, and if so, should we use
 	the data for this file as part of the "main" simulation after the spinup?
-	This can only happen if the last timestep in the spinup file is at the end
-	of a year, and the next timestep is the first timestep in the "main"
-	simulation input file. In that case, the simulation will be run as:
+	This can only happen if the last complete year in the spinup dataset is
+	either adjacent to or later than, the first complete year in the "main"
+	simulation dataset. In that case, the simulation will be run as:
 
 	1. Spinup (recycling first N years of data from spinup file)
-	2. Main simulation (using entire timeseries from spinup file)
+	2. Main simulation (using timeseries from spinup file)
 	3. Main simulation continued (using entire timeseries from "main" data file)
 
 	This parameter is not a user input, but is automatically enabled if the
@@ -381,28 +392,17 @@ private:
 	*/
 	GuessNC::CF::CalendarType spinup_calendar;
 
-	/*
-	The first timestep in the input data of the main simulation.
-	*/
-	timepoint first_timestep;
+    /*
+    Time coverage of spinup dataset, both effective and literal.
+    */
+    TimeCoverage spinup_coverage;
 
-	/*
-	The last timestep in the input data of the main simulation. This is used to
-	terminate the simulation when we reach the end date.
-	*/
-	timepoint final_timestep;
-
-	/*
-	The first timestep in the input data used for the spinup. This will be the
-	same as first_timestep unless using a separate .nc file for the spinup.
-	*/
-	timepoint spinup_start;
-
-	/*
-	The last timestep in the input data used for the spinup. This will be the
-	same as final_timestep unless using a separate .nc file for spinup.
-	*/
-	timepoint spinup_end;
+    /*
+    Time coverage of main simulation dataset, both effective and literal. This
+    will be the same as spinup_coverage unless using a separate dataset for the
+    spinup.
+    */
+    TimeCoverage simulation_coverage;
 
 	/*
 	Daily NH4 deposition data for the current year.

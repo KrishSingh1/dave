@@ -546,44 +546,34 @@ void DaveInput::resize_climate_arrays(Gridcell &gridcell, size_t size) const {
 }
 
 int DaveInput::get_spinup_year() const {
+    int calendar_year = date.get_calendar_year();
 
-	int calendar_year = date.get_calendar_year();
+    int first_spinup_year = ncinput.get_first_spinup_year();
+    int last_spinup_year = ncinput.get_last_spinup_year_before_main();
+    int first_main_year = ncinput.get_first_main_year();
 
-	timepoint first_timestep = ncinput.get_first_timestep();
-	timepoint spinup_start = ncinput.get_spinup_start();
-	timepoint spinup_end = ncinput.get_spinup_end();
+    if (calendar_year >= first_main_year) {
+        return calendar_year;
+    }
 
-	if (calendar_year >= first_timestep.year ||
-		(calendar_year >= spinup_start.year && calendar_year <= spinup_end.year) ) {
-		// We are past the start of the data. Therefore use data for the current
-		// calendar year.
-		return calendar_year;
-	} else if (calendar_year > spinup_end.year && calendar_year < first_timestep.year) {
-		return spinup_end.year;
-	}
+    if (calendar_year >= first_spinup_year && calendar_year <= last_spinup_year) {
+        return calendar_year;
+    }
 
-	// Skip the first year if the first timestep lies partway through the year.
-	int first_year = spinup_start.year;
-	if (!is_start_of_year(spinup_start)) {
-		first_year++;
-	}
+    if (calendar_year > last_spinup_year && calendar_year < first_main_year) {
+        return last_spinup_year;
+    }
 
-	// Get the number of years of data we have for the spinup.
-	int nyear_data = ncinput.get_spinup_length();
+    int nyear_data = last_spinup_year - first_spinup_year + 1;
+    if (spinup_met_cycle_length > 0) {
+        nyear_data = min(nyear_data, spinup_met_cycle_length);
+    }
 
-	// User wants to limit the spinup to using only the first N years of data.
-	if (spinup_met_cycle_length > 0) {
-		nyear_data = min(nyear_data, spinup_met_cycle_length);
-	}
+    int years_to_align = first_main_year - first_spinup_year;
+    int cycle_length = nyear_spinup - years_to_align;
+    int offset = nyear_data - modulo(cycle_length, nyear_data);
 
-	// The offset from the start of the met data to be used in the first year.
-	int cycle_length = nyear_spinup - (first_timestep.year - spinup_start.year);
-	int offset = nyear_data - modulo(cycle_length, nyear_data);
-
-	// Add offset to current year, ensure it lies within range (0..nyear_data],
-	// and add this to the first year of data. This gives us the (calendar) year
-	// of data to be used this year.
-	return (date.year + offset) % nyear_data + first_year;
+    return (date.year + offset) % nyear_data + first_spinup_year;
 }
 
 esat_method_t DaveInput::parse_esat_method(xtring name) const {

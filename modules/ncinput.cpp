@@ -113,8 +113,11 @@ void NCInput::init(const NCInputOptions &options) {
 
     simulation_calendar = spinup_calendar;
 
-    spinup_start = first_timestep = get(Variable::Temp).get_first_date();
-    spinup_end = final_timestep = get(Variable::Temp).get_last_date();
+    timepoint first_timestep = get(Variable::Temp).get_first_date();
+    timepoint spinup_start = first_timestep;
+
+    timepoint final_timestep = get(Variable::Temp).get_last_date();
+    timepoint spinup_end = final_timestep;
 
     // Ensure that there is at least one year of data for the spinup.
     verify_data_length(first_timestep, final_timestep, input_timestep,
@@ -150,26 +153,54 @@ void NCInput::init(const NCInputOptions &options) {
         verify_data_length(first_timestep, final_timestep, input_timestep, tmp->get_calendar());
     }
 
+    int first_simulation_year = first_timestep.year;
+    if (!is_start_of_year(first_timestep)) {
+        first_simulation_year++;
+    }
+
+    int first_spinup_year = spinup_start.year;
+    if (!is_start_of_year(spinup_start)) {
+        first_spinup_year++;
+    }
+
+    int last_simulation_year = final_timestep.year;
+    if (!is_end_of_year(final_timestep, input_timestep, simulation_calendar)) {
+        last_simulation_year--;
+    }
+
+    int last_spinup_year = spinup_end.year;
+    if (!is_end_of_year(spinup_end, spinup_timestep, spinup_calendar)) {
+        last_spinup_year--;
+    }
+
+    if (separate_spinup && first_spinup_year >= first_simulation_year) {
+        throw std::runtime_error("Spinup period must start before main simulation period");
+    }
+
     // input_timestep is the timestep from file_met_forcing. Ensure that it
     // may be aggregated to nsteps_day.
     simulation_timestep = input_timestep;
     verify_timestep(input_timestep);
 
-    // Now we must determine the first calendar year of the simulation (not
-    // the spinup).
-    int first_year = first_timestep.year;
-
     // If using a separate file for spinup, and this file ends in the year
     // before the "main" file, we can include it as part of the main
     // simulation after running the spinup.
     spinup_in_simulation = false;
-    if (separate_spinup && spinup_end.year + 1 == first_timestep.year && is_end_of_year(spinup_end, spinup_timestep, spinup_calendar)) {
-        first_year = spinup_start.year;
+    if (separate_spinup && last_spinup_year + 1 >= first_simulation_year) {
         spinup_in_simulation = true;
-        log_info("file_met_spinup will be included in main simulation, which will run from %04d-%02d-%02d - %04d-%02d-%02d.\n",
-            spinup_start.year, get_month(spinup_start, spinup_calendar) + 1, get_day_of_month(spinup_start, spinup_calendar) + 1,
-            final_timestep.year, get_month(final_timestep, simulation_calendar) + 1, get_day_of_month(final_timestep, simulation_calendar) + 1);
+        log_info("file_met_spinup will be included in main simulation, which will run from %04d-01-01 - %04d-12-31.\n",
+            first_spinup_year, last_simulation_year);
     }
+
+    spinup_coverage.literal_start = spinup_start;
+    spinup_coverage.literal_end = spinup_end;
+    spinup_coverage.first_complete_year = first_spinup_year;
+    spinup_coverage.last_complete_year = last_spinup_year;
+
+    simulation_coverage.literal_start = first_timestep;
+    simulation_coverage.literal_end = final_timestep;
+    simulation_coverage.first_complete_year = first_simulation_year;
+    simulation_coverage.last_complete_year = last_simulation_year;
 
     lon = 0;
     lat = 0;
@@ -287,29 +318,28 @@ void NCInput::open_files(const ResolvedPlan &plan, Dataset dataset) {
 
 bool NCInput::read_day(int year, int day, Climate &climate) {
 	// First, check if we have enough data to simulate another day.
-	if (date.year > nyear_spinup && year > final_timestep.year) {
-		return false;
-	}
+	if (date.year > nyear_spinup && year > simulation_coverage.last_complete_year) {
+        // We are in the final year, which is missing some days of data.
+        // Because the N deposition disaggregation requires an entire years'
+        // worth of precipitation data, we can't simulate part of a year.
 
-	if (day == 0 && date.get_calendar_year() == final_timestep.year) {
-		if (final_timestep.day < Date::MAX_YEAR_LENGTH - 1) {
-			// We are in the final year, which is missing some days of data.
-			// Because the N deposition disaggregation requires an entire years'
-			// worth of precipitation data, we can't simulate part of a year.
-            log_error("Final year (%d) of data is missing some days (contains %d but requires %d for a full year). Because the N deposition disaggregation requires an entire years' worth of precipitation data, we can't simulate this year.\n",
-                    final_timestep.year, final_timestep.day + 1,
+        // Write a log message explaining why the simulation is terminating.
+        if (simulation_coverage.literal_end.year > simulation_coverage.last_complete_year) {
+            if (simulation_coverage.literal_end.day + 1 < Date::MAX_YEAR_LENGTH) {
+                // Not enough days in final year.
+                log_error("Final year (%d) of data is missing some days (contains %d but requires %d for a full year). Because the N deposition disaggregation requires an entire years' worth of precipitation data, we can't simulate this year.\n",
+                    simulation_coverage.literal_end.year, simulation_coverage.literal_end.day + 1,
                     Date::MAX_YEAR_LENGTH);
-			return false;
-		}
-
-		if (final_timestep.timestep < get(Variable::Temp).get_day_length() - 1) {
-			// We are in the final year, and the final day is missing some
-			// timesteps.
-            log_error("Final year (%d) of data is missing some timesteps (contains %d but requires %d for a full day). Because the N deposition disaggregation requires an entire years' worth of precipitation data, we can't simulate this year.\n",
-                    final_timestep.year, final_timestep.timestep + 1,
+            } else {
+                // We have enough days, but not enough timesteps.
+                log_error("Final year (%d) of data is missing some timesteps on final day (contains %d but requires %d for a full day). Because the N deposition disaggregation requires an entire years' worth of precipitation data, we can't simulate this year.\n",
+                    simulation_coverage.literal_end.year, simulation_coverage.literal_end.timestep + 1,
                     get(Variable::Temp).get_day_length());
-			return false;
-		}
+            }
+        }
+
+        // Return false to signal completion.
+		return false;
 	}
 
     if (day == 0 && date.year == 0) {
@@ -321,11 +351,11 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
         }
     }
 
-    if (day == 0 && date.get_calendar_year() == first_timestep.year && separate_spinup) {
+    if (day == 0 && date.get_calendar_year() == simulation_coverage.first_complete_year && separate_spinup) {
         // Open the NetCDF files used for the main simulation.
         open_files(simulation_plan, Dataset::Main);
 
-        // Update the cliamte insoltype (as it could have changed).
+        // Update the climate insoltype (as it could have changed).
         set_insoltype(climate);
 
         if (options.calculate_thome) {
@@ -334,7 +364,7 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
     }
 
     // TODO: is this correct? What about spinup_in_simulation?
-    ResolvedPlan plan = date.year < nyear_spinup ?
+    ResolvedPlan plan = open_dataset == Dataset::Spinup ?
                                 spinup_plan :
                                 simulation_plan;
 
@@ -483,9 +513,10 @@ void NCInput::set_co2(const ResolvedPlan &plan, int year, int day, Climate &clim
     if (options.use_mean_annual_co2) {
         // Mean annual co2 - update once per year.
         if (date.day == 0) {
+            // TODO: check this. For now, reproducing old behaviour.
             int year_len = get_year_len(year, get(Variable::CO2).get_calendar());
-            int co2_year = date.get_calendar_year() < spinup_start.year ?
-                                spinup_start.year :
+            int co2_year = date.get_calendar_year() < spinup_coverage.literal_start.year ?
+                                spinup_coverage.literal_start.year :
                                 date.get_calendar_year();
             std::vector<double> co2_annual = get(Variable::CO2).read(lon, lat, co2_year, 0, year_len);
             climate.co2 = mean(co2_annual);
@@ -577,9 +608,11 @@ std::vector<double> NCInput::get_ps(const ResolvedPlan &plan, int year, int day)
 }
 
 int NCInput::get_simulation_length() const {
-    int nyear = get_nyear_data(first_timestep, final_timestep, simulation_timestep, simulation_calendar);
+    // TODO: could clean this up.
+    int nyear = get_nyear_data(simulation_coverage.literal_start, simulation_coverage.literal_end, simulation_timestep, simulation_calendar);
     if (spinup_in_simulation) {
-        nyear += get_nyear_data(spinup_start, spinup_end, spinup_timestep, spinup_calendar);
+        // nyear += get_nyear_data(spinup_coverage.literal_start, spinup_coverage.literal_end, spinup_timestep, spinup_calendar);
+        nyear += max(0, get_last_spinup_year_before_main() - spinup_coverage.first_complete_year + 1);
     }
     return nyear;
 }
@@ -591,33 +624,29 @@ bool NCInput::has_co2() const {
     return variables.find(Variable::CO2) != variables.end();
 }
 
-int NCInput::get_spinup_length() const {
-    return get_nyear_data(spinup_start, spinup_end, spinup_timestep, spinup_calendar);
-}
-
 std::vector<double> NCInput::read_annual_precip(int year) {
     // Read subdaily precipitation data for the entire year.
     int year_len = Date::MAX_YEAR_LENGTH;
     return get(Variable::Pr).read(lon, lat, year, 0, year_len);
 }
 
-timepoint NCInput::get_spinup_start() const {
-    return spinup_start;
+int NCInput::get_first_spinup_year() const {
+    return spinup_coverage.first_complete_year;
 }
 
-timepoint NCInput::get_spinup_end() const {
-    return spinup_end;
+int NCInput::get_last_spinup_year_before_main() const {
+    return std::min(spinup_coverage.last_complete_year, simulation_coverage.first_complete_year - 1);
 }
 
-timepoint NCInput::get_first_timestep() const {
-    return first_timestep;
+int NCInput::get_first_main_year() const {
+    return simulation_coverage.first_complete_year;
 }
 
 int NCInput::get_simulation_start_year() const {
     if (spinup_in_simulation) {
-        return spinup_start.year;
+        return spinup_coverage.first_complete_year;
     }
-    return first_timestep.year;
+    return simulation_coverage.first_complete_year;
 }
 
 double NCInput::calculate_thome(double lon, double lat) const {

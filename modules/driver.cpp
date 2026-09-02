@@ -1584,6 +1584,10 @@ double rh_to_vpd(double rh, double tair, esat_method_t esat_method) {
 	return esat(tair, esat_method) * (1.0 - rh);
 }
 
+double vpd_to_rh(double vpd, double tair, esat_method_t esat_method) {
+	return (1.0 - vpd / esat(tair, esat_method));
+}
+
 double qair_to_e(double sh, double ps, esat_method_t esat_method) {
 	// Ratio of the molecular weight of water vapor to dry air (=Mw/Md)
 	const double EPS = 0.622;

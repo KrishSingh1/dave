@@ -64,6 +64,15 @@ Convert relative humidity to vapour pressure deficit in kPa.
 double rh_to_vpd(double rh, double tair, esat_method_t esat_method = SONNTAG_1990);
 
 /*
+Convert vapour pressure deficit to relative humidity (0-1).
+
+@param vpd Vapour pressure deficit (kPa)
+@param tair Air temperature (℃)
+@param esat_method Method to use for estimating saturation vapor pressure.
+*/
+double vpd_to_rh(double vpd, double tair, esat_method_t esat_method);
+
+/*
 Convert specific humidity to vapour pressure deficit in kPa.
 
 @param sh Specific humidity (kg/kg)

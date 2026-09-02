@@ -349,9 +349,13 @@ try {
 		climate.co2 = get_co2();
 	}
 
+	// When temperature is increased, also increase VPD so that RH is constant.
 	if (temperature_delta > 0) {
 		for (int i = 0; i < date.subdaily; i++) {
-			climate.temps[i] += temperature_delta;
+			double rh = vpd_to_rh(climate.vpds[i], climate.temps[i], esat_method);
+			double new_temp = climate.temps[i] + temperature_delta;
+			climate.vpds[i] = rh_to_vpd(rh, new_temp, esat_method);
+			climate.temps[i] = new_temp;
 		}
 		climate.temp += temperature_delta;
 	}

@@ -3312,6 +3312,8 @@ double Individual::check_N_mass() {
 		if (pos_nmass > negative_nmass) {
 			nmass_leaf -= negative_nmass * nmass_leaf / pos_nmass;
 			nmass_root -= negative_nmass * nmass_root / pos_nmass;
+			nstore_labile -= negative_nmass * nstore_labile / pos_nmass;
+			nstore_longterm -= negative_nmass * nstore_longterm / pos_nmass;
 			if (cropindiv) {
 				cropindiv->nmass_ho -= negative_nmass * cropindiv->nmass_ho / pos_nmass;
 				cropindiv->nmass_agpool -= negative_nmass * cropindiv->nmass_agpool / pos_nmass;
@@ -3322,6 +3324,8 @@ double Individual::check_N_mass() {
 			vegetation.patch.stand.get_gridcell().landcover.anflux_landuse_change -= (negative_nmass - pos_nmass) * vegetation.patch.stand.get_gridcell_fraction();
 			nmass_leaf = 0.0;
 			nmass_root = 0.0;
+			nstore_labile = 0.0;
+			nstore_longterm = 0.0;
 			if (cropindiv) {
 				cropindiv->nmass_ho = 0.0;
 				cropindiv->nmass_agpool = 0.0;

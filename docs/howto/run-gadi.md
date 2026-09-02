@@ -220,6 +220,90 @@ as a starting point. **Do not use `~`** for home directory expansion — use
 | `INSFILE` | Path to the instruction file | `/scratch/pt17/my/simulation.ins` |
 | `INPUT_MODULE` | LPJ-GUESS input module — use `nc` for DAVE | `nc` |
 
+## Common Errors
+
+### `libnetcdf.so.15: cannot open shared object file`
+
+Example:
+
+```text
+/home/590/am8995/code/lpjg_aaron/build/guess: error while loading shared libraries: libnetcdf.so.15: cannot open shared object file: No such file or directory
+```
+
+This means the executable was compiled against a NetCDF library that is not
+available in the environment where the model is being run. The most common
+cause is forgetting to load the `netcdf` module before running. It can also
+happen if the model was compiled with one NetCDF module version but run with a
+different one.
+
+Fix:
+
+1. Use `./build_gadi` to compile the model. It loads the required Gadi modules,
+   including the default `netcdf` module.
+2. Submit runs with `submit_to_gadi.sh`, which generates a PBS script that
+   loads the same kind of runtime environment before launching `guess`.
+3. If running manually for a quick test, load NetCDF first:
+
+   ```bash
+   module purge
+   module load openmpi gcc cmake netcdf
+   ./build/guess -input nc /path/to/simulation.ins
+   ```
+
+If the error persists, check which modules are loaded in the job output:
+
+```bash
+module list
+```
+
+Then rebuild and rerun in a clean, consistent environment:
+
+```bash
+module purge
+./build_gadi
+```
+
+### `submit_to_gadi.sh: command not found`
+
+The DAVE helper scripts are probably not on your `PATH`. Add the shared DAVE
+startup file to `~/.bashrc` as described in
+[DAVE Shared Environment](#dave-shared-environment), then log out and back in
+or run:
+
+```bash
+source ~/.bashrc
+```
+
+### Paths containing `~` do not work in the configuration file
+
+The submission script reads paths from the configuration file literally. Use
+`${HOME}` or a full path instead of `~`:
+
+```bash
+BINARY=${HOME}/lpj-guess-dave/build/guess
+```
+
+### Job starts but cannot read or write files
+
+First check that input and output paths exist and are on a filesystem available
+to the PBS job. Use `/scratch/<project>/$USER` for run outputs, not `$HOME`.
+
+If you wrote your own PBS script, make sure it declares the filesystems it
+uses, for example:
+
+```bash
+#PBS -l storage=scratch/pt17
+```
+
+The `submit_to_gadi.sh` script handles this for standard runs.
+
+### Job stops near the requested walltime
+
+PBS kills jobs that exceed their walltime request. Gadi also has a maximum
+48-hour walltime for a single job. Increase `NPROCESS` so the run finishes
+sooner, increase `WALLTIME` if it was set too low, or split the simulation into
+smaller jobs.
+
 ## Helper Scripts
 
 Several helper scripts are available to all DAVE team members on Gadi under

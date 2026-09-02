@@ -1604,27 +1604,55 @@ void allocation(double bminc,double cmass_leaf,double cmass_root,double cmass_sa
 	assert(fabs(bminc + exceeds_cmass - (cmass_leaf_inc + cmass_root_inc + cmass_sap_inc + cmass_heart_inc + litter_leaf_inc + litter_root_inc)) < EPS);
 }
 
-double calc_creserve_opt_grote(const Pft &pft, double cmass_leaf, double cmass_sap) {
+/*
+Calculate sapwood depth.
 
-	double nsc_leaf = indiv.get_cmass_leaf() * indiv.pft.max_leaf_nsc_conc;
+@param cmass_heart: Heartwood carbon mass (kgC/m2)
+@param densindiv: Cohort density (individuals/m2)
+@param height: Individual height (m)
+@param diam: Individual diameter (m)
+@param pft: Plant functional type (PFT) object containing formfactor and wood density.
+*/
+double calc_sapwood_depth(double cmass_heart, double densindiv, double height, double diam, const Pft &pft) {
+	// Sapwood depth is a per-stem radial depth:
+	// sd = outer radius - heartwood radius
+	// area_heart = (mass_heart / densindiv) / (height * formfactor * wooddens)
+	// heartwood_radius = sqrt(area_heart / PI)
+	double heartwood_area = (cmass_heart / densindiv) /
+		(height * pft.formfactor * pft.wooddens);
+	double heartwood_radius = sqrt(heartwood_area / PI);
+	return max(0.0, diam / 2.0 - heartwood_radius);
+}
 
-	double max_nsc_depth_m = indiv.pft.nsc_storage_depth / CM_PER_M;
-	double nsc_depth = min(indiv.sapwood_depth, max_nsc_depth_m);
+double calc_creserve_opt_grote(const Pft &pft, double cmass_leaf,
+							   double cmass_sap, double sapwood_depth,
+							   double diam, double height, double densindiv) {
+
+	double nsc_leaf = cmass_leaf * pft.max_leaf_nsc_conc;
+
+	double max_nsc_depth_m = pft.nsc_storage_depth / CM_PER_M;
+	double nsc_depth = min(sapwood_depth, max_nsc_depth_m);
 	// Area of outer ring of cylinder with depth nsc_depth.
 	// volume = volume_tot - volume_inner
-	double radius_tot = 0.5 * indiv.diam;
+	double radius_tot = 0.5 * diam;
 	double radius_inner = radius_tot - nsc_depth;
 	double area_inner = PI * radius_inner * radius_inner;
 	double area_tot = PI * radius_tot * radius_tot;
 	double area_outer = area_tot - area_inner;
 
 	// Volume and mass of sapwood containing NSCs, scaled from per-stem to per-ground-area.
-	double nsc_wood_mass = area_outer * indiv.height * indiv.pft.formfactor *
-		indiv.pft.wooddens * indiv.densindiv;
+	double nsc_wood_mass = area_outer * height * pft.formfactor *
+		pft.wooddens * densindiv;
 
-	double nsc_wood = nsc_wood_mass * indiv.pft.max_wood_nsc_conc;
+	double nsc_wood = nsc_wood_mass * pft.max_wood_nsc_conc;
 
 	return nsc_leaf + nsc_wood;
+}
+
+double calc_creserve_opt_grote(const Individual &indiv) {
+	return calc_creserve_opt_grote(indiv.pft, indiv.get_cmass_leaf(),
+								   indiv.cmass_sap, indiv.sapwood_depth,
+								   indiv.diam, indiv.height, indiv.densindiv);
 }
 
 // Capacity of C storage (kg C m-2)
@@ -1633,7 +1661,7 @@ double cstorage_capacity(const Individual& indiv) {
 	if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 		return cstorage_max_temp * (indiv.get_cmass_leaf() + indiv.cmass_root) + cstorage_max_perm * indiv.cmass_crown;
 	} else {
-		return calc_creserve_opt_grote(indiv.pft, indiv.get_cmass_leaf(), indiv.cmass_sap);
+		return calc_creserve_opt_grote(indiv);
 	}
 }
 
@@ -1924,7 +1952,7 @@ const double INIT_LAI = 1;
 // Initial storage fraction of capacity.
 const double INIT_STORAGE_FRACTION = 1;
 
-double solve_csap(double bminit, const Pft &pft, double ltor, double init_storfrac, double EPS = 1e-6, size_t NITER_MAX = 10000) {
+double solve_csap(double bminit, const Pft &pft, double ltor, double init_storfrac, double densindiv, double EPS = 1e-6, size_t NITER_MAX = 10000) {
 
 	// TODO: consider how to handle ltor=0.
 	if (ltor == 0) {
@@ -1958,7 +1986,8 @@ double solve_csap(double bminit, const Pft &pft, double ltor, double init_storfr
 		double latosa = lai / sa;
 
 		double croot  = cleaf / ltor;
-		double cstor_max = calc_creserve_opt_grote(pft, cleaf, csap);
+		double sapwood_depth = calc_sapwood_depth(0, densindiv, height, diam, pft);
+		double cstor_max = calc_creserve_opt_grote(pft, cleaf, csap, sapwood_depth, diam, height, densindiv);
 		double cstor  = ks * cstor_max;
 
 		double bmtot  = cleaf + croot + csap + cstor;
@@ -2008,7 +2037,7 @@ void establishment_sapling_dave_dynamic(double bminit, Individual &indiv, double
 
 	bminit *= indiv.densindiv; // convert to kgC/m^2
 
-	double csap = solve_csap(bminit, indiv.pft, ltor, ks);
+	double csap = solve_csap(bminit, indiv.pft, ltor, ks, indiv.densindiv);
 
 	// Eqn 12 in derivation.
 	double height = pow(4.0 * (csap / indiv.densindiv) * pow(k2, 2.0 / k3) / (PI * rho), 1.0 / (1.0 + 2.0 / k3));
@@ -6572,14 +6601,7 @@ void allometry_dave_tree(Individual& indiv) {
 			double const LATOSA_MAX = 8000.0;
 			// sapwood area (m^2)
 			indiv.sa = (indiv.cmass_sap) / (indiv.height * indiv.pft.formfactor * indiv.pft.wooddens);
-			// Sapwood depth is a per-stem radial depth:
-			// sd = outer radius - heartwood radius
-			// area_heart = (mass_heart / densindiv) / (height * formfactor * wooddens)
-			// heartwood_radius = sqrt(area_heart / PI)
-			double heartwood_area = (indiv.cmass_heart / indiv.densindiv) /
-				(indiv.height * indiv.pft.formfactor * indiv.pft.wooddens);
-			double heartwood_radius = sqrt(heartwood_area / PI);
-			indiv.sapwood_depth = max(0.0, indiv.diam / 2.0 - heartwood_radius);
+			indiv.sapwood_depth = calc_sapwood_depth(indiv.cmass_heart, indiv.densindiv, indiv.height, indiv.diam, indiv.pft);
 			if (!is_zero(indiv.sa)) {
 				// leaf to sapwood area (unitelss)
 				indiv.latosa = indiv.lai / indiv.sa;

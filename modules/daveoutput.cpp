@@ -387,7 +387,6 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_indiv_litter_pools"             , DAILY, get_pft_litter_pools, "Total Daily PFT-Level C Mass in Litter (kgC/m2)", true);
 	add_indiv_output("file_dave_indiv_sapwood_area"             , DAILY, "sapwood_area", [](const Individual &i) { return i.sa; }, "Sapwood area (m2)");
 	add_indiv_output("file_dave_indiv_sapwood_depth"            , DAILY, "sapwood_depth", [](const Individual &i) { return i.sapwood_depth; }, "Sapwood depth (m)");
-	add_indiv_output("file_dave_closs_hydraulics"               , DAILY, get_closs_hydraulics_cols, "Daily C lost to hydraulic stress (kgC/m2/day)", true);
 	add_indiv_output("file_dave_transpiration_check"            , DAILY, transp_check_columns, "Daily check of old vs new transpiration (mm/day)");
 	add_indiv_output("file_dave_indiv_closs"                    , DAILY, indiv_closs_columns, "Daily individual-level C loss components (kgC/m2/day)", true);
 

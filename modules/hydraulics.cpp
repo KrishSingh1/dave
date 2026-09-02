@@ -377,7 +377,6 @@ void hydraulic_mortality(Patch &patch) {
             double densindiv = indiv.densindiv;
             if (indiv.densindiv > KILL_THRESHOLD) {
                 log_info("Indiv %d (%s): biomass loss due to hydraulic failure", indiv.id, (const char *)pft.name);
-                indiv.closs_hydraulics = indiv.get_cmass_leaf() * MORT_FRAC;
                 indiv.reduce_biomass(MORT_FRAC, 0, indiv.closs_hydraulic, indiv.nloss_hydraulic);
                 indiv.hydraulic_failure = false;
             } else {
@@ -485,7 +484,6 @@ void adjust_kmax(Patch &patch) {
                 // Lost leaves and roots go to litter.
                 indiv.cmass_leaf -= closs_leaf;
                 indiv.nmass_leaf -= nloss_leaf;
-                indiv.closs_kmax = closs_leaf;
                 leaf_to_litter(patch.soil, pft, closs_leaf, nloss_leaf);
 
                 indiv.cmass_root -= closs_root;

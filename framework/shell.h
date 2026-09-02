@@ -26,6 +26,7 @@ void lprintf(xtring format, ...);
 void vlprintf(xtring format, va_list args);
 
 /// A printf-style function that sends the user a message and then terminates.
+[[noreturn]]
 void fail(xtring format,...);
 
 /// Do the last things before exiting the program, e.g. termiante MPI
@@ -102,6 +103,7 @@ public:
 	virtual ~Shell() {}
 
 	/// Sends a message to the user somehow and terminates the program
+	[[noreturn]]
 	virtual void fail(const char* message) = 0;
 
 	/// Do the last things before exiting, e.g. termiante MPI
@@ -161,6 +163,7 @@ public:
 
 	~CommandLineShell();
 
+	[[noreturn]]
 	void fail(const char* message);
 
 	void cleanupAtExit();

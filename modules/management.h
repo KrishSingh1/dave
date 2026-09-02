@@ -262,7 +262,7 @@ struct Harvest_CN {
 	double nstore_labile;
 	double max_n_storage;
 	double nmass_storage;
-
+	double scale_n_storage;
 	double cmass_litter_leaf;
 	double cmass_litter_root;
 	double cmass_litter_sap;
@@ -271,6 +271,7 @@ struct Harvest_CN {
 	double nmass_litter_root;
 	double nmass_litter_sap;
 	double nmass_litter_heart;
+	double nmass_litter_NH4;
 	double acflux_harvest;
 	double anflux_harvest;
 	double cmass_harvested_products_slow; // May contain original slow product pool value before harvest (if copy_dead_C = true in copy_from_indiv())
@@ -288,7 +289,7 @@ struct Harvest_CN {
 		nmass_leaf = nmass_root = nmass_sap = nmass_heart = nmass_ho = nmass_agpool = nmass_dead_leaf = nstore_longterm 
 			= nstore_labile = max_n_storage = 0.0;
 		cmass_litter_leaf = cmass_litter_root = cmass_litter_sap = cmass_litter_heart = 0.0;
-		nmass_litter_leaf = nmass_litter_root = nmass_litter_sap = nmass_litter_heart = 0.0;
+		nmass_litter_leaf = nmass_litter_root = nmass_litter_sap = nmass_litter_heart = nmass_litter_NH4 = 0.0;
 		acflux_harvest = anflux_harvest = 0.0;
 		cmass_harvested_products_slow = nmass_harvested_products_slow = 0.0;
 		acflux_harvest_wood = acflux_harvest_wood_toprod = acflux_harvest_tolitter = 0.0;
@@ -349,6 +350,7 @@ struct Harvest_CN {
 		nstore_longterm = indiv.nstore_longterm;
 		nstore_labile = indiv.nstore_labile;
 		max_n_storage = indiv.max_n_storage;
+		scale_n_storage = indiv.scale_n_storage;
 
 		if(indiv.pft.landcover == CROPLAND) {
 			nmass_ho = indiv.cropindiv->nmass_ho;
@@ -375,6 +377,7 @@ struct Harvest_CN {
 			nmass_litter_root = ppft.nmass_litter_root;
 			nmass_litter_sap = ppft.nmass_litter_sap;
 			nmass_litter_heart = ppft.nmass_litter_heart;
+			nmass_litter_NH4 = ppft.nmass_litter_NH4;
 
 			// acflux_harvest and anflux_harvest only for output
 			cmass_harvested_products_slow = ppft.cmass_harvested_products_slow;
@@ -433,6 +436,7 @@ struct Harvest_CN {
 		indiv.nstore_longterm = nstore_longterm;
 		indiv.nstore_labile = nstore_labile;
 		indiv.max_n_storage = max_n_storage;
+		indiv.scale_n_storage = scale_n_storage;
 
 		if(indiv.pft.landcover == CROPLAND) {
 			indiv.cropindiv->nmass_ho = nmass_ho;
@@ -456,6 +460,7 @@ struct Harvest_CN {
 		ppft.nmass_litter_root = nmass_litter_root;
 		ppft.nmass_litter_sap = nmass_litter_sap;
 		ppft.nmass_litter_heart = nmass_litter_heart;
+		ppft.nmass_litter_NH4 = nmass_litter_NH4;
 
 		if(!lc_change) {
 			patch.fluxes.report_flux(Fluxes::HARVESTC, acflux_harvest);	// Put into gridcell.acflux_landuse_change instead at lcc

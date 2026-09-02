@@ -57,8 +57,8 @@ void lai_crop(Patch& patch) {
 
 		Individual& indiv = vegetation.getobj();
 		cropindiv_struct& cropindiv = *(indiv.get_cropindiv());
-		Patchpft& patchpft = patch.pft[indiv.pft.id];
-		cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+		Patchpft& ppft = patch.pft[indiv.pft.id];
+		cropphen_struct& ppftcrop = *(ppft.get_cropphen());
 
 		if(indiv.pft.phenology == CROPGREEN) {
 
@@ -91,7 +91,7 @@ void lai_crop(Patch& patch) {
 void turnover_grass(Individual& indiv) {
 
 	cropindiv_struct& cropindiv = *(indiv.get_cropindiv());
-	Patchpft& patchpft = indiv.patchpft();
+	Patchpft& ppft = indiv.patchpft();
 
 	double cmass_leaf_inc = cropindiv.grs_cmass_leaf - indiv.cmass_leaf_post_turnover;
 	double cmass_root_inc = cropindiv.grs_cmass_root - indiv.cmass_root_post_turnover;
@@ -110,13 +110,13 @@ void turnover_grass(Individual& indiv) {
 		indiv.pft.turnover_sap, indiv.pft.lifeform, indiv.pft.landcover,
 		indiv.cropindiv->grs_cmass_leaf, indiv.cropindiv->grs_cmass_root, indiv.cmass_sap, indiv.cmass_heart,
 		indiv.nmass_leaf, indiv.nmass_root, indiv.nmass_sap, indiv.nmass_heart,
-		patchpft.cmass_litter_leaf,
-		patchpft.cmass_litter_root,
-		patchpft.cmass_leaf_root_turnover,
-		patchpft.nmass_litter_leaf,
-		patchpft.nmass_litter_root,
+		ppft.cmass_litter_leaf,
+		ppft.cmass_litter_root,
+		ppft.cmass_leaf_root_turnover,
+		ppft.nmass_litter_leaf,
+		ppft.nmass_litter_root,
 		indiv.nstore_longterm, indiv.max_n_storage,
-		true, sap_turnover);
+		true, ppft.nmass_litter_NH4);
 
 	indiv.cmass_leaf_post_turnover = cropindiv.grs_cmass_leaf;
 	indiv.cmass_root_post_turnover = cropindiv.grs_cmass_root;
@@ -131,7 +131,7 @@ void turnover_grass(Individual& indiv) {
 
 	// Scale this year productivity to max storage
 	if (grs_npp > 0.0) {
-		indiv.scale_n_storage = max(indiv.max_n_storage * 0.1, indiv.max_n_storage - retransn_nextyear) * cton_leaf_bg / grs_npp;
+		indiv.scale_n_storage = max(indiv.max_n_storage * 0.1, indiv.max_n_storage - retransn_nextyear) / grs_npp;
 	}
 
 	indiv.nstore_labile = indiv.nstore_longterm;
@@ -177,8 +177,8 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 
 	cropindiv_struct& cropindiv = *(indiv.get_cropindiv());
 	Patch& patch = indiv.vegetation.patch;
-	Patchpft& patchpft = patch.pft[indiv.pft.id];
-	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+	Patchpft& ppft = patch.pft[indiv.pft.id];
+	cropphen_struct& ppftcrop = *(ppft.get_cropphen());
 
 	if (!ppftcrop.growingseason) {
 		return;
@@ -217,7 +217,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 
 	// Retranslocation from the fast C pool to the grains towards the end of the grainfilling period. 
 	// NB, only works for cereals (grasses), needs to be adjusted to work for herb and tuber crops.
-	if (cropindiv.grs_cmass_agpool > 0.0 && patchpft.cropphen->f_alloc_horg > 0.95) {
+	if (cropindiv.grs_cmass_agpool > 0.0 && ppft.cropphen->f_alloc_horg > 0.95) {
 		cmass_extra += 0.1 * cropindiv.grs_cmass_agpool;
 		cropindiv.ycmass_agpool -= 0.1 * cropindiv.grs_cmass_agpool;
 		cropindiv.grs_cmass_agpool *= 0.9;
@@ -230,7 +230,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 	if (indiv.daily_cmass_leafloss > 0.0) {
 
 		// Daily C mass leaf increment.
-		cropindiv.dcmass_leaf = (indiv.dnpp + cmass_extra) * patchpft.cropphen->f_alloc_leaf - indiv.daily_cmass_leafloss;
+		cropindiv.dcmass_leaf = (indiv.dnpp + cmass_extra) * ppft.cropphen->f_alloc_leaf - indiv.daily_cmass_leafloss;
 		cropindiv.grs_cmass_dead_leaf += indiv.daily_cmass_leafloss;
 		cropindiv.ycmass_dead_leaf += indiv.daily_cmass_leafloss;
 		if (indiv.daily_cmass_leafloss / 100.0<indiv.nmass_leaf) {
@@ -256,7 +256,7 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 		// Very experimental, root senescence
 		// N and C loss when root senescence is allowed (f_HO > 0.5)
 		// d3, the DS after which more than half of the daily assimilates are going to the grains.
-		if(patchpft.cropphen->dev_stage > indiv.pft.d3) {
+		if(ppft.cropphen->dev_stage > indiv.pft.d3) {
 
 			// only have root senescence when leaf scenescence has occured
 			if (indiv.daily_nmass_leafloss > 0.0) {
@@ -279,30 +279,32 @@ void allocation_crop_nlim(Individual& indiv, double cmass_seed, double nmass_see
 		cropindiv.nmass_agpool += indiv.daily_nmass_leafloss;
 	}
 	else {
-		cropindiv.dcmass_leaf = (indiv.dnpp + cmass_extra) * patchpft.cropphen->f_alloc_leaf;
+		cropindiv.dcmass_leaf = (indiv.dnpp + cmass_extra) * ppft.cropphen->f_alloc_leaf;
 	}
-	cropindiv.dcmass_stem = (indiv.dnpp + cmass_extra) * patchpft.cropphen->f_alloc_stem;
+	cropindiv.dcmass_stem = (indiv.dnpp + cmass_extra) * ppft.cropphen->f_alloc_stem;
 
 	if (indiv.daily_cmass_rootloss > indiv.cmass_root_today())
 		indiv.daily_cmass_rootloss = 0.0;
 
-	cropindiv.dcmass_root = (indiv.dnpp + cmass_extra) * patchpft.cropphen->f_alloc_root - indiv.daily_cmass_rootloss;
+	cropindiv.dcmass_root = (indiv.dnpp + cmass_extra) * ppft.cropphen->f_alloc_root - indiv.daily_cmass_rootloss;
 
 	// The lost root C is directly put into the litter.
-	patch.soil.sompool[SOILMETA].cmass += indiv.daily_cmass_rootloss;
+	for (int lyr = 0; lyr < patch.soil.nsoillayers; lyr++)
+		patch.soil.soillayers[lyr].sompool[SOILMETA].cmass += indiv.daily_cmass_rootloss * ppft.rootdist[lyr];
 
 	if (indiv.daily_nmass_rootloss < indiv.nmass_root) {
 		indiv.nmass_root -= indiv.daily_nmass_rootloss;
 
 		// 50% of the N in the lost root is retranslocated, the rest is going to litter.
 		cropindiv.nmass_agpool += indiv.daily_nmass_rootloss * 0.5;
-		patch.soil.sompool[SOILMETA].nmass += indiv.daily_nmass_rootloss * 0.5;
+		for (int lyr = 0; lyr < patch.soil.nsoillayers; lyr++)
+			patch.soil.soillayers[lyr].sompool[SOILMETA].nmass += indiv.daily_nmass_rootloss * 0.5 * ppft.rootdist[lyr];
 	}
 	if (indiv.daily_cmass_rootloss > 0.0){
 		patch.is_litter_day = true;
 	}
 
-	cropindiv.dcmass_ho = (indiv.dnpp + cmass_extra) * patchpft.cropphen->f_alloc_horg;
+	cropindiv.dcmass_ho = (indiv.dnpp + cmass_extra) * ppft.cropphen->f_alloc_horg;
 	cropindiv.dcmass_plant = cropindiv.dcmass_ho + cropindiv.dcmass_root + cropindiv.dcmass_stem + cropindiv.dcmass_leaf;
 
 	// Add the daily increments to the annual and growing season variables.
@@ -400,8 +402,8 @@ void allocation_crop(Individual& indiv, double cmass_seed, double nmass_seed) {
 
 	cropindiv_struct& cropindiv = *(indiv.get_cropindiv());
 	Patch& patch = indiv.vegetation.patch;
-	Patchpft& patchpft = patch.pft[indiv.pft.id];
-	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+	Patchpft& ppft = patch.pft[indiv.pft.id];
+	cropphen_struct& ppftcrop = *(ppft.get_cropphen());
 
 	nmass_seed = 0.0;	// for compatibility with previous code, doesn't affect crop growth
 
@@ -479,8 +481,8 @@ void growth_daily_crop(Patch& patch) {
 
 		Individual& indiv = vegetation.getobj();
 		cropindiv_struct& cropindiv = *(indiv.get_cropindiv());
-		Patchpft& patchpft = patch.pft[indiv.pft.id];
-		cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+		Patchpft& ppft = patch.pft[indiv.pft.id];
+		cropphen_struct& ppftcrop = *(ppft.get_cropphen());
 
 		if (date.day == 0) {
 
@@ -598,7 +600,7 @@ void growth_daily_crop(Patch& patch) {
 				patch.isharvestday = true;
 
 				if(indiv.has_daily_turnover()) {
-					if(lc.updated && patchpft.cropphen->nharv == 1)
+					if(lc.updated && ppft.cropphen->nharv == 1)
 						scale_indiv(indiv, true);
 					harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, true);
 					patch.is_litter_day = true;
@@ -695,7 +697,7 @@ void growth_daily_crop(Patch& patch) {
 					patch.nharv--;
 
 				if(indiv.has_daily_turnover()) {
-					if(lc.updated && patchpft.cropphen->nharv == 1)
+					if(lc.updated && ppft.cropphen->nharv == 1)
 						scale_indiv(indiv, true);
 					harvest_crop(indiv, indiv.pft, indiv.alive, indiv.cropindiv->isintercropgrass, true);
 					patch.is_litter_day = true;
@@ -735,7 +737,7 @@ void growth_daily_crop(Patch& patch) {
 					patch.nharv--;
 
 				if(indiv.has_daily_turnover()) {
-					if(lc.updated && patchpft.cropphen->nharv == 1)
+					if(lc.updated && ppft.cropphen->nharv == 1)
 						scale_indiv(indiv, true);
 
 					turnover_grass(indiv);

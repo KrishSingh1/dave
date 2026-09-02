@@ -20,11 +20,11 @@
 
 void interception(Patch& patch, Climate& climate);
 void canopy_exchange(Patch& patch, Climate& climate);
-void photosynthesis(const PhotosynthesisEnvironment& ps_env, 
+void photosynthesis(const PhotosynthesisEnvironment& ps_env,
 					const PhotosynthesisStresses& ps_stresses,
+					const PhotosynthesisLeafstatus& ps_status,
 					const Pft& pft,
-					double lambda, 
-					double nactive, 
+					double lambda,
 					double vm,
 					PhotosynthesisResult& result);
 
@@ -38,7 +38,13 @@ double alphaa(const Pft& pft);
  *  A = (2^1/2 + 1) * PI * r^2
  *  -> A = const * cmass_root^2/3
  */
-double nitrogen_uptake_strength(const Individual& indiv);
+double nutrient_uptake_strength(double cmass_root, double cton_status,
+								double densindiv,
+								double rootdist[NSOILLAYERS_MAX],
+								double nfrac[NSOILLAYERS_MAX], int nsoillayer);
+
+// Minimum available N for uptake to take place
+const double N_min = 1.0e-12;
 
 /// Use nitrogen storage to limit stress
 void nstore_usage(Vegetation& vegetation);
@@ -60,17 +66,13 @@ void ndemand(Patch& patch, Vegetation& vegetation);
 
 void nitrogen_uptake(Vegetation &vegetation);
 
-double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, double rootdist[NSOILLAYER], double fwuptake[NSOILLAYER]);
+double water_uptake(double wcont[NSOILLAYERS_MAX], double awc[NSOILLAYERS_MAX],
+	double rootdist[NSOILLAYERS_MAX], double emax, double fpc_rescale,
+	double fwuptake[NSOILLAYERS_MAX], bool ifsmart, double species_drought_tolerance,
+	double Rs_r[NSOILLAYERS_MAX], int nsoillayers);
+double irrigated_water_uptake(Patch& patch, Pft& pft, const Day& day, double rootdist[NSOILLAYERS_MAX], double fwuptake[NSOILLAYERS_MAX]);
 
-double water_uptake_twolayer(double wcont[NSOILLAYER], double awc[NSOILLAYER],
-	double rootdist[NSOILLAYER], double emax, double fpc_rescale,
-	double fwuptake[NSOILLAYER], bool ifsmart, double species_drought_tolerance);
-
-
-double water_uptake(double wcont[NSOILLAYER], double awc[NSOILLAYER],
-	double rootdist[NSOILLAYER], double emax, double fpc_rescale,
-	double fwuptake[NSOILLAYER], bool ifsmart, double species_drought_tolerance,
-	double Rs_r[NSOILLAYER]);
+void vegetation_n_uptake(Patch& patch);
 
 // Constants for photosynthesis calculations
 
@@ -241,7 +243,6 @@ const double alpha_PSII = 0.01;  // assumed 0 in von Caemmerer 2000, but so is R
 // see Wania et al. (2009b)
 const double BC_moss = 0.03;
 
-const double CMASS = 12.0;		// atomic mass of carbon
 const double ALPHAA = 0.5;		// value chosen to give global carbon pool and flux values that
 								// agree with published estimates.
 								// scaling factor for PAR absorption from leaf to plant projective area level
@@ -254,10 +255,30 @@ const double ALPHAA_NLIM = 0.6;	// Same as ALPHAA above but chosen to give pools
 const double ALPHAA_CROP = 0.7;			// Value for crops without N limitation.
 const double ALPHAA_CROP_NLIM = 0.9;	// Value for crops with N limitation
 
+// Nitrogen follow Haxeltine & Prentice 1996b
+// Leaf nitrogen (kg N kg-1 C) not associated with photosynthesis
+const double N0 = KG_PER_G * 7.15;
+// Parameter p in Eqn 28, Haxeltine & Prentice 1996b
+const double M = 25.0;
+
+/// Michaelis-Menten kinetic parameters
+// Rate of nitrogen uptake not associated with Michaelis-Menten Kinetics (Zaehle and Friend 2010)
+const double KmNmin = 0.05;
+// Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000)
+const double KmN_volume = 0.000001477;
+
+// Maximum nitrogen (NH4+ and NO3- combined) uptake per fine root [kgN kgC-1 day-1] (Thum et al. 2019 eqn S73, Table S4)
+// const double nuptoroot = 0.0423 * 2.0;
+
 /// Lambert-Beer extinction law (Prentice et al 1993; Monsi & Saeki 1953)
-inline double lambertbeer(double lai, double k=0.5) {
+const double Kb = 0.5;
+inline double lambertbeer(double lai, double k=Kb) {
 	return exp(-k * lai);
 }
+
+// Added a scalar depending on individual lai to slow down light optimization of newly shaded leaves
+// Peltoniemi et al. 2012
+const double Kn = 0.19;
 
 /// Alternative parameterisations of the convective boundary layer
 /**

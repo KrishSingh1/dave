@@ -21,7 +21,6 @@ ifdavegrowth             1   ! DAVE growth scheme
 ifdavehydrology          1   ! DAVE hydrology updates
 ifdavehydraulics         1   ! DAVE hydraulics scheme (requires davephotosyn and davehydrology)
 ifzhou                   1   ! Zhou response of photosynthesis to water stress (via water potential). Requires ifdavehydrology
-ifdavediagnostics        0   ! DAVE mass balance diagnostics
 ifapproximate_C4         1   ! Use approximation of von Caemmerer 2000 C4 photosynthesis model?
 use_mean_annual_co2      1   ! If true, each day's CO2 value will be the mean annual co2 for the current year. Otherwise, a mean of that day's subdaily data will be used.
 ifevenlaidist            1   ! Whether LAI is distributed evenly across canopy layers for grasses.
@@ -38,9 +37,34 @@ ifdailycstarvmort        1   ! Turn on/off daily carbon starvation mortality in 
 penman_monteith          1   ! Whether to use penman-monteith equation to calculate transpiration, or the relationship with VPD.
 est_live_repr            0   ! Whether to use live reproductive biomass (1) or total annual allocation to reproduction (0) for spatial mass effect.
 
-! Soil Data
+! Soil Data, homogenous with depth.
 file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one
 ! file_soildata         		  "../forcing/slga.ozflux.dat"        ! from soil & landscape grid
+
+! If using homogenous soil texture, set sand/clay input files to empty string.
+param "file_soilclay"         (str "")
+param "file_soilsand"         (str "")
+
+! Alternatively, if we want soil texture to vary by layer:
+!param "file_soilclay"         (str "../forcing/soil/CLAY_global.txt")
+!param "file_soilsand"         (str "../forcing/soil/SAND_global.txt")
+!param "file_soilcoarse"       (str "../forcing/soil/COARSE_global.txt")
+!param "file_soilpH"           (str "../forcing/soil/PH_WATER_global.txt")
+
+! Soil Slope can be read in or set from the .ins file.
+param "file_soilslope"        (str "../forcing/soil/slope_data.txt")
+
+! Whether to use fixed slope value (>=0 degree) or input data (<0).
+slope -1
+
+! Soil depth can be read in or set from the .ins file. Depth affects how much
+! water the soil can hold, how organic matter and roots are distributed, and
+! many other things.
+param "file_soildepth"        (str "../forcing/soil/Soildepth_log_mean.txt")
+
+! Soil depth (mm) (0 = use soil depth input data, >0 fixed soil depth according
+! to depth_soil).
+depth_soil 0
 
 ! Simfire Data
 param "file_simfire"          (str "../forcing/SimfireInput.bin")                        ! Relative to the main .ins file, not this one
@@ -192,13 +216,14 @@ ifcalccton 0            ! Whether to calculate leaf C:N min from leaf longevity
                 ! (PFT-specific value can be specified in this file instead)
 firemodel "NOFIRE"        ! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"    ! GWGEN, INTERP
+hydrology "RICHARDS"		! GERTEN, MILLER, RICHARDS
+energy "CNSTEP_FULL"		! CNSTEP_FULL, CNSTEP, BELDA
 npatch       1          ! Number of replicate patches to simulate
 patcharea    1000       ! Patch area (m2)
 
 ifcdebt 1            ! Whether to allow vegetation C storage (1) or not (0)
 wateruptake "root_resistance"      ! "wcont", "rootdist", "smart" or "speciesspecific", "root_resistance"
                          ! see documentation for water_uptake()
-rootdistribution "jackson"    ! How to parameterise root distribution. Alternatives are "fixed" or "jackson".
 textured_soil 1                 ! Whether to use silt/sand fractions specific to soiltype
 ifsmoothgreffmort 1        ! Whether to vary mort_greff smoothly with growth efficiency (1)
                 ! or to use the standard step-function (0)
@@ -237,22 +262,12 @@ ifstochmort 1            ! Whether mortality stochastic
 ! ARCTIC AND WETLAND SWITCHES
 !///////////////////////////////////////////////////////////////////////////////
 
-iftwolayersoil 0		! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
-				! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
-				! ifmultilayersnow must all be 0 if iftwolayersoil = 1
-				! Furthermore, run_peatland must be 0 when using the two layer soil, and 
-				! rootdistribution must be "fixed"
-
-ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
-iforganicsoilproperties 0	! Whether to update physical soil properties using soil carbon content 
-				! (applies only to non peatland, mineral stands not classified as organic)
-ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
-
 ! WETLAND SWITCHES (no effect when run_peatland 0)
 ifinundationstress 1		! Whether to reduce daily GPP if there's inundation on peatlands (1), or not (0)
 wetland_runon 0			! Extra daily water input to (>0), or output from (<0), wetlands (mm/day). 
 				! 0 by default, non-zero for site specific studies.
 ifmethane 0			! Whether to run the methane model and calculate methane fluxes
+peat_age 0 ! Age of peat (0 = peat will be spun up to equilibrium)
 ifsaturatewetlands 0		! Whether to take water from runoff to saturate low latitide wetlands (1), or not (0)
 
 
@@ -262,34 +277,98 @@ ifsaturatewetlands 0		! Whether to take water from runoff to saturate low latiti
 
 ifcentury 1            ! Whether to use CENTURY SOM dynamics (mandatory for N cycling)
 ifnlim 1            ! Whether plant growth limited by available N
+ifdailynretrans 1 ! Whether daily retranslocation of N is allowed.
 freenyears 100            ! Number of years to spin up without N limitation (needed to build up a N pool)
 nfix_a 0.102            ! First term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)
 nfix_b 0.524            ! Second term in N fixation eqn (Conservative 0.524, Central -0.172, Upper -0.754)
 nrelocfrac 0.5            ! Fraction of N retranslocated prior to leaf and root shedding
 
-
 !///////////////////////////////////////////////////////////////////////////////
-! ARCTIC AND WETLAND SWITCHES
+! Soil Parameters
 !///////////////////////////////////////////////////////////////////////////////
 
-!iftwolayersoil 0        ! Use the original LPJ-GUESS v4 two layer soil and snow scheme, or not (0, by default). 
-                ! Of the switches below, iforganicsoilproperties, ifcarbonfreeze and 
-                ! ifmultilayersnow must all be 0 if iftwolayersoil = 1
-                ! Furthermore, run_peatland must be 0 when using the two layer soil, and 
-                ! rootdistribution must be "fixed"
+! Soil depth (mm) (0 = use soil depth input data, >0 fixed soil depth according
+! to depth_soil).
+depth_soil 0
 
-!ifmultilayersnow 1         ! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
-!iforganicsoilproperties 0    ! Whether to update physical soil properties using soil carbon content 
-                ! (applies only to non peatland, mineral stands not classified as organic)
-!ifcarbonfreeze 1        ! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
+! Whether to use silt/sand fractions specific to soiltype (1), or not (0).
+! Keep this set to 1
+textured_soil 1
 
-! WETLAND SWITCHES (no effect when run_peatland 0)
-!ifinundationstress 1        ! Whether to reduce daily GPP if there's inundation on peatlands (1), or not (0)
-!wetland_runon 0            ! Extra daily water input to (>0), or output from (<0), wetlands (mm/day). 
-                ! 0 by default, non-zero for site specific studies.
-!ifmethane 0            ! Whether to run the methane model and calculate methane fluxes
-!ifsaturatewetlands 0        ! Whether to take water from runoff to saturate low latitide wetlands (1), or not (0)
+! Variable infiltration capacity parameter (Global value 0.2 (Schaperow et al.
+! 2021), higher value gives lower infiltration and more surface runoff)
+b_infilt 0.2
 
+! Calibration parameter for lateral drainage
+C_dw 1.0
+
+! Whether to consider bedrock as lower boundary condition for multilayer soil
+! hydrology. I always assume that we have the bedrock in the bottom of the soil,
+! hence at soil depth. Keep this set to 1!
+ifbedrock 1
+
+! This is if you like water to stay liquid after the soil and water goes below
+! zero degree celcius. 0 you don't allow this 1 and 2 are two different schemes
+! to calculate how much water that should be super cooled. I don't think this
+! will be important for Australia...
+!
+! Whether to consider supercooled soil water. 0 - not, 1 - Niu et al. 2006 (CLM,
+! default), 2 - Jin et al. 2020.
+ifsupercooled 1
+
+! Fraction of fine roots to be homogenously distributed in soil column. 0=none,
+! 0.5=50%, 1=all
+homrootdistfrac 0.0
+
+! Fraction of deep soil, beyond 1500 mm, that roots have access to.
+rootfrac_of_deep_soil 0.0
+
+! This is a calibration parameter for vertical movement of organic and mineral
+! matter when root or organic matter content changes. No need to change it. I'll
+! calibrate it when I benchmark the model against data.
+!
+! Fraction of organic matter to move from receiver layer.
+receiver_frac 0.5
+
+! Old or new snow scheme. Always use the new scheme!
+! 0 is the old, single-layer scheme. 1 by default (applies to all stand types).
+ifmultilayersnow 1
+
+! Whether to soak snowpack with melted water.
+ifsoaksnow 1
+
+! Additional thickness (mm) on top of snowpack to account for radiation energy.
+! Important for the energy balance calculation of the snow, soil, and padding
+! layers. Keep it set to 100 mm.
+top_thickness 100.0
+
+! Whether to update physical soil properties using soil carbon content.
+iforganicsoilproperties 1
+
+! Whether soil layer volume is affected by coarse root biomass taking up space.
+ifeffvolume 1
+
+! Whether to use depth soil organic matter decay rate modifier
+ifdepthdecaymod 1
+
+! Whether to allow some decomposition below 0 degC in upland soils.
+ifcarbonfreeze 1
+
+! Whether thaw depth affects root distribution.
+ifthawaffectrootdist 1
+
+! This is just a setting for whch soil moisture decomposition rate modifier to
+! use. Standard in trunk is Friend which is very simple and old. Have also
+! implemented a newer modifer (Yan et al) which you could choose to use.
+! Valid values: "FRIEND" (standard), "YAN"
+moistdecay "YAN"
+
+! And finally here are three scalars that will affect the maximum decomposition
+! rate of certain soil organic pools and litter pools. Will be calibrated when I
+! benchmark the model against observations so keep as is.
+surf_li_scalar 1.0 !0.4
+soil_om_scalar 2.0 !2.05 !2.5
+moist_mod_anaerobic 0.075
 
 !///////////////////////////////////////////////////////////////////////////////
 ! SERIALIZATION SETTINGS

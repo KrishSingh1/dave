@@ -106,6 +106,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 			// Calculate crop sowing dates
 			crop_sowing_patch(patch);
+
 			// Crop phenology
 			crop_phenology(patch);
 
@@ -115,6 +116,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// Interception
 			interception(patch, gridcell.climate);
 
+			// Initial infiltration
 			initial_infiltration(patch, gridcell.climate);
 
 			// Photosynthesis, respiration, evapotranspiration
@@ -123,7 +125,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 			// Sum total required irrigation
 			irrigation(patch);
 
-			// Soil water accounting, snow pack accounting
+			// Soil water and snow pack accounting
 			soilwater(patch, gridcell.climate);
 
 			// Daily C allocation
@@ -170,6 +172,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 				// For each patch ...
 				Patch& patch = stand.getobj();
+
 				// Establishment, mortality and disturbance by fire
 				vegetation_dynamics(stand, patch);
 				stand.nextobj();
@@ -255,6 +258,9 @@ int framework(const CommandLineArguments& args) {
 		// Read landcover and cft fraction data from 
 		// data files for the spinup period and create stands
 		landcover_init(gridcell, input_module.get());
+
+		// Set soil depth dependent properties
+		gridcell.set_soillayer_properties();
 
 		if (restart) {
 			// Get the whole grid cell from file...

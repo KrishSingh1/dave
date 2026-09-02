@@ -46,7 +46,7 @@ DaveOutput::DaveOutput() {
 
 	// Annual patch-level outputs.
 	add_patch_output("file_dave_patch_age"                      , ANNUAL, "age", [](const Patch &p) { return 1.0 * p.age; }, "Annual patch-level age since last disturbance (years)");
-	add_patch_output("file_dave_arunoff"                        , ANNUAL, runoff_columns, "Annual runoff (mm)");
+	add_patch_output("file_dave_arunoff"                        , ANNUAL, annual_runoff_columns, "Annual runoff (mm)");
 	add_patch_output("file_dave_acpool"                         , ANNUAL, cpool_columns, "Annual C pools (kgC/m2)", true);
 	add_patch_output("file_dave_anpool"                         , ANNUAL, npool_columns, "Annual N pools (kgN/m2)");
 	add_patch_output("file_dave_acflux"                         , ANNUAL, cflux_columns, "Annual C flux (kgC/m2)");
@@ -82,10 +82,10 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_adensity"            , ANNUAL, [](const Individual &i) { return i.densindiv; }, "Annual density of individuals over patch (/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_altor"               , ANNUAL, [](const Individual &i) { return i.ltor; }, "Annual leaf to root ratio (unitless)", mean, true);
 	add_aggregated_indiv_output("file_dave_anuptake"            , ANNUAL, [](const Individual &i) { return i.anuptake; }, "Total annual nitrogen uptake (kgN/m2/year)", sum, true);
-	add_aggregated_indiv_output("file_dave_a_aboveground_cmass" , ANNUAL, [](const Individual &i) { return i.get_cmass_leaf() + i.cmass_sap + i.cmass_heart + i.cmass_repr; }, "Annual total above-ground C biomass (kgC/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_a_belowground_cmass" , ANNUAL, [](const Individual &i) { return i.cmass_root + i.cmass_crown; }, "Annual total below-ground C biomass (kgC/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_a_aboveground_nmass" , ANNUAL, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_sap + i.nmass_heart + i.nmass_repr; }, "Annual total above-ground N biomass (kgN/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_a_belowground_nmass" , ANNUAL, [](const Individual &i) { return i.nmass_root + i.nmass_crown; }, "Annual total below-ground N biomass (kgN/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_a_aboveground_cmass" , ANNUAL, [](const Individual &i) { return i.get_cmass_leaf() + i.cmass_wood() * i.pft.ag_woody_frac + i.cmass_repr; }, "Annual total above-ground C biomass (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_a_belowground_cmass" , ANNUAL, [](const Individual &i) { return i.cmass_root + i.cmass_crown + i.cmass_wood() * (1.0 - i.pft.ag_woody_frac); }, "Annual total below-ground C biomass (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_a_aboveground_nmass" , ANNUAL, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_wood() * i.pft.ag_woody_frac + i.nmass_repr; }, "Annual total above-ground N biomass (kgN/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_a_belowground_nmass" , ANNUAL, [](const Individual &i) { return i.nmass_root + i.nmass_crown + i.nmass_wood() * (1.0 - i.pft.ag_woody_frac); }, "Annual total below-ground N biomass (kgN/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_aresponse_window"    , ANNUAL, [](const Individual &i) { return (double)i.get_wscal_dynamic_capacity(); }, "Annual output of response window length (days)", mean);
 	add_aggregated_indiv_output("file_dave_anretranslocated"    , ANNUAL, [](const Individual &i) { return i.anretranslocated; }, "Annual nitrogen retranslocated (kgN/m2)", sum);
 	add_aggregated_indiv_output("file_dave_amort_greff"         , ANNUAL, [](const Individual &i) { return i.mort_greff; }, "Annual PFT-level growth-efficiency-related mortality, expressed as fraction of individuals within the cohort which died this year, summed across all indivs of a given PFT.", sum);
@@ -142,7 +142,7 @@ DaveOutput::DaveOutput() {
 	// Daily patch-level outputs.
 	add_patch_output("file_dave_daylength"                      , DAILY, "daylength", [](const Patch &p) { return p.get_climate().daylength; }, "Daily patch-level day-length (h)");
 	add_patch_output("file_dave_cpool"                          , DAILY, cpool_columns, "Daily C pools (kgC/m2)", true);
-	add_patch_output("file_dave_soil_nmass_avail"               , DAILY, "nmass", [](const Patch &p) { return p.soil.get_nmass_avail(); }, "Available Soil N for plant uptake");
+	add_patch_output("file_dave_soil_nmass_avail"               , DAILY, "nmass", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &layer) { return layer.NO3_mass + layer.NH4_mass; }); }, "Available Soil N for plant uptake");
 	add_patch_output("file_dave_soil_nh4_mass"                  , DAILY, "nh4_mass", [](const Patch &p) { return p.soil.NH4_mass; }, "NH4 mass in soil (kgN/m2)");
 	add_patch_output("file_dave_soil_no3_mass"                  , DAILY, "no3_mass", [](const Patch &p) { return p.soil.NO3_mass; }, "NO3 mass in soil (kgN/m2)");
 	add_patch_output("file_dave_dsimfire"                       , DAILY, simfire_columns, "Daily simfire analysis");
@@ -167,27 +167,27 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_sompool_ntoc"                   , DAILY, sompool_ntoc_columns, "Daily SOM pool N to C ratio (kgN/kgC)");
 	add_patch_output("file_dave_ninput"                         , DAILY, ninput_columns, "Daily nitrogen deposition (kgN/m2)");
 	add_patch_output("file_dave_fpar_ff"                        , DAILY, "fpar_ff", [](const Patch &p) { return p.fpar_ff; }, "Forest floor fpar (0-1)");
-	add_patch_output("file_dave_aet"                            , DAILY, aet_columns, "Daily patch-level evaporation (mm)", true);
+	add_patch_output("file_dave_aet"                            , DAILY, daily_aet_columns, "Daily patch-level evaporation (mm)", true);
 	add_patch_output("file_dave_fevap"                          , DAILY, fevap_columns, "Daily patch-level fraction of patch subject to soil evap", true);
 	add_patch_output("file_dave_resp_heterotrophic"             , DAILY, "resp_heterotrophic", [](const Patch &p) { return p.fluxes.get_daily_flux(Fluxes::SOILC, date.day) * G_PER_KG; }, "Daily carbon flux to atmosphere from soil respiration (gC/m2/day)");
 	add_patch_output("file_dave_resp"                           , DAILY, "resp", get_er, "Daily patch-level ecosystem respiration (gC/m2/day)");
 	add_patch_output("file_dave_gpp"                            , DAILY, "gpp", get_gpp, "Daily patch-level GPP (gC/m2/day)");
 	add_patch_output("file_dave_npp"                            , DAILY, "npp", get_npp, "Daily patch-level NPP (gC/m2/day)");
 	add_patch_output("file_dave_nee"                            , DAILY, "nee", get_nee, "Daily patch-level NEE (gC/m2/day)");
-	add_patch_output("file_dave_evaporation"                    , DAILY, evap_columns, "Daily patch-level evaporation (mm/day)");
+	add_patch_output("file_dave_evaporation"                    , DAILY, daily_evap_columns, "Daily patch-level evaporation (mm/day)");
 	add_patch_output("file_dave_soilc"                          , DAILY, soil_cmass_columns, "Daily soil carbon content (kgC/m2)", true);
 	add_patch_output("file_dave_soiln"                          , DAILY, soil_nmass_columns, "Daily soil nitrogen content (kgN/m2)", true);
-	add_patch_output("file_dave_soil_psi"                       , DAILY,"soil_psi", [](const Patch &p) { return p.soil.soil_psi; }, "Soil psi (MPa)");
+	add_patch_output("file_dave_soil_psi"                       , DAILY,"soil_psi", [](const Patch &p) { return mean_layers(p.soil, [](const Soillayer &l) { return l.psi_mpa(); }); }, "Soil psi (MPa)");
 	add_patch_output("file_dave_pet"                            , DAILY, "pet", [](const Patch &patch) { return patch.stand.get_gridcell().climate.eet; }, "Daily potential patch-level evapotranspiration (mm)");
-	add_patch_output("file_dave_swmm_10"                        , DAILY, "total", [](const Patch &p) { return get_soil_moisture(p.soil, 0, 1); }, "Soil Moisture at depth: 0-0.1m (mm)");
-	add_patch_output("file_dave_swmm_100"                       , DAILY, "total", [](const Patch &p) { return get_soil_moisture(p.soil, 1, 10); }, "Soil Moisture at depth: 0.1-1m (mm)");
+	add_patch_output("file_dave_swmm_10"                        , DAILY, "total", [](const Patch &p) { return get_soil_moisture(p.soil, 0, 100); }, "Soil Moisture at depth: 0-0.1m (mm)");
+	add_patch_output("file_dave_swmm_100"                       , DAILY, "total", [](const Patch &p) { return get_soil_moisture(p.soil, 100, 1000); }, "Soil Moisture at depth: 0.1-1m (mm)");
 	add_patch_output("file_dave_swmm_600"                       , DAILY, "total", [](const Patch &p) { return get_6m_soil_moisture_estimate(p.soil); }, "Soil Moisture at depth: 0.1-1m (mm)");
-	add_patch_output("file_dave_swavail_100"                    , DAILY, "total", [](const Patch &p) { return get_available_soil_moisture(p.soil, 1, 10); }, "Available Soil Moisture at depth: 0.1-1m (mm)");
+	add_patch_output("file_dave_swavail_100"                    , DAILY, "total", [](const Patch &p) { return get_available_soil_moisture(p.soil, 100, 1000); }, "Available Soil Moisture at depth: 0.1-1m (mm)");
 	add_patch_output("file_dave_water_budget_daily"             , DAILY, water_budget_cols_daily, "Daily water budget (mm)");
 	add_patch_output("file_dave_nitrogen_budget_daily"          , DAILY, nitrogen_budget_cols_daily, "Daily nitrogen budget (kgN/m2)");
 	add_patch_output("file_dave_dnpool"                         , DAILY, npool_columns, "Daily N pools (kgN/m2)");
-	add_patch_output("file_dave_wcont_upper"                    , DAILY, "wcont", [](const Patch &p) { return p.soil.get_soil_water_upper(); }, "Daily soil moisture in the upper 50cm (0-1)");
-	add_patch_output("file_dave_soiltemp25"                     , DAILY, "soiltemp25", [](const Patch &p) { return p.soil.get_soil_temp_25(); }, "Daily soil temperature at 25cm (°C)");
+	add_patch_output("file_dave_wcont_upper"                    , DAILY, "wcont", [](const Patch &p) { return p.soil.var_depth(0, SOILDEPTH_UPPER, &Soillayer::wcont); }, "Daily soil moisture in the upper 50cm (0-1)");
+	add_patch_output("file_dave_soiltemp25"                     , DAILY, "soiltemp25", [](const Patch &p) { return p.soil.temp_at_depth(25 * MM_PER_CM); }, "Daily soil temperature at 25cm (°C)");
 	add_patch_output("file_dave_clitter"                        , DAILY, clitter_columns, "Daily C Mass in Litter (kgC/m2)", true);
 	add_patch_output("file_dave_nlitter"                        , DAILY, nlitter_columns, "Daily N Mass in Litter (kgN/m2)", true);
 	add_patch_output("file_dave_patch_ba"                       , DAILY, "total", get_patch_ba, "Total daily patch-level basal area (m2/ha)");
@@ -309,11 +309,11 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_anp_frac"            , DAILY, [](const Individual &i) { return i.anp_frac; }, "Daily anp as fraction of total daily photosynthesis (0-1)", mean, false, false);
 	add_aggregated_indiv_output("file_dave_dnuptake"            , DAILY, [](const Individual &i) { return i.dnuptake; }, "Total daily nitrogen uptake (kgN/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_cexcess"             , DAILY, [](const Individual &i) { return i.cexcess; }, "Total daily carbon overflow (kgC/m2/day)", sum, true);
-	add_aggregated_indiv_output("file_dave_aboveground_cmass"   , DAILY, [](const Individual &i) { return i.get_cmass_leaf() + i.cmass_sap + i.cmass_heart + i.cmass_repr; }, "Daily above-ground C biomass (kgC/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_belowground_cmass"   , DAILY, [](const Individual &i) { return i.cmass_root + i.cmass_crown; }, "Daily below-ground C biomass (kgC/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_aboveground_nmass"   , DAILY, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_sap + i.nmass_heart + i.nmass_repr; }, "Daily above-ground N biomass (kgN/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_belowground_nmass"   , DAILY, [](const Individual &i) { return i.nmass_root + i.nmass_crown; }, "Daily below-ground N biomass (kgN/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_aboveground_tree_biomass", DAILY, [](const Individual &i) { return i.pft.is_grass() ? 0 : 2.0 * (i.cmass_leaf + i.cmass_sap + i.cmass_heart/* + i.cmass_storage*/); }, "Daily total above-ground tree biomass (kg/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_aboveground_cmass"   , DAILY, [](const Individual &i) { return i.get_cmass_leaf() + i.cmass_wood() * i.pft.ag_woody_frac + i.cmass_repr; }, "Daily above-ground C biomass (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_belowground_cmass"   , DAILY, [](const Individual &i) { return i.cmass_root + i.cmass_crown + i.cmass_wood() * (1.0 - i.pft.ag_woody_frac); }, "Daily below-ground C biomass (kgC/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_aboveground_nmass"   , DAILY, [](const Individual &i) { return i.get_nmass_leaf() + i.nmass_wood() * i.pft.ag_woody_frac + i.nmass_repr; }, "Daily above-ground N biomass (kgN/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_belowground_nmass"   , DAILY, [](const Individual &i) { return i.nmass_root + i.nmass_crown + i.nmass_wood() * (1.0 - i.pft.ag_woody_frac); }, "Daily below-ground N biomass (kgN/m2)", sum, true);
+	add_aggregated_indiv_output("file_dave_aboveground_tree_biomass", DAILY, [](const Individual &i) { return i.pft.is_grass() ? 0 : 2.0 * (i.cmass_leaf + i.cmass_wood() * i.pft.ag_woody_frac /* + i.cmass_storage*/); }, "Daily total above-ground tree biomass (kg/m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_csenesc"             , DAILY, [](const Individual &i) { return G_PER_KG * i.csenesc; }, "Daily total C senesced by grasses (gC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_closs_temp"          , DAILY, [](const Individual &i) { return i.closs_temp; }, "Daily C lost to high temperature (kgC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_nloss_temp"          , DAILY, [](const Individual &i) { return i.nloss_temp; }, "Daily N lost to high temperature (kgN/m2/day)", sum, true);
@@ -387,14 +387,15 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_indiv_litter_pools"             , DAILY, get_pft_litter_pools, "Total Daily PFT-Level C Mass in Litter (kgC/m2)", true);
 	add_indiv_output("file_dave_indiv_sapwood_area"             , DAILY, "sapwood_area", [](const Individual &i) { return i.sa; }, "Sapwood area (m2)");
 	add_indiv_output("file_dave_indiv_sapwood_depth"            , DAILY, "sapwood_depth", [](const Individual &i) { return i.sapwood_depth; }, "Sapwood depth (m)");
+	add_indiv_output("file_dave_closs_hydraulics"               , DAILY, get_closs_hydraulics_cols, "Daily C lost to hydraulic stress (kgC/m2/day)", true);
 	add_indiv_output("file_dave_transpiration_check"            , DAILY, transp_check_columns, "Daily check of old vs new transpiration (mm/day)");
 	add_indiv_output("file_dave_indiv_closs"                    , DAILY, indiv_closs_columns, "Daily individual-level C loss components (kgC/m2/day)", true);
 
 	// Daily individual-level array outputs.
 	add_indiv_array_output("file_dave_layerwise_fpar"           , DAILY, "layer", get_nlayer_canopy, [](const Individual &indiv, int i) { return indiv.canopy[i].fipar; }, "Daily layered fpar [0-1]", mean);
 	add_indiv_array_output("file_dave_layerwise_lai"            , DAILY, "layer", get_nlayer_canopy , [](const Individual &indiv, int i) { return indiv.canopy[i].lai;  }, "Daily layered LAI (m2/m2)", sum);
-	add_indiv_array_output("file_dave_Rs_r"                     , DAILY, "layer", [](const Patch &p) { return (size_t)NSOILLAYER; }, [](const Individual &indiv, int i) { return indiv.Rs_r[i] / 1000.0;  }, "Daily soil-root resistance (mol/m/s/MPa)", sum);
-	add_indiv_array_output("file_dave_water_uptake"             , DAILY, "layer", [](const Patch &p) { return (size_t)NSOILLAYER; }, [](const Individual &indiv, int i) { return indiv.fwuptake[i] * indiv.aet;  }, "Water uptake from each layer (mm/day)", sum);
+	add_indiv_array_output("file_dave_Rs_r"                     , DAILY, "layer", [](const Patch &p) { return (size_t)NSOILLAYERS_MAX; }, [](const Individual &indiv, int i) { return indiv.Rs_r[i] / 1000.0;  }, "Daily soil-root resistance (mol/m/s/MPa)", sum);
+	add_indiv_array_output("file_dave_water_uptake"             , DAILY, "layer", [](const Patch &p) { return (size_t)NSOILLAYERS_MAX; }, [](const Individual &indiv, int i) { return indiv.fwuptake[i] * indiv.aet;  }, "Water uptake from each layer (mm/day)", sum);
 
 	// Daily pft-level per-patch outputs.
 	add_pft_output("file_dave_standing_dead"                    , DAILY, get_pft_standing_dead_cmass, "Daily PFT-Level Total Standing Dead C Mass (kgC/m2)", true);
@@ -438,24 +439,28 @@ DaveOutput::DaveOutput() {
 	add_indiv_layer_timestep_output("file_dave_ps_diagnostics", ps_diagnostics_cols(), "Subdaily layered cohort-level photosynthesis diagnostics");
 
 	// Daily patch-level array outputs.
-	add_patch_array_output("file_dave_sw"                       , DAILY, "sw_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i); }, "Soil water content as fraction of available water holding capacity", true, false);
-	add_patch_array_output("file_dave_swmm"                     , DAILY, "swmm_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.get_layer_soil_water(i) * p.soil.soiltype.awc[i] + p.soil.soiltype.wp[i]; }, "Soil water content (mm)", true, false);
-	add_patch_array_output("file_dave_swvol"                    , DAILY, "swvol_", NSOILLAYER, [](const Patch &p, int i) { return (p.soil.get_layer_soil_water(i) * p.soil.soiltype.awc[i] + p.soil.soiltype.wp[i]) / Dz_soil; }, "Volumetric soil water content (m3/m3)", false, true);
-	add_patch_array_output("file_dave_soil_psi_layer"           , DAILY, "soil_psi", NSOILLAYER, [](const Patch &p, int i) { return p.soil.psi_layer[i]; }, "Soil water potential (MPa) in each layer", false, false);
-	add_patch_array_output("file_dave_ksoil_layer"              , DAILY, "ksoil_", NSOILLAYER, [](const Patch &p, int i) { return p.soil.K_actual[i] / 2.778e-6; }, "Soil hydraulic conductivity (cm/hr)", false, true);
+	// One row per array element per patch per timestep, multiple data columns (tall/long table).
+	add_tall_patch_array_output("file_dave_soil_state"               , DAILY, "layer", [](const Patch &p) { return (size_t)p.soil.nsoillayers; }, soil_state_cols(), "Soil water content as fraction of available water holding capacity");
+	add_tall_patch_array_output("file_dave_soil_properties"          , DAILY, "layer", [](const Patch &p) { return (size_t)p.soil.nsoillayers; }, soil_properties_cols(), "Soil layer thickness (m)");
+
+	// One row per patch per timestep, one column per array element (wide table).
+	add_wide_patch_array_output("file_dave_sw"                       , DAILY, "sw_", NSOILLAYERS_MAX, [](const Patch &p, int i) { return i >= p.soil.nsoillayers ? 0.0 : p.soil.soillayers[i].wcont(); }, "Soil water fraction full (0-1)", true, false);
+	add_wide_patch_array_output("file_dave_swmm"                     , DAILY, "swmm_", NSOILLAYERS_MAX, [](const Patch &p, int i) { return i >= p.soil.nsoillayers ? 0.0 : p.soil.soillayers[i].wmass; }, "Soil water content (mm)", true, false);
+	add_wide_patch_array_output("file_dave_swvol"                    , DAILY, "swvol_", NSOILLAYERS_MAX, [](const Patch &p, int i) { return i >= p.soil.nsoillayers ? 0.0 : p.soil.soillayers[i].wmass / p.soil.soillayers[i].thickness; }, "Volumetric soil water content (m3/m3)", false, true);
+	add_wide_patch_array_output("file_dave_soil_psi_layer"           , DAILY, "soil_psi", NSOILLAYERS_MAX, [](const Patch &p, int i) { return i >= p.soil.nsoillayers ? 0.0 : p.soil.soillayers[i].psi_mpa(); }, "Soil water potential (MPa) in each layer", false, false);
+	add_wide_patch_array_output("file_dave_ksoil_layer"              , DAILY, "ksoil_", NSOILLAYERS_MAX, [](const Patch &p, int i) { return i >= p.soil.nsoillayers ? 0.0 : p.soil.soillayers[i].k_actual / 2.778e-6; }, "Soil hydraulic conductivity (cm/hr)", false, true);
 
 	// Subdaily patch-level outputs.
-	//                                               column name              function which gets number of array elems     function which returns the i-th output value
-	add_patch_array_output("file_dave_met_subdaily_temp"        , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.temps[i];    }, "Subdaily temperature (°C)", false, true);
-	add_patch_array_output("file_dave_met_subdaily_par"         , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.pars[i] * 0.001;     }, "Subdaily PAR (kJ/m2/timestep)", true, false);
-	add_patch_array_output("file_dave_met_subdaily_vpd"         , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.vpds[i];     }, "Subdaily VPD (kPa)", false, true);
-	add_patch_array_output("file_dave_met_subdaily_insol"       , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.insols[i];   }, "Subdaily insolation (units depend on instype)", true, false);
-	add_patch_array_output("file_dave_met_subdaily_precip"      , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.precs[i];    }, "Subdaily precipitation (mm)", true, false);
-	add_patch_array_output("file_dave_met_subdaily_pressure"    , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.pressure[i] * 0.001; }, "Subdaily air pressure (kPa)", false, true);
-	add_patch_array_output("file_dave_met_subdaily_co2"         , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.co2;         }, "Subdaily atmospheric co2 concentration (ppm)", false, true);
+	add_wide_patch_array_output("file_dave_met_subdaily_temp"        , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.temps[i];    }, "Subdaily temperature (°C)", false, true);
+	add_wide_patch_array_output("file_dave_met_subdaily_par"         , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.pars[i] * 0.001;     }, "Subdaily PAR (kJ/m2/timestep)", true, false);
+	add_wide_patch_array_output("file_dave_met_subdaily_vpd"         , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.vpds[i];     }, "Subdaily VPD (kPa)", false, true);
+	add_wide_patch_array_output("file_dave_met_subdaily_insol"       , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.insols[i];   }, "Subdaily insolation (units depend on instype)", true, false);
+	add_wide_patch_array_output("file_dave_met_subdaily_precip"      , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.precs[i];    }, "Subdaily precipitation (mm)", true, false);
+	add_wide_patch_array_output("file_dave_met_subdaily_pressure"    , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.pressure[i] * 0.001; }, "Subdaily air pressure (kPa)", false, true);
+	add_wide_patch_array_output("file_dave_met_subdaily_co2"         , DAILY, COLNAME_TIMESTEP, []() { return date.subdaily; }, [](const Patch &patch, int i) { return patch.stand.get_gridcell().climate.co2;         }, "Subdaily atmospheric co2 concentration (ppm)", false, true);
 
 	// Standpft-level outputs.
-	add_spft_output("file_dave_spft_cmass_repr"                 , DAILY, [](const Standpft &spft) { return spft.cmass_repr; }, "Daily reproductive cmass at standpft-level (gC/m2)");
+	add_spft_output("file_dave_spft_cmass_repr"                 , DAILY, [](const Standpft &spft) { return spft.cmass_repr; }, "Daily reproductive cmass at standpft-level (kgC/m2)");
 	add_spft_output("file_dave_anetps_ff_max"                   , DAILY, [](const Standpft &spft) { return spft.anetps_ff_max; }, "Maximum recorded annual net photosynthesis at forest-floor (kgC/m2)");
 
 	// Register instruction file parameters.
@@ -525,7 +530,7 @@ void DaveOutput::add_patch_output(
 	std::vector<std::string> colnames;
 	colnames.push_back(colname);
 	ArrayOutputReader<Patch> *reader = new ArrayOutputReader<Patch>(read_output);
-	PatchLevelArrayOutput *output = new PatchLevelArrayOutput(name, colnames, 1, reader, description, sum, mean);
+	PatchLevelArrayOutput *output = new PatchLevelArrayOutput(name, colname, []() { return 1; }, reader, description, sum, mean);
 	register_output(output, timestep);
 }
 
@@ -643,20 +648,7 @@ void DaveOutput::add_gridcell_aggregated_tree_output(
 	register_output(output, timestep);
 }
 
-void DaveOutput::add_patch_array_output(
-		std::string name,
-		timestep_t timestep,
-		std::vector<std::string> colnames,
-		double (*read_output)(const Patch&, int),
-		std::string description,
-		bool sum,
-		bool mean) {
-	ArrayOutputReader<Patch> *reader = new ArrayOutputReader<Patch>(read_output);
-	PatchLevelArrayOutput *output = new PatchLevelArrayOutput(name, colnames, colnames.size(), reader, description, sum, mean);
-	register_output(output, timestep);
-}
-
-void DaveOutput::add_patch_array_output(
+void DaveOutput::add_wide_patch_array_output(
 		std::string name,
 		timestep_t timestep,
 		std::string colname,
@@ -666,11 +658,11 @@ void DaveOutput::add_patch_array_output(
 		bool sum,
 		bool mean) {
 	ArrayOutputReader<Patch> *reader = new ArrayOutputReader<Patch>(read_output);
-	PatchLevelArrayOutput *output = new PatchLevelArrayOutput(name, colname, nelem, reader, description, sum, mean);
+	PatchLevelArrayOutput *output = new PatchLevelArrayOutput(name, colname, [nelem]() { return nelem; }, reader, description, sum, mean);
 	register_output(output, timestep);
 }
 
-void DaveOutput::add_patch_array_output(
+void DaveOutput::add_wide_patch_array_output(
 		std::string name,
 		timestep_t timestep,
 		std::string colname,
@@ -682,6 +674,16 @@ void DaveOutput::add_patch_array_output(
 	ArrayOutputReader<Patch> *reader = new ArrayOutputReader<Patch>(read_output);
 	PatchLevelArrayOutput *output = new PatchLevelArrayOutput(name, colname, get_nelem, reader, description, sum, mean);
 	register_output(output, timestep);
+}
+
+void DaveOutput::add_tall_patch_array_output(std::string name,
+									         timestep_t timestep,
+											 std::string index_col_name,
+											 std::function<size_t(const Patch &)> get_nelem,
+											 std::vector<ArrayColumnDefinition<Patch>> columns,
+											 std::string description) {
+    DynamicPatchLevelArrayOutput *output = new DynamicPatchLevelArrayOutput(name, index_col_name, get_nelem, columns, description);
+    register_output(output, timestep);
 }
 
 void DaveOutput::add_aggregated_indiv_output(std::string name, timestep_t timestep, double (*read_output)(const Individual&), std::string description, double (*aggregator)(const double*, size_t), bool sum, bool mean) {
@@ -1622,49 +1624,14 @@ ColumnDescriptors DaveOutput::StandPftOutput::get_columns() {
 DaveOutput::PatchLevelArrayOutput::PatchLevelArrayOutput(
 		std::string param_name,
 		std::string col_name,
-		int n,
+		std::function<int()> get_n,
 		ArrayOutputReader<Patch> *get_output,
 		std::string description,
 		bool sum,
 		bool mean) : PatchLevelOutput(param_name, description, sum, mean) {
 
-	nelem = n;
-	read_output = std::unique_ptr<ArrayOutputReader<Patch>>(get_output);
-	get_nelem = NULL;
-
-	for (int i = 0; i < n; i++) {
-		if (n == 1) {
-			column_names.push_back(col_name);
-		} else {
-			column_names.push_back(col_name + std::to_string(i));
-		}
-	}
-}
-
-DaveOutput::PatchLevelArrayOutput::PatchLevelArrayOutput(
-	std::string param_name,
-	std::vector<std::string> col_names,
-	int n,
-	ArrayOutputReader<Patch> *get_output,
-	std::string description,
-	bool sum,
-	bool mean)
- : PatchLevelOutput(param_name, description, sum, mean) {
-	column_names = col_names;
-	nelem = n;
-	get_nelem = NULL;
-	read_output = std::unique_ptr<ArrayOutputReader<Patch>>(get_output);
-}
-DaveOutput::PatchLevelArrayOutput::PatchLevelArrayOutput(
-		std::string param_name,
-		std::string col_name,
-		int (*get_nelem)(),
-		ArrayOutputReader<Patch> *get_output,
-		std::string description,
-		bool sum,
-		bool mean) : PatchLevelOutput(param_name, description, sum, mean) {
-	this->get_nelem = get_nelem;
-	column_names.push_back(col_name);
+	get_nelem = get_n;
+	col_name_prefix = col_name;
 	read_output = std::unique_ptr<ArrayOutputReader<Patch>>(get_output);
 }
 
@@ -1673,7 +1640,7 @@ DaveOutput::PatchLevelArrayOutput::~PatchLevelArrayOutput() { }
 std::vector<double> DaveOutput::PatchLevelArrayOutput::write_patch(
 		Patch &patch, OutputChannel *channel) {
 	std::vector<double> results;
-	for (int i = 0; i < nelem; i++) {
+	for (int i = 0; i < get_nelem(); i++) {
 		double value = read_output->read(patch, i);
 		results.push_back(value);
 	}
@@ -1683,25 +1650,78 @@ std::vector<double> DaveOutput::PatchLevelArrayOutput::write_patch(
 ColumnDescriptors DaveOutput::PatchLevelArrayOutput::get_columns() {
 	ColumnDescriptors columns = create_column_descriptors();
 
-	if (get_nelem) {
-		nelem = get_nelem();
-		std::string basename = column_names[0];
-		column_names.clear();
-		for (int i = 0; i < nelem; i++) {
-			if (nelem == 1) {
-				column_names.push_back(basename);
-			} else {
-				column_names.push_back(basename + std::to_string(i));
-			}
-		}
-	}
-
+	int nelem = get_nelem();
 	for (int i = 0; i < nelem; i++) {
-		std::string name = column_names[i];
+		std::string name = nelem == 1 ? col_name_prefix : col_name_prefix + std::to_string(i);
 		int width = max((size_t)COLUMN_WIDTH, name.length() + 1);
 		add_column(columns, name.c_str(), width, NUMERIC_PRECISION);
 	}
+
 	return columns;
+}
+
+// #############################################################################
+// DynamicPatchLevelArrayOutput implementation.
+// #############################################################################
+
+DaveOutput::DynamicPatchLevelArrayOutput::DynamicPatchLevelArrayOutput(
+		std::string param_name,
+		std::string index_col_name,
+		std::function<size_t(const Patch &)> get_nelem,
+		std::vector<ArrayColumnDefinition<Patch>> columns,
+		std::string description) : OutputFile(param_name, description) {
+	this->index_col_name = index_col_name;
+	this->columns = columns;
+	this->get_nelem = get_nelem;
+}
+
+DaveOutput::DynamicPatchLevelArrayOutput::~DynamicPatchLevelArrayOutput() {
+
+}
+
+void DaveOutput::DynamicPatchLevelArrayOutput::write_rows(OutputChannel *channel, Gridcell &gridcell) {
+	double lon = gridcell.get_lon();
+	double lat = gridcell.get_lat();
+	int year = date.get_calendar_year();
+	int day = date.day;
+
+	GuessContainer<Stand>::iterator gc_itr = gridcell.begin();
+	for (size_t i = 0; i < gridcell.size(); i++) {
+		const Stand &stand = gridcell[i];
+		for (size_t j = 0; j < stand.nobj; j++) {
+			const Patch &patch = stand[j];
+
+			int nelem = get_nelem(patch);
+			for (size_t k = 0; k < nelem; k++) {
+				write_output(channel, stand.id);
+
+				if (!write_stats()) {
+					write_output(channel, patch.id);
+				}
+
+				write_output(channel, (int)k);
+				for (const ArrayColumnDefinition<Patch> &column : columns) {
+					double value = column.read_value(patch, k);
+					write_output(channel, value);
+				}
+				finish_row(channel, lon, lat, year, day);
+			}
+		}
+	}
+}
+
+ColumnDescriptors DaveOutput::DynamicPatchLevelArrayOutput::get_cols() {
+	ColumnDescriptors descriptors = create_column_descriptors();
+
+	add_column(descriptors, index_col_name.c_str(), COLUMN_WIDTH, 0);
+
+	for (const ArrayColumnDefinition<Patch> &column : columns) {
+		std::string name = column.get_name();
+		int width = max((size_t)COLUMN_WIDTH, name.length() + 1);
+		add_column(descriptors, name.c_str(), width, NUMERIC_PRECISION);
+	}
+
+	return descriptors;
 }
 
 // #############################################################################

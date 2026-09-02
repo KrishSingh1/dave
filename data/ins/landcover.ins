@@ -21,6 +21,7 @@ param "file_woodharv_cmass"      (str "")
 param "file_Nfert_st" (str "")
 param "file_cutinterval_st" (str "")
 param "file_firstmanageyear_st" (str "")
+param "file_peat" (str "")
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! Output files
@@ -77,6 +78,11 @@ param "file_firstmanageyear_st" (str "")
 !file_npool_natural "npool_natural.out"
 !file_npool_forest "npool_forest.out"
 !file_npool_peatland "npool_peatland.out"
+!file_csoil_depth_cropland "csoil_depth_cropland.out"
+!file_csoil_depth_pasture "csoil_depth_pasture.out"
+!file_csoil_depth_natural "csoil_depth_natural.out"
+!file_csoil_depth_forest "csoil_depth_forest.out"
+!file_csoil_depth_peatland "csoil_depth_peatland.out"
 
 !file_anpp_sts "anpp_sts.out"
 !file_cmass_sts "cmass_sts.out"
@@ -134,7 +140,7 @@ printstandtypes 0
 !print_diamstruct_cmass_st 1
 
 !///////////////////////////////////////////////////////////////////////////////////////
-!// PANDCOVER PARAMETERS
+!// LANDCOVER PARAMETERS
 !///////////////////////////////////////////////////////////////////////////////////////
 
 npatch_secondarystand 1			! number of replicate patches to simulate in secondary stands
@@ -181,7 +187,7 @@ group "crop_stand" (
 	landcover "cropland"
 	intercrop "naturalgrass" ! Use natural grass pft:s as covercrop
 	planting_system "monoculture"
-	hydrology "rainfed"
+	wateruse "rainfed"
 	tillage_fact 2.0
 )
 

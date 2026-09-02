@@ -458,8 +458,8 @@ void crop_sowing_gridcell(Gridcell& gridcell) {
  */
 void crop_sowing_date(Patch& patch, Pft& pft) {
 
-	Patchpft& patchpft = patch.pft[pft.id];
-	cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+	Patchpft& ppft = patch.pft[pft.id];
+	cropphen_struct& ppftcrop = *(ppft.get_cropphen());
 	Gridcell& gridcell = patch.stand.get_gridcell();
 	Gridcellpft& gridcellpft = gridcell.pft[pft.id];
 	Standpft& standpft = patch.stand.pft[pft.id];
@@ -485,20 +485,20 @@ void crop_sowing_date(Patch& patch, Pft& pft) {
 	}
 
 	// adjust sowing window if too close to hlimitdate (before)
-	if (temp_sdate && patchpft.swindow[0] != -1) {
+	if (temp_sdate && ppft.swindow[0] != -1) {
 
-		if (dayinperiod(patchpft.swindow[0], stepfromdate(ppftcrop.hlimitdate, -100), ppftcrop.hlimitdate)) {
+		if (dayinperiod(ppft.swindow[0], stepfromdate(ppftcrop.hlimitdate, -100), ppftcrop.hlimitdate)) {
 
-			patchpft.swindow[0] = ppftcrop.hlimitdate + 1;
-			if (dayinperiod(patchpft.swindow[1], stepfromdate(ppftcrop.hlimitdate, -100), ppftcrop.hlimitdate))
-				patchpft.swindow[1] = ppftcrop.hlimitdate + 1;
+			ppft.swindow[0] = ppftcrop.hlimitdate + 1;
+			if (dayinperiod(ppft.swindow[1], stepfromdate(ppftcrop.hlimitdate, -100), ppftcrop.hlimitdate))
+				ppft.swindow[1] = ppftcrop.hlimitdate + 1;
 		}
 	}
 
 	// monitor climate triggers within the sowing window
-	if (dayinperiod(date.day, patchpft.swindow[0],patchpft.swindow[1])) {
+	if (dayinperiod(date.day, ppft.swindow[0],ppft.swindow[1])) {
 
-		if (date.day != patchpft.swindow[1]) {
+		if (date.day != ppft.swindow[1]) {
 
 			if (temp_sdate) {
 				if (gridcellpft.wintertype && climate.temp < pft.tempautumn || !gridcellpft.wintertype && climate.temp > pft.tempspring)
@@ -516,7 +516,7 @@ void crop_sowing_date(Patch& patch, Pft& pft) {
 	}
 
 	if (standpft.sdate_force >= 0) {
-		patchpft.cropphen->sdate = standpft.sdate_force;
+		ppft.cropphen->sdate = standpft.sdate_force;
 	}
 
 	// calculation of hucountend (last day of heat unit sampling period); sdate is first day
@@ -560,8 +560,8 @@ void crop_sowing_date(Patch& patch, Pft& pft) {
 	}
 
 	if (standpft.sdate_force >= 0 && standpft.hdate_force >= 0) {
-		patchpft.cropphen->hlimitdate = standpft.hdate_force;
-		patchpft.cropphen->hucountend = standpft.hdate_force;
+		ppft.cropphen->hlimitdate = standpft.hdate_force;
+		ppft.cropphen->hucountend = standpft.hdate_force;
 	}
 }
 
@@ -580,22 +580,22 @@ void crop_sowing_patch(Patch& patch) {
 	while(pftlist.isobj) {
 
 		Pft& pft = pftlist.getobj();
-		Patchpft& patchpft = patch.pft[pft.id];
+		Patchpft& ppft = patch.pft[pft.id];
 		Gridcellpft& gridcellpft = gridcell.pft[pft.id];
 
 		if (patch.stand.pft[pft.id].active && pft.phenology == CROPGREEN) {
 
-			cropphen_struct& ppftcrop = *(patchpft.get_cropphen());
+			cropphen_struct& ppftcrop = *(ppft.get_cropphen());
 
 			if (date.day == climate.testday_temp) {
 
 				if (patch.stand.pft[pft.id].irrigated) {
-					patchpft.swindow[0] = gridcellpft.swindow_irr[0];
-					patchpft.swindow[1] = gridcellpft.swindow_irr[1];
+					ppft.swindow[0] = gridcellpft.swindow_irr[0];
+					ppft.swindow[1] = gridcellpft.swindow_irr[1];
 				}
 				else {
-					patchpft.swindow[0] = gridcellpft.swindow[0];
-					patchpft.swindow[1] = gridcellpft.swindow[1];
+					ppft.swindow[0] = gridcellpft.swindow[0];
+					ppft.swindow[1] = gridcellpft.swindow[1];
 				}
 			}
 

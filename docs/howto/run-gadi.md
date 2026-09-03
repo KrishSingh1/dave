@@ -186,18 +186,40 @@ For parallel production runs, use
 from the `hie-dave/lpj-scripts` repository. It automates the full submission
 workflow:
 
-1. Creates the `run1/`…`runN/` working directories required by the parallel
-   launcher (see [Running in Parallel](run-parallel.md))
+1. Creates the `runs/run1/`…`runs/runN/` working directories required by the
+   parallel launcher (see [Running in Parallel](run-parallel.md))
 2. Splits the gridlist into N approximately equal chunks, one per rank
 3. Generates an MPI execution script that loads the same modules used at build
    time and launches the job with `mpirun`
-4. Generates an output merge script that concatenates per-rank output files
-5. Submits both scripts to PBS, with the merge job depending on the execution
-   job completing successfully
+4. Generates `append.cmd`, which combines the per-worker output files
+5. Unless `-d` is used, submits both jobs to PBS, with the append job scheduled
+   to run only after the main job completes successfully
 
 ```bash
-submit_to_gadi.sh my_run.conf
+submit_to_gadi.sh -s my_run.conf
 ```
+
+The `-s` option is required and identifies the configuration file.
+
+### Do a Dry-run First
+
+It is strongly recommended to prepare a run with `-d` before submitting it:
+
+```bash
+submit_to_gadi.sh -d -s my_run.conf
+```
+
+This performs the same setup as a normal invocation—including creating the
+worker directories, splitting the gridlist, and generating the command files—but
+does not submit either job to PBS. This gives you an opportunity to inspect the
+generated files and, if needed, manually test a single gridcell on the login
+node.
+
+Keep login-node tests short and limited to a single gridcell; production runs
+must still be submitted through PBS. A brief test will usually expose invalid
+paths, missing instruction file parameters, and similar startup errors
+immediately, instead of making you wait in the PBS queue for a job that fails as
+soon as it starts.
 
 ### Configuration File
 
@@ -220,7 +242,99 @@ as a starting point. **Do not use `~`** for home directory expansion — use
 | `INSFILE` | Path to the instruction file | `/scratch/pt17/my/simulation.ins` |
 | `INPUT_MODULE` | LPJ-GUESS input module — use `nc` for DAVE | `nc` |
 
+## After a Job Finishes
+
+### Check the Top-level Job Log
+
+The main job writes `<job name>.log` in the run directory. The bottom of this
+file contains the PBS resource summary, including the resources requested and
+used and the total job cost in service units (SU). Check this summary after
+each run, especially if the job took substantially more or less time than
+expected.
+
+As a rough guide, LPJ-GUESS jobs should cost approximately **0.005–0.01 SU per
+patch**, where the total number of patches is:
+
+```text
+total patches = npatch × number of gridcells
+```
+
+Therefore:
+
+```text
+lower estimate = total patches × 0.005 SU
+upper estimate = total patches × 0.01 SU
+```
+
+A cost significantly outside this range should be investigated. An unusually
+high cost may mean that work was duplicated between workers; an unusually low
+cost may indicate that the run did not process everything expected. See
+[Estimating Run Cost](#estimating-run-cost) for more detail.
+
+### Inspect Individual Worker Logs
+
+Each worker writes its own log at `runs/runX/guess.log`, for example
+`runs/run1/guess.log`. These logs show which gridcells that worker processed,
+how long they took, and any warnings or errors encountered. When a run is
+unexpectedly slow, incomplete, or unusually expensive, compare several worker
+logs to determine how the work was divided and where time was spent.
+
+In particular, if every `guess.log` lists every gridcell, check the gridlist
+path in the instruction file as described under
+[Job takes much longer than expected](#job-takes-much-longer-than-expected).
+
+### Combined Output Files
+
+The submission script creates a second PBS job from `append.cmd`. PBS schedules
+this job to run after the main job, but only if the main job succeeds. It
+combines each worker's output files into the final `output/` directory. For
+example:
+
+```text
+runs/run1/out/lai.out ┐
+runs/run2/out/lai.out ├──> output/lai.out
+runs/run3/out/lai.out ┘
+```
+
+The same process is applied to every output file. If the main job fails, the
+append job does not run and the individual files remain under
+`runs/runX/out/` for diagnosis or manual recovery.
+
 ## Common Errors
+
+### Job takes much longer than expected
+
+One possible cause is that every worker has processed the complete gridlist
+instead of only its assigned gridcells. The run may otherwise appear to work,
+so this is easy to miss without checking the job cost and worker logs.
+
+!!! warning "The gridlist path must be relative"
+    When using `submit_to_gadi.sh`, never give the gridlist an absolute path in
+    the instruction file. Use `./<gridlist-basename>` instead. This is an
+    exception to the general recommendation to use absolute paths for input
+    files.
+
+For example, if the gridlist is named `gridlist.txt`:
+
+```text
+# Wrong: every worker reads the complete, original gridlist
+file_gridlist "/scratch/pt17/my/input/gridlist.txt"
+
+# Correct: every worker reads its assigned part of the gridlist
+file_gridlist "./gridlist.txt"
+```
+
+The parameter name depends on the input module; for example, it may be
+`file_gridlist` or `file_gridlist_cf`. The same rule applies in either case,
+and the relative filename must match the basename of the original gridlist.
+
+The submission script splits the gridlist between the
+`runs/run1/`...`runs/runN/` directories. During a parallel run, each worker
+changes into its own directory and should read the split gridlist stored there.
+An absolute path bypasses that file, causing every worker to process the
+complete original gridlist. This can multiply the job's cost and cause it to
+exceed its requested walltime. See
+[Path Considerations](run-parallel.md#path-considerations) for more detail.
 
 ### `libnetcdf.so.15: cannot open shared object file`
 

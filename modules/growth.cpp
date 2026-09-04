@@ -2588,9 +2588,13 @@ void growth(Stand& stand, Patch& patch) {
 	// On first call to function growth this year (patch #0), initialise stand-PFT
 	// record of summed allocation to reproduction
 
-	if (!patch.id)
-		for (p=0; p<npft; p++)
-			stand.pft[p].cmass_repr = 0.0;
+	if (patch.id == 0) {
+		for (p=0; p<npft; p++) {
+			if (!pftlist[p].dave_allocation()) {
+				stand.pft[p].cmass_repr = 0.0;
+			}
+		}
+	}
 
 	// Loop through individuals
 
@@ -5371,7 +5375,7 @@ void update_pools_dave(Vegetation& vegetation) {
 
 		// Update stand-level cmass_repr used for annual establishment.
 		// This variable is zeroed in Standpft::annual_accounting().
-		patch.stand.pft[pft.id].cmass_repr += indiv.cgrow_repr;
+		patch.stand.pft[pft.id].cmass_repr += indiv.cgrow_repr / (double)patch.stand.npatch();
 
 		// update indiv.cgrow (actual growth)
 		indiv.cgrow = indiv.cgrow_leaf + indiv.cgrow_root + indiv.cgrow_crown + indiv.cgrow_sap + indiv.cgrow_repr;

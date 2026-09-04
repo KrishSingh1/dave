@@ -695,7 +695,7 @@ double cmass_repr_tot(const Stand &stand, const Pft &pft) {
 			}
 		}
 	}
-	return total;
+	return total / (double)stand.npatch();
 }
 
 void establishment_guess(Stand& stand,Patch& patch) {

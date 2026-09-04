@@ -363,7 +363,6 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
         }
     }
 
-    // TODO: is this correct? What about spinup_in_simulation?
     ResolvedPlan plan = open_dataset == Dataset::Spinup ?
                                 spinup_plan :
                                 simulation_plan;
@@ -635,6 +634,9 @@ int NCInput::get_first_spinup_year() const {
 }
 
 int NCInput::get_last_spinup_year_before_main() const {
+    if (!separate_spinup) {
+        return spinup_coverage.last_complete_year;
+    }
     return std::min(spinup_coverage.last_complete_year, simulation_coverage.first_complete_year - 1);
 }
 

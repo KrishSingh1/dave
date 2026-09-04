@@ -108,8 +108,8 @@ public:
     int get_first_spinup_year() const;
 
     /*
-    Get the last year in the spinup period which is complete before the main
-    simulation period starts.
+    Get the last complete spinup year used for spinup climate cycling. If a
+    separate spinup file overlaps the main forcing, this excludes the overlap.
     */
     int get_last_spinup_year_before_main() const;
 

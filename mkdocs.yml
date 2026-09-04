@@ -24,7 +24,11 @@ nav:
           - Debugging via VSCode: howto/debugging-vscode.md
           - Running Serially (CLI): howto/run-serial.md
           - Running in Parallel (MPI): howto/run-parallel.md
-          - Running on Gadi: howto/run-gadi.md
+          - Gadi:
+              - Running Jobs: howto/run-gadi.md
+              - Initial Setup: howto/gadi-setup.md
+              - Troubleshooting Runs: howto/gadi-troubleshooting.md
+              - Resources and Costs: howto/gadi-resources.md
       - Contributing:
           - Contributing Code (Workflow): howto/contributing-code.md
           - Migrating from Upstream Repo: howto/migrate-from-upstream-repo.md

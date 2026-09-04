@@ -29,7 +29,13 @@ How to configure and run simulations:
 - [Debugging via VSCode](debugging-vscode.md)
 - [Running Serially (CLI)](run-serial.md)
 - [Running in Parallel (MPI)](run-parallel.md)
-- [Running on Gadi](run-gadi.md)
+
+### Gadi
+
+- [Running Jobs](run-gadi.md)
+- [Initial Setup](gadi-setup.md)
+- [Checking and Troubleshooting Runs](gadi-troubleshooting.md)
+- [Choosing Resources and Estimating Costs](gadi-resources.md)
 
 ## Contributing
 

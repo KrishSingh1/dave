@@ -68,7 +68,9 @@ public:
 	/// Sends a message to the user somehow and terminates the program
 	[[noreturn]]
 	void fail(const char* message) {
-		log_message(xtring(message)+"\n");
+		log_message("\n\nFATAL ERROR:\n\n");
+		log_message(message);
+		log_message("\n\nSimulation terminated.\n");
 
 		message_finished();
 

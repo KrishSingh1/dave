@@ -204,7 +204,10 @@ CommandLineShell::~CommandLineShell() {
 
 [[noreturn]]
 void CommandLineShell::fail(const char* message) {
-	log_message(xtring(message)+"\n");
+	// The leading newline finishes an in-place progress message ending in '\r'.
+	log_message("\n\nFATAL ERROR:\n\n");
+	log_message(message);
+	log_message("\n\nSimulation terminated.\n");
 	cleanupAtExit();
 	exit(99);
 }

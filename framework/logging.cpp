@@ -85,11 +85,13 @@ bool should_log(LogLevel level) {
 
 [[ noreturn ]]
 void vlog_fatal(const char *fmt, va_list args) {
-    fprintf(stderr, "\n\nFATAL ERROR:\n\n");
-    vfprintf(stderr, fmt, args);
-    fprintf(stderr, "\n\nSimulation terminated.\n");
-    fflush(stderr);
-    exit(99);
+    xtring format = fmt;
+    xtring message;
+    va_list args_copy;
+    va_copy(args_copy, args);
+    formatf(message, format, args_copy);
+    va_end(args_copy);
+    fail("%s", (const char *)message);
 }
 
 void vlog(LogLevel level, const char *fmt, va_list args) {

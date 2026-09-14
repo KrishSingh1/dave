@@ -6382,8 +6382,12 @@ void storage_overflow(Individual& indiv) {
 
 // Photosynthetic sink limitation.
 // Calculates downregulation factors applied to photosynthetic parameters.
-void sink_source_feedback(Individual& indiv) {
-	
+double calc_ps_sink_lim(const Individual &indiv) {
+
+	if (indiv.pft.lifeform == TREE) {
+		return 1.0;
+	}
+
 	//double dpslim = 0.00;
 	//double qf2 = 100.0;
 	//double cstorage_fill = Cstorage_fillfrac(indiv);
@@ -6392,10 +6396,11 @@ void sink_source_feedback(Individual& indiv) {
 	//indiv.ps_sink_lim = min(1.0, (1.0 + dpslim - 2.0 * dpslim * pow(indiv.fphen_activity*cstorage_fill,qf2)) * indiv.ps_sink_lim);
 	double excess_strength = 0;
 	if (indiv.cexcess_npp_5.size() > 1) {
-		indiv.ps_sink_lim = max(0.0, 1.0 - min(indiv.cexcess_npp_5.mean(),slim_max));
+		return max(0.0, 1.0 - min(indiv.cexcess_npp_5.mean(),slim_max));
 	}
-} 
 
+	return 1.0;
+}
 
 // Housekeeping of C storage. Handles overflow and feedback with source dynamics.
 void storage_dynamics_dave(Vegetation& vegetation) {
@@ -6430,7 +6435,7 @@ void storage_dynamics_dave(Vegetation& vegetation) {
 		}
 
 		// Determine in how far C storage induces a negative feedback on photosynthetic capacity.
-		sink_source_feedback(indiv);
+		indiv.ps_sink_lim = calc_ps_sink_lim(indiv);
 
 		// Handle excess C and N.
 		storage_overflow(indiv);

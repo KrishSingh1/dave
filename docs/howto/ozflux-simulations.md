@@ -45,8 +45,9 @@ placed at `benchmarks/ozflux/forcing/`.
 
 ## Running a Site
 
-The simplest way to run a site is via VSCode (see
-[Debugging via VSCode](debugging-vscode.md)). To run from the command line, see
-[Running Serially](run-serial.md).
+For a complete worked example, start with [Running and Debugging via
+VSCode](debugging-vscode.md). That page shows how to run `CumberlandPlain`,
+where outputs are written, and what to check after the run. To run from the
+command line, see [Running Serially](run-serial.md).
 
 Outputs are written to `benchmarks/ozflux/<SiteName>/out/` by default.

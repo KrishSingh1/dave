@@ -123,7 +123,7 @@ install the following extensions:
 
 Open SourceTree and click "clone". Use the following details:
 
-Remote URL: `git@stormbringer4.nateko.lu.se:lpj-guess-developers/LPJ-GUESS.git`
+Remote URL: `git@stormbringer4.nateko.lu.se:DAVE/LPJ-GUESS-DAVE.git`
 
 Destination Path: `C:\some\path\on\your\computer`
 
@@ -143,31 +143,14 @@ On hie-storage, the following directory must be downloaded:
 
 This directory must be downloaded into your source code directory, inside
 `<source code directory>\benchmarks\ozflux`, and it must be renamed to
-forcing. So you should have a directory named
+forcing. So you should end up with a directory named
 `<source code directory>\benchmarks\ozflux\forcing\met`.
 
-## Running the Model
+## Next Step: Run the Model
 
-Open Visual Studio Code. If it was open before you edited the environment
-variables above, close it and open it again.
-
-Open the "Run and Debug" tab in the sidebar on the left. The icon is an
-equilateral triangle with a bug on it. This can also be found by using the
-keyboard shortcut "ctrl+shift+D".
-
-There should be a dropdown which says "run site". This drop-down list contains
-all of the ozflux sites at which the model is configured to run by default. To
-run a particular site, select it from the dropdown list and hit the green play
-button to the left of the dropdown list.
-
-The model will now begin to run. You can watch the progress in the terminal
-window at the bottom of the screen.
-
-After the model has run, the outputs will be stored in:
-
-`<source code directory>\benchmarks\ozflux\<site name>\out`
-
-Running the model like this will automatically compile the code if necessary.
+After completing the Windows setup, follow [Running and Debugging via
+VSCode](debugging-vscode.md) to run the `CumberlandPlain` site and check that
+outputs are being produced.
 
 ## Configuring the Model
 
@@ -182,9 +165,9 @@ enter.
 
 All of the input files related to the ozflux sites are in the
 `benchmarks\ozflux` directory. In here is one directory for each site. Each
-site-level directory contains its own instruction file, named `site.ins`. These
-site-level .ins files are very short but import other instruction files from
-the ozflux directory, which contain the parameters common to all sites:
+site-level directory contains its own instruction file, named `<site>.ins`.
+These site-level .ins files are very short but import other instruction files
+from the ozflux directory, which contain the parameters common to all sites:
 
 `settings.ins`: Contains most top-level switches, and, near the bottom of the
 file, controls at a high level which kinds of PFTs are included in the

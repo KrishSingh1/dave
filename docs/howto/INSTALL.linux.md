@@ -1,8 +1,8 @@
 # Linux Setup Guide
 
-This guide covers how to set up and compile LPJ-GUESS DAVE on Linux. For
-running simulations and obtaining climate data, see the
-[Running](run-serial.md) and [Data Access](hie-storage.md) sections.
+This guide covers how to set up and compile LPJ-GUESS DAVE on Linux. After
+completing this setup, follow [Running and Debugging via VSCode](debugging-vscode.md)
+to run a site simulation.
 
 ## Dependencies
 
@@ -55,3 +55,9 @@ cmake --build build
 ```
 
 The compiled binary will be at `build/guess`.
+
+## Next Step: Run the Model
+
+Download the OzFlux forcing data from [HIE-Storage](hie-storage.md), then follow
+[Running and Debugging via VSCode](debugging-vscode.md) to run the
+`CumberlandPlain` site and check the output files.

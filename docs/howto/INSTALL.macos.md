@@ -1,11 +1,15 @@
 # macOS Setup Guide
 
 This guide covers how to set up and compile LPJ-GUESS DAVE on macOS using the
-Clang/Apple toolchain and VSCode. For running simulations and obtaining climate
-data, see the [Running](run-serial.md) and [Data Access](hie-storage.md)
-sections.
+Clang/Apple toolchain and VSCode. After completing this setup, follow
+[Running and Debugging via VSCode](debugging-vscode.md) to run a site
+simulation.
 
 ## Software Installation
+
+Many setup steps use Terminal. To open Terminal, press `Cmd+Space`, type
+`Terminal`, and press Enter. When this guide says to run a command, paste it
+into Terminal and press Enter.
 
 ### Xcode Command Line Tools
 
@@ -81,3 +85,9 @@ cmake --build build
 ```
 
 The compiled binary will be at `build/guess`.
+
+## Next Step: Run the Model
+
+Download the OzFlux forcing data from [HIE-Storage](hie-storage.md), then follow
+[Running and Debugging via VSCode](debugging-vscode.md) to run the
+`CumberlandPlain` site and check the output files.

@@ -9,6 +9,9 @@ nav:
       - Daily Grass Growth: science/daily-growth-grass.md
   - How-to:
       - Overview: howto/index.md
+      - Orientation:
+          - Repository Map: howto/repository-map.md
+          - Common Failures: howto/common-failures.md
       - Setup:
           - Windows: howto/INSTALL.windows.md
           - macOS: howto/INSTALL.macos.md
@@ -21,7 +24,7 @@ nav:
       - Running:
           - OzFlux Site Simulations: howto/ozflux-simulations.md
           - Climate Input: howto/climate-input.md
-          - Debugging via VSCode: howto/debugging-vscode.md
+          - Running and Debugging via VSCode: howto/debugging-vscode.md
           - Running Serially (CLI): howto/run-serial.md
           - Running in Parallel (MPI): howto/run-parallel.md
           - Gadi:

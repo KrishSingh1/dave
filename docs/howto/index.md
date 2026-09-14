@@ -3,6 +3,13 @@
 This section provides guides for technical topics including setup, data access,
 and running DAVE simulations.
 
+## Orientation
+
+Start here if you are new to this repository:
+
+- [Repository Map](repository-map.md)
+- [Common Failures](common-failures.md)
+
 ## Setup
 
 Platform-specific installation guides:
@@ -26,7 +33,7 @@ How to configure and run simulations:
 
 - [OzFlux Site Simulations](ozflux-simulations.md)
 - [Climate Input](climate-input.md)
-- [Debugging via VSCode](debugging-vscode.md)
+- [Running and Debugging via VSCode](debugging-vscode.md)
 - [Running Serially (CLI)](run-serial.md)
 - [Running in Parallel (MPI)](run-parallel.md)
 
@@ -47,7 +54,3 @@ How to contribute code and documentation:
 - [Writing Equations](markdown-math.md)
 - [Version Control via SourceTree](sourcetree.md)
 - [Version Control via CLI](git-cli.md)
-
-## Planned content
-
-- Common troubleshooting procedures

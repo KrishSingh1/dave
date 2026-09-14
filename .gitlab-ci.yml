@@ -48,3 +48,35 @@ pages:
   artifacts:
     paths:
       - public
+
+# ── Documentation deploy (GitHub Pages mirror) ───────────────────────────────
+# GitLab remains the source of the documentation. This job publishes the site
+# produced by `pages` to the protected gh-pages branch of hie-dave/dave-docs.
+pages:github:
+  stage: deploy
+  image: python:3.12-slim
+  needs:
+    - job: pages
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "lpjguess_dave"
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq git openssh-client rsync
+    - eval "$(ssh-agent -s)"
+    - chmod 400 "$GITHUB_DOCS_SSH_PRIVATE_KEY"
+    - ssh-add "$GITHUB_DOCS_SSH_PRIVATE_KEY"
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - cp "$GITHUB_KNOWN_HOSTS" ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - git clone --branch gh-pages git@github.com:hie-dave/dave-docs.git github-pages
+    - rsync -a --delete --exclude .git public/ github-pages/
+    - git -C github-pages config user.name "DAVE documentation deployment"
+    - git -C github-pages config user.email "dave-docs-deploy@users.noreply.github.com"
+    - git -C github-pages add --all
+    - |
+      if ! git -C github-pages diff --cached --quiet; then
+        git -C github-pages commit -m "Publish documentation for ${CI_COMMIT_SHA}"
+        git -C github-pages push origin gh-pages
+      fi

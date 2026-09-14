@@ -192,24 +192,6 @@ xtring rep(const char *c, int n) {
 	return res;
 }
 
-xtring get_nested_error_msg(const std::exception& e, int level = 0) {
-	xtring msg;
-	std::string spaces(level, ' ');
-	msg.printf("%s%s\n", spaces.c_str(), e.what());
-	try {
-		std::rethrow_if_nested(e);
-	} catch (const std::exception& nested) {
-		msg += get_nested_error_msg(nested, level + 1);
-	} catch(...) {
-		// Ignore any errors which may be thrown while generating nested msg.
-	}
-	return msg;
-}
-
-xtring get_nested_error_msg(const std::exception& e) {
-	return get_nested_error_msg(e, 0);
-}
-
 std::vector<double> aggregate(const std::vector<double>& in, size_t out_length
 	, double (*aggregator)(const double *, size_t)) {
 

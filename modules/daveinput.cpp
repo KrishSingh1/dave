@@ -31,6 +31,22 @@
 
 REGISTER_INPUT_MODULE("nc", DaveInput)
 
+namespace {
+
+xtring format_gridcell_exception(const std::exception& e, double lon, double lat,
+	const xtring& description) {
+	xtring message;
+	message.printf("Failed to read data for gridcell (%f, %f)", lon, lat);
+	if (description != "") {
+		message += xtring(" (") + description + ")";
+	}
+	message += "\n";
+	message += get_nested_error_msg(e);
+	return message;
+}
+
+}
+
 DaveInput::DaveInput() {
 	double ctor_start = get_wall_time();
 
@@ -284,14 +300,8 @@ bool DaveInput::getgridcell(Gridcell& gridcell) {
 
 		return true;
 	} catch (const std::exception& e) {
-		if (current_gridcell > gridlist.begin() && current_gridcell < gridlist.end()) {
-			fprintf(stderr, "Failed to read data for gridcell (%f, %f)", current_gridcell->lon, current_gridcell->lat);
-			if (current_gridcell->description != "") {
-				fprintf(stderr, " (%s)", (const char *)current_gridcell->description);
-			}
-			fprintf(stderr, "\n");
-		}
-		fail(get_nested_error_msg(e));
+		fail(format_gridcell_exception(e, current_gridcell->lon, current_gridcell->lat,
+			current_gridcell->description));
 		return false; // To eliminate a compiler warning.
 	}
 }
@@ -412,16 +422,11 @@ try {
 	// We have enough data to simulate another day.
 	return true;
 } catch (const std::exception& e) {
-	if (current_gridcell > gridlist.begin() && current_gridcell < gridlist.end()) {
-		fprintf(stderr, "Failed to read data for gridcell (%f, %f)",
-				gridcell.get_lon(), gridcell.get_lat());
-		auto prev_gridcell = current_gridcell - 1;
-		if (prev_gridcell >= gridlist.begin() && prev_gridcell->description != "") {
-			fprintf(stderr, " (%s)", (const char *)prev_gridcell->description);
-		}
-		fprintf(stderr, "\n");
+	xtring description;
+	if (current_gridcell > gridlist.begin()) {
+		description = (current_gridcell - 1)->description;
 	}
-	fail(get_nested_error_msg(e));
+	fail(format_gridcell_exception(e, gridcell.get_lon(), gridcell.get_lat(), description));
 	return false; // To eliminate a compiler warning.
 }
 }

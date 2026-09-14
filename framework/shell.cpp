@@ -12,6 +12,7 @@
 
 #include "config.h"
 #include "shell.h"
+#include "stacktrace.h"
 #include "guess.h"
 
 #include <stdio.h>
@@ -208,6 +209,7 @@ void CommandLineShell::fail(const char* message) {
 	log_message("\n\nFATAL ERROR:\n\n");
 	log_message(message);
 	log_message("\n\nSimulation terminated.\n");
+	write_stack_trace(logfile);
 	cleanupAtExit();
 	exit(99);
 }

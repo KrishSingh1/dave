@@ -20,6 +20,8 @@
 #include "parallel.h"
 #include "inputmodule.h"
 #include "logging.h"
+#include "stacktrace.h"
+#include "util.h"
 
 #include <process.h>
 #include <stdarg.h>
@@ -71,6 +73,9 @@ public:
 		log_message("\n\nFATAL ERROR:\n\n");
 		log_message(message);
 		log_message("\n\nSimulation terminated.\n");
+		if (logfile) {
+			write_stack_trace(logfile);
+		}
 
 		message_finished();
 
@@ -241,7 +246,13 @@ __declspec(dllexport) int dll_main(GuessParam arg) {
 		param.addparam("getclim_driver_file", args.get_driver_file());
 
 	// Call the framework
-	framework(args);
+	try {
+		framework(args);
+	} catch (const std::exception& e) {
+		fail(get_nested_error_msg(e));
+	} catch (...) {
+		fail("Unknown non-standard exception");
+	}
 
 	// Say goodbye
 	logging_print_run_summary();

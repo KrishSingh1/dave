@@ -2,6 +2,7 @@
 #define _UTIL_H_
 
 #include "gutil.h"
+#include <exception>
 #include <stdexcept>
 
 #ifndef PATH_MAX
@@ -43,6 +44,11 @@ throw upon failure, but "directory already exists" is considered success.
 @param path: The directory tree to be created.
 */
 void mkdir_p(const char *path);
+
+/*
+Format an exception and any nested exceptions as an indented message chain.
+*/
+xtring get_nested_error_msg(const std::exception& e);
 
 /*
 Return current time (in μs since unix epoch).

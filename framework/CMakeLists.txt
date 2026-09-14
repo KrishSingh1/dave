@@ -7,6 +7,7 @@ set(headers
   archive.h
   framework.h
   shell.h
+  stacktrace.h
   partitionedmapserializer.h
   guessserializer.h
   parallel.h
@@ -35,6 +36,7 @@ set(source
   archive.cpp
   framework.cpp
   shell.cpp
+  stacktrace.cpp
   partitionedmapserializer.cpp
   guessserializer.cpp
   parallel.cpp

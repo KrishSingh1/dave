@@ -70,6 +70,53 @@ endif (UNIX)
 # (used by cmake when the include() command is used in a cmake file)
 set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/cmake ${CMAKE_MODULE_PATH})
 
+# Detect the platform-specific stack trace API.
+include(CheckIncludeFileCXX)
+include(CheckCXXCompilerFlag)
+include(CheckCXXSourceCompiles)
+check_include_file_cxx("execinfo.h" HAVE_EXECINFO_H)
+if (HAVE_EXECINFO_H)
+  check_cxx_source_compiles("#include <execinfo.h>\nint main() { void *frames[1]; return backtrace(frames, 1) < 0; }" HAVE_EXECINFO_BACKTRACE)
+
+  if (NOT HAVE_EXECINFO_BACKTRACE)
+    find_library(EXECINFO_LIBRARY NAMES execinfo)
+    if (EXECINFO_LIBRARY)
+      set(CMAKE_REQUIRED_LIBRARIES ${EXECINFO_LIBRARY})
+	  unset(HAVE_EXECINFO_BACKTRACE CACHE)
+      check_cxx_source_compiles("#include <execinfo.h>\nint main() { void *frames[1]; return backtrace(frames, 1) < 0; }" HAVE_EXECINFO_BACKTRACE)
+      unset(CMAKE_REQUIRED_LIBRARIES)
+    endif()
+  endif()
+endif()
+
+if (HAVE_EXECINFO_BACKTRACE)
+  add_definitions(-DHAVE_EXECINFO_BACKTRACE)
+  if (EXECINFO_LIBRARY)
+    set(LIBS ${LIBS} ${EXECINFO_LIBRARY})
+  endif()
+
+  if (UNIX AND NOT APPLE)
+    check_cxx_compiler_flag("-rdynamic" HAVE_RDYNAMIC)
+    if (HAVE_RDYNAMIC)
+      set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
+    endif()
+  endif()
+  message(STATUS "Stack traces enabled with execinfo")
+elseif (NOT WIN32)
+  message(STATUS "Stack traces unavailable: execinfo was not found")
+endif()
+
+if (WIN32)
+  find_library(DBGHELP_LIBRARY NAMES dbghelp)
+  if (DBGHELP_LIBRARY)
+    add_definitions(-DHAVE_DBGHELP)
+    set(LIBS ${LIBS} ${DBGHELP_LIBRARY})
+    message(STATUS "Windows stack traces enabled with symbol names")
+  else()
+    message(STATUS "Windows stack traces enabled with addresses only")
+  endif()
+endif()
+
 # NetCDF - look for libraries and include files, and use them if found.
 # If this CMakeList script does not find the path to the NetCDF library on
 # your system, then consult LPJ-GUESS/reference/guessdoc.doc.

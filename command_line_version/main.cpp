@@ -16,6 +16,7 @@
 #include "commandlinearguments.h"
 #include "parallel.h"
 #include "logging.h"
+#include "util.h"
 #include <stdlib.h>
 
 #ifdef __unix__
@@ -92,7 +93,13 @@ int main(int argc,char* argv[]) {
 	}
 
 	// Call the framework
-	framework(args);
+	try {
+		framework(args);
+	} catch (const std::exception& e) {
+		fail(get_nested_error_msg(e));
+	} catch (...) {
+		fail("Unknown non-standard exception");
+	}
 
 	// Say goodbye
 	logging_print_run_summary();

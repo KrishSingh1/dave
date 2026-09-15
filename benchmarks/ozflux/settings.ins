@@ -61,7 +61,7 @@ slope -1
 ! Soil depth can be read in or set from the .ins file. Depth affects how much
 ! water the soil can hold, how organic matter and roots are distributed, and
 ! many other things.
-param "file_soildepth"        (str "../forcing/soil/Soildepth_log_mean.txt")
+param "file_soildepth"        (str "../forcing/soil/soildepth.ozflux.txt")
 
 ! Soil depth (mm) (0 = use soil depth input data, >0 fixed soil depth according
 ! to depth_soil).
@@ -131,7 +131,7 @@ file_co2                      "../forcing/global_co2_ann_1700_2040.txt" ! note e
 !file_co2                     "../forcing/co2_rcp85_1765_2500.dat"
 
 ! Maximum number of cohorts allowed to coexist per pft (0 = unlimited)
-nindiv_max               0
+nindiv_max               1
 
 ! Set to 1 to force all individuals to use constant/fixed LAI.
 ! The monthly LAI values are defined at the bottom of canexch.h.
@@ -232,7 +232,7 @@ ifbvoc 0                         ! Whether to include BVOC calculations (1) or n
 !///////////////////////////////////////////////////////////////////////////////
 ! Disturbance
 !///////////////////////////////////////////////////////////////////////////////
-ifdisturb    1          ! Whether generic patch-destroying disturbances enabled
+ifdisturb    0          ! Whether generic patch-destroying disturbances enabled
 disttype     "DETERMINISTIC"     ! Disturbance regime ("NONE", "STOCHASTIC" (requires distinterval), "DETERMINISTIC" (requires file_disturb))
 
 distinterval 30        ! Average return time for generic patch-destroying disturbances
@@ -317,7 +317,7 @@ ifsupercooled 1
 homrootdistfrac 0.0
 
 ! Fraction of deep soil, beyond 1500 mm, that roots have access to.
-rootfrac_of_deep_soil 0.0
+rootfrac_of_deep_soil 0.5
 
 ! This is a calibration parameter for vertical movement of organic and mineral
 ! matter when root or organic matter content changes. No need to change it. I'll

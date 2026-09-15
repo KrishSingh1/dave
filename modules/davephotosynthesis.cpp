@@ -68,11 +68,12 @@ Describes the state of a cohort relevant for photosynthesis calculations.
 */
 class CohortState {
 public:
-	CohortState(double lai, double wscal, double lwp, double stom_clos,
-				double fipar, bool stomata_open, double fphen_activity,
-				double ps_sink_lim, double vcmax25, double jmax25,
-				double vpmax25) :
-		lai(lai), wscal(wscal), lwp(lwp), stom_clos(stom_clos),fipar(fipar),
+	CohortState(double lai, double wscal, double lwp, double predawn_lwp,
+				double stom_clos, double fipar, bool stomata_open,
+				double fphen_activity, double ps_sink_lim, double vcmax25,
+				double jmax25, double vpmax25) :
+		lai(lai), wscal(wscal), lwp(lwp), predawn_lwp(predawn_lwp),
+		stom_clos(stom_clos),fipar(fipar),
 		stomata_open(stomata_open), fphen_activity(fphen_activity),
 		ps_sink_lim(ps_sink_lim), vcmax25(vcmax25), jmax25(jmax25),
 		vpmax25(vpmax25) {
@@ -82,6 +83,7 @@ public:
 		indiv.canopy[layer].lai,
 		indiv.get_wscal(),
 		ifdavehydraulics ? indiv.lwp_previous : indiv.weighted_psi,
+		indiv.predawn_lwp,
 		indiv.pft.stom_clos,
 		indiv.canopy[layer].fipar,
 		indiv.stomata_open,
@@ -94,6 +96,7 @@ public:
 	double get_lai() const { return lai; }
 	double get_wscal() const { return wscal; }
 	double get_lwp() const { return lwp; }
+	double get_predawn_lwp() const { return predawn_lwp; }
 	double get_stom_clos() const { return stom_clos; }
 	double get_fipar() const { return fipar; }
 	bool get_stomata_open() const { return stomata_open; }
@@ -109,6 +112,8 @@ private:
 	double wscal;
 	// Leaf water potential (MPa).
 	double lwp;
+	// Predawn leaf water potential (MPa).
+	double predawn_lwp;
 	// Leaf water potential (MPa) at stomatal closure.
 	double stom_clos;
 	// Fraction of PAR incident to the leaf area (0-1).
@@ -286,6 +291,13 @@ double calc_water_stress_dave(const Soil &soil, const double weight[NSOILLAYERS_
 		total_weight += weight[i];
 
 		depth_cum += soil.soillayers[i].thickness;
+	}
+
+	// If none of the weighted layers have any weight (e.g. all are dry/
+	// rootless), there's no water available to this individual from any of
+	// them - maximally stressed.
+	if (is_zero(total_weight)) {
+		return 0.0;
 	}
 
 	// Normalise by sum of weights.
@@ -587,12 +599,16 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	if (ifzhou) {
 	// function to scale vcmax and jmax by pre-dawn water potential, see Zhou (2014)
 	//	double wp_vmax_scale = pslim_lwp_scalar(inputs.s_f, inputs.psi_f, inputs.predawn_lwp);
-		double a1 = 7.0;
-		double pg50 = inputs.stom_clos * pow(9.0, -1.0 / a1);
-		double wp_vcmax_scale = 1.0 / (1.0 + pow(inputs.lwp_previous / pg50, a1));
+	// alternative formula from Xu et al. (2016), New Phyt, https://doi.org/10.1111/nph.14009
+	// note we considered a stronger effect (using pg50 rather than tlp as in the paper), but review
+	// of literature indicated that about 50% loss of vcmax at stomatal closure was about right.
+		double a1 = 8.0;
+		//double pg50 = inputs.stom_clos * pow(9.0, -1.0 / a1);
+		double wp_vcmax_scale = 1.0 / (1.0 + pow(inputs.lwp / inputs.stom_clos, a1));
 		pslim = pslim * wp_vcmax_scale;
 	} else {
-		pslim = pslim * pow(inputs.wscal, qb);
+		pslim = pslim 
+		* pow(inputs.wscal, qb);
 	}
 
 	double vcmax = pslim * Arrhenius_temp_response(vcmax25_mol, inputs.tleaf, inputs.ha_v, HD, inputs.ds_v);
@@ -914,9 +930,10 @@ C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
 	if (ifzhou) {
 		// function to scale vcmax and jmax by pre-dawn water potential, see Zhou (2014)
 		//	double wp_vmax_scale = pslim_lwp_scalar(inputs.s_f, inputs.psi_f, inputs.predawn_lwp);
-		double a1 = 7.0;
-		double pg50 = inputs.stom_clos * pow(9.0, -1.0 / a1);
-		double wp_vcmax_scale = 1.0 / (1.0 + pow(inputs.lwp_previous / pg50, a1));
+	// alternative formula from Xu et al. (2016), New Phyt, https://doi.org/10.1111/nph.14009
+		double a1 = 10.0;
+		// double pg50 = inputs.stom_clos * pow(9.0, -1.0 / a1);
+		double wp_vcmax_scale = 1.0 / (1.0 + pow(inputs.lwp / inputs.stom_clos, a1));
 		pslim = pslim * wp_vcmax_scale;
 	} else {
 		pslim = pslim * pow(inputs.wscal, qb);
@@ -1008,10 +1025,12 @@ PhotosynthesisDiagnostics get_photosynthesis_inputs(const CohortState &cohort,
 
 	inputs.stomata_open = cohort.get_stomata_open();
 
-	// Soil wp for forest floor, lwp from previous timestep for cohorts
+	// lwp for Xu (2016) adjustment to vcmax, predawn_lwp for Zhou (2014) stomatal closure model
 	inputs.lwp = cohort.get_lwp();
+	inputs.predawn_lwp = cohort.get_predawn_lwp();
 
 	inputs.stom_clos = cohort.get_stom_clos();
+	inputs.tlp = pft.tlp;
 
 	// CS, Testing adjustment to gcutic with temperature - based on
 	// Cochard 2021 Eq 13 & 14,
@@ -1036,15 +1055,16 @@ PhotosynthesisDiagnostics get_photosynthesis_inputs(const CohortState &cohort,
 	diagnostics.g1 = pft.g1;
 
 	if (ifzhou) {
-		// Stomatal term (Medlyn et al. 2011), with g1 defined by
-		// pre-dawn soil water potential (Zhou et al. 2014).
+		// Stomatal term (Medlyn et al. 2011), with g1 as a declining
+		// exponential function of leaf water potential (Zhou et al. 2014,
+		// eqn 3: g1 = a*exp(b*psi)).
 
-		// We set parameter b1z to the value that results in 90% reduction in g1
-		// at stom_clos (for compatibility with hydraulic module).
+		// We set parameter b1z to the value that results in 90% reduction in
+		// g1 at stom_clos
 		double b1z = log(0.1) / (pft.stom_clos + 0.3);
 
 		// for water
-		double rescale = exp(b1z * (inputs.lwp + 0.3));
+		double rescale = exp(b1z * (inputs.predawn_lwp + 0.3));
 
 		double g1 = pft.g1x * rescale;
 
@@ -1586,31 +1606,137 @@ double transpiration_dave(const Individual &indiv) {
 	return max(0.0, transp);
 }
 
-double calc_transp_old(const Individual &indiv) {
-	const Climate &climate = indiv.vegetation.patch.get_climate();
-	double transp = 0;
+/*
+Function to redistribute extra AET if any one layer's water content is 
+exceeded
+*/
+void prevent_wuptake_oversubscription(Patch &patch) {
+	Vegetation &vegetation = patch.vegetation;
+	Soil &soil = patch.soil;
 
-	// Loop over time steps per day
-	for (Day day; day.period != date.subdaily; day.next()) {	
+	// Allocate uptake explicitly so that demand in a dry layer can be moved to
+	// other layers without reducing transpiration from the whole soil profile.
 
-		// T = Gc / (pressure/VPD)
-		// Gc in mol m-2 s-1
-		// VPD and pressure in Pa
-		double patmos = climate.pressure[day.period];
-		double vpd = climate.vpds[day.period];
-		double gsw = indiv.ps_subdaily.gsw[day.period];
-		if (vpd > 0 && patmos > 0) {
-			transp += gsw / (patmos / (vpd * 1000.0));
+	// Amount of water taken up from each layer by each individual (mm).
+	std::vector<std::vector<double> > uptake(vegetation.nobj, std::vector<double>(soil.nsoillayers, 0.0));
+
+	std::vector<std::vector<double> > uptake_weights(vegetation.nobj, std::vector<double>(soil.nsoillayers, 0.0));
+	std::vector<double> original_aet(vegetation.nobj, 0.0);
+	std::vector<double> supply(soil.nsoillayers, 0.0);
+	std::vector<bool> depleted(soil.nsoillayers, false);
+	double total_demand = 0.0;
+	double total_supply = 0.0;
+
+	for (int i = 0; i < soil.nsoillayers; i++) {
+		Soillayer &layer = soil.soillayers[i];
+
+		supply[i] = max(0.0, layer.wmass - layer.wp);
+		depleted[i] = negligible(supply[i]);
+		total_supply += supply[i];
+	}
+
+	for (int j = 0; j < vegetation.nobj; j++) {
+		const Individual &indiv = vegetation[j];
+		original_aet[j] = indiv.aet;
+		double indiv_uptake = 0.0;
+		for (int i = 0; i < soil.nsoillayers; i++) {
+			uptake_weights[j][i] = indiv.fwuptake[i];
+			uptake[j][i] = indiv.aet * indiv.fwuptake[i];
+			indiv_uptake += uptake[j][i];
 		}
 
-	} // end sub-daily loop
-	
-	// daily transpiration rate in mol m-2 s-1
-	transp /= date.subdaily;
+		// A hydraulically isolated individual deliberately has no soil uptake.
+		assert(negligible(indiv_uptake) || equal(indiv_uptake, original_aet[j]));
+		total_demand += indiv_uptake;
+	}
 
-	// daily transpiration rate in mm d-1
-	// Limiting transpiration to the actual supply is handled later.
-	return transp * MOL2G_H2O * KG_PER_G * SECS_PER_DAY;
+	if (total_demand > total_supply) {
+		fail("water_uptake_dave(): transpiration demand exceeds the water "
+			"available in the soil profile");
+	}
+
+	bool oversubscribed;
+	int redistribution_count = 0;
+	do {
+		oversubscribed = false;
+
+		// The amount of water which couldn't be taken up by each individual due
+		// to oversubscription of a layer.
+		std::vector<double> rejected(vegetation.nobj, 0.0);
+
+		// Cap oversubscribed layers. Individuals share the available water in
+		// proportion to their uptake requested from that layer.
+		for (int i = 0; i < soil.nsoillayers; i++) {
+			double layer_uptake = 0.0;
+			for (int j = 0; j < vegetation.nobj; j++)
+				layer_uptake += uptake[j][i];
+
+			if (layer_uptake > supply[i]) {
+				oversubscribed = true;
+				depleted[i] = true;
+				double available_fraction = supply[i] / layer_uptake;
+				for (int j = 0; j < vegetation.nobj; j++) {
+					double accepted = uptake[j][i] * available_fraction;
+					rejected[j] += uptake[j][i] - accepted;
+					uptake[j][i] = accepted;
+				}
+			}
+		}
+
+		// Redistribute each individual's rejected uptake according to its
+		// original preferences among layers which have not been depleted.
+		if (oversubscribed) {
+			for (int j = 0; j < vegetation.nobj; j++) {
+				if (negligible(rejected[j]))
+					continue;
+
+				double weight_sum = 0.0;
+				for (int i = 0; i < soil.nsoillayers; i++) {
+					if (!depleted[i])
+						weight_sum += uptake_weights[j][i];
+				}
+
+				if (negligible(weight_sum)) {
+					fail("water_uptake_dave(): unable to redistribute water uptake "
+						"to a non-depleted layer");
+				}
+
+				for (int i = 0; i < soil.nsoillayers; i++) {
+					if (!depleted[i])
+						uptake[j][i] += rejected[j] *
+							uptake_weights[j][i] / weight_sum;
+				}
+			}
+		}
+
+		redistribution_count++;
+		if (redistribution_count > soil.nsoillayers) {
+			fail("water_uptake_dave(): water uptake redistribution did not converge");
+		}
+	} while (oversubscribed);
+
+	for (int i = 0; i < soil.nsoillayers; i++) {
+		double layer_uptake = 0.0;
+		for (int j = 0; j < vegetation.nobj; j++)
+			layer_uptake += uptake[j][i];
+		assert(layer_uptake < supply[i] || equal(layer_uptake, supply[i]));
+	}
+
+	// Convert the allocation back to the representation used by the soil code.
+	// Redistribution must conserve each active individual's original AET.
+	for (int j = 0; j < vegetation.nobj; j++) {
+		Individual &indiv = vegetation[j];
+		double indiv_uptake = 0.0;
+		for (int i = 0; i < soil.nsoillayers; i++)
+			indiv_uptake += uptake[j][i];
+
+		assert(negligible(indiv_uptake) || equal(indiv_uptake, original_aet[j]));
+		indiv.aet = indiv_uptake;
+		for (int i = 0; i < soil.nsoillayers; i++) {
+			indiv.fwuptake[i] = negligible(indiv.aet) ?
+				0.0 : uptake[j][i] / indiv.aet;
+		}
+	}
 }
 
 /*
@@ -1649,30 +1775,7 @@ void water_uptake_dave(Patch &patch) {
 	} // end cohort loop
 
 	// Ensure water uptake doesn't exceed availability in any layer.
-	for (int i = 0; i < patch.soil.nsoillayers; i++) {
-		double uptake = 0;
-		for (int j = 0; j < vegetation.nobj; j++) {
-			const Individual &indiv = vegetation[j];
-			uptake += indiv.aet * indiv.fwuptake[i]; 
-		}
-
-		double wcont = patch.soil.soillayers[i].wcont();
-		double awc = patch.soil.soillayers[i].awc;
-		double wsupply = wcont * awc;
-
-		if (uptake > wsupply) {
-			if (ifdavehydraulics) {
-				log_error("Transpiration exceeds soil water content, this shouldn't happen");
-			}
-
-			// Demand in this layer exceeds supply.
-			double fwavail = 0.999 * wsupply / uptake;
-			for (int j = 0; j < vegetation.nobj; j++) {
-				Individual &indiv = vegetation[j];
-				indiv.aet *= fwavail;
-			}
-		}
-	}
+	prevent_wuptake_oversubscription(patch);
 
 	// aaet updated here to allow for reduction in aet due to source limitation.
 	for (int i = 0; i < vegetation.nobj; i++) {
@@ -1839,7 +1942,7 @@ void forest_floor_dave(Patch &patch) {
 				continue;
 			}
 
-			CohortState cohort(LAI_HYPOTHETICAL, ppft.wscal, lwp, pft.stom_clos, patch.fpar_ff,
+			CohortState cohort(LAI_HYPOTHETICAL, ppft.wscal, lwp, lwp, pft.stom_clos, patch.fpar_ff,
 							   true, 1.0, 1.0, pft.vcmax_25, pft.jmax_25,
 							   pft.vpmax_25);
 			PhotosynthesisInputs inputs;

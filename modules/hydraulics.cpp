@@ -39,6 +39,7 @@
 #include "canexch.h"
 #include "somdynam.h"
 #include "logging.h"
+#include "config.h"
 
 // The cohort density (/m2) above which cohorts will lose MORT_FRAC biomass
 // upon hydraulic failure, and below which they will be killed outright.
@@ -93,27 +94,29 @@ double calc_weighted_psi(Soil &soil, Pft &pft, Individual &indiv) {
         // kgC/m2
         double rootc_layer = indiv.rootdist[i] * indiv.cmass_root;
 
-        // UPDATE THIS - WHAT CONVERSION FACTOR IS SENSIBLE FOR ROOTS?????
-        double root_biomass = rootc_layer * 2.0; // kg/m2
+        // Root biomass density, using 2.0 as conversion between carbon and biomass
+        double root_biomass = rootc_layer * 2.0 / thickness_lyr; // kg/m3
 
-        // Length of fine roots in soil (m).
+        // Length density of fine roots in soil (m/m3).
         double lr = (1 / (PI * pow(rr, 2))) * root_biomass * (1 / froot_density);
 
-        // Mean distance between roots (m).
-        double rs = pow(1 / (PI * lr * thickness_lyr), 0.5);
+        // Volumetric root density (m)
+        double rs = pow(1 / (PI * lr), 0.5);
 
         // Convert from m/s to m2/s/MPa by dividing by head of pressure in
         // MPa/m, then convert to mmol/m/s/MPa.
         double Ksoil = soil.soillayers[i].k_actual / 0.009807 * MMOL_PER_MOL / MOL2G_H2O * G_PER_KG * WATER_DENSITY;
 
-        if (root_biomass > 0.0){
+        if (root_biomass > 0.0 && soil.soillayers[i].wcont() > 0.0){
             // Soil-root resistance + root resistance, see Williams et al.
             // (2001). Note we don't multiply root biomass by D because it's
-            // already in kg/m2 (equation assumes kg/m3).
-            indiv.Rs_r[i] = log(rs / rr) / (2.0 * PI * lr * thickness_lyr * Ksoil) + root_resist / (root_biomass);
+            // already in kg/m2 (equation assumes kg/m3). MPa * s * m2 / mmol    MPa * s * m2 / mmol
+            indiv.Rs_r[i] = log(rs / rr) / (2.0 * PI * lr * Ksoil * thickness_lyr) + root_resist / (root_biomass * G_PER_KG * thickness_lyr);
         } else {
-            // Conductivity is effectively zero if there are no roots.
-            indiv.Rs_r[i] = pow(10.0,10.0);
+            // Resistance is infinite (conductivity exactly zero) if there are
+            // no roots, or if the layer is at or below wilting point (no
+            // plant-available water to assign uptake demand to). 
+            indiv.Rs_r[i] = INFINITY;
         }
 
         double psi_layer = soil.soillayers[i].psi_mpa();
@@ -121,7 +124,6 @@ double calc_weighted_psi(Soil &soil, Pft &pft, Individual &indiv) {
         // Weight soil water potential by root fraction in each layer.
         weighted_psi = weighted_psi + psi_layer * (1.0 / indiv.Rs_r[i]);
         Rs_inv_sum += 1.0 / indiv.Rs_r[i];
-
     }
 
     // Divide by sum of 1/Rs to get overall weighted average.
@@ -140,22 +142,29 @@ void calc_soil_water_potenial_dave(Soil &soil) {
     for (int i = 0; i < soil.nsoillayers; i++) {
         Soillayer &layer = soil.soillayers[i];
 
-        // Sand content, as percentage.
-        double sand_perc = layer.sand_frac * 100.0;
-
-        // Clay content, as percentage.
-        double clay_perc = layer.clay_frac * 100.0;
-
         psi_sum += layer.psi_mpa();
-        // double Ksoil_sat = soil.soiltype.Ksat; // saturated hydraulic conductivity in m/s
-        // double k = pow(tot_wcont / sat_wcont, 2 * b + 3); // Equation 2 from Clapp & Hornberger 1978
-        // soil.K_actual[i] = k * Ksoil_sat; // one way of converting Ksat to Kactual, but can also use method below
 
-        double theta = layer.wmass / layer.thickness; // convert from mm to m3/m3
-
-        // hydraulic conductivity (m/s) based on equation 10 from Saxton et al (1986)
-        layer.k_actual = 2.778e-6 * exp(12.012 - 0.0755 * sand_perc + (-3.895 + 0.03671 *
-                            sand_perc - 0.1103 * clay_perc + 8.7546e-4 * pow(clay_perc, 2.0)) * 1.0 / theta);
+        // Hydraulic conductivity, now using the same Campbell (1974)/
+        // Clapp-Hornberger formula, Kw_max and b as Richards solver, instead of
+        // previous Saxton et al. (1986) formula. The two were inconsistent:
+        // Saxton used theta = wmass/thickness (fraction of total volume),
+        // while the Richards solver (and this new version) uses
+        // theta = wmass/wsats (fraction of saturation) - these differ
+        // substantially since wsats < thickness (soil isn't 100% pore
+        // space). Kw_max/b are in mm/s; divide by MM_PER_M to keep
+        // k_actual's existing downstream unit contract (m/s) in
+        // calc_weighted_psi(). Note: unlike the Richards solver, this
+        // doesn't include ice impedance (no frozen-soil handling here).
+        double theta = max(0.0, min(1.0, layer.wmass / layer.wsats));
+        double k_actual_mm_s;
+        if (theta >= 1.0) {
+            k_actual_mm_s = layer.Kw_max;
+        } else if (theta < 0.01) {
+            k_actual_mm_s = 0.0;
+        } else {
+            k_actual_mm_s = layer.Kw_max * pow(theta, 2.0 * layer.b + 3.0);
+        }
+        layer.k_actual = k_actual_mm_s / MM_PER_M;
     }
 
     soil.soil_psi = psi_sum / soil.nsoillayers;

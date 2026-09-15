@@ -830,7 +830,8 @@ public:
 	// Whether stomata are open (at all). If FALSE, stomata are fully closed.
 	bool stomata_open;
 
-	// Predawn leaf water potential (MPa)
+	// Leaf water potential (MPa). Previous timestep for cohorts, soil water
+	// potential for forest floor.
 	double lwp;
 
 	// Sensitivity parameter indicating steepness of decline in Vcmax with water stress (Zhou 2014)
@@ -839,11 +840,14 @@ public:
 	// Reference value at which Vcmax or Jmax is half it's non-water-stresed value (Zhou 2014)
 	double psi_f;
 
-	// Leaf water potential (MPa) saved from hydraulics routine, previous timestep
-	double lwp_previous;
+	// Predawn leaf water potential (MPa)
+	double predawn_lwp;
 
 	// Leaf water potential at stomatal closure (MPa)
 	double stom_clos;
+
+	// Turgor loss point (MPa)
+	double tlp;
 	
 	/// Tgrowth, mean air temperature of preceding 30 d.
 	double tgrowth;

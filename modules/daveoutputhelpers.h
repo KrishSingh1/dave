@@ -159,15 +159,14 @@ Get the columns used in the patch-level pft litter pools file.
 std::vector<ColumnDefinition<Individual>> get_pft_litter_pools();
 
 /*
-<<<<<<< HEAD
 Get the columns used in the indiv-level transpiration debug file.
 */
 std::vector<ColumnDefinition<Individual>> transp_check_columns();
-=======
+
+/*
 Get the columns used in the patch-level closs hydraulics output file.
 */
 std::vector<ColumnDefinition<Individual>> get_closs_hydraulics_cols();
->>>>>>> edda7c277cbacc43d8016e34de76578b461a7aa8
 
 /*
 Get the columns used in the patch-level npool veg file.

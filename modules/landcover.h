@@ -227,6 +227,7 @@ struct landcover_change_transfer {
 			// Sum patchpft litter
 			for(int n=0; n<npft; n++) {
 
+				Pft &pft = pftlist[n];
 				Patchpft& ppft = patch.pft[n];
 
 				transfer_cmass_litter_leaf[n] += ppft.cmass_litter_leaf * scale;
@@ -246,6 +247,35 @@ struct landcover_change_transfer {
 					transfer_cmass_harvested_products_slow[n] += ppft.cmass_harvested_products_slow * scale;
 					transfer_nmass_harvested_products_slow[n] += ppft.nmass_harvested_products_slow * scale;
 				}
+
+				transfer_aflux_NPP_pft[n] += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id) * scale;
+				transfer_aflux_GPP_pft[n] += patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id) * scale;
+
+				transfer_cmass_harv_killed[n] += patch.pft[n].cmass_harv_killed * scale;
+				transfer_cmass_dist_clearcut_killed[n] += patch.pft[n].cmass_dist_clearcut_killed * scale;
+				transfer_cmass_dist_fire_killed[n] += patch.pft[n].cmass_dist_fire_killed * scale;
+				transfer_cmass_dist_wind_killed[n] += patch.pft[n].cmass_dist_wind_killed * scale;
+				transfer_cmass_dist_barkbeetle_killed[n] += patch.pft[n].cmass_dist_barkbeetle_killed * scale;
+
+				transfer_cmass_wood_harv_killed[n] += patch.pft[n].cmass_wood_harv_killed * scale;
+				transfer_cmass_wood_harv[n] += patch.pft[n].cmass_wood_harv * scale;
+				transfer_cmass_wood_harv_toprod[n] += patch.pft[n].cmass_wood_harv_toprod * scale;
+				transfer_cmass_harv_tolitter[n] += patch.pft[n].cmass_harv_tolitter * scale;
+				transfer_cmass_wood_clearcut[n] += patch.pft[n].cmass_wood_clearcut * scale;
+				transfer_cmass_wood_thin[n] += patch.pft[n].cmass_wood_thin * scale;
+				transfer_cmass_thin_killed[n] += patch.pft[n].cmass_thin_killed * scale;
+				transfer_cmass_mort[n] += patch.pft[n].cmass_mort * scale;
+				transfer_cmass_leaf_root_turnover[n] += patch.pft[n].cmass_leaf_root_turnover * scale;
+				transfer_cmass_repr[n] += patch.pft[n].cmass_repr * scale;
+				transfer_cmass_est[n] += patch.pft[n].cmass_est * scale;
+				transfer_cmass_harv_killed_plus10cm[n] += patch.pft[n].cmass_harv_killed_plus10cm * scale;
+				transfer_cmass_thin_killed_plus10cm[n] += patch.pft[n].cmass_thin_killed_plus10cm * scale;
+				transfer_cmass_wood_harv_killed_plus10cm[n] += patch.pft[n].cmass_wood_harv_killed_plus10cm * scale;
+				transfer_cmass_clearcut_killed_plus10cm[n] += patch.pft[n].cmass_clearcut_killed_plus10cm * scale;
+				transfer_cmass_dist_clearcut_killed_plus10cm[n] += patch.pft[n].cmass_dist_clearcut_killed_plus10cm * scale;
+				transfer_cmass_dist_fire_killed_plus10cm[n] += patch.pft[n].cmass_dist_fire_killed_plus10cm * scale;
+				transfer_cmass_dist_wind_killed_plus10cm[n] += patch.pft[n].cmass_dist_wind_killed_plus10cm * scale;
+				transfer_cmass_dist_barkbeetle_killed_plus10cm[n] += patch.pft[n].cmass_dist_barkbeetle_killed_plus10cm * scale;
 			}
 
 			// Sum soil
@@ -366,6 +396,65 @@ struct landcover_change_transfer {
 		if (transfer_nmass_harvested_products_slow)
 			memcpy(transfer_nmass_harvested_products_slow, from.transfer_nmass_harvested_products_slow, sizeof(double) * npft);
 
+		if(transfer_aflux_NPP_pft)
+			memcpy(transfer_aflux_NPP_pft, from.transfer_aflux_NPP_pft, sizeof(double) * npft);
+		if(transfer_aflux_GPP_pft)
+			memcpy(transfer_aflux_GPP_pft, from.transfer_aflux_GPP_pft, sizeof(double) * npft);
+
+		if(transfer_cmass_harv_killed)
+			memcpy(transfer_cmass_harv_killed, from.transfer_cmass_harv_killed, sizeof(double) * npft);
+		if(transfer_cmass_dist_clearcut_killed)
+			memcpy(transfer_cmass_dist_clearcut_killed, from.transfer_cmass_dist_clearcut_killed, sizeof(double) * npft);
+		if(transfer_cmass_dist_fire_killed)
+			memcpy(transfer_cmass_dist_fire_killed, from.transfer_cmass_dist_fire_killed, sizeof(double) * npft);
+		if(transfer_cmass_dist_wind_killed)
+			memcpy(transfer_cmass_dist_wind_killed, from.transfer_cmass_dist_wind_killed, sizeof(double) * npft);
+		if(transfer_cmass_dist_barkbeetle_killed)
+			memcpy(transfer_cmass_dist_barkbeetle_killed, from.transfer_cmass_dist_barkbeetle_killed, sizeof(double) * npft);
+
+		if(transfer_cmass_wood_harv_killed)
+			memcpy(transfer_cmass_wood_harv_killed, from.transfer_cmass_wood_harv_killed, sizeof(double) * npft);
+		if(transfer_cmass_wood_harv)
+			memcpy(transfer_cmass_wood_harv, from.transfer_cmass_wood_harv, sizeof(double) * npft);
+		if(transfer_cmass_wood_harv_toprod)
+			memcpy(transfer_cmass_wood_harv_toprod, from.transfer_cmass_wood_harv_toprod, sizeof(double) * npft);
+		if(transfer_cmass_harv_tolitter)
+			memcpy(transfer_cmass_harv_tolitter, from.transfer_cmass_harv_tolitter, sizeof(double) * npft);
+		if(transfer_cmass_wood_clearcut)
+			memcpy(transfer_cmass_wood_clearcut, from.transfer_cmass_wood_clearcut, sizeof(double) * npft);
+		if(transfer_cmass_wood_thin)
+			memcpy(transfer_cmass_wood_thin, from.transfer_cmass_wood_thin, sizeof(double) * npft);
+		if(transfer_cmass_thin_killed)
+			memcpy(transfer_cmass_thin_killed, from.transfer_cmass_thin_killed, sizeof(double) * npft);
+		if(transfer_cmass_mort_wood)
+			memcpy(transfer_cmass_mort_wood, from.transfer_cmass_mort_wood, sizeof(double) * npft);
+		if(transfer_cmass_mort)
+			memcpy(transfer_cmass_mort, from.transfer_cmass_mort, sizeof(double) * npft);
+		if(transfer_cmass_leaf_root_turnover)
+			memcpy(transfer_cmass_leaf_root_turnover, from.transfer_cmass_leaf_root_turnover, sizeof(double) * npft);
+		if(transfer_cmass_repr)
+			memcpy(transfer_cmass_repr, from.transfer_cmass_repr, sizeof(double) * npft);
+		if(transfer_cmass_est)
+			memcpy(transfer_cmass_est, from.transfer_cmass_est, sizeof(double) * npft);
+		if(transfer_cmass_harv_killed_plus10cm)
+			memcpy(transfer_cmass_harv_killed_plus10cm, from.transfer_cmass_harv_killed_plus10cm, sizeof(double) * npft);
+		if(transfer_cmass_thin_killed_plus10cm)
+			memcpy(transfer_cmass_thin_killed_plus10cm, from.transfer_cmass_thin_killed_plus10cm, sizeof(double) * npft);
+		if(transfer_cmass_wood_harv_killed_plus10cm)
+			memcpy(transfer_cmass_wood_harv_killed_plus10cm, from.transfer_cmass_wood_harv_killed_plus10cm, sizeof(double) * npft);
+		if(transfer_cmass_clearcut_killed_plus10cm)
+			memcpy(transfer_cmass_clearcut_killed_plus10cm, from.transfer_cmass_clearcut_killed_plus10cm, sizeof(double) * npft);
+		if(transfer_cmass_dist_clearcut_killed_plus10cm)
+			memcpy(transfer_cmass_dist_clearcut_killed_plus10cm, from.transfer_cmass_dist_clearcut_killed_plus10cm, sizeof(double) * npft);
+		if(transfer_cmass_dist_fire_killed_plus10cm)
+			memcpy(transfer_cmass_dist_fire_killed_plus10cm, from.transfer_cmass_dist_fire_killed_plus10cm, sizeof(double) * npft);
+		if(transfer_cmass_dist_wind_killed_plus10cm)
+			memcpy(transfer_cmass_dist_wind_killed_plus10cm, from.transfer_cmass_dist_wind_killed_plus10cm, sizeof(double) * npft);
+		if(transfer_cmass_dist_barkbeetle_killed_plus10cm)
+			memcpy(transfer_cmass_dist_barkbeetle_killed_plus10cm, from.transfer_cmass_dist_barkbeetle_killed_plus10cm, sizeof(double) * npft);
+		if(transfer_cmass_mort_wood_plus10cm)
+			memcpy(transfer_cmass_mort_wood_plus10cm, from.transfer_cmass_mort_wood_plus10cm, sizeof(double) * npft);
+
 		transfer_acflux_harvest = from.transfer_acflux_harvest;
 		transfer_anflux_harvest = from.transfer_anflux_harvest;
 
@@ -472,7 +561,67 @@ struct landcover_change_transfer {
 				transfer_nmass_litter_NH4[i] += from.transfer_nmass_litter_NH4[i] * multiplier;
 			if(transfer_nmass_harvested_products_slow)
 				transfer_nmass_harvested_products_slow[i] += from.transfer_nmass_harvested_products_slow[i] * multiplier;
+
+			if(transfer_aflux_NPP_pft)
+				transfer_aflux_NPP_pft[i] += from.transfer_aflux_NPP_pft[i] * multiplier;
+			if(transfer_aflux_GPP_pft)
+				transfer_aflux_GPP_pft[i] += from.transfer_aflux_GPP_pft[i] * multiplier;
+
+			if(transfer_cmass_harv_killed)
+				transfer_cmass_harv_killed[i] += from.transfer_cmass_harv_killed[i] * multiplier;
+			if(transfer_cmass_dist_clearcut_killed)
+				transfer_cmass_dist_clearcut_killed[i] += from.transfer_cmass_dist_clearcut_killed[i] * multiplier;
+			if(transfer_cmass_dist_fire_killed)
+				transfer_cmass_dist_fire_killed[i] += from.transfer_cmass_dist_fire_killed[i] * multiplier;
+			if(transfer_cmass_dist_wind_killed)
+				transfer_cmass_dist_wind_killed[i] += from.transfer_cmass_dist_wind_killed[i] * multiplier;
+			if(transfer_cmass_dist_barkbeetle_killed)
+				transfer_cmass_dist_barkbeetle_killed[i] += from.transfer_cmass_dist_barkbeetle_killed[i] * multiplier;
+
+			if(transfer_cmass_wood_harv_killed)
+				transfer_cmass_wood_harv_killed[i] += from.transfer_cmass_wood_harv_killed[i] * multiplier;
+			if(transfer_cmass_wood_harv)
+				transfer_cmass_wood_harv[i] += from.transfer_cmass_wood_harv[i] * multiplier;
+			if(transfer_cmass_wood_harv_toprod)
+				transfer_cmass_wood_harv_toprod[i] += from.transfer_cmass_wood_harv_toprod[i] * multiplier;
+			if(transfer_cmass_harv_tolitter)
+				transfer_cmass_harv_tolitter[i] += from.transfer_cmass_harv_tolitter[i] * multiplier;
+			if(transfer_cmass_wood_clearcut)
+				transfer_cmass_wood_clearcut[i] += from.transfer_cmass_wood_clearcut[i] * multiplier;
+			if(transfer_cmass_wood_thin)
+				transfer_cmass_wood_thin[i] += from.transfer_cmass_wood_thin[i] * multiplier;
+			if(transfer_cmass_thin_killed)
+				transfer_cmass_thin_killed[i] += from.transfer_cmass_thin_killed[i] * multiplier;
+			if(transfer_cmass_mort_wood)
+				transfer_cmass_mort_wood[i] += from.transfer_cmass_mort_wood[i] * multiplier;
+			if(transfer_cmass_mort)
+				transfer_cmass_mort[i] += from.transfer_cmass_mort[i] * multiplier;
+			if(transfer_cmass_leaf_root_turnover)
+				transfer_cmass_leaf_root_turnover[i] += from.transfer_cmass_leaf_root_turnover[i] * multiplier;
+			if(transfer_cmass_repr)
+				transfer_cmass_repr[i] += from.transfer_cmass_repr[i] * multiplier;
+			if(transfer_cmass_est)
+				transfer_cmass_est[i] += from.transfer_cmass_est[i] * multiplier;
+			if(transfer_cmass_harv_killed_plus10cm)
+				transfer_cmass_harv_killed_plus10cm[i] += from.transfer_cmass_harv_killed_plus10cm[i] * multiplier;
+			if(transfer_cmass_thin_killed_plus10cm)
+				transfer_cmass_thin_killed_plus10cm[i] += from.transfer_cmass_thin_killed_plus10cm[i] * multiplier;
+			if(transfer_cmass_wood_harv_killed_plus10cm)
+				transfer_cmass_wood_harv_killed_plus10cm[i] += from.transfer_cmass_wood_harv_killed_plus10cm[i] * multiplier;
+			if(transfer_cmass_clearcut_killed_plus10cm)
+				transfer_cmass_clearcut_killed_plus10cm[i] += from.transfer_cmass_clearcut_killed_plus10cm[i] * multiplier;
+			if(transfer_cmass_dist_clearcut_killed_plus10cm)
+				transfer_cmass_dist_clearcut_killed_plus10cm[i] += from.transfer_cmass_dist_clearcut_killed_plus10cm[i] * multiplier;
+			if(transfer_cmass_dist_fire_killed_plus10cm)
+				transfer_cmass_dist_fire_killed_plus10cm[i] += from.transfer_cmass_dist_fire_killed_plus10cm[i] * multiplier;
+			if(transfer_cmass_dist_wind_killed_plus10cm)
+				transfer_cmass_dist_wind_killed_plus10cm[i] += from.transfer_cmass_dist_wind_killed_plus10cm[i] * multiplier;
+			if(transfer_cmass_dist_barkbeetle_killed_plus10cm)
+				transfer_cmass_dist_barkbeetle_killed_plus10cm[i] += from.transfer_cmass_dist_barkbeetle_killed_plus10cm[i] * multiplier;
+			if(transfer_cmass_mort_wood_plus10cm)
+				transfer_cmass_mort_wood_plus10cm[i] += from.transfer_cmass_mort_wood_plus10cm[i] * multiplier;
 		}
+
 		transfer_acflux_harvest += from.transfer_acflux_harvest * multiplier;
 		transfer_anflux_harvest += from.transfer_anflux_harvest * multiplier;
 

@@ -789,22 +789,28 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 		i.cmass_litter_root += i.cmass_root * frac_cut * (1.0 - res_outtake_fine_root);
 		i.acflux_harvest_tolitter += i.cmass_root * frac_cut * (1.0 - res_outtake_fine_root);
 		i.acflux_harvest += i.cmass_root * frac_cut * res_outtake_fine_root;
+		i.acflux_harvest += (i.cmass_storage + i.cmass_crown + i.cmass_repr) * frac_cut;
+
 		i.cmass_root *= (1.0 - frac_cut);
 		i.cmass_storage *= (1.0 - frac_cut);
 		i.cmass_crown *= (1.0 - frac_cut);
 		i.cmass_repr *= (1.0 - frac_cut);
 
 		if (pft.is_grass() && ifdailygrass) {
+			i.acflux_harvest += (i.cmass_leafs[0] + i.cmass_leafs[1]) * frac_cut;
 			i.cmass_leafs[0] *= (1.0 - frac_cut);
 			i.cmass_leafs[1] *= (1.0 - frac_cut);
 
+			i.anflux_harvest += (i.nmass_leafs[0] + i.nmass_leafs[1]) * frac_cut;
 			i.nmass_leafs[0] *= (1.0 - frac_cut);
 			i.nmass_leafs[1] *= (1.0 - frac_cut);
 
 			if (!ifdavegrowth) {
+				i.acflux_harvest += (i.cmass_leafs[2] + i.cmass_leafs[3]) * frac_cut;
 				i.cmass_leafs[2] *= (1.0 - frac_cut);
 				i.cmass_leafs[3] *= (1.0 - frac_cut);
 
+				i.anflux_harvest += (i.nmass_leafs[2] + i.nmass_leafs[3]) * frac_cut;
 				i.nmass_leafs[2] *= (1.0 - frac_cut);
 				i.nmass_leafs[3] *= (1.0 - frac_cut);
 			}
@@ -814,6 +820,7 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 	i.nmass_litter_root += i.nmass_root * frac_cut * (1.0 - res_outtake_fine_root);
 	i.nmass_litter_root += (i.nstore_labile + i.nstore_longterm) * frac_cut * (1.0 - res_outtake_fine_root);
 	i.anflux_harvest += (i.nmass_root + i.nstore_labile + i.nstore_longterm) * frac_cut * res_outtake_fine_root;
+	i.anflux_harvest += (i.nmass_storage + i.nmass_crown + i.nmass_repr) * frac_cut;
 	i.nmass_root *= (1.0 - frac_cut);
 	i.nstore_labile *= (1.0 - frac_cut);
 	i.nstore_longterm *= (1.0 - frac_cut);
@@ -3144,6 +3151,9 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 		cp.nmass_litter_leaf += cp.nmass_leafs[0] + cp.nmass_leafs[1] + cp.nmass_leafs[2] + cp.nmass_leafs[3];
 		cp.nmass_litter_sap += cp.nmass_sap;
 		cp.nmass_litter_heart += cp.nmass_heart;
+
+		cp.nmass_litter_root += cp.nmass_storage + cp.nmass_crown;
+		cp.nmass_litter_leaf += cp.nmass_repr;
 	}
 
 	if (pft.landcover == CROPLAND) {
@@ -3369,12 +3379,34 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 			indiv.cropindiv->cmass_ho *= scale;
 		}
 
+		if (indiv.pft.dave_allocation()) {
+			indiv.cmass_crown *= scale;
+			indiv.nmass_crown *= scale;
+
+			indiv.cmass_repr *= scale;
+			indiv.nmass_repr *= scale;
+
+			indiv.cmass_storage *= scale;
+			indiv.nmass_storage *= scale;
+		}
+
 		if (ifdailygrass && indiv.pft.is_grass()) {
 			indiv.cmass_leafs[0] *= scale;
 			indiv.cmass_leafs[1] *= scale;
-			indiv.cmass_leafs[2] *= scale;
-			indiv.cmass_leafs[3] *= scale;
-			indiv.cmass_storage *= scale;
+
+			indiv.nmass_leafs[0] *= scale;
+			indiv.nmass_leafs[1] *= scale;
+
+			if (!ifdavegrowth) {
+				indiv.cmass_leafs[2] *= scale;
+				indiv.cmass_leafs[3] *= scale;
+
+				indiv.nmass_leafs[2] *= scale;
+				indiv.nmass_leafs[3] *= scale;
+
+				indiv.cmass_storage *= scale;
+				indiv.nmass_storage *= scale;
+			}
 		}
 	}
 
@@ -3394,9 +3426,12 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 	if (ifdailygrass && indiv.pft.is_grass()) {
 		indiv.nmass_leafs[0] = indiv.nmass_leafs[0] - indiv.nmass_leafs_luc[0] * (1.0 - scale);
 		indiv.nmass_leafs[1] = indiv.nmass_leafs[1] - indiv.nmass_leafs_luc[1] * (1.0 - scale);
-		indiv.nmass_leafs[2] = indiv.nmass_leafs[2] - indiv.nmass_leafs_luc[2] * (1.0 - scale);
-		indiv.nmass_leafs[3] = indiv.nmass_leafs[3] - indiv.nmass_leafs_luc[3] * (1.0 - scale);
-		indiv.nmass_storage = indiv.nmass_storage - indiv.nmass_storage_luc * (1.0 - scale);
+
+		if (!ifdavegrowth) {
+			indiv.nmass_leafs[2] = indiv.nmass_leafs[2] - indiv.nmass_leafs_luc[2] * (1.0 - scale);
+			indiv.nmass_leafs[3] = indiv.nmass_leafs[3] - indiv.nmass_leafs_luc[3] * (1.0 - scale);
+			indiv.nmass_storage = indiv.nmass_storage - indiv.nmass_storage_luc * (1.0 - scale);
+		}
 	}
 
 	if (indiv.nstore_labile > indiv.nstore_labile_luc * (1.0 - scale)) {

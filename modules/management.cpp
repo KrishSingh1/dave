@@ -3423,17 +3423,6 @@ void scale_indiv(Individual& indiv, bool scale_grsC) {
 		indiv.cropindiv->nmass_dead_leaf =indiv.cropindiv->nmass_dead_leaf - indiv.cropindiv->nmass_dead_leaf_luc * (1.0 - scale);
 	}
 
-	if (ifdailygrass && indiv.pft.is_grass()) {
-		indiv.nmass_leafs[0] = indiv.nmass_leafs[0] - indiv.nmass_leafs_luc[0] * (1.0 - scale);
-		indiv.nmass_leafs[1] = indiv.nmass_leafs[1] - indiv.nmass_leafs_luc[1] * (1.0 - scale);
-
-		if (!ifdavegrowth) {
-			indiv.nmass_leafs[2] = indiv.nmass_leafs[2] - indiv.nmass_leafs_luc[2] * (1.0 - scale);
-			indiv.nmass_leafs[3] = indiv.nmass_leafs[3] - indiv.nmass_leafs_luc[3] * (1.0 - scale);
-			indiv.nmass_storage = indiv.nmass_storage - indiv.nmass_storage_luc * (1.0 - scale);
-		}
-	}
-
 	if (indiv.nstore_labile > indiv.nstore_labile_luc * (1.0 - scale)) {
 		indiv.nstore_labile -= indiv.nstore_labile_luc * (1.0 - scale);
 	}

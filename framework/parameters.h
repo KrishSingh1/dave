@@ -49,6 +49,9 @@ typedef enum {NOVEGMODE, INDIVIDUAL, COHORT, POPULATION} vegmodetype;
  */
 typedef enum {URBAN, CROPLAND, PASTURE, FOREST, NATURAL, PEATLAND, BARREN, NLANDCOVERTYPES} landcovertype;
 
+// TODO: reconcile with our disturbancetype
+typedef enum {CLEARCUT, CLEARCUT_PRESCRIBED, FIRE, WIND, BARKBEETLE, NDISTURBANCETYPES} disturbancetype;
+
 /// Water uptake parameterisations
 /** \see water_uptake in canexch.cpp
   */
@@ -65,6 +68,13 @@ typedef enum {APIN, BPIN, LIMO, MYRC, SABI, CAMP, TRIC, TBOC, OTHR, NMTCOMPOUNDT
  *	NOFIRE		no fire model	
  */
 typedef enum {BLAZE, GLOBFIRM, NOFIRE} firemodeltype;
+
+/// SIMFIRE version setting. Either use 
+/**	One of
+ *	EUROPE 		Use European parameterization from 2024 
+ *	GLOBAL		Use global version (as in trunk)
+ */
+typedef enum {SIMFIRE_GLOBAL, SIMFIRE_EUROPE} simfireversiontype;
 
 /// Type of weathergenerator used 
 /**     One of:
@@ -108,7 +118,7 @@ typedef enum { FRIEND, YAN } moistdecaytype;
  * 		DETERMINISTIC	Disturbances occurring in predetermined years specified
  * 						by file_disturb
  */
-typedef enum {DIST_NONE, STOCHASTIC, DETERMINISTIC} disturbancetype;
+typedef enum {DIST_NONE, STOCHASTIC, DETERMINISTIC} davedisturbancetype;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Global instruction file parameters
@@ -138,6 +148,12 @@ extern int npatch;
 /// Number of patches in each stand for secondary stands
 extern int npatch_secondarystand;
 
+/// Number of patches in stands created after prescribed disturbance (if not set, npatch_secondarystand is used)
+extern int npatch_disturbedstand;
+
+/// Number of patches simulated in stands created at whole tree initialisation with option forest_init_poolsoil
+extern int npatch_treeinit;
+
 /// Whether to reduce equal percentage of all stands of a stand type at land cover change
 extern bool reduce_all_stands;
 
@@ -162,6 +178,15 @@ extern bool ifstochmort;
 /// Fire-model switch
 extern firemodeltype firemodel;
 
+/// SIMFIRE version switch
+extern simfireversiontype burnedareamodel;
+
+/// Startyear for prescribed burned area
+extern int presc_burned_area_start;
+
+/// Endyear for prescribed burned area
+extern int presc_burned_area_end;
+
 /// Weather Generator switch
 extern weathergeneratortype weathergenerator;
 
@@ -181,7 +206,7 @@ extern bool ifdisturb;
 extern double distinterval;
 
 /// The disturbance algorithm being used.
-extern disturbancetype disttype;
+extern davedisturbancetype disttype;
 
 /// Path to a file containing years in which disturbances occur, one per line.
 extern xtring file_disturb;
@@ -254,6 +279,13 @@ extern double f_denitri_gas_max;
 // Mapping of text input file data in index file.
 extern bool map_text_file;
 
+/// Whether to use the new allocation calculations (1), or the original (0)
+extern bool ifnewalloc;
+/// Whether to use the new tree volume to height calculations (1), or the original (0)
+extern bool ifvolhght;
+/// Whether to print which mortality function was triggered (1) or not (0)
+extern bool ifprintallommort;
+
 /// Number of vertical layers used for canopy-area integration.
 /// Mutually exclusive with layer_thickness_canopy.
 extern int nlayer_canopy;
@@ -301,8 +333,11 @@ extern bool ifcalcdynamic_phu;
 /// Whether to use gross land transfer: read landcover transfer matrix input file (1), read stand type transfer matrix input file (2), or not (0)
 extern int gross_land_transfer;
 
-/// Whether gross land transfer input read for this gridcell
-extern bool gross_input_present;
+/// Whether gross land cover transfer input read for this gridcell
+extern bool gross_LC_input_present;
+
+/// Whether gross stand type transfer input read for this gridcell
+extern bool gross_ST_input_present;
 
 /// Whether to use primary/secondary land transition info in landcover transfer input file (1). or not (0)
 extern bool ifprimary_lc_transfer;
@@ -362,6 +397,56 @@ extern bool readwoodharvest_frac;
 /// Whether to use wood harvest C mass from input file (using LUC functionality)
 extern bool readwoodharvest_cmass;
 
+/// Whether to use wood harvest probability for broadleaves from input file
+extern bool readwoodharv_prob_BL;
+/// Whether to use wood harvest probability for needleleaves from input file
+extern bool readwoodharv_prob_NL;
+/// Whether to use clearcut probability for broadleaves from input file
+extern bool readCC_prob_BL;
+/// Whether to use clearcut probability for needleleaves from input file
+extern bool readCC_prob_NL;
+/// Whether to use mean wood harvest intensity for broadleaves from input file
+extern bool readwoodharv_intens_mean_BL;
+/// Whether to use mean wood harvest intensityfor needleleaves from input file
+extern bool readwoodharv_intens_mean_NL;
+/// Whether to use mean wood harvest intensity standard deviation for broadleaves from input file
+extern bool readwoodharv_intens_sd_BL;
+/// Whether to use mean wood harvest intensity standard deviation for needleleaves from input file
+extern bool readwoodharv_intens_sd_NL;
+/// Whether to use thinning size preference for broadleaves from input file
+extern bool readwoodharv_size_preference_BL;
+/// Whether to use thinning size preference for needleleaves from input file
+extern bool readwoodharv_size_preference_NL;
+/// Whether to read probabilistic wood harvest intensity scalar from input file
+extern bool readwoodharv_intensity_scalar;
+/// Whether to draw thinning probabilities from a normal distribution
+extern bool ifthin_prob_distribution;
+/// Whether to turn off clearcuts while using clearcut probabilities input to bypass thinning
+extern bool clearcutprob_off;
+/// First year to use clearcut probabilities input
+extern int clearcutprob_input_firstyear;
+/// Last year to use clearcut probabilities input
+extern int clearcutprob_input_lastyear;
+/// Number of basal area bins in harvest probablilty input
+extern int nBA_bins;
+/// Size of basal area bins in harvest probablilty input
+extern int BA_bin_size;
+/// Value of first (smallest) basal area bin in harvest probablilty input
+extern int BA_bin_min;
+/// Number of diameter bins in harvest probablilty input
+extern int ndiam_bins;
+/// Size of diameter bins in harvest probablilty input
+extern int diam_bin_size;
+/// Value of first (smallest) diameter bin in harvest probablilty input
+extern int diam_bin_min;
+/// Whether last (largest) bin includes all larger values
+extern bool iflast_bin_inclusive;
+/// Whether forest initialisation uses biomass rather than diameter from input
+extern bool forest_init_from_biomass;
+
+/// Whether generic patch-destroying disturbance should be enacted as wood harvest (0,1)
+extern bool ifback_disturb_as_harv;
+
 /// Whether to create new stands at clearcut of secondary stands when using wood harvest input (LUC functionality)
 extern bool harvest_secondary_to_new_stand;
 
@@ -371,11 +456,45 @@ extern bool readdisturbance;
 /// Whether to read disturbance intervals for stand types from input file
 extern bool readdisturbance_st;
 
+/// Whether to read windload from input file
+extern bool readwindload;
+
 /// Whether to read cutinterval for stand types from input file
 extern bool readcutinterval_st;
 
+/// Whether to read gridcell mean elevation from input file
+extern bool readelevation_gc_mean;
+
+/// Whether to read local (site) elevation from input file
+extern bool readelevation_local;
+
 /// Whether to read stand type elevation from input file
 extern bool readelevation_st;
+
+/// Whether to read clearcut disturbance biomass fraction from input file
+extern bool readdist_clearcut;
+
+/// Whether to read fire disturbance biomass fraction from input file
+extern bool readdist_fire;
+
+/// Whether to read wind disturbance biomass fraction from input file
+extern bool readdist_wind;
+
+/// Whether to read barkbeetle disturbance biomass fraction from input file
+extern bool readdist_barkbeetle;
+
+extern int disturbance_input_firstyear;
+extern int disturbance_input_lastyear;
+
+/// Whether to read wind disturbance probability from input file
+extern bool readstorm_prob;
+
+/// Whether to read burned area from input file
+extern bool readpresc_burned_area;
+
+extern bool readforest_init;
+
+extern bool forest_init_poolsoil;
 
 /// Whether to read firstmanageyear for stand types from input file
 extern bool readfirstmanageyear_st;
@@ -401,9 +520,18 @@ extern bool disturb_pasture;
 /// Whether to simulate cropland as pasture
 extern bool grassforcrop;
 
+/// source for the fire population density: 1=simfire.bin, 2=netCDF within cfxinput
+extern int fire_popdens_method;
+
+/// Keep popdens level at fixed_popdens_year (only applies within cfxinput)
+// 1=popdens start in year fixed_popdens_year, 2=allways use popdens of fixed_popdens_year
+extern int fixed_popdens_hist;
+
+/// Year of popdens to use if fixed_popdens_hist>0 (only applies within cfxinput)
+extern int fixed_popdens_year;
+
 /// Soil depth
 extern double depth_soil;
-
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Settings controlling the saving and loading from state files
@@ -434,6 +562,16 @@ extern bool ifrainonwetdaysonly;
 
 /// whether BVOC calculations are included
 extern bool ifbvoc;
+
+/// Storm damage settings and parameters
+extern bool storm_mortality; // Apply calculated storm damage to mortality
+extern int storm_mortality_firstyear; // Apply calculated storm damage to mortality from specified year when storm_mortality is true
+extern int storm_mortality_lastyear; // Apply calculated storm damage to mortality to specified year when storm_mortality is true
+extern bool insect_mortality; // Apply calculated insect damage to mortality
+extern int insect_mortality_firstyear; // Apply calculated insect damage to mortality from specified year when insect_mortality is true
+extern int insect_mortality_lastyear; // Apply calculated insect damage to mortality to specified year when insect_mortality is true
+extern double m_stormfactor; // Callibration factor for storm damage from sensitivity and WL, Eq. 15 Lagergren et al
+extern bool print_storm_stand;
 
 /// whether daily carbon allocation for grasses is turned on
 extern bool ifdailygrass;

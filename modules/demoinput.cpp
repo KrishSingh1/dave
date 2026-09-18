@@ -259,9 +259,10 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 			// Retrieve coordinate of next grid cell from linked list
 			Coord& c = gridlist.getobj();
 
-			if(readdisturbance || readdisturbance_st || readelevation_st) {
+			if(readdisturbance || readdisturbance_st || readwindload || readelevation_st || readelevation_local) {
 				// Not all gridcells have to be included in input file
 				misc_input.loaddisturbance(gridlist.getobj().lon, gridlist.getobj().lat);
+				misc_input.loadwindload(gridlist.getobj().lon, gridlist.getobj().lat);
 				misc_input.loadelevation(gridlist.getobj().lon, gridlist.getobj().lat);
 			}
 
@@ -309,10 +310,16 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 }
 
 
-void DemoInput::getlandcover(Gridcell& gridcell) {
+bool DemoInput::getlandcover(Gridcell& gridcell, double* st_frac_transfer) {
+
+	bool gross_change = false;
 
 	landcover_input.getlandcover(gridcell);
-	landcover_input.get_land_transitions(gridcell);
+	if(st_frac_transfer) {
+		if(landcover_input.get_land_transitions(gridcell, st_frac_transfer))
+			gross_change = true;
+	}
+	return gross_change;
 }
 
 bool DemoInput::getclimate(Gridcell& gridcell) {
@@ -331,7 +338,12 @@ bool DemoInput::getclimate(Gridcell& gridcell) {
 
 	climate.co2 = co2;
 
-	climate.temp  = dtemp[date.day];
+	if(readelevation_local)
+		climate.temp = get_local_temp(dtemp[date.day], gridcell.elevation_gc_mean, gridcell.elevation_local);	// ELEVATION
+	else if(readelevation_st)
+		climate.temp = get_temp_st(gridcell, dtemp[date.day]);	// ELEVATION
+	else
+		climate.temp = dtemp[date.day];
 	climate.prec  = dprec[date.day];
 	climate.insol = dsun[date.day];
 

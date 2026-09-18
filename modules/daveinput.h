@@ -103,7 +103,7 @@ public:
 	Obtain land transitions for this gridcell. See base class documentation for
 	more info.
 	*/
-	void getlandcover(Gridcell&);
+	bool getlandcover(Gridcell&, double*);
 
 	/*
 	Obtain land management data for one day. Called once per day. See base class

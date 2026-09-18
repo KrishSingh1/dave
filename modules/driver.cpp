@@ -99,26 +99,26 @@ void interp_single_month(double preceding_mean,
 	// determined as monthly mean + 2 degrees, so that the monthly mean is
 	// conserved.
 	const double average_deviation =
-		mean(first_value-this_mean, last_value-this_mean);
+		mean(first_value - this_mean, last_value - this_mean);
 
-	const double middle_value = this_mean-average_deviation;
-	const double half_time = time_steps/2.0;
+	const double middle_value = this_mean - average_deviation;
+	const double half_time = time_steps / 2.0;
 
-	const double first_slope = (middle_value-first_value)/half_time;
-	const double second_slope = (last_value-middle_value)/half_time;
+	const double first_slope = (middle_value - first_value) / half_time;
+	const double second_slope = (last_value - middle_value) / half_time;
 
 	double sum = 0;
 	int i = 0;
 
 	// Interpolate the first half
-	for (; i < time_steps/2; ++i) {
-		double current_time = i+0.5; // middle of day i
-		result[i] = first_value + first_slope*current_time;
+	for (; i < time_steps / 2; ++i) {
+		double current_time = i + 0.5; // middle of day i
+		result[i] = first_value + first_slope * current_time;
 		sum += result[i];
 	}
 
 	// Special case for dealing with the middle day if time_steps is odd
-	if (time_steps%2 == 1) {
+	if (time_steps % 2 == 1) {
 		// In this case we can't use the value corresponding to the middle
 		// of the day. We'll simply skip it and calculate it based on
 		// whatever the other days sum up to.
@@ -127,15 +127,15 @@ void interp_single_month(double preceding_mean,
 
 	// Interpolate the other half
 	for (; i < time_steps; ++i) {
-		double current_time = i+0.5; // middle of day i
-		result[i] = middle_value + second_slope*(current_time-half_time);
+		double current_time = i + 0.5; // middle of day i
+		result[i] = middle_value + second_slope * (current_time - half_time);
 		sum += result[i];
 	}
 
-	if (time_steps%2 == 1) {
+	if (time_steps % 2 == 1) {
 		// Go back and set the middle value to whatever is needed to
 		// conserve the mean
-		result[time_steps/2] = time_steps*this_mean-sum;
+		result[time_steps / 2] = time_steps * this_mean - sum;
 	}
 
 	// Go through all values and make sure they're all above the minimum
@@ -208,8 +208,8 @@ void interp_monthly_means_conserve(const double* mvals, double* dvals,
 	for (int m = 0; m < 12; m++) {
 
 		// Index of previous and next month, with wrap-around
-		int next = (m+1)%12;
-		int prev = (m+11)%12;
+		int next = (m + 1) % 12;
+		int prev = (m + 11) % 12;
 
 		// If a monthly mean value is outside of the allowed limits for daily
 		// values (for instance negative radiation), we'll fail to make sure
@@ -220,7 +220,7 @@ void interp_monthly_means_conserve(const double* mvals, double* dvals,
 		}
 
 		interp_single_month(mvals[prev], mvals[m], mvals[next],
-		                    date.ndaymonth[m], dvals+start_of_month,
+		                    date.ndaymonth[m], dvals + start_of_month,
 		                    minimum, maximum);
 
 		start_of_month += date.ndaymonth[m];
@@ -245,7 +245,7 @@ void interp_monthly_totals_conserve(const double* mvals, double* dvals,
 
 	// Convert monthly totals to mean daily values
 	double mvals_daily[12];
-	for (int m=0; m<12; m++)
+	for (int m = 0; m < 12; m++)
 		mvals_daily[m] = mvals[m] / (double)date.ndaymonth[m];
 
 	interp_monthly_means_conserve(mvals_daily, dvals, minimum, maximum);
@@ -294,8 +294,8 @@ void distribute_ndep_single_month(double NH4dry,double NO3dry,
 			dNO3dep[i] += NO3wet;
 		}
 		else if (!negligible(dprec[i])) {
-			dNH4dep[i] += (NH4wet*time_steps)/raindays;
-			dNO3dep[i] += (NO3wet*time_steps)/raindays;
+			dNH4dep[i] += (NH4wet*time_steps) / raindays;
+			dNO3dep[i] += (NO3wet*time_steps) / raindays;
 		}
 	}
 }
@@ -338,8 +338,8 @@ void distribute_ndep(const double* mNH4dry,const double* mNO3dry,
  */
 void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed, bool truncate /* = true */) {
 
-//  Distribution of monthly precipitation totals to quasi-daily values
-//  (From Dieter Gerten 021121)
+	//  Distribution of monthly precipitation totals to quasi-daily values
+	//  (From Dieter Gerten 021121)
 
 	const double c1 = 1.0; // normalising coefficient for exponential distribution
 	const double c2 = 1.2; // power for exponential distribution
@@ -355,13 +355,13 @@ void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed,
 	dy = 0;
 	daysum = 0;
 
-	for (m=0; m<12; m++) {
+	for (m = 0; m < 12; m++) {
 
 		if (mval_prec[m] < 0.1) {
 
 			// Special case if no rainfall expected for month
 
-			for (d=0; d<date.ndaymonth[m]; d++) {
+			for (d = 0; d < date.ndaymonth[m]; d++) {
 				dval_prec[dy] = 0.0;
 				dy++;
 			}
@@ -374,7 +374,7 @@ void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed,
 				// force at least one rain day per month
 
 			// rain on wet days (should be at least 0.1)
-			mprec = max(mval_prec[m]/mval_wet[m], 0.1);
+			mprec = max(mval_prec[m] / mval_wet[m], 0.1);
 			mval_wet[m] = mval_prec[m] / mprec;
 
 			prob_rain = mval_wet[m] / (double)date.ndaymonth[m];
@@ -385,7 +385,7 @@ void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed,
 
 				dy = dy_hold;
 
-				for (d=0; d<date.ndaymonth[m]; d++) {
+				for (d = 0; d < date.ndaymonth[m]; d++) {
 
 					// Transitional probabilities (Geng et al 1986)
 
@@ -393,7 +393,7 @@ void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed,
 						prob = 0.75 * prob_rain;
 					}
 					else {
-						if (dval_prec[dy-1] < 0.1)
+						if (dval_prec[dy - 1] < 0.1)
 							prob = 0.75 * prob_rain;
 						else
 							prob = 0.25 + (0.75 * prob_rain);
@@ -402,10 +402,10 @@ void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed,
 					// Determine wet days randomly and use Krysanova/Cramer estimates of
 					// parameter values (c1,c2) for an exponential distribution
 
-					if (randfrac(seed)>prob)
+					if (randfrac(seed) > prob)
 						dval_prec[dy] = 0.0;
 					else {
-						double x=randfrac(seed);
+						double x = randfrac(seed);
 						dval_prec[dy] = pow(-log(x), c2) * mprec * c1;
 						if (dval_prec[dy] < 0.1) dval_prec[dy] = 0.0;
 					}
@@ -417,7 +417,7 @@ void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed,
 				// Normalise generated precipitation by prescribed monthly totals
 
 				if (!negligible(mprec_sum)) {
-					for (d=0; d<date.ndaymonth[m]; d++) {
+					for (d = 0; d < date.ndaymonth[m]; d++) {
 						dyy = daysum + d;
 						dval_prec[dyy] *= mval_prec[m] / mprec_sum;
 						if (truncate && dval_prec[dyy] < 0.1) dval_prec[dyy] = 0.0;
@@ -440,7 +440,7 @@ void calc_m_climate_20y_mean(Climate& climate) {
 
 	climate.aprec = 0.0;
 
-	for(int m=0; m<12; m++) {
+	for (int m = 0; m < 12; m++) {
 
 		// 1) this year
 		climate.mtemp20[m] = climate.hmtemp_20[m].lastadd();
@@ -464,17 +464,17 @@ void calc_m_climate_20y_mean(Climate& climate) {
 		}
 
 		// 2) past 20 years or less
-		for (int y=startyear; y<20; y++) {
-			climate.mtemp_20[y-1][m] = climate.mtemp_20[y][m];
+		for (int y = startyear; y < 20; y++) {
+			climate.mtemp_20[y - 1][m] = climate.mtemp_20[y][m];
 			climate.mtemp20[m] += climate.mtemp_20[y][m];
 
-			climate.mprec_20[y-1][m] = climate.mprec_20[y][m];
+			climate.mprec_20[y - 1][m] = climate.mprec_20[y][m];
 			climate.mprec20[m] += climate.mprec_20[y][m];
 
-			climate.mpet_20[y-1][m] = climate.mpet_20[y][m];
+			climate.mpet_20[y - 1][m] = climate.mpet_20[y][m];
 			climate.mpet20[m] += climate.mpet_20[y][m];
 
-			climate.mprec_pet_20[y-1][m] = climate.mprec_pet_20[y][m];
+			climate.mprec_pet_20[y - 1][m] = climate.mprec_pet_20[y][m];
 			climate.mprec_pet20[m] += climate.mprec_pet_20[y][m];
 		}
 		// 3) 20 years average means:
@@ -497,10 +497,10 @@ void calc_m_climate_20y_mean(Climate& climate) {
 
 	climate.mprec_petmin20 = mprec_petmin_thisyear;
 	climate.mprec_petmax20 = mprec_petmax_thisyear;
-	for (int y=startyear; y<20; y++) {
-		climate.mprec_petmin_20[y-1] = climate.mprec_petmin_20[y];
+	for (int y = startyear; y < 20; y++) {
+		climate.mprec_petmin_20[y - 1] = climate.mprec_petmin_20[y];
 		climate.mprec_petmin20 += climate.mprec_petmin_20[y];
-		climate.mprec_petmax_20[y-1] = climate.mprec_petmax_20[y];
+		climate.mprec_petmax_20[y - 1] = climate.mprec_petmax_20[y];
 		climate.mprec_petmax20 += climate.mprec_petmax_20[y];
 	}
 	climate.mprec_petmin20 /= min(20, date.year + 1);
@@ -522,13 +522,13 @@ void calc_seasonality(Gridcell& gridcell) {
 	double maxprec_pet20 = 0.0;
 	double minprec_pet20 = 1000;
 
-	for(int m=0;m<NMONTH;m++) {
+	for (int m = 0; m < NMONTH; m++) {
 		mtempKelvin[m] = 0.0;
 		prec_pet_ratio20[m] = 0.0;
 	}
 
 	// calculate absolute temperature and prec/pet ratio for each month this year
-	for(int i=0; i < NMONTH; ++i) {
+	for (int i = 0; i < NMONTH; ++i) {
 		// The temperature has got to be in Kelvin, the limit 0.010 is based on that.
 		mtempKelvin[i] = gridcell.climate.mtemp20[i] + K2degC;
 		// Calculate precipitation/PET ratio if monthly PET is above zero
@@ -565,7 +565,7 @@ void calc_seasonality(Gridcell& gridcell) {
 		climate.seasonality_lastyear = SEASONALITY_TEMP;			// 3
 	}
 
-	for(int m=0; m<NMONTH; m++) {
+	for (int m = 0; m < NMONTH; m++) {
 		if (climate.mprec_pet20[m] > maxprec_pet20)
 			maxprec_pet20 = climate.mprec_pet20[m];
 		if (climate.mprec_pet20[m] < minprec_pet20)
@@ -574,7 +574,7 @@ void calc_seasonality(Gridcell& gridcell) {
 
 	if (minprec_pet20 <= 0.5 && maxprec_pet20 <= 0.5)							//Extremes of monthly means
 		climate.prec_seasonality_lastyear = DRY;					// 0
-	else if (minprec_pet20 <= 0.5 && maxprec_pet20>0.5 && maxprec_pet20 <= 1.0)
+	else if (minprec_pet20 <= 0.5 && maxprec_pet20 > 0.5 && maxprec_pet20 <= 1.0)
 		climate.prec_seasonality_lastyear = DRY_INTERMEDIATE;		// 1
 	else if (minprec_pet20 <= 0.5 && maxprec_pet20 > 1.0)
 		climate.prec_seasonality_lastyear = DRY_WET;				// 2
@@ -630,14 +630,14 @@ void update_seasonality(Climate& climate) {
 /// Calculates climate seasonality
 void climate_seasonality(Gridcell& gridcell) {
 
-	if(date.islastmonth && date.islastday) {
+	if (date.islastmonth && date.islastday) {
 		// Update various climate 20-year means
 		calc_m_climate_20y_mean(gridcell.climate);
 		// Determines climate seasonality of gridcell
 		calc_seasonality(gridcell);
 	}
 
-	if(date.day == gridcell.climate.testday_temp) {	// June 30(180) in the north, December 31(364) in the south
+	if (date.day == gridcell.climate.testday_temp) {	// June 30(180) in the north, December 31(364) in the south
 		update_seasonality(gridcell.climate);
 	}
 }
@@ -655,12 +655,20 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 	const double W11DIV12 = 11.0 / 12.0;
 	const double W1DIV12 = 1.0 / 12.0;
+	const double W2DIV3 = 2.0 / 3.0;
+	const double W1DIV3 = 1.0 / 3.0;
 	int y, startyear;
 
 	// guess2008 - changed this from an int to a double
 	double mtemp_last;
 
 	Climate& climate = gridcell.climate;
+
+	//Move to getgridcell when input modules are re-factored
+	if (date.day == 0 && date.year == 0) {
+		gridcell.storm_seed += geohash(gridcell.get_lat(), gridcell.get_lon(), 0.01) - 10000;
+		gridcell.init_fire_rng(geohash(gridcell.get_lat(), gridcell.get_lon(), 0.01));
+	}
 
 	// On first day of year ...
 
@@ -679,37 +687,67 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		// reset annual radiation counter
 		climate.ainsol = 0;
 
+		gridcell.cflux_harv_cc = 0.0;
+		gridcell.cflux_harv_cc_prescribed = 0.0;
+		gridcell.cflux_harv_wind_prescribed = 0.0;
+		gridcell.cflux_harv_barkbeetle_prescribed = 0.0;
+		gridcell.cflux_harv_thin = 0.0;
+		gridcell.cfluxvol_harv_cc = 0.0;
+		gridcell.cfluxvol_harv_cc_prescribed = 0.0;
+		gridcell.cfluxvol_harv_wind_prescribed = 0.0;
+		gridcell.cfluxvol_harv_barkbeetle_prescribed = 0.0;
+		gridcell.cfluxvol_harv_thin = 0.0;
+
 		// reset gridcell-level harvest fluxes
-		gridcell.landcover.acflux_landuse_change=0.0;
-		gridcell.landcover.acflux_landuse_change_orig=0.0;
-		gridcell.landcover.acflux_harvest_slow=0.0;
-		gridcell.landcover.acflux_wood_harvest_orig=0.0;
-		gridcell.landcover.acflux_wood_harvest=0.0;
-		gridcell.landcover.anflux_landuse_change=0.0;
-		gridcell.landcover.anflux_landuse_change_orig=0.0;
-		gridcell.landcover.acflux_clearing=0.0;
-		gridcell.landcover.acflux_clearing_orig=0.0;
-		gridcell.landcover.anflux_harvest_slow=0.0;
-		gridcell.landcover.anflux_wood_harvest=0.0;
-		gridcell.landcover.anflux_wood_harvest_orig=0.0;
-		gridcell.landcover.anflux_clearing=0.0;
-		gridcell.landcover.anflux_clearing_orig=0.0;
+		gridcell.landcover.acflux_landuse_change = 0.0;
+		gridcell.landcover.acflux_landuse_change_orig = 0.0;
+		gridcell.landcover.acflux_harvest_slow = 0.0;
+		gridcell.landcover.acflux_wood_harvest_orig = 0.0;
+		gridcell.landcover.acflux_wood_harvest = 0.0;
+		gridcell.landcover.anflux_landuse_change = 0.0;
+		gridcell.landcover.anflux_landuse_change_orig = 0.0;
+		gridcell.landcover.acflux_clearing = 0.0;
+		gridcell.landcover.acflux_clearing_orig = 0.0;
+		gridcell.landcover.anflux_harvest_slow = 0.0;
+		gridcell.landcover.anflux_wood_harvest = 0.0;
+		gridcell.landcover.anflux_wood_harvest_orig = 0.0;
+		gridcell.landcover.anflux_clearing = 0.0;
+		gridcell.landcover.anflux_clearing_orig = 0.0;
 
-		gridcell.landcover.cmass_stem_harvest=0.0;
-		gridcell.landcover.cmass_stem_toprod=0.0;
-		gridcell.landcover.cmass_harv_killed=0.0;
-		gridcell.landcover.cmass_harv_tolitter=0.0;
+		gridcell.landcover.cmass_stem_harvest = 0.0;
+		gridcell.landcover.cmass_stem_toprod = 0.0;
+		gridcell.landcover.cmass_harv_killed = 0.0;
+		gridcell.landcover.cmass_harv_tolitter = 0.0;
 
-		for(int i=0;i<NLANDCOVERTYPES;i++) {
-			gridcell.landcover.acflux_landuse_change_lc[i]=0.0;
-			gridcell.landcover.acflux_wood_harvest_lc[i]=0.0;
-			gridcell.landcover.acflux_clearing_lc[i]=0.0;
-			gridcell.landcover.acflux_harvest_slow_lc[i]=0.0;
-			gridcell.landcover.acflux_cloned_lc[i]=0.0;
-			gridcell.landcover.anflux_landuse_change_lc[i]=0.0;
-			gridcell.landcover.anflux_wood_harvest_lc[i]=0.0;
-			gridcell.landcover.anflux_clearing_lc[i]=0.0;
-			gridcell.landcover.anflux_harvest_slow_lc[i]=0.0;
+		for (int i = 0; i < NLANDCOVERTYPES; i++) {
+			gridcell.landcover.acflux_landuse_change_lc[i] = 0.0;
+			gridcell.landcover.acflux_wood_harvest_lc[i] = 0.0;
+			gridcell.landcover.acflux_clearing_lc[i] = 0.0;
+			gridcell.landcover.acflux_harvest_slow_lc[i] = 0.0;
+			gridcell.landcover.acflux_cloned_lc[i] = 0.0;
+			gridcell.landcover.anflux_landuse_change_lc[i] = 0.0;
+			gridcell.landcover.anflux_wood_harvest_lc[i] = 0.0;
+			gridcell.landcover.anflux_clearing_lc[i] = 0.0;
+			gridcell.landcover.anflux_harvest_slow_lc[i] = 0.0;
+		}
+
+		for (int i = 0; i < nst; i++) {
+			Gridcellst& gcst = gridcell.st[i];
+			gcst.acflux_harvest = 0.0;
+		}
+
+		for (auto& sub : gridcell.luc_mort) {
+			std::fill(sub.begin(), sub.end(), 0.0);
+		}
+		for (auto& sub : gridcell.dist_mort) {
+			std::fill(sub.begin(), sub.end(), 0.0);
+		}
+
+		gridcell.landcover.wood_harvest.zero();
+
+		// Reset insect phenology variables
+		for (int i = 0; i < nift; i++) {
+			gridcell.ift[i].reset();
 		}
 
 		gridcell.landcover.wood_harvest.zero();
@@ -737,12 +775,47 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 				Patch& patch = stand.getobj();
 				Soil& soil = patch.soil;
 
-				for(unsigned int i=0;i<pftlist.nobj;i++) {
+				for (unsigned int i = 0; i < pftlist.nobj; i++) {
 					Patchpft& ppft = patch.pft[i];
 					ppft.cmass_harv_killed = 0.0;
 					ppft.cmass_harv_tolitter = 0.0;
 					ppft.cmass_wood_harv = 0.0;
 					ppft.cmass_wood_harv_toprod = 0.0;
+
+					ppft.cmass_mort = 0.0;
+					ppft.cmass_dist = 0.0;
+					ppft.cmass_leaf_root_turnover = 0.0;
+					ppft.cmass_repr = 0.0;
+					ppft.cmass_est = 0.0;
+					ppft.cmass_wood_clearcut = 0.0;			// set in harvest_forest()
+					ppft.cmass_wood_thin = 0.0;
+
+					ppft.cmass_harv_killed = 0.0;
+					ppft.cmass_thin_killed = 0.0;
+					ppft.cmass_clearcut_killed = 0.0;		// set in harvest_forest()
+					ppft.cmass_fire_killed = 0.0;
+					ppft.cmass_wind_killed = 0.0;
+					ppft.cmass_barkbeetle_killed = 0.0;
+					ppft.cmass_dist_clearcut_killed = 0.0;
+					ppft.cmass_dist_fire_killed = 0.0;
+					ppft.cmass_dist_wind_killed = 0.0;
+					ppft.cmass_dist_barkbeetle_killed = 0.0;
+					ppft.cmass_harv_tolitter = 0.0;
+					ppft.cmass_wood_harv = 0.0;
+					ppft.cmass_wood_harv_toprod = 0.0;
+
+					ppft.cmass_harv_killed_plus10cm = 0.0;
+					ppft.cmass_thin_killed_plus10cm = 0.0;
+					ppft.cmass_clearcut_killed_plus10cm = 0.0;
+					ppft.cmass_fire_killed_plus10cm = 0.0;
+					ppft.cmass_wind_killed_plus10cm = 0.0;
+					ppft.cmass_barkbeetle_killed_plus10cm = 0.0;
+					ppft.cmass_dist_clearcut_killed_plus10cm = 0.0;
+					ppft.cmass_dist_fire_killed_plus10cm = 0.0;
+					ppft.cmass_dist_wind_killed_plus10cm = 0.0;
+					ppft.cmass_dist_barkbeetle_killed_plus10cm = 0.0;
+					ppft.cmass_wood_harv_killed = 0.0;
+					ppft.cmass_wood_harv_killed_plus10cm = 0.0;
 				}
 
 				patch.fluxes.reset();
@@ -754,10 +827,18 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 				patch.man_strength = 0.0;
 				patch.harvest_to_litter = false;
 				patch.clearcut_this_year = false;
+				patch.managed_previous_year = false;
+				if (patch.managed_this_year)
+					patch.managed_previous_year = true;
 				patch.managed_this_year = false;
-				patch.plant_this_year = false;
+				if (!patch.prescribed_disturbed)
+					patch.plant_this_year = false;
+				patch.prescribed_disturbed = false;
+				patch.disturbed = false;	// For disturbance input period; disturbance() not called during this time. Not sure this is needed.
 				patch.distributed_cutting = false;
 				patch.cutinterval_actual_thisyear = 0;
+				patch.fire_line_intensity_year_max = 0.0;
+				patch.available_fuel_year_max = 0.0;
 
 				Vegetation& vegetation = patch.vegetation;
 				vegetation.firstobj();
@@ -802,7 +883,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	// Calculate gtemp (daily/sub-daily depending on the mode)
 	if (date.diurnal()) {
 		climate.gtemps.assign(date.subdaily, 0);
-		for (int i=0; i<date.subdaily; i++) {
+		for (int i = 0; i < date.subdaily; i++) {
 			respiration_temperature_response(climate.temps[i], climate.gtemps[i], false);
 		}
 	}
@@ -837,6 +918,47 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		blaze_accounting_gridcell(gridcell.climate);
 	}
 
+	// Storm
+
+	if (date.day == 0) {
+
+		// Reset windload
+		gridcell.windload = 0.0;
+	}
+
+	if (!readwindload && (storm_mortality && date.get_calendar_year() >= storm_mortality_firstyear - 30)) {
+
+		// Get limit for accumulation of windload based on last 30 yr daily climate wind data
+		// (limit is the wind speed of the day with the 55th highest wind speed during the 30-year period)
+		// Windload set to zero before freenyears (because wind_speed_limit is set to 100 m/s)
+		if (date.day == 0) {
+
+			int first_wind_mort_year = freenyears;
+
+			if (date.year > first_wind_mort_year && date.get_calendar_year() >= storm_mortality_firstyear) {
+
+				const double wind_perc = 0.995;
+				double buffer[WIND_30Y_NDAYS];
+				climate.wind_30y.to_array(buffer);
+				std::sort(std::begin(buffer), std::end(buffer));
+				int perc_num = int(wind_perc * (double)(WIND_30Y_NDAYS));
+				gridcell.wind_speed_limit = buffer[perc_num];
+			}
+			else {
+				gridcell.wind_speed_limit = 100.0;
+			}
+		}
+
+		// Update record of daily wind last 30 years
+		climate.wind_30y.add(climate.u10);
+
+		// Accumumlate windload
+		if (climate.u10 > gridcell.wind_speed_limit) {
+			if (gridcell.wind_speed_limit != 0.0)
+				gridcell.windload += max(0.0, pow(climate.u10 / gridcell.wind_speed_limit - 1.0, 3));
+		}
+	}
+
 	// On last day of month ...
 	if (date.islastday) {
 
@@ -866,10 +988,10 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			climate.mtemp_min20 = climate.mtemp_min;
 			climate.mtemp_max20 = climate.mtemp_max;
 
-			for (y=startyear; y<20; y++) {
-				climate.mtemp_min_20[y-1] = climate.mtemp_min_20[y];
+			for (y = startyear; y < 20; y++) {
+				climate.mtemp_min_20[y - 1] = climate.mtemp_min_20[y];
 				climate.mtemp_min20 += climate.mtemp_min_20[y];
-				climate.mtemp_max_20[y-1] = climate.mtemp_max_20[y];
+				climate.mtemp_max_20[y - 1] = climate.mtemp_max_20[y];
 				climate.mtemp_max20 += climate.mtemp_max_20[y];
 			}
 
@@ -883,14 +1005,113 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		climate.hmtemp_20[date.month].add(climate.dtemp_31.periodicmean(date.ndaymonth[date.month]));
 		climate.hmprec_20[date.month].add(climate.dprec_31.periodicsum(date.ndaymonth[date.month]));
 		climate.hmeet_20[date.month].add(climate.deet_31.periodicsum(date.ndaymonth[date.month]));
-	
 	}
 
 	// Calculate climate seasonality
 	climate_seasonality(gridcell);
+
+	/// Calculation of means used in forest initialisation from input file
+	if (date.islastmonth && date.islastday) {
+		pftlist.firstobj();
+		while (pftlist.isobj) {
+			Pft& pft = pftlist.getobj();
+			Gridcellpft& gcpft = gridcell.pft[pft.id];
+
+			double mean_cton_leaf = 0.0;
+			double mean_cton_root = 0.0;
+			double mean_cton_sap = 0.0;
+			double mean_cton_heart = 0.0;
+			double mean_latosa = 0.0;
+			double weight_sum = 0.0;
+
+			Gridcell::iterator gc_itr = gridcell.begin();
+			while (gc_itr != gridcell.end()) {
+				Stand& stand = *gc_itr;
+				StandType& st = stlist[stand.stid];
+				stand.firstobj();
+				while (stand.isobj) {
+					Patch& patch = stand.getobj();
+					Vegetation& vegetation = patch.vegetation;
+					vegetation.firstobj();
+					while (vegetation.isobj) {
+						Individual& indiv = vegetation.getobj();
+						if (indiv.pft.id == pft.id && indiv.age >= 10) {
+							double weight = stand.get_gridcell_fraction();
+							weight_sum += weight;
+							if (indiv.nday_leafon)
+								mean_cton_leaf += indiv.cmass_leaf / indiv.nmass_leaf * weight;
+							if (indiv.nmass_sap)
+								mean_cton_sap += (indiv.cmass_sap / indiv.nmass_sap) * weight;
+							if (indiv.cmass_sap)
+								mean_latosa += indiv.height * indiv.pft.sla * indiv.pft.wooddens * indiv.cmass_leaf / indiv.cmass_sap * weight;
+						}
+						vegetation.nextobj();
+					}
+					stand.nextobj();
+				}
+				++gc_itr;
+			}
+
+			if (weight_sum) {
+				gcpft.cton_leaf_avr_20.add(mean_cton_leaf / weight_sum);
+				gcpft.cton_sap_avr_20.add(mean_cton_sap / weight_sum);
+				gcpft.latosa_avr_20.add(mean_latosa / weight_sum);
+			}
+			pftlist.nextobj();
+		}
+	}
+
+	if (date.day == 0) {
+		pftlist.firstobj();
+		while (pftlist.isobj) {
+			Pft& pft = pftlist.getobj();
+			Gridcellpft& gcpft = gridcell.pft[pft.id];
+
+			// Running means of 15 diameter classes
+			for (int d = 0; d < N_DIAM_CLASSES_SAMP; d++) {
+				double mean_qsap = 0.0;
+				double mean_age = 0.0;
+				double weight_sum = 0.0;
+				Gridcell::iterator gc_itr = gridcell.begin();
+				while (gc_itr != gridcell.end()) {
+					Stand& stand = *gc_itr;
+					StandType& st = stlist[stand.stid];
+					stand.firstobj();
+					while (stand.isobj) {
+						Patch& patch = stand.getobj();
+						Vegetation& vegetation = patch.vegetation;
+						vegetation.firstobj();
+						while (vegetation.isobj) {
+							Individual& indiv = vegetation.getobj();
+							if (indiv.pft.id == pft.id && indiv.age >= 10 && indiv.diam * 100 >= d * DIAM_CLASS_SIZE_SAMP && indiv.diam * 100 < (d + 1) * DIAM_CLASS_SIZE_SAMP) {
+								if (indiv.cmass_heart) {
+									double weight = stand.get_gridcell_fraction();
+									weight_sum += weight;
+									mean_qsap += indiv.cmass_sap / (indiv.cmass_sap + indiv.cmass_heart) * weight;
+									mean_age += indiv.age * weight;
+								}
+							}
+							vegetation.nextobj();
+						}
+						stand.nextobj();
+					}
+					++gc_itr;
+				}
+				if (weight_sum) {
+					gcpft.qsap_avr_20[d].add(mean_qsap / weight_sum);
+					gcpft.treeage_avr_20[d].add(mean_age / weight_sum);
+				}
+			}
+
+			pftlist.nextobj();
+		}
+	}
+
 }
 
 void dailyaccounting_stand(Stand& stand) {
+
+	stand.disturbed = false;
 
 	//  Variables used for output from separate stands
 	stand.anpp = 0.0;
@@ -916,7 +1137,7 @@ void dailyaccounting_patch_lc(Patch& patch) {
 	double scale = patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj;
 
 	pftlist.firstobj();
-	while(pftlist.isobj) {				// NB. also inactive pft's
+	while (pftlist.isobj) {				// NB. also inactive pft's
 		Pft& pft = pftlist.getobj();
 		Patchpft& ppft = patch.pft[pft.id];
 
@@ -954,6 +1175,8 @@ void dailyaccounting_patch(Patch& patch) {
 
 		patch.apet = 0.0;
 
+		soil.soilfrostdays = 0;
+
 		// Calculate total FPC and RPC
 		patch.fpc_total = 0;
 		patch.rpc_total = 0;
@@ -969,7 +1192,7 @@ void dailyaccounting_patch(Patch& patch) {
 		// cohorts/individuals (i.e. total FPC > 1)
 		patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
 
-		for(unsigned int i=0;i<pftlist.nobj;i++) {
+		for (unsigned int i = 0; i < pftlist.nobj; i++) {
 			Patchpft& ppft = patch.pft[i];
 			ppft.cmass_mort = 0.0;
 			ppft.acmass_mort_kill = 0.0;
@@ -1141,7 +1364,7 @@ void dailyaccounting_patch(Patch& patch) {
 		soil.init_water();
 	}
 
-	if(run_landcover)
+	if (run_landcover)
 		dailyaccounting_patch_lc(patch);
 
 	// Calculate snow, soil, and padding temperatures
@@ -1172,6 +1395,19 @@ void dailyaccounting_patch(Patch& patch) {
 			vegetation.nextobj();
 		}
 	}
+
+	// Storm
+	// Frozen soil index according to Eq. 11 of Lagergren et al
+	// In the original version soil frost days was only accumulated for Jan-Mar
+	double soiltemp25 = soil.temp_at_depth(25.0 / CM_PER_MM);
+	// if (soil.temp < 0.0 && date.month<3)
+	//	if (soil.temp < 0.0)
+	if (soiltemp25 < 0.0)	// wetlands update (not in forexclim_europe branch)
+		++soil.soilfrostdays;
+	const double c_fsi = 0.7; // Sensitivity of frozen soil relative to unfrozen
+	const double acc_days = 182.0; // 182 is maximum number of days Oct-Mar, 90 is max Jan-Mar
+	soil.frozen_soil_ind = (1 - c_fsi)*max(0.0, acc_days - soil.soilfrostdays) / acc_days + c_fsi; //Note that this
+	// equation is wrong in Lagergren et al, the term "+ c" should be outside the fractional
 
 	for (size_t i = 0; i < patch.pft.nobj; i++) {
 		Patchpft &patchpft = patch.pft[i];
@@ -1541,6 +1777,30 @@ void daylengthinsoleet(Climate& climate) {
 	climate.eet = 2.0 * (s / (s + gamma) / lambda) * (uu * hn + vv * sin(hn)) * K;	// Eqn 26;
 }
 
+// CODE IN CROP_TRUNKIFIED_NCEP; DECIDE LATER IF WE SHOULD USE THIS OR get_local_temp()
+double get_temp_st(Gridcell& gridcell, double mean_temp) {
+
+	double mean_elevation = gridcell.elevation_gc_mean;
+	double st_elevation = 0;
+	double lon = gridcell.get_lon();
+	double lat = gridcell.get_lat();
+	double temp = mean_temp;
+
+	if (date.year || date.day) {
+		for (int i = 0; i < nst; i++) {
+			if (gridcell.st[i].frac) {
+				st_elevation = gridcell.st[i].elevation_st;
+			}
+		}
+		if (st_elevation)
+			temp = mean_temp - (st_elevation - mean_elevation) * 6.49 / 1000;
+	}
+	if (!date.year && date.day == 1 || date.year == state_year && restart && date.day == 1)
+		dprintf("Local temp year %d day %d = %.2f, mean gridcell temp = %.1f, elevation = %.0f m\n", date.year, date.day, temp, mean_temp, st_elevation);
+
+	return temp;
+}
+
 /// ADJUSTING LOCAL TEMPERATURE BY ELEVATION
 /** To be called each simulation day following update of daily air temperature
  *  and before canopy exchange processes. May be called from climate input module getclimate()
@@ -1550,10 +1810,23 @@ double get_local_temp(double gridcell_temp, double gridcell_elevation, double lo
 
 	double local_temp = gridcell_temp;
 
-	if(local_elevation)
+	// Both variables initialised to 0.0; this means missing value.
+	if (gridcell_elevation && local_elevation)
 		local_temp = gridcell_temp - (local_elevation - gridcell_elevation) * 6.49 / 1000;
 
 	return local_temp;
+}
+
+void calc_insect_phenology(Gridcell& gridcell) {
+
+	for (int i = 0; i < nift; i++) {
+		if (date.islastday && date.islastmonth) {
+			gridcell.ift[i].insect_damage = 0.0;
+		}
+		gridcell.ift[i].calc_insect_phenology(gridcell);
+		gridcell.ift[i].calc_insect_phenology_lifestage_bentz(gridcell);
+		//		gridcell.ift[i].calc_insect_phenology_lifestage_regniere(gridcell);
+	}
 }
 
 /// PENMAN MONTEITH CALCULATION ///

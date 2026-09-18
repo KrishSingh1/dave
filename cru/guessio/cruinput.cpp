@@ -215,26 +215,44 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 									     hist_mwind, hist_mrhum);
 
 				if(gridfound) {
-					if(readdisturbance || readdisturbance_st || readelevation_st) {
+					if(readdisturbance || readdisturbance_st || readwindload || readelevation_st || readelevation_local
+					|| readdist_clearcut || readdist_fire || readdist_wind || readdist_barkbeetle || readstorm_prob) {
 						// Not all gridcells have to be included in input file
 						misc_input.loaddisturbance(gridlist.getobj().lon, gridlist.getobj().lat);
+						misc_input.loadwindload(gridlist.getobj().lon, gridlist.getobj().lat);
 						misc_input.loadelevation(gridlist.getobj().lon, gridlist.getobj().lat);
+						misc_input.loaddist_clearcut(gridlist.getobj().lon, gridlist.getobj().lat);
+						misc_input.loaddist_fire(gridlist.getobj().lon, gridlist.getobj().lat);
+						misc_input.loaddist_wind(gridlist.getobj().lon, gridlist.getobj().lat);
+						misc_input.loaddist_barkbeetle(gridlist.getobj().lon, gridlist.getobj().lat);
+						misc_input.loadstorm_prob(gridlist.getobj().lon, gridlist.getobj().lat);
+					}
+					if(readforest_init) {
+						LUerror = misc_input.loadforest_init(gridlist.getobj().lon, gridlist.getobj().lat);	// Moved here 240704.
+						if(LUerror)
+							dprintf("\nError: could not find stand at (%g,%g) in forest_init data files\n\n", gridlist.getobj().lon,gridlist.getobj().lat);
 					}
 				}
 
-				gridcell.climate.mean_elevation = elevation;
-				if(readelevation_st)
-					dprintf("Mean elevation = %d\n", elevation);
+				if(!readelevation_gc_mean) {
+					gridcell.elevation_gc_mean = elevation;
+				}
 
 				if (run_landcover && gridfound) {
-					LUerror = landcover_input.loadlandcover(gridlist.getobj().lon, gridlist.getobj().lat);
+					if(!LUerror)
+						LUerror = landcover_input.loadlandcover(gridlist.getobj().lon, gridlist.getobj().lat);
 					if(!LUerror)
 						LUerror = management_input.loadmanagement(gridlist.getobj().lon, gridlist.getobj().lat);
 				}
 
+				if (gridfound && param["file_ndep"].str != "") {
+
+					ndep.getndep(param["file_ndep"].str, lon, lat, Lamarque::RCP60); // Lamarque::parse_timeseries(ndep_timeseries) used in cfxinput
+					dprintf("Using Nitrogen deposition for (%3.2f,%3.2f)\n",lon, lat);
+				}
 				if(!gridfound || LUerror) {
 					if(!gridfound)
-						dprintf("\nError: could not find stand at (%g,%g) in climate data files\n\n", gridlist.getobj().lon,gridlist.getobj().lat);
+						dprintf("\nError: could not find stand at (%g,%g) in climate/ndep data files\n\n", gridlist.getobj().lon,gridlist.getobj().lat);
 					else if(LUerror)
 						dprintf("\nError: could not find stand at (%g,%g) in landcover/management data file(s)\n\n", gridlist.getobj().lon,gridlist.getobj().lat);
 					gridfound = false;
@@ -283,14 +301,14 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 		// Get nitrogen deposition data.
 		/* Since the historic data set does not reach decade 2010-2019,
 		 * we need to use the RCP data for the last decade. */
-		ndep.getndep(param["file_ndep"].str, lon, lat, Lamarque::RCP60);
+//		ndep.getndep(param["file_ndep"].str, lon, lat, Lamarque::RCP60);
 
 		// The insolation data will be sent (in function getclimate, below)
 		// as incoming shortwave radiation, averages are over 24 hours
 
 		gridcell.climate.instype = SWRAD_TS;
 	
-		soilinput.get_soil(lon, lat, gridcell);
+		soilinput.get_soil(gridlist.getobj().lon, gridlist.getobj().lat, gridcell);
 
 		// For Windows shell - clear graphical output
 		// (ignored on other platforms)
@@ -303,10 +321,16 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 }
 
 
-void CRUInput::getlandcover(Gridcell& gridcell) {
+bool CRUInput::getlandcover(Gridcell& gridcell, double* st_frac_transfer) {
+
+	bool gross_change = false;
 
 	landcover_input.getlandcover(gridcell);
-	landcover_input.get_land_transitions(gridcell);
+	if(st_frac_transfer) {
+		if(landcover_input.get_land_transitions(gridcell, st_frac_transfer))
+			gross_change = true;
+	}
+	return gross_change;
 }
 
 
@@ -451,7 +475,14 @@ bool CRUInput::getclimate(Gridcell& gridcell) {
 
 	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
 
-	climate.temp  = dtemp[date.day];
+	if(readelevation_local) {
+		climate.temp = get_local_temp(dtemp[date.day], gridcell.elevation_gc_mean, gridcell.elevation_local);	// ELEVATION
+//		dprintf("Year %d day %d: Mean gridcell temperature = %.2f, local_climate = %.2f\n\n", date.get_calendar_year(), date.day, dtemp[date.day], climate.temp);
+	}
+	else if(readelevation_st)
+		climate.temp = get_temp_st(gridcell, dtemp[date.day]);	// ELEVATION
+	else
+		climate.temp = dtemp[date.day];
 	climate.prec  = dprec[date.day];
 	climate.insol = dsun[date.day];
 

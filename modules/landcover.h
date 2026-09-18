@@ -33,6 +33,10 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module);
 bool dayinperiod(int day, int start, int end);
 /// Step n days from a date.
 int stepfromdate(int day, int step);
+/// Help function to access two-dimentional arrays that have been created dynamically
+int index(int from, int to, int ncols = nst);
+
+double transfer_to_new_stand_from_stand(Gridcell& gridcell, double* st_frac_transfer, int stid_receptor, int stid_donor);
 
 /// struct storing carbon, nitrogen and water (plus aaet_5 and anfix_calc) during landcover change
 struct landcover_change_transfer {
@@ -48,6 +52,7 @@ struct landcover_change_transfer {
 	double *transfer_nmass_litter_sap;
 	double *transfer_nmass_litter_heart;
 	double *transfer_nmass_litter_root;
+	double *transfer_nmass_litter_repr;
 	double *transfer_nmass_litter_NH4;
 	double *transfer_nmass_harvested_products_slow;
 
@@ -115,6 +120,37 @@ struct landcover_change_transfer {
 	double transfer_snow_thickness[NSNOWLAYERS_MAX];
 	double transfer_snow_temp[NSNOWLAYERS_MAX];
 
+	double *transfer_aflux_NPP_pft;
+	double *transfer_aflux_GPP_pft;
+
+	double *transfer_cmass_harv_killed;
+	double *transfer_cmass_dist_clearcut_killed;
+	double *transfer_cmass_dist_fire_killed;
+	double *transfer_cmass_dist_wind_killed;
+	double *transfer_cmass_dist_barkbeetle_killed;
+
+	double *transfer_cmass_wood_harv_killed;
+	double *transfer_cmass_wood_harv;
+	double *transfer_cmass_wood_harv_toprod;
+	double *transfer_cmass_harv_tolitter;
+	double *transfer_cmass_wood_clearcut;
+	double *transfer_cmass_wood_thin;
+	double *transfer_cmass_thin_killed;
+	double *transfer_cmass_mort_wood;
+	double *transfer_cmass_mort;
+	double *transfer_cmass_leaf_root_turnover ;
+	double *transfer_cmass_repr;
+	double *transfer_cmass_est;
+	double *transfer_cmass_harv_killed_plus10cm;
+	double *transfer_cmass_thin_killed_plus10cm;
+	double *transfer_cmass_wood_harv_killed_plus10cm;
+	double *transfer_cmass_clearcut_killed_plus10cm;
+	double *transfer_cmass_dist_clearcut_killed_plus10cm;
+	double *transfer_cmass_dist_fire_killed_plus10cm;
+	double *transfer_cmass_dist_wind_killed_plus10cm;
+	double *transfer_cmass_dist_barkbeetle_killed_plus10cm;
+	double *transfer_cmass_mort_wood_plus10cm;
+
 	landcover_change_transfer();
 	~landcover_change_transfer();
 	void allocate();
@@ -150,6 +186,7 @@ struct landcover_change_transfer {
 			ncont += transfer_nmass_litter_sap[i];
 			ncont += transfer_nmass_litter_heart[i];
 			ncont += transfer_nmass_litter_root[i];
+			ncont += transfer_nmass_litter_repr[i];
 			ncont += transfer_nmass_litter_NH4[i];
 			ncont += transfer_nmass_harvested_products_slow[i];
 		}
@@ -202,6 +239,7 @@ struct landcover_change_transfer {
 				transfer_nmass_litter_root[n] += ppft.nmass_litter_root * scale;
 				transfer_nmass_litter_sap[n] += ppft.nmass_litter_sap * scale;
 				transfer_nmass_litter_heart[n] += ppft.nmass_litter_heart * scale;
+				transfer_nmass_litter_repr[n] += ppft.nmass_litter_repr * scale;
 				transfer_nmass_litter_NH4[n] += ppft.nmass_litter_NH4 * scale;
 
 				if(ifslowharvestpool) {
@@ -321,6 +359,8 @@ struct landcover_change_transfer {
 			memcpy(transfer_nmass_litter_heart, from.transfer_nmass_litter_heart, sizeof(double) * npft);
 		if (transfer_nmass_litter_root)
 			memcpy(transfer_nmass_litter_root, from.transfer_nmass_litter_root, sizeof(double) * npft);
+		if (transfer_nmass_litter_repr)
+			memcpy(transfer_nmass_litter_repr, from.transfer_nmass_litter_repr, sizeof(double) * npft);
 		if (transfer_nmass_litter_NH4)
 			memcpy(transfer_nmass_litter_NH4, from.transfer_nmass_litter_NH4, sizeof(double) * npft);
 		if (transfer_nmass_harvested_products_slow)
@@ -426,6 +466,8 @@ struct landcover_change_transfer {
 				transfer_nmass_litter_heart[i] += from.transfer_nmass_litter_heart[i] * multiplier;
 			if(transfer_nmass_litter_root)
 				transfer_nmass_litter_root[i] += from.transfer_nmass_litter_root[i] * multiplier;
+			if (transfer_nmass_litter_repr)
+				transfer_nmass_litter_repr[i] += from.transfer_nmass_litter_repr[i] * multiplier;
 			if(transfer_nmass_litter_NH4)
 				transfer_nmass_litter_NH4[i] += from.transfer_nmass_litter_NH4[i] * multiplier;
 			if(transfer_nmass_harvested_products_slow)
@@ -513,20 +555,12 @@ struct landcover_change_transfer {
 	}
 };
 
-struct lc_change_harvest_params {
-
-	double harv_eff;
-	double res_outtake_twig;
-	double res_outtake_coarse_root;
-	bool burn;	// to be developed
-
-	lc_change_harvest_params() {
-
-		harv_eff = 0.0;
-		res_outtake_twig = 0.0;
-		res_outtake_coarse_root = 0.0;
-		burn = false;
-	}
-};
+void donor_stand_change(Gridcell& gridcell, double& receiving_area, landcover_change_transfer& to,
+		int landcover_receptor = -1, int landcover_donor = -1,
+		int stid_receptor = -1, int stid_donor = -1,
+		int standid = -1, lc_change_harvest_params* harv_params = NULL, bool forest_init = false);
+void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
+		bool LCchangeCtransfer, int landcover = -1, int stid = -1,
+		double donorfrac_rel = 1.0, int standid = -1);
 
 #endif // LPJ_GUESS_LANDCOVER_H

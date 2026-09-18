@@ -35,6 +35,9 @@
 #include "growth.h"
 #include "driver.h"
 #include "logging.h"
+#include "landcover.h"
+#include "management.h"
+#include "blaze.h"
 
 // Alternatives for forestry:
 
@@ -484,41 +487,6 @@ double nseedlings(double cmass_seed, Pft &pft) {
 
 }
 
-// calculates the number of woody pfts (for establishment)
-int get_nwoody_pfts(Patch& patch) {
-	
-	int nwoodypfts_estab = 0;
-	pftlist.firstobj();
-
-	const bool cloned_or_changed_man = patch.stand.cloned || patch.stand.current_rot;
-
-	while (pftlist.isobj) {
-		Pft& pft=pftlist.getobj();
-		Standpft& standpft=patch.stand.pft[pft.id];
-		ManagementType& mt = patch.stand.get_current_management();
-
-		// Force planting if planting() not used
-		bool force_planting = 
-			patch.plant_this_year && standpft.plant && !(mt.set_planting_density && mt.planting_system != "");
-		bool est_this_year = !patch.managed && !cloned_or_changed_man 
-			|| !patch.plant_this_year && standpft.reestab;
-		
-
-		if (establish(patch, patch.stand.get_climate(), pft) 
-			&& pft.lifeform == TREE 
-			&& standpft.active 
-			&& (est_this_year || force_planting)) {
-
-			nwoodypfts_estab++;
-
-		}
-
-		pftlist.nextobj();
-
-	}
-	return nwoodypfts_estab;
-}
-
 // call every day
 void establishment_daily(Patch& patch, Climate& climate) {
 	// check conditions if germination is likely to occur 
@@ -796,7 +764,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 			patch.plant_this_year && standpft.plant && !(mt.set_planting_density && mt.planting_system != "");
 		bool est_this_year;
 		if(establish_active_pfts_before_management) {
-			est_this_year = !patch.managed && !cloned_or_changed_man || !patch.plant_this_year && standpft.reestab;
+			est_this_year = !patch.management_started && !cloned_or_changed_man || !patch.plant_this_year && standpft.reestab;
 		}
 		else {
 			est_this_year = !run_landcover || !patch.plant_this_year && standpft.reestab;
@@ -846,7 +814,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 			patch.plant_this_year && standpft.plant && !(mt.set_planting_density && mt.planting_system != "");
 		bool est_this_year;
 		if(establish_active_pfts_before_management) {
-			est_this_year = !patch.managed && !cloned_or_changed_man || !patch.plant_this_year && standpft.reestab;
+			est_this_year = !patch.management_started && !cloned_or_changed_man || !patch.plant_this_year && standpft.reestab;
 		}
 		else {
 			est_this_year = !run_landcover || !patch.plant_this_year && standpft.reestab;
@@ -900,7 +868,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						if(pft.phenology == CROPGREEN) {
 							bminit = sapsize * 0.01;
 						}
-						else if(patch.has_disturbances() && patch.disturbed) {
+						else if(patch.disturbed) {	// Removing has_disturbances() to allow this for all stands disturbed in disturbe_force()
 							bminit = sapsize * patch.pft[pft.id].anetps_ff_est_initial;
 						} else
 							bminit = sapsize * patch.pft[pft.id].anetps_ff;
@@ -939,7 +907,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// If established individuals initial biomass is too small 
 						// then don't establish (e.g. anetps_ff extremely low or even zero)
 						if (bminit < MINCMASS) {
-							indiv.kill();
+							indiv.kill(MORT_OTHER);
 
 							vegetation.killobj();
 						}
@@ -997,8 +965,8 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 					// guess2008 - scale est by the number of woody PFTs/species that can establish
 					// Otherwise, simply adding more PFTs or species would increase est
-					
-					est*=3.0/double(nwoodypfts_estab);
+					est*=min(1.0,3.0/double(nwoodypfts_estab));
+					//est*=3.0/double(nwoodypfts_estab);
 
 
 					// Have a value for expected number of new saplings (est)
@@ -1017,7 +985,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						patch.pft[pft.id].nsapling_year = nsapling;
 
 						// BLARP added for OECD experiment (is this sensible?)
-						if (patch.has_disturbances() && patch.disturbed || force_planting) {
+						if (patch.disturbed || force_planting) {	// Removing has_disturbances() to allow this for all stands disturbed in disturbe_force()
 
 							ppft.anetps_ff_est=
 								ppft.anetps_ff_est_initial;
@@ -1075,7 +1043,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 					// assimilation for this PFT in this patch
 
 					if (patch.has_been_cut && (SMALL_SAPSIZE_POST_CUT && force_planting && mt.planting_system != "")) {
-						bminit = pft.dave_allocation() ? sapsize : PLANTSIZE; // Fixed sap size after first cutting
+						bminit = PLANTSIZE; // Fixed sap size after first cutting
 					}
 					else {
 						bminit = sapsize*patch.pft[pft.id].anetps_ff_est;
@@ -1116,6 +1084,9 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 						indiv.age=0.0;
 
+						// Initial biomass proportional to potential forest floor net
+						// assimilation for this PFT in this patch
+
 						// Height will be set in allometry very soon, but it's
 						// accessed in allocation_init(), so let's initialize it
 						// to 0 here rather than rely on uninitialized memory.
@@ -1124,8 +1095,12 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// set the initial ltor to the indiv object
 						indiv.ltor = ltor;
 
-						// Allocate initial biomass
+						if (ifnewalloc) {
+							// A different made-up number. Not sure why.
+							bminit = 1.0 / indiv.pft.sla;
+						}
 
+						// Allocate initial biomass
 						allocation_init(bminit,ltor,indiv);
 
 						// Calculate initial allometry
@@ -1153,7 +1128,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// If established individuals initial biomass is too small 
 						// then don't establish (e.g. anetps_ff extremely low or even zero)
 						if (bminit < MINCMASS) {
-							indiv.kill();
+							indiv.kill(MORT_OTHER);
 
 							vegetation.killobj();
 						}
@@ -1283,7 +1258,13 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 
 			// Remove completely if PFT beyond its bioclimatic limits for survival
 
-			indiv.kill();
+			Patchpft& patchpft = patch.pft[indiv.pft.id];
+			patchpft.cmass_mort += indiv.ccont();
+			// patchpft.cmass_mort_wood += indiv.cmass_wood();
+			// if (indiv.diam >= 0.1)
+			// 	patchpft.cmass_mort_wood_plus10cm += indiv.cmass_wood();
+
+			indiv.kill(MORT_OTHER);
 
 			vegetation.killobj();
 			killed=true;
@@ -1345,7 +1326,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			// Reduce population density and C biomass on modelled area basis
 			// to account for loss of killed individuals
 			double closs, nloss;
-			indiv.reduce_biomass(mort, mort_fire, closs, nloss);
+			indiv.reduce_biomass(mort, mort_fire, mort_greffic, mort_shade, 0.0, 0.0, false, closs, nloss);
 			if (mort > 0) {
 				indiv.closs_globfirm += closs * mort_fire / mort;
 				indiv.nloss_globfirm += nloss * mort_fire / mort;
@@ -1386,7 +1367,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			// Reduce C biomass on modelled area basis to account for biomass lost
 			// through mortality
 			double closs, nloss;
-			indiv.reduce_biomass(mort, mort_fire, closs, nloss);
+			indiv.reduce_biomass(mort, mort_fire, 0.0, mort_shade, 0.0, 0.0, false, closs, nloss);
 			if (mort > 0) {
 				indiv.closs_globfirm += closs * mort_fire / mort;
 				indiv.nloss_globfirm += nloss * mort_fire / mort;
@@ -1401,15 +1382,26 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 			vegetation.killobj();
 			killed=true;
 		}
+		else {
+			// Update allometry
+			if (!allometry(indiv)) {
+				// Handle allometry related mortality
+				Patchpft& patchpft = patch.pft[indiv.pft.id];
+				patchpft.cmass_mort += indiv.ccont();
+				// patchpft.cmass_mort_wood += indiv.cmass_wood();
+				// if (indiv.diam >= 0.1)
+				// 	patchpft.cmass_mort_wood_plus10cm += indiv.cmass_wood();
 
-		// Update allometry
+				indiv.kill(MORT_OTHER);
 
-		else allometry(indiv);
+				vegetation.killobj();
+				killed = true;
+			}
+		}
 
 		if (!killed) vegetation.nextobj(); // ... on to next individual
 	}
 }
-
 
 void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double fireprob) {
 
@@ -1534,9 +1526,10 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 					// GRASS AND MOSS PFTs
 
 					// Reduce individual biomass
-					indiv.reduce_biomass(mort_fire, mort_fire,
+					indiv.reduce_biomass(mort_fire, mort_fire, 0.0, 0.0, 0.0,
+										 0.0, false,
 						                 indiv.closs_globfirm,
-										 indiv.nloss_globfirm);
+										 indiv.nloss_globfirm);//MORT
 
 					// Update allometry
 
@@ -1573,8 +1566,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 					// Reduce individual biomass on patch area basis
 					// to account for loss of killed individuals
 					indiv.reduce_biomass(1.0 - frac_survive, 1.0 - frac_survive,
+										 0.0, 0.0, 0.0, 0.0, false,
 										 indiv.closs_globfirm,
-										 indiv.nloss_globfirm);
+										 indiv.nloss_globfirm);//MORT
 
 					// Remove this cohort completely if all individuals killed
 					// (in individual mode: removes individual if killed)
@@ -1613,7 +1607,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 			ppft.cmass_mort += indiv.ccont();
 
 			log_info("%s killed by exceedance of bioclimatic limits...", (const char *)indiv.pft.name);
-			indiv.kill();
+			indiv.kill(MORT_OTHER); //MORT
 
 			vegetation.killobj();
 			killed=true;
@@ -1695,6 +1689,8 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 						mort_greff=0.0;
 				}
 
+				//MORT
+				double mort_greff_before_self_thin = mort_greff;
 
 				// Increase growth efficiency mortality if summed crown area within
 				// cohort exceeds 1 (to ensure self-thinning for shade-tolerant PFTs)
@@ -1743,8 +1739,19 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 				// Reduce individual density and biomass on patch area basis
 				// to account for loss of killed individuals
-				indiv.reduce_biomass(1.0 - frac_survive, 0.0,
-				                     indiv.closs_mort, indiv.nloss_mort);
+
+				//MORT
+				double mort_greff_frac = mort ? mort_greff_before_self_thin / mort : 0.0;
+				double mort_selfthin_frac = mort ? (mort_greff - mort_greff_before_self_thin) / mort : 0.0;
+				double mort_age_frac = mort ? mort_min / mort : 0.0;
+				double mort_other_frac = 1.0 - mort_greff_frac - mort_selfthin_frac - mort_age_frac;
+				indiv.reduce_biomass(1.0 - frac_survive,
+                                     0.0,
+                                     mort_greff_frac * (1.0 - frac_survive),
+                                     mort_selfthin_frac * (1.0 - frac_survive),
+                                     (1.0-mort_greff_frac-mort_selfthin_frac) * (1.0 - frac_survive),
+									 0.0, false,
+				                     indiv.closs_mort, indiv.nloss_mort); // Calculate the age fraction as a residual to avoid rounding errors creeping in
 
 				// Remove this cohort completely if all individuals killed
 				// (in individual mode: removes individual if killed)
@@ -1759,7 +1766,20 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 				// Update allometry
 
-				else allometry(indiv);
+				else {
+					if (!allometry(indiv)) {
+						// Handle allometry related mortality
+						ppft.cmass_mort += indiv.ccont();
+						// ppft.cmass_mort_wood += indiv.cmass_wood();
+						// if (indiv.diam >= 0.1)
+						// 	ppft.cmass_mort_wood_plus10cm += indiv.cmass_wood();
+
+						indiv.kill(MORT_OTHER); //MORT
+
+						vegetation.killobj();
+						killed = true;
+					}
+				}
 			} 
 			else { 
 				// MORTALITY in PEATLAND stands
@@ -1792,10 +1812,22 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 						// Reduce C biomass to account for biomass lost through shading mortality
 						if (mort_shade> 0.0) {
-							indiv.reduce_biomass(mort_shade, 0.0,
+							indiv.reduce_biomass(0.0, 0.0, 0.0, mort_shade, 0.0,
+												 0.0, false,
 											     indiv.closs_shade,
-												 indiv.nloss_shade);
-							allometry(indiv);
+												 indiv.nloss_shade);//MORT			: first parameter is zero !! -> NO MORTALITY
+							if (!allometry(indiv)) {
+								// Handle allometry related mortality
+								ppft.cmass_mort += indiv.ccont();
+								// ppft.cmass_mort_wood += indiv.cmass_wood();
+								// if (indiv.diam >= 0.1)
+								// 	ppft.cmass_mort_wood_plus10cm += indiv.cmass_wood();
+
+								indiv.kill(MORT_OTHER); //MORT
+
+								vegetation.killobj();
+								killed = true;
+							}
 						}
 
 					} // correct stand and grass type
@@ -1813,6 +1845,416 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 void mortality_daily(Patch& patch){
 	// TODO Assaf :)
 }
+
+void insect_mortality_guess(Stand& stand, Patch& patch) {
+
+		// Fraction of cohort (or individual) surviving
+	double frac_survive;
+	bool killed;
+	Vegetation& vegetation=patch.vegetation;
+
+	// INSECT MORTALITY
+	//With reference to tables, figures and equations from Lagergren et al. 2025
+	// https://doi.org/10.5194/gmd-18-8071-2025
+
+	double mortality_insect;
+
+	// Parameter setting in the "default expert judgement" simulation (Table 2)
+	//const double insect_factor = 0.0030; //Callibrated factor to scale damage, set to 0.003 with SSC and 0.002 without
+	//const double insect_diam_lim = 0.15; // 15 cm is concidered as a low limit for Ips Typographus
+	//const double kgc_min = -2.0; // Min of f(population index gridcell)
+	//const double kgc_max = 1.0; // Max of f(population index gridcell)
+	//const double k1 = 0.05; // Parameter related to intercept of f(population index gridcell)
+	//const double k2 = 0.25; // Parameter related to slope of f(population index gridcell)
+	//const double kbase_bm = 0.0001; // Base level of insect stem C
+	//const double kp_min = -3.8 - kgc_min; // Min of f(population index patch / brood material)
+	//const double kp_max = 1.0; // Max of f(population index patch / brood material)
+	//const double k3 = 0.03; // Parameter related to intercept of f(population index patch / brood material)
+	//const double k4 = 0.4; // Parameter related to slope of f(population index patch / brood material)
+	//const double k_pyw_wscal = 3.0; // Weight of previous year's wscal in relation to current year
+	//const double kdrought_max = 2.0; // Max of f(water stress)
+	//const double k5 = 8.0; // Slope of f(water stress)
+	//// Constant in f(phenology)const double k6 = 3.33 in guess.cpp;
+	//// Constant in f(phenology)const double k7 = 75.0 in guess.cpp;
+	// Salvage cutting parameters (right column of page 8076), set a first_salvcutyear value outside simulated years to disable
+	//const int first_salvcutyear = 1920; // First year to reduce storm litter assuming salvage harvest of storm felled trees
+	//const double min_salvcut = 5.0 * 0.0001 * 400 * 0.5; // Min C mass for salvage cutting (m3 ha-1 * ha m-2 * kg m-3 kg C kg-1)
+	//const double salvcutcapacity = 0.5; // Fraction of 10-yr annual average harvest capacity that can be used for salvage cutting
+	//const double salvcutfrac = 0.9; // Fraction of wood removed in salvage cutting
+	//const double sankillfrac = 0.25; // Fraction of bark beetles killed in sanitary counter-measures
+	//const double sanmin = 0.01; // Min fraction of killed spruce biomass for sanitary cutting to take place
+
+	// Calibrated parameters using SSC (Table 3)
+	const double insect_factor = 0.005124; //Callibrated factor to scale damage, set to 0.003 with SSC and 0.002 without
+	const double insect_diam_lim = 0.15; // 15 cm is concidered as a low limit for Ips Typographus
+	const double kgc_min = -1.75; // Min of f(population index gridcell)
+	const double kgc_max = 1.0; // Max of f(population index gridcell)
+	const double k1 = 0.005; // Parameter related to intercept of f(population index gridcell)
+	const double k2 = 0.5; // Parameter related to slope of f(population index gridcell)
+	const double kbase_bm = 0.0001; // Base level of insect stem C
+	const double kp_min = -3.8 - kgc_min; // Min of f(population index patch / brood material)
+	const double kp_max = 1.0; // Max of f(population index patch / brood material)
+	const double k3 = 0.15; // Parameter related to intercept of f(population index patch / brood material)
+	const double k4 = 0.8; // Parameter related to slope of f(population index patch / brood material)
+	const double k_pyw_wscal = 0.25; // Weight of previous year's wscal in relation to current year
+	const double kdrought_max = 2.0; // Max of f(water stress)
+	const double k5 = 5.0; // Slope of f(water stress)
+	// Constant in f(phenology)const double k6 = 3.33 in guess.cpp;
+	// Constant in f(phenology)const double k7 = 75.0 in guess.cpp;
+	// Salvage cutting parameters (right column of page 8076), set a first_salvcutyear value outside simulated years to disable
+	const int first_salvcutyear = 1920; // First year to reduce storm litter assuming salvage harvest of storm felled trees, was 1920 in 230113 run
+	const double min_salvcut = 5.0 * 0.0001 * 400.0 * 0.5; // Min C mass for salvage cutting (m3 ha-1 * ha m-2 * kg m-3 kg C kg-1)
+	const double salvcutcapacity = 0.5; // Fraction of 10-yr annual average harvest capacity that can be used for salvage cutting
+	const double salvcutfrac = 0.9; // Fraction of wood removed in salvage cutting
+	const double sankillfrac = 0.25; // Fraction of bark beetles killed in sanitary counter-measures
+	const double sanmin = 0.01; // Min fraction of killed spruce biomass for sanitary cutting to take place
+
+	patch.insect_dam_wood = 0.0;
+
+	// Loop over ift
+	for (int iftid = 0;iftid < nift;iftid++) {
+		Ift& ift = iftlist[iftid];
+		Gridcellift& gcift = stand.get_gridcell().ift[iftid];
+		Patchift& pift = patch.ift[iftid];
+
+		double insect_litter = 0.0;
+		double drought_ind = 0.0;
+		double wscal_patchinsect = 0.0;
+
+		// First loop over pft to get sum of insect stem litter
+		for (int p = 0; p < npft; p++) {
+			// Retrieve next patch PFT
+			Patchpft& ppft = patch.pft[p];
+
+			if (!patch.stand.pft[p].active)
+				continue;
+
+			if (ift.pftinhosts(ppft.pft.name)) {
+				insect_litter += ppft.insect_stem_litter_prev;
+			}
+		}
+
+		// Ruduce insect litter if salvage cutting is applied (right column of page 8076)
+		double insect_litter_before = insect_litter; //Insect litter before SC, needed for weighting below
+		if (date.get_calendar_year() >= first_salvcutyear && insect_litter > min_salvcut) {
+			double maxsalvcut = stand.get_gridcell().flux_charvest10y.mean() * salvcutcapacity;
+			double dam_wood_available = stand.get_gridcell().storm_dam_wood_prev * salvcutfrac;
+			insect_litter *= 1.0 - min(salvcutfrac, salvcutfrac * maxsalvcut / dam_wood_available);
+		}
+
+		// Second loop over pfts to get drought index (Fig 1D) weighted by insect stem litter
+		for (int p = 0; p < npft; p++) {
+			// Retrieve next patch PFT
+			Patchpft& ppft = patch.pft[p];
+
+			if (!patch.stand.pft[p].active)
+				continue;
+
+			if (ift.pftinhosts(ppft.pft.name)) {
+				// Drought index (0-2) calculated from average wscal May-July from previous and current year,
+				// preivios year is given a weight of three following Marini et al 2017 (Table 2, 1st ranked model)
+				// Linear treshold function between 0.6 and 1.0
+				double pft_weight; //If possible weight by litter before salvage cutting
+				if (insect_litter_before > 0.0)
+					pft_weight = ppft.insect_stem_litter_prev / insect_litter_before;
+				else
+					pft_weight = 1.0 / (double)gcift.npfthosts;
+				double wscal_insect = ((ppft.wscal_mean_month_prev[4] + ppft.wscal_mean_month_prev[5] + ppft.wscal_mean_month_prev[6]) * k_pyw_wscal +
+					(ppft.wscal_mean_month[4] + ppft.wscal_mean_month[5] + ppft.wscal_mean_month[6])) /
+					(3.0 * k_pyw_wscal + 3.0); //Eq. 11 without first making average over the current and previous year
+				drought_ind += min(kdrought_max, (1.0 - wscal_insect) * k5) * pft_weight; //Eq. 10
+				wscal_patchinsect += wscal_insect * pft_weight;
+
+			}
+			ppft.insect_stem_litter_prev = ppft.insect_stem_litter;
+			ppft.insect_stem_litter = 0.0;
+		}
+		drought_ind = max(0.0, min(2.0, drought_ind)); //Make sure that it is within the 0-2 range
+
+		// Get stem C mass available to insect for host trees with diameter > insect_diam_lim
+		double insect_stem = 0.0;
+		// Loop through individuals
+		vegetation.firstobj();
+		while (vegetation.isobj) {
+			Individual& indiv = vegetation.getobj();
+			Patchpft& patchpft = patch.pft[indiv.pft.id];
+			// For this individual ...
+			if (ift.pftinhosts(indiv.pft.name)) {
+
+				if (indiv.diam > insect_diam_lim)
+					insect_stem += (indiv.cmass_sap + indiv.cmass_heart - indiv.cmass_debt);
+			}
+			vegetation.nextobj();
+		}
+
+		// Update insect patch population index
+
+		// Substitute for wind damage cmass Can be used for simulation with random insect litter without connection to real mortality
+		const double max_stormfrac = 0.50; // Maximum fraction of available stem C that can be used after storm, higher if patch level storm seed?
+		//double storm_sub = max(0.0, pow((randfrac(stand.seed) - 0.75) * 4.0, 3.0)) * insect_stem * max_stormfrac; // Unique seed for each pft-ipf
+		double storm_sub = max(0.0, pow((gcift.storm_rand - 0.75) * 4.0, 3.0)) * insect_stem * max_stormfrac; // Common seed for ift at gridcell
+		storm_sub = 0.0; // Outcomment to use. Should be a real switch!!
+
+		// Index of general conditions for population growth related to population size and availability of dead trees (Fig 1C)
+		double base_insect_ind = min(kp_max, max(kp_min, -log(pift.pop_ind / (insect_litter + storm_sub + kbase_bm) * k3) * k4)); // Eq. 8 & 9
+
+		// Index related to average gridcell level average population index (Fig 1B)
+		double gridcell_ind = min(kgc_max, max(kgc_min, -log(gcift.pop_ind * k1) * k2)); // Eq. 7
+
+		// Growt rate based on the components
+		double R = drought_ind + base_insect_ind + gridcell_ind + gcift.phen_ind; // Eq. 4
+		pift.pop_ind *= exp(R); // New population size, Eq. 5
+
+		// Reduce population if sanitary cutting is applied (right column of page 8076)
+		if (date.get_calendar_year() >= first_salvcutyear &&
+			(insect_factor * pift.pop_ind / insect_stem) > sanmin &&
+			insect_stem > 0.0) {
+			pift.pop_ind *= (1.0 - sankillfrac);
+		}
+
+		//Contribution to mean gridcell level pop_ind used next year
+		gcift.pop_ind_new += pift.pop_ind / (double)stand.npatch() * stand.get_gridcell_fraction();
+
+
+		// Calculate mortality insect for this ift and pft if there is available C mass
+		mortality_insect = 0.0;
+
+		if (insect_stem > 0.0) {
+			const double max_insect_mort = 0.75;
+
+			mortality_insect = min(max_insect_mort * insect_stem, insect_factor * pift.pop_ind) / insect_stem; // Eq. 6
+			frac_survive = 1.0 - mortality_insect;
+
+			if (insect_mortality && mortality_insect > 0.0
+				&& (date.get_calendar_year() >= insect_mortality_firstyear) && (date.get_calendar_year() <= insect_mortality_lastyear)
+				&& !(readdist_barkbeetle && date.get_calendar_year() >= disturbance_input_firstyear && date.get_calendar_year() <= disturbance_input_lastyear)) {
+
+				// Apply mortality insect if d>limit && indiv.pft == ift.host_pft
+				// Loop through individuals
+				vegetation.firstobj();
+				while (vegetation.isobj) {
+					Individual& indiv = vegetation.getobj();
+					Patchpft& patchpft = patch.pft[indiv.pft.id];
+
+					// For this individual ...
+					killed = false;
+					if (ift.pftinhosts(indiv.pft.name)) {
+
+						if (indiv.diam > insect_diam_lim) {
+
+							patchpft.cmass_barkbeetle_killed += mortality_insect * indiv.ccont();
+							patchpft.cmass_mort +=  mortality_insect * indiv.ccont();
+							// patchpft.cmass_mort_wood += mortality_insect * indiv.cmass_wood();
+							if (indiv.diam >= 0.1) {
+								patchpft.cmass_barkbeetle_killed_plus10cm += mortality_insect * indiv.ccont();
+								// patchpft.cmass_mort_wood_plus10cm += mortality_insect * indiv.cmass_wood();
+							}
+
+							gcift.insect_damage += indiv.cmass_wood() * (1.0 - frac_survive) / (double)stand.npatch() * stand.get_gridcell_fraction();
+							patch.insect_dam_wood += indiv.cmass_wood() * (1.0 - frac_survive);
+
+							// Reduce individual density and biomass on patch area basis
+							// to account for loss of killed individuals
+							double closs, nloss;
+							indiv.reduce_biomass(0.0, 0.0, 0.0, 0.0, 0.0,
+												 1.0 - frac_survive, false, closs, nloss);
+
+							// Remove this cohort completely if all individuals killed
+							// (in individual mode: removes individual if killed)
+
+							if (negligible(indiv.densindiv)) {
+								vegetation.killobj();
+								killed = true;
+							}
+
+							// Update allometry
+
+							else {
+								// Update allometry
+								if (!allometry(indiv)) {
+									// Handle allometry related mortality
+									patchpft.cmass_mort += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
+									// patchpft.cmass_mort_wood += indiv.cmass_wood();
+									// if (indiv.diam >= 0.1)
+									// 	patchpft.cmass_mort_wood_plus10cm += indiv.cmass_wood();
+
+									indiv.kill(MORT_OTHER);
+
+									vegetation.killobj();
+									killed = true;
+								}
+							}
+						}
+
+					}
+
+					if (!killed) vegetation.nextobj();
+				}
+			}
+		}
+	}
+}
+
+void storm_mortality_guess(Stand& stand, Patch& patch) {
+
+	// Fraction of cohort (or individual) surviving
+	double frac_survive;
+	bool killed;
+	Vegetation& vegetation=patch.vegetation;
+
+	// STORM MORTALITY
+
+	patch.storm_dam_wood = 0.0;
+	patch.storm_dam_wood_pot = 0.0;
+	patch.storm_cmass_wood_save = 0.0;
+	patch.storm_sens_ind = 0.0;
+
+	Gridcell& gridcell = stand.get_gridcell();
+
+	// Loop through individuals
+
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+		Patchpft& patchpft = patch.pft[indiv.pft.id];
+
+		// For this individual ...
+
+		killed = false;
+
+		double mortality_storm = max(0.0, indiv.dam_frac - indiv.man_strength); // Also reduce fraction for other mortality?
+		double mortality_storm_pot = max(0.0, indiv.dam_frac_pot - indiv.man_strength);	// deduct man_strength also here ?
+
+		// Updatate potential damaged wood at different levels, used for output
+		patch.storm_dam_wood_pot += mortality_storm_pot * indiv.cmass_wood();
+		patch.storm_cmass_wood_save += indiv.cmass_wood();
+		patch.storm_sens_ind += indiv.sens_ind_tot * indiv.cmass_wood();				// cmass_wood weight
+
+		frac_survive = 1.0 - mortality_storm;
+
+		if (storm_mortality && mortality_storm > 0.0 
+			&& (date.get_calendar_year() >= storm_mortality_firstyear) && (date.get_calendar_year() <= storm_mortality_lastyear)
+			&& !(readdist_wind && date.get_calendar_year() >= disturbance_input_firstyear && date.get_calendar_year() <= disturbance_input_lastyear)) {
+
+			double mort_cmass = (1.0 - frac_survive) * indiv.ccont();
+			double mort_cmass_wood = (1.0 - frac_survive) * indiv.cmass_wood();
+				
+			patchpft.cmass_wind_killed += mort_cmass;
+			patchpft.cmass_mort += mort_cmass;
+			// patchpft.cmass_mort_wood += mort_cmass_wood;
+			if (indiv.diam >= 0.1) {
+				patchpft.cmass_wind_killed_plus10cm += mort_cmass;
+				// patchpft.cmass_mort_wood_plus10cm += mort_cmass_wood;
+			}
+
+			// Reduce individual density and biomass on patch area basis
+			// to account for loss of killed individuals
+			double closs, nloss;
+			indiv.reduce_biomass(1.0 - frac_survive, 0.0, 0.0, 0.0, 0.0, 0.0,
+							     false, closs, nloss);
+
+			// Updatate damaged wood at different levels, used for output
+			patch.storm_dam_wood += mort_cmass_wood;
+			gridcell.storm_dam_wood += mort_cmass_wood / (double)stand.npatch() * stand.get_gridcell_fraction();	// zeroed in storm(), needed for saving previous year's value
+
+			//dprintf("Stormres %5.2f %5.2f %i %i %i %i %i %3.1f %6.5f\n", 
+			//	stand.get_gridcell().get_lon(), stand.get_gridcell().get_lat(), date.get_calendar_year(), stand.id, patch.id, indiv.id,
+			//	indiv.age, indiv.height, mortality_storm);
+
+			// Remove this cohort completely if all individuals killed
+			// (in individual mode: removes individual if killed)
+
+			if (negligible(indiv.densindiv)) {
+				vegetation.killobj();
+				killed = true;
+			}
+
+			// Update allometry
+
+			else {
+				// Update allometry
+				if (!allometry(indiv)) {
+					// Handle allometry related mortality
+					patchpft.cmass_mort += indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_wood();
+					// patchpft.cmass_mort_wood += indiv.cmass_wood();
+					// if (indiv.diam >= 0.1)
+					// 	patchpft.cmass_mort_wood_plus10cm += indiv.cmass_wood();
+
+					indiv.kill(MORT_OTHER);
+
+					vegetation.killobj();
+					killed = true;
+				}
+			}
+
+		}
+
+		// ... on to next individual
+
+		if (!killed) vegetation.nextobj();
+	}
+
+	if (patch.cmass_wood() > 0.0) {
+		patch.storm_sens_ind /= patch.cmass_wood();	// cmass_wood weight
+	}
+	else {
+		patch.storm_sens_ind = 0.0;
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////////////
+// Simplified update of insect dynamics after disturbance, done in mortality_guess if no disturbance
+// Internal function (do not call directly from framework)
+
+void insectupdate(Stand& stand, Patch& patch) {
+	for (int iftid = 0;iftid < nift;iftid++) {
+		Ift& ift = iftlist[iftid];
+		Gridcellift& gcift = stand.get_gridcell().ift[iftid];
+		Patchift& pift = patch.ift[iftid];
+
+		double insect_litter = 0.0;
+		double drought_ind = 0.0;
+
+		// Loop over pft to get insect stem litter
+		for (int p = 0; p < npft; p++) {
+			// Retrieve next patch PFT
+			Patchpft& ppft = patch.pft[p];
+
+			if (!patch.stand.pft[p].active)
+				continue;
+
+			ppft.insect_stem_litter_prev = ppft.insect_stem_litter;
+			ppft.insect_stem_litter = 0.0;
+		}
+
+		const double kgc_min = -1.75; // Min of f(population index gridcell)
+		const double kgc_max = 1.0; // Max of f(population index gridcell)
+		const double k1 = 0.005; // Parameter related to intercept of f(population index gridcell)
+		const double k2 = 0.5; // Parameter related to slope of f(population index gridcell)
+		const double kbase_bm = 0.0001; // Base level of insect stem C
+		const double kp_min = -3.8 - kgc_min; // Min of f(population index patch / brood material)
+		const double kp_max = 1.0; // Max of f(population index patch / brood material)
+		const double k3 = 0.15; // Parameter related to intercept of f(population index patch / brood material)
+		const double k4 = 0.8; // Parameter related to slope of f(population index patch / brood material)
+
+		const double storm_sub = 0.0; // Outcomment to use. Should be a real switch!!
+
+
+		// Index of general conditions for population growth related to population size and availability of dead trees (Fig 1C)
+		double base_insect_ind = min(kp_max, max(kp_min, -log(pift.pop_ind / (insect_litter + storm_sub + kbase_bm) * k3) * k4)); // Eq. 8 & 9
+
+		// Index related to average gridcell level average population index (Fig 1B)
+		double gridcell_ind = min(kgc_max, max(kgc_min, -log(gcift.pop_ind * k1) * k2)); // Eq. 7
+
+		// Growt rate based on the components
+		double R = drought_ind + base_insect_ind + gridcell_ind + gcift.phen_ind; // Eq. 4
+		pift.pop_ind *= exp(R); // New population size, Eq. 5
+
+		//Contribution to mean gridcell level pop_ind used next year
+		gcift.pop_ind_new += pift.pop_ind / (double)stand.npatch() * stand.get_gridcell_fraction();
+	}
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FIRE DISTURBANCE
@@ -2024,7 +2466,12 @@ void disturbance(Patch& patch, double disturb_prob) {
 			if(indiv.alive)
 				ppft.cmass_dist += indiv.ccont();
 
-			indiv.kill();
+			indiv.mortflux(1.0, MORT_DIST, patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj, true);
+            		
+			if(ifback_disturb_as_harv){
+                		harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0.1);
+            		}
+            		indiv.kill(MORT_DIST); //MORT mortmech = Disturbance (4)
 
 			vegetation.killobj();
 		}
@@ -2033,8 +2480,9 @@ void disturbance(Patch& patch, double disturb_prob) {
 		patch.age = 0;
 		log_info("Disturbance...");
 	}
-
-	else patch.disturbed = false;
+	else {
+		patch.disturbed = false;
+	}
 }
 
 /// PLANTING
@@ -2085,6 +2533,753 @@ void planting(Patch& patch) {
 	}
 }
 
+void establish_input(Patch& patch, bool pool_soil = false) {
+
+	Stand& stand = patch.stand;
+	Gridcellst& gcst = stand.get_gridcell().st[stand.stid];
+
+	if (!gcst.prescribed_establishment || gcst.establishment_list.establishment_year != date.get_calendar_year())
+		return;
+
+	bool print_init_info = false;
+	double cmass_veg_tree_tot_old = check_harvest_cmass(patch);
+
+	if(!pool_soil) {
+
+		Vegetation& vegetation = patch.vegetation;
+		vegetation.firstobj();
+		while (vegetation.isobj) {
+			Individual& indiv = vegetation.getobj();
+			Patchpft& patchpft = patch.pft[indiv.pft.id];
+
+			// Output of killed tree cmass in connection with tree initialisation turned off for now, probably not needed.
+//			if(indiv.alive)
+//				patchpft.cmass_dist += indiv.ccont();
+
+			harvest_wood(indiv, 1.0, 1.0, 1.0, 1.0, false, true);
+			indiv.kill(MORT_OTHER);	// Only grass biomass left at this stage.
+
+			vegetation.killobj();
+		}
+	}
+
+	pftlist.firstobj();
+	while (pftlist.isobj) {
+		Pft& pft = pftlist.getobj();
+		Gridcellpft& gcpft = stand.get_gridcell().pft[pft.id];
+
+		for (int i = 0;i < MAX_NESTABLISH_INDIV;i++) {
+
+			xtring pftname = gcst.establishment_list.est_array[i].pft_name;
+
+			if (pftname == "")
+				break;
+			
+			if (pft.name == pftname && pft.is_grass()) {
+
+				if(print_init_info)
+					dprintf("\n%s individual no. %d created in st %s\n", (char*)pftname, i, (char*)stlist[stand.stid].name);
+
+				const bool use_latosa_20y_mean = true;
+				const bool use_qsap_20y_mean = true;
+				const bool use_age_20y_mean = false;
+				const bool use_cton_20y_mean = true;
+
+				Individual& indiv = patch.vegetation.createobj(pft, patch.vegetation);
+
+				const double M_TO_CM = 100.0;
+				const double C_TO_TOTAL_BIOMASS = 2.0;
+				const double TOTAL_TO_AG_BIOMASS = 0.8;
+				const double TON_TO_KG = 1000.0;
+
+				double diam = stand.get_gridcell().st[stand.stid].establishment_list.est_array[i].diam / M_TO_CM;	// cm to m
+				double vol = (PI / 4.0) * pft.k_allom2 * pow(diam, 2.0 + pft.k_allom3);
+				double cmass_wood_ind = vol * indiv.pft.wooddens;
+
+				if(forest_init_from_biomass) {
+					cmass_wood_ind = stand.get_gridcell().st[stand.stid].establishment_list.est_array[i].biomass / C_TO_TOTAL_BIOMASS / TOTAL_TO_AG_BIOMASS * TON_TO_KG;	// Total cmass_wood from AG biomass)
+					diam = pow((4.0 * cmass_wood_ind /(PI * pft.k_allom2 * indiv.pft.wooddens)), (1.0 / (2.0 + pft.k_allom3)));
+					vol = cmass_wood_ind / indiv.pft.wooddens;
+				}
+
+				double height = pft.k_allom2 * pow(diam, pft.k_allom3);
+				double treedens = gcst.establishment_list.est_array[i].dens;
+				double f_sap = 0.6625 - 0.4372 * diam;
+				double q_sap = ( 2.0 * f_sap - (f_sap * f_sap)) / 4.0;
+
+				if(print_init_info)
+					dprintf("initial q_sap calculated (diam=%.2f): %f\n", diam, q_sap);
+
+				if (use_qsap_20y_mean) {
+					int diam_bin = -1;
+					int diam_bin_reserve = -1;
+					for (int d=(N_DIAM_CLASSES_SAMP - 1); d>=0; d--) {
+						if(gcpft.qsap_avr_20[d].size())
+							diam_bin_reserve = d;
+						if(diam * 100 > d * DIAM_CLASS_SIZE_SAMP && gcpft.qsap_avr_20[d].size()) {
+							diam_bin = d;
+							break;
+						}
+					}
+					if(diam_bin > -1) {
+						q_sap = gcpft.qsap_avr_20[diam_bin].mean();
+						double diam_bin_mean = ((double)diam_bin + 0.5) * DIAM_CLASS_SIZE_SAMP;
+						if((diam * 100) < diam_bin_mean) {
+							if(gcpft.qsap_avr_20[diam_bin - 1].size() && (diam_bin - 1) >= 0) {
+								double diam_bin_mean_prev = ((double)(diam_bin - 1) + 0.5) * DIAM_CLASS_SIZE_SAMP;
+								double q_sap_prev = gcpft.qsap_avr_20[diam_bin - 1].mean();
+								q_sap -= (diam_bin_mean - (diam * 100)) / (diam_bin_mean - diam_bin_mean_prev) * (q_sap - q_sap_prev);
+							}
+						}
+						else {
+							if(gcpft.qsap_avr_20[diam_bin + 1].size() && (diam_bin + 1) < N_DIAM_CLASSES_SAMP) {
+								double diam_bin_mean_next = ((double)(diam_bin + 1) + 0.5) * DIAM_CLASS_SIZE_SAMP;
+								double q_sap_next = gcpft.qsap_avr_20[diam_bin + 1].mean();
+								q_sap -= (diam_bin_mean - (diam * 100)) / (diam_bin_mean - diam_bin_mean_next) * (q_sap - q_sap_next);
+							}
+						}
+						if(print_init_info)
+							dprintf("q_sap used from diam bin %d: %f\n", diam_bin, q_sap);
+					}
+					else if(diam_bin_reserve > -1) {
+						q_sap = gcpft.qsap_avr_20[diam_bin_reserve].mean();
+						if(print_init_info)
+							dprintf("q_sap used from diam bin %d: %f\n", diam_bin_reserve, q_sap);
+					}
+				}	// else use the value calculated above
+
+				int age = gcst.establishment_list.est_array[i].age;
+
+				if (!age) {		// age value set to 0 in getforest_init() if not in input file
+
+					age = (int)(100.0 * diam);
+
+					if (use_age_20y_mean) {
+						int diam_bin = -1;
+						int diam_bin_reserve = -1;
+
+						/// Using running means of N_DIAM_CLASSES_SAMP diameter classes
+						for (int d=(N_DIAM_CLASSES_SAMP - 1); d>=0; d--) {
+							if (gcpft.treeage_avr_20[d].size())
+								diam_bin_reserve = d;
+							if (diam * 100 > d * DIAM_CLASS_SIZE_SAMP && gcpft.treeage_avr_20[d].size()) {
+								diam_bin = d;
+								break;
+							}
+						}
+						if (diam_bin > -1) {
+							age = (int)gcpft.treeage_avr_20[diam_bin].mean();
+
+						double diam_bin_mean = ((double)diam_bin + 0.5) * DIAM_CLASS_SIZE_SAMP;
+						if((diam * 100) < diam_bin_mean) {
+							if(gcpft.treeage_avr_20[diam_bin - 1].size() && (diam_bin - 1) >= 0) {
+								double diam_bin_mean_prev = ((double)(diam_bin - 1) + 0.5) * DIAM_CLASS_SIZE_SAMP;
+								double age_prev = gcpft.treeage_avr_20[diam_bin - 1].mean();
+								age -= (int)((diam_bin_mean - (diam * 100)) / (diam_bin_mean - diam_bin_mean_prev) * (age - age_prev));
+							}
+						}
+						else {
+							if(gcpft.treeage_avr_20[diam_bin + 1].size() && (diam_bin + 1) < N_DIAM_CLASSES_SAMP) {
+								double diam_bin_mean_next = ((double)(diam_bin + 1) + 0.5) * DIAM_CLASS_SIZE_SAMP;
+								double age_next = gcpft.treeage_avr_20[diam_bin + 1].mean();
+								age -= (int)((diam_bin_mean - (diam * 100)) / (diam_bin_mean - diam_bin_mean_next) * (age - age_next));
+							}
+						}
+							if(print_init_info)
+								dprintf("age used from diam bin %d: %d\n", diam_bin, age);
+						}
+						else if (diam_bin_reserve > -1) {
+							age = (int)gcpft.treeage_avr_20[diam_bin_reserve].mean();
+							if(print_init_info)
+								dprintf("age used from diam bin %d: %d\n", diam_bin_reserve, age);
+						}
+					}
+				}
+
+				double cmass_sap_ind = q_sap * cmass_wood_ind;
+				double cmass_heart_ind = cmass_wood_ind - cmass_sap_ind;
+				double latosa = indiv.pft.k_latosa;
+				if(use_latosa_20y_mean && gcpft.latosa_avr_20.sum() != 0)	// else use the value calculated above
+					latosa = gcpft.latosa_avr_20.mean();
+
+				if(print_init_info) {
+					dprintf("latosa_avr_20.size for %s: %d \n", (char*)pft.name, gcpft.latosa_avr_20.size());
+					dprintf("latosa_avr_20[] for %s: \n", (char*)pft.name);
+					for(unsigned int x=0;x<gcpft.cton_sap_avr_20.size();x++) {
+						dprintf("%.3f ", gcpft.latosa_avr_20[x]);
+					}
+				}
+
+				double cmass_leaf_ind = cmass_sap_ind * latosa / (height * indiv.pft.sla * indiv.pft.wooddens);
+				double ltor = pft.ltor_max;
+				double cmass_root_ind = cmass_leaf_ind / ltor;
+
+				indiv.diam = diam;
+				indiv.height = height;
+				indiv.densindiv = treedens;
+				indiv.cmass_sap = cmass_sap_ind * indiv.densindiv;
+				indiv.cmass_heart = cmass_heart_ind * indiv.densindiv;
+				indiv.cmass_leaf = cmass_leaf_ind * indiv.densindiv;
+				indiv.cmass_root = cmass_root_ind * indiv.densindiv;
+				indiv.crownarea = indiv.pft.k_allom1 * pow(indiv.diam, indiv.pft.k_rp);
+				indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
+				indiv.lai_indiv = indiv.cmass_leaf / indiv.densindiv * indiv.pft.sla / indiv.crownarea;
+				indiv.boleht = indiv.height * indiv.pft.bole_ratio;
+				indiv.fpc = indiv.crownarea * indiv.densindiv *	(1.0 - exp(-0.5 * indiv.lai_indiv));
+				indiv.age = (double)age;
+
+				// NB. If setting to alive, we need to report fluxes here. Put into seed fluxes
+				indiv.alive = true;
+				patch.fluxes.report_flux(Fluxes::SEEDC, -(indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap + indiv.cmass_heart));
+
+				double cton_leaf = indiv.pft.cton_leaf_avr;
+				double cton_root = indiv.pft.cton_root_avr;
+				double cton_sap = indiv.pft.cton_sap_avr;
+				double cton_heart = indiv.pft.cton_sap_max;
+
+				if(print_init_info) {	
+					dprintf("cton_sap_avr_20.size for %s: %d \n", (char*)pft.name, gcpft.cton_sap_avr_20.size());
+					dprintf("cton_sap_avr_20[] for %s: \n", (char*)pft.name);
+					for(unsigned int x=0;x<gcpft.cton_sap_avr_20.size();x++) {
+						dprintf("%.3f ", gcpft.cton_sap_avr_20[x]);
+					}
+				}
+
+				if (use_cton_20y_mean && gcpft.cton_sap_avr_20.sum() != 0) {
+					if(print_init_info) {
+						dprintf("\nUsing cton_leaf_avr_20 for %s: \n", (char*)pft.name);
+						for(unsigned int x=0;x<gcpft.cton_leaf_avr_20.size();x++) {
+							dprintf("%.3f ", gcpft.cton_leaf_avr_20[x]);
+						}
+						dprintf("\n");
+						dprintf("Using cton_sap_avr_20 for %s: \n", (char*)pft.name);
+						for(unsigned int x=0;x<gcpft.cton_sap_avr_20.size();x++) {
+							dprintf("%.3f ", gcpft.cton_sap_avr_20[x]);
+						}
+						dprintf("\n");
+					}
+					cton_leaf = gcpft.cton_leaf_avr_20.mean();
+					cton_root = cton_leaf;
+					cton_sap = gcpft.cton_sap_avr_20.mean();
+					cton_heart = cton_sap;
+				}
+				if(print_init_info) {
+					dprintf("Values used for for %s: \n", (char*)pft.name);
+					dprintf("cton_leaf=%.3f\n", cton_leaf);
+					dprintf("cton_root=%.3f\n", cton_root);
+					dprintf("cton_sap=%.3f\n", cton_sap);
+					dprintf("cton_heart=%.3f\n", cton_heart);
+					dprintf("\n");
+				}
+
+				if(cton_leaf)
+					indiv.nmass_leaf = indiv.cmass_leaf / cton_leaf;
+				if(cton_root)
+					indiv.nmass_root = indiv.cmass_root / cton_root;
+				if(cton_sap)
+					indiv.nmass_sap = indiv.cmass_sap / cton_sap;
+				if(cton_heart)
+					indiv.nmass_heart = indiv.cmass_heart / cton_heart;
+
+				// Bypass alive conditional in indiv:report:flux (?)
+				patch.fluxes.report_flux(Fluxes::SEEDN, -(indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart));
+
+				if(print_init_info) {
+					dprintf("Creating %s individual id %d\n", (char*)pftname, indiv.id);
+					dprintf("latosa=%f cmass=%f f_sap=%f q_sap=%f cton_leaf=%f cton_sap=%f\n", latosa, cmass_sap_ind + cmass_heart_ind + cmass_leaf_ind + cmass_root_ind, f_sap, q_sap, cton_leaf, cton_sap);
+					dprintf("cmass_leaf=%f cmass_root=%f cmass_sap=%f cmass_heart=%f\n", cmass_leaf_ind, cmass_root_ind, cmass_sap_ind, cmass_heart_ind);
+					dprintf("nmass_leaf=%f nmass_root=%f nmass_sap=%f nmass_heart=%f\n", indiv.nmass_leaf / indiv.densindiv, indiv.nmass_root / indiv.densindiv, indiv.nmass_sap / indiv.densindiv, indiv.nmass_heart / indiv.densindiv);
+					dprintf("age=%d diam=%f height=%f densindiv=%f crownarea=%f lai_indiv=%f lai=%f\n\n", age, diam, height, indiv.densindiv, indiv.crownarea, indiv.lai_indiv, indiv.lai);
+				}
+
+				// Calculate storage pool size
+				indiv.max_n_storage = indiv.cmass_sap * indiv.pft.fnstorage / cton_leaf;
+				if(indiv.cmass_sap + indiv.cmass_heart + indiv.cmass_leaf + indiv.cmass_root)
+					indiv.scale_n_storage = indiv.max_n_storage * cton_leaf / (indiv.cmass_sap + indiv.cmass_heart + indiv.cmass_leaf + indiv.cmass_root);
+			}
+		}
+		patch.pft[pft.id].nsapling = 0.0;
+		patch.pft[pft.id].wscal_mean_est = 0.0;
+		patch.pft[pft.id].anetps_ff_est = 0.0;
+
+		pftlist.nextobj();
+	}
+
+	double cmass_veg_tree_tot_new = check_harvest_cmass(patch);
+
+	int scale_soil = 0;		// 0 = don't scale soil; 1 = scale all pools; 2 = scale slow pools
+
+	if(scale_soil) {
+
+		double updated_cmass_veg_ratio = 0.0;
+		if(cmass_veg_tree_tot_old)
+			updated_cmass_veg_ratio = cmass_veg_tree_tot_new / cmass_veg_tree_tot_old;
+		for (size_t i = 0; i < patch.soil.nsoillayers; i++) {
+			Soillayer &layer = patch.soil.soillayers[i];
+			for (int r = 0; r < NSOMPOOL; r++) {
+
+				if(scale_soil == 1) {
+					layer.sompool[r].cmass *= updated_cmass_veg_ratio;
+					layer.sompool[r].nmass *= updated_cmass_veg_ratio;
+				}
+				else if(scale_soil == 2) {	// NB: these pools are not included in the SoilC column in cpool.out.
+					if (r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
+						layer.sompool[r].cmass *= updated_cmass_veg_ratio;	
+						layer.sompool[r].nmass *= updated_cmass_veg_ratio;
+					}
+					else if (r == SURFFWD || r == SURFCWD) {
+						layer.sompool[r].cmass *= updated_cmass_veg_ratio;
+						layer.sompool[r].nmass *= updated_cmass_veg_ratio;
+					}
+				}
+			}
+		}
+		pftlist.firstobj();
+		while (pftlist.isobj) {
+
+			Pft& pft=pftlist.getobj();
+			Patchpft& patchpft = patch.pft[pft.id];
+			patchpft.cmass_litter_leaf *= updated_cmass_veg_ratio;
+			patchpft.cmass_litter_root *= updated_cmass_veg_ratio;
+			patchpft.cmass_litter_sap *= updated_cmass_veg_ratio;
+			patchpft.cmass_litter_heart *= updated_cmass_veg_ratio;
+			patchpft.cmass_litter_repr *= updated_cmass_veg_ratio;
+			patchpft.nmass_litter_leaf *= updated_cmass_veg_ratio;
+			patchpft.nmass_litter_root *= updated_cmass_veg_ratio;
+			patchpft.nmass_litter_sap *= updated_cmass_veg_ratio;
+			patchpft.nmass_litter_heart *= updated_cmass_veg_ratio;
+
+			pftlist.nextobj();
+		}
+	}
+}
+
+/// Function distributing soil C & N equally among all initialised stand types after killing vegetation. LC input must have equal area for all 
+/*  these stand types the following year.
+*/
+void establish_input_setup_stands(Gridcell& gridcell) {
+
+	landcover_change_transfer transfer;
+	double receiving_fraction = 0.0;
+
+	// Set required stand variables
+	for(unsigned int s=0;s<gridcell.nbr_stands();s++) {
+		Stand& stand = gridcell[s];
+		Gridcellst& gcst = stand.get_gridcell().st[stand.stid];
+
+		if(gcst.prescribed_establishment) {
+			stand.gross_frac_decrease = stand.get_gridcell_fraction();
+			stand.transfer_area_st[stand.stid] = stand.gross_frac_decrease;
+		}
+		else {
+			stand.gross_frac_decrease = 0.0;	// To avoid problems from possible LCC for other stands this year
+		}
+	}
+
+	// Scale by area fractions for this year and next year.
+	double init_frac = 0.0;
+	double init_frac_nextyear = 0.0;
+
+	for(unsigned int s=0; s<stlist.nobj; s++) {
+		StandType& st = stlist[s];
+		Gridcellst& gcst = gridcell.st[st.id];
+		if(gcst.prescribed_establishment) {
+			init_frac += gcst.frac;
+			init_frac_nextyear += gcst.frac_nextyear;
+		}
+	}
+
+	// Set required st variables
+	for(unsigned int s=0; s<stlist.nobj; s++) {
+		StandType& st = stlist[s];
+		Gridcellst& gcst = gridcell.st[st.id];
+
+		if (gcst.prescribed_establishment) {
+			double st_new_fraction = gcst.frac_nextyear;
+
+			if(init_frac_nextyear)
+				st_new_fraction *= (init_frac / init_frac_nextyear);
+			else
+				fail("In establish_input_setup_stands(): st input file not consistent with forest_init_poolsoil=true. st sum of initiaised stands %d can not have zero area year %d.\n\n", 
+					(int)st.landcover, date.get_calendar_year() + 1);
+			gcst.frac_old = gcst.frac;
+			gcst.frac = st_new_fraction;
+			receiving_fraction += st_new_fraction;
+		}
+	}
+
+	lc_change_harvest_params harvest_params;
+
+	harvest_params.harv_eff = 1.0;
+	harvest_params.res_outtake_twig = 1.0;
+	harvest_params.res_outtake_coarse_root = 1.0;
+
+	// Kill vegetation in all stands, pool soil, ((change forest area to next year's value)).
+	donor_stand_change(gridcell, receiving_fraction, transfer, -1, -1, -1, -1, -1, &harvest_params, true);
+
+	// Kill all stands that have prescribed establishment, create one new stand:
+	for(unsigned int s=0; s<stlist.nobj; s++) {
+		StandType& st = stlist[s];
+		Gridcellst& gcst = gridcell.st[st.id];
+
+		if (!gcst.prescribed_establishment)
+			continue;
+
+		Gridcell::iterator gc_itr = gridcell.begin();
+		while (gc_itr != gridcell.end()) {
+			Stand& stand_kill = *gc_itr;
+
+			if(stand_kill.stid == st.id) {
+				dprintf("Killed st %s stand %d\n", (char*)st.name, stand_kill.id);	
+				gc_itr = gridcell.delete_stand(gc_itr);
+			}
+			else {
+				++gc_itr;
+			}
+		}
+		if(gcst.frac) {
+			Stand& new_stand = gridcell.create_stand_lu(st, gcst.frac, npatch_treeinit, false);
+			receiving_stand_change(gridcell, transfer, true, -1, -1, 1.0, new_stand.id);
+			dprintf("%s stand no.%d created\n", (char*)st.name, new_stand.id);
+		}
+	}
+
+
+}
+
+void establish_input_gridcell(Gridcell& gridcell) {
+
+	if (!readforest_init || !(date.islastday && date.islastmonth))
+		return;
+
+	int establishment_year = -1;
+	bool establish_thisyear = false;
+
+	// Check that establishment year is the same for all stand types with option forest_init_poolsoil
+	for(unsigned int s=0; s<stlist.nobj; s++) {
+		StandType& st = stlist[s];
+		Gridcellst& gcst = gridcell.st[st.id];
+
+		int establishment_year_temp = gcst.establishment_list.establishment_year;
+		if(gcst.prescribed_establishment && establishment_year_temp != -1) {
+			if(forest_init_poolsoil && establishment_year != -1 && establishment_year != establishment_year_temp)
+				fail("With option forest_init_poolsoil, all stand types must have the same establishement year !\n\n");
+			establishment_year = establishment_year_temp;
+			if(establishment_year == date.get_calendar_year())
+				establish_thisyear = true;
+		}
+	}
+
+	if(establish_thisyear)
+		gridcell.year_treeinit = date.get_calendar_year();
+	else
+		return;			
+
+	if(forest_init_poolsoil)
+		establish_input_setup_stands(gridcell);
+
+	for(unsigned int s=0;s<gridcell.nbr_stands();s++) {
+		Stand& stand = gridcell[s];
+		stand.firstobj();
+		while (stand.isobj) {
+			Patch& patch = stand.getobj();
+			establish_input(patch, forest_init_poolsoil);
+			stand.nextobj();
+		}
+	}
+
+	bool use_rotation = true;	// Keeping the option without rotation for now, but remove later if confident in functionality
+	// Turned on again 240708. The solution is that stand types must have separate secondary management types.
+
+	for(unsigned int s=0; s<stlist.nobj; s++) {
+		StandType& st = stlist[s];
+		Gridcellst& gcst = gridcell.st[st.id];
+
+		if(gcst.prescribed_establishment) {
+
+			ManagementType& mt = st.get_management(1);
+//			ManagementType& mt = st.get_management();		// if(!use_rotation) : set manually
+
+			char selection_cp[200] = {0};
+
+			for(int p=0; p<npft; p++) {
+				Pft& pft = pftlist[p];
+				for (int i = 0;i < MAX_NESTABLISH_INDIV;i++) {
+					xtring pftname = gcst.establishment_list.est_array[i].pft_name;
+					if(!strcmp(pft.name, (char*)pftname)) {
+						strcat(selection_cp, pftname);
+						strcat(selection_cp, " ");
+						break;
+					}
+				}
+			}
+			mt.selection = selection_cp;
+			if(!use_rotation) {
+				mt.relaxed_establishment = true;
+				mt.cutfirstyear = 0;
+				mt.harvest_system = "";
+			}
+		}
+	}
+
+	// Redo management setup for stands after updating parameters
+	for(unsigned int s=0;s<gridcell.nbr_stands();s++) {
+		Stand& stand = gridcell[s];
+		Gridcellst& gcst = stand.get_gridcell().st[stand.stid];
+		if(gcst.prescribed_establishment) {
+			if(!use_rotation)
+				stand.set_management();
+			else
+				// Use second rotation (set rotation year to far into the future), also calls set_management()
+				stand.rotate(1);
+		}
+	}
+}
+
+void force_prescribed_disturbance(Gridcell& gridcell, Rank_stands& stand_class, disturbancetype disttype) {
+
+	double disturbance_fraction = 0.0;
+
+	lc_change_harvest_params harvest_params;
+
+	// Default forestry harvest parameters: pft values
+	harvest_params.harv_eff = 0.9;
+	harvest_params.res_outtake_twig = 0.4;
+	harvest_params.res_outtake_coarse_root = 0.1;
+
+	if(disttype == CLEARCUT_PRESCRIBED) {
+		disturbance_fraction = gridcell.dist_clearcut_gc;
+		stand_class.sort_diameter_rms();
+	}
+	else if(disttype == FIRE) {
+		disturbance_fraction = gridcell.dist_fire_gc;
+		stand_class.sort_fire_sensitivity();
+	}
+	else if(disttype == WIND) {
+
+		disturbance_fraction = gridcell.dist_wind_gc;
+		stand_class.sort_storm_sensitivity();
+
+        // Currently unchanged from above - i.e. assume a salvage logging with the same intensity as typically used for wood harvest
+		harvest_params.harv_eff = 0.9;
+		harvest_params.res_outtake_twig = 0.4;
+		harvest_params.res_outtake_coarse_root = 0.1;
+	}
+	else if(disttype == BARKBEETLE) {
+		disturbance_fraction = gridcell.dist_barkbeetle_gc;
+		stand_class.sort_barkbeetle_sensitivity();
+
+        // Currently unchanged from above - i.e. assume a salvage logging with the same intensity as typically used for wood harvest
+		harvest_params.harv_eff = 0.9;
+		harvest_params.res_outtake_twig = 0.4;
+		harvest_params.res_outtake_coarse_root = 0.1;
+	}
+
+	if(!disturbance_fraction)
+		return;
+//	else
+//		dprintf("\nYear %d: Disturbance type %d gridcell fraction = %f\n\n", date.get_calendar_year(), (int)disttype, disturbance_fraction);
+
+	// With the assumption that NATURAL is forest, might be a problem with a natural grassland
+	double disturbance_fraction_remain = disturbance_fraction * (gridcell.landcover.frac[FOREST] + gridcell.landcover.frac[NATURAL]);
+	
+	for(unsigned int i=0;  i<stand_class.nstands_initial && disturbance_fraction_remain > 0.0; i++) {
+
+		int stand_index = stand_class.get_index(stand_class.nstands_initial -1 - i);
+		Stand& stand = gridcell[stand_index];
+		int stand_age = (date.year - max(stand.first_year, stand.clone_year));
+
+		// Avoid disturbing the the same stand twice
+		if(!stand.disturbed && (stand.landcover == FOREST || stand.landcover == NATURAL)) {
+
+//			dprintf("Area fraction of stand %d = %f, vegetation C = %f, age = %d\n\n", stand.id, stand.get_gridcell_fraction(), (stand.ccont() - stand.ccont(0.0)), stand_age);
+			ManagementType& mt = stand.get_current_management();
+
+			// Kill vegetation for the whole stand
+			if(disturbance_fraction_remain >= stand.get_gridcell_fraction()) {
+
+//				dprintf("Year %d: Disturbance type %d: st %s, Stand %d (area fraction %f) harvested/disturbed\n", date.get_calendar_year(), (int)disttype, (char*)stlist[stand.stid].name, stand.id, stand.get_gridcell_fraction());
+
+				stand.firstobj();
+
+				while (stand.isobj) {
+
+					Patch& patch = stand.getobj();
+
+					if(!patch.age) {
+						stand.nextobj();
+						continue;
+					}
+					patch.man_strength = 1.0;
+
+					// blaze function at patch level
+					if(disttype == FIRE) {
+						if(firemodel != BLAZE)
+							fail("fire disturbance input only implemented for BLAZE fore model\n");					
+						blaze(patch, gridcell.climate, true);
+					}
+
+					Vegetation& vegetation = patch.vegetation;
+					vegetation.firstobj();
+					while (vegetation.isobj) {
+						Individual& indiv = vegetation.getobj();
+
+						if(disttype != FIRE) {
+							bool killed = false;
+							harvest_forest(indiv, indiv.pft, indiv.alive, 0.0, killed, &harvest_params, disttype);
+							if(killed) {
+//								dprintf("Year %d: ST %d, Stand %d, Patch %d; Individual %d killed in disturbance no. %d\n", date.get_calendar_year(), stand.stid, stand.id, patch, indiv.id, disttype);
+							}
+							else {
+								vegetation.nextobj();	// Grass not killed if mt.killgrass_at_cc is false!
+							}
+						}
+						else {
+							vegetation.nextobj();
+						}
+					}
+					patch.disturbed = true;
+					patch.age = 1;				// Needs to be set to 1 to behave like clearcut in harvest_forest day 0, since this is after vegetation_dynamics()
+					// Try these setting, perhaps they are needed:
+					patch.plant_this_year = true;
+					patch.prescribed_disturbed = true;	// Will delay resetting of plant_this_year
+					stand.nextobj();
+				}
+				disturbance_fraction_remain -= stand.get_gridcell_fraction();
+				stand.disturbed = true;
+			}
+			else {
+
+				// Use landcover_dynamics functionality here to kill part of the stand's vegetation (area)
+
+				double stand_frac = stand.get_gridcell_fraction();
+
+				// From reduce_stands():
+				stand.frac_change -= disturbance_fraction_remain;
+				stand.gross_frac_decrease += disturbance_fraction_remain;
+				stand.transfer_area_st[stand.stid] += disturbance_fraction_remain;
+				stand.set_gridcell_fraction(stand_frac - disturbance_fraction_remain);
+
+				// new stands may have several patches; if mt.cutfirstear == true, they may be collapsed to a single patch-stands below.
+				Stand& new_stand = stand.clone(stlist[stand.stid], disturbance_fraction_remain, false, true);
+
+				new_stand.cloned = true;
+				new_stand.cloned_fraction = disturbance_fraction_remain;
+				new_stand.lc_origin = stand.landcover;
+				new_stand.st_origin = stand.stid;
+				new_stand.frac_temp = disturbance_fraction_remain;	// Needed in stand patch reduction below
+
+				stand.frac_temp -= disturbance_fraction_remain;
+
+//				dprintf("Year %d: Disturbance type %d: st %s, stand %d, Fraction of %f put into new stand no.%d\n", date.get_calendar_year(), (int)disttype, (char*)stlist[stand.stid].name, stand.id, disturbance_fraction_remain, new_stand.id);
+
+				new_stand.firstobj();
+
+				while (new_stand.isobj) {
+
+					Patch& patch = new_stand.getobj();
+
+					patch.man_strength = 1.0;
+					patch.plant_this_year = true;
+					patch.prescribed_disturbed = true;	// Will delay resetting of plant_this_year
+
+					if(disttype == FIRE) {		// blaze function at patch level
+						if(firemodel != BLAZE)
+							fail("fire disturbance input only implemented for BLAZE fore model\n");
+						blaze(patch, gridcell.climate, true);	// What happens to grass ?
+					}
+					else {
+						Vegetation& vegetation = patch.vegetation;
+						vegetation.firstobj();
+						while (vegetation.isobj) {
+							Individual& indiv = vegetation.getobj();
+							Patchpft& ppft = patch.pft[indiv.pft.id];
+
+							if(disttype != FIRE) {
+								// Alt.1. use for clearcut:
+								bool killed = false;
+								harvest_forest(indiv, indiv.pft, indiv.alive, 0.0, killed, &harvest_params, disttype);	// use anpp ?
+								if(killed) {
+//									dprintf("Year %d: ST %d, Stand %d, Individual %d killed in disturbance no. %d\n", date.get_calendar_year(), stand.stid, stand.id, indiv.id, disttype);
+								}
+								else {
+									vegetation.nextobj();	// Grass not killed if mt.killgrass_at_cc is false!
+								}
+							}
+							else {
+								dprintf("Add code for new disturbance type in disturb_force()\n");
+								vegetation.nextobj();
+							}
+						}
+						stand.nextobj();
+					}
+					patch.disturbed = true;
+					patch.age = 1;				// Needs to be set to 1 to behave like clearcut in harvest_forest day 0, since this is after vegetation_dynamics()
+
+					new_stand.nextobj();
+				}
+
+				// We can only reduce the number of patches in stands where all vegetation is killed in normal forestry wood harvest (
+				if(mt.killgrass_at_cc && stand.nobj > 1) {
+
+					landcover_change_transfer transfer;
+					dprintf("Converting stand to single-patch stand\n");
+
+					// 1. Copy soil biomass and water from a stand with several patches to a new stand with a single patch after killing remaining grass:
+					new_stand.transfer_area_st[new_stand.stid] += disturbance_fraction_remain;
+					donor_stand_change(gridcell, disturbance_fraction_remain, transfer, -1,-1, new_stand.stid, -1, new_stand.id, &harvest_params);
+					Stand& new_stand2 = gridcell.create_stand_lu(stlist[new_stand.stid], disturbance_fraction_remain, npatch_disturbedstand, false, false, stand.current_rot);
+					receiving_stand_change(gridcell, transfer, true, -1, -1, 1.0, new_stand2.id);
+					dprintf("Single-patch stand created\n");
+
+					while(new_stand2.isobj) {
+
+						Patch& patch = new_stand2.getobj();
+						patch.disturbed = true;
+						patch.plant_this_year = true;
+						patch.prescribed_disturbed = true;	// Will delay resetting of plant_this_year
+						new_stand2.nextobj();
+					}
+
+					// 2. Remove new stand with many patches
+					int killed_stand_id = new_stand.id;
+
+					Gridcell::iterator gc_itr = gridcell.begin();
+					while (gc_itr != gridcell.end()) {
+						Stand& stand_kill = *gc_itr;
+						if(stand_kill.id == new_stand.id) {
+							gc_itr = gridcell.delete_stand(gc_itr);
+						}
+						else {
+							++gc_itr;
+						}
+					}
+					dprintf("Killed temporary stand %d\n\n", killed_stand_id);
+				}
+				stand.gross_frac_decrease -= disturbance_fraction_remain;
+				disturbance_fraction_remain = 0.0;
+			}
+		}
+	}
+}
+
+void prescribed_disturbance(Gridcell& gridcell) {
+
+	if (!(date.islastday && date.islastmonth)
+		|| !(readdist_clearcut || readdist_fire || readdist_wind || readdist_barkbeetle) 
+		|| (date.get_calendar_year() < disturbance_input_firstyear || date.get_calendar_year() > disturbance_input_lastyear))
+		return;
+	
+	// Sort stands
+	Rank_stands stand_class(gridcell);
+
+	// Loop through the different disturbance types in the order specified in the disturbancetype enumeration
+	for(int i=0; i<NDISTURBANCETYPES;i++) {
+		force_prescribed_disturbance(gridcell, stand_class, (disturbancetype)i);
+	}
+}
+
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // VEGETATION DYNAMICS
 // Should be called by framework at the end of each simulation year, after vegetation,
@@ -2129,12 +3324,18 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 		if (ifcentury && ifnlim && (date.year == patch.soil.solvesomcent_beginyr - 2 || date.year == patch.soil.solvesomcent_endyr - 2)){
 			disturbance(patch, 1.0);
 			if (patch.disturbed) {
+				insectupdate(stand, patch); // Simplified updatde of insect dynamics normally done in mortality_guess
 				return; // no mortality or establishment this year
 			}
 		}
 
 		// Normal disturbance with probability interval of distinterval
-		if (patch.has_disturbances()) {
+
+		// Disturbance already taken care of this year by prescribed_disturbance()
+		bool disturbance_model = !(readdist_clearcut || readdist_fire || readdist_wind || readdist_barkbeetle) 
+			|| (date.get_calendar_year() < disturbance_input_firstyear || date.get_calendar_year() > disturbance_input_lastyear);
+
+		if (patch.has_disturbances() && disturbance_model) {
 
 			// We don't allow disturbance while documenting for calculation of Century equilibrium
 			bool during_century_solvesom = ifcentury &&
@@ -2148,7 +3349,6 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 					if (years.find(date.get_calendar_year()) != years.end()) {
 						// Deterministic disturbance occurs in this year.
 						disturbance(patch, 1.0);
-						return;
 					}
 					else {
 						patch.disturbed = false;
@@ -2157,18 +3357,26 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 					// Stochastic disturbances.
 					double distinterval_ = stand.get_distinterval();	
 					disturbance(patch,1.0 / distinterval_);
-					if (patch.disturbed) {
-						return; // no mortality or establishment this year
-					}
 				}
 			}
 		}
 
+		if (patch.disturbed) {
+			insectupdate(stand, patch); // Simplified updatde of insect dynamics normally done in mortality_guess
+			return; // no mortality or establishment this year
+		}
+
 		// Mortality
 		mortality_guess(stand, patch, stand.get_climate(), fireprob);
+		insect_mortality_guess(stand, patch);
+		storm_mortality_guess(stand, patch);
+
+		bool establishment_input = stand.get_gridcell().st[stand.stid].establishment_list.establishment_year == date.get_calendar_year();
 
 		// Establishment
-		establishment_guess(stand,patch);
+		if (!establishment_input) {
+			establishment_guess(stand, patch);
+		}
 	}
 
 	patch.age++;

@@ -22,6 +22,7 @@ double get_p_popdens(const Gridcell &gridcell);
 
 // SIMFIRE biometypes
 enum {SF_NOVEG, SF_CROP, SF_NEEDLELEAF, SF_BROADLEAF, SF_MIXED_FOREST, SF_SHRUBS, SF_SAVANNA, SF_TUNDRA, SF_BARREN};
+enum {SF2_NOVEG, SF2_PASTURE, SF2_NATURAL, SF2_TEMPFOREST, SF2_CROPLAND, SF2_FORMOSAIC, SF2_CROPMOSAIC, SF2_BORFOREST};
 
 /// Read SIMFIRE related data for a gridcell at beginning of simulation
 /** Reads SIMFIRE relevant info from simfire_nput.bin:

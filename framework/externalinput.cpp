@@ -13,6 +13,8 @@
 #include <limits.h>
 
 #include "externalinput.h"
+#include "landcover.h"
+#include "blaze.h"
 
 /// Landcover area fraction input resolution used in the code to reject changes caused by rounding errors.
 /// Initial value willl be modified by parsing input files or setting value in instruction file
@@ -58,6 +60,11 @@ void read_gridlist(ListArray_id<Coord>& gridlist, const char* file_gridlist) {
 	gridlist.firstobj();
 }
 
+MiscInput::~MiscInput() {
+
+	delete[] forest_init_st;
+}
+
 void MiscInput::init(xtring file_gridlist) {
 
 	ListArray_id<Coord> gridlist;
@@ -79,11 +86,83 @@ void MiscInput::init(xtring file_gridlist) {
 		readdisturbance_st = true;
 	}
 
+	file_windload = param["file_windload"].str;
+	if (file_windload != "") {
+		if (!windload.Open(file_windload, gridlist))
+			fail("initio: could not open %s for input", (char*)file_windload);
+		readwindload = true;
+	}
+
+	file_elevation_gc_mean = param["file_elevation_gc_mean"].str;
+	if (file_elevation_gc_mean != "")	{
+		if(!elevation_gc_mean.Open(file_elevation_gc_mean, gridlist))
+			fail("initio: could not open %s for input",(char*)file_elevation_gc_mean);
+		readelevation_gc_mean = true;
+	}
+
+	file_elevation_local = param["file_elevation_local"].str;
+	if (file_elevation_local != "")	{
+		if(!readelevation_gc_mean)
+			fail("initio: Local elevation input not allowed without mean gridcell input in this branch!\n\n");
+		if(!elevation_local.Open(file_elevation_local, gridlist))
+			fail("initio: could not open %s for input",(char*)file_elevation_local);
+		readelevation_local = true;
+	}
+
 	file_elevation_st = param["file_elevation_st"].str;
 	if(file_elevation_st != "")	{
 		if(!elevation_st.Open(file_elevation_st, gridlist))
 			fail("initio: could not open %s for input",(char*)file_elevation_st);
 		readelevation_st = true;
+	}
+
+	// Functionality not tested with run_landcover == false
+	if(run_landcover) {
+		file_dist_clearcut = param["file_dist_clearcut"].str;
+		if(file_dist_clearcut != "")	{
+			if(!dist_clearcut.Open(file_dist_clearcut, gridlist))
+				fail("initio: could not open %s for input",(char*)file_dist_clearcut);
+			readdist_clearcut = true;
+		}
+
+		file_dist_fire = param["file_dist_fire"].str;
+		if(file_dist_fire != "")	{
+			if(!dist_fire.Open(file_dist_fire, gridlist))
+				fail("initio: could not open %s for input",(char*)file_dist_fire);
+			readdist_fire = true;
+		}
+
+		file_dist_wind = param["file_dist_wind"].str;
+		if(file_dist_wind != "")	{
+			if(!dist_wind.Open(file_dist_wind, gridlist))
+				fail("initio: could not open %s for input",(char*)file_dist_wind);
+			readdist_wind = true;
+		}
+
+		file_dist_barkbeetle = param["file_dist_barkbeetle"].str;
+		if(file_dist_barkbeetle != "")	{
+			if(!dist_barkbeetle.Open(file_dist_barkbeetle, gridlist))
+				fail("initio: could not open %s for input",(char*)file_dist_barkbeetle);
+			readdist_barkbeetle = true;
+		}
+
+		file_storm_prob = param["file_storm_prob"].str;
+		if(file_storm_prob != "")	{
+			if(!storm_prob.Open(file_storm_prob, gridlist))
+				fail("initio: could not open %s for input",(char*)file_storm_prob);
+			readstorm_prob = true;
+		}
+	}
+
+	forest_init_st = new TextInput::TimeDataD[nst];
+
+	for (int i = 0; i < nst; i++) {
+		StandType& st = stlist[i];
+		if (st.file_treeinit_st != "") {
+			if (!forest_init_st[i].Open(st.file_treeinit_st, gridlist))
+				fail("initio: could not open %s for input", (char*)st.file_treeinit_st);
+			readforest_init = true;
+		}
 	}
 }
 
@@ -108,19 +187,159 @@ bool MiscInput::loaddisturbance(double lon, double lat) {
 	return disterror;
 }
 
-bool MiscInput::loadelevation(double lon, double lat) {
+bool MiscInput::loaddist_clearcut(double lon, double lat) {
 
 	Coord c;
 	c.lon = lon;
 	c.lat = lat;
 	bool disterror = false;
 
-	if(readelevation_st) { 
-		if(!elevation_st.Load(c)) {
+	// Not all gridcells have to be included in input file
+	if(readdist_clearcut) { 
+		if(!dist_clearcut.Load(c)) {
+			disterror = true;
+		}
+	}
+
+	// st level input here
+
+	return disterror;
+}
+
+bool MiscInput::loaddist_fire(double lon, double lat) {
+
+	Coord c;
+	c.lon = lon;
+	c.lat = lat;
+	bool disterror = false;
+
+	// Not all gridcells have to be included in input file
+	if(readdist_fire) { 
+		if(!dist_fire.Load(c)) {
+			disterror = true;
+		}
+	}
+
+	// st level input here
+
+	return disterror;
+}
+
+bool MiscInput::loaddist_wind(double lon, double lat) {
+
+	Coord c;
+	c.lon = lon;
+	c.lat = lat;
+	bool disterror = false;
+
+	// Not all gridcells have to be included in input file
+	if(readdist_wind) { 
+		if(!dist_wind.Load(c)) {
+			disterror = true;
+		}
+	}
+
+	// st level input here
+
+	return disterror;
+}
+
+bool MiscInput::loaddist_barkbeetle(double lon, double lat) {
+
+	Coord c;
+	c.lon = lon;
+	c.lat = lat;
+	bool disterror = false;
+
+	// Not all gridcells have to be included in input file
+	if(readdist_barkbeetle) { 
+		if(!dist_barkbeetle.Load(c)) {
+			disterror = true;
+		}
+	}
+
+	// st level input here
+
+	return disterror;
+}
+
+bool MiscInput::loadstorm_prob(double lon, double lat) {
+
+	Coord c;
+	c.lon = lon;
+	c.lat = lat;
+	bool disterror = false;
+
+	// Not all gridcells have to be included in input file
+	if(readstorm_prob) { 
+		if(!storm_prob.Load(c)) {
+			disterror = true;
+		}
+	}
+
+	// st level input here
+
+	return disterror;
+}
+
+bool MiscInput::loadwindload(double lon, double lat) {
+
+	Coord c;
+	c.lon = lon;
+	c.lat = lat;
+	bool disterror = false;
+
+	if (readwindload) {
+		if (!windload.Load(c)) {
 			disterror = true;
 		}
 	}
 	return disterror;
+}
+
+bool MiscInput::loadelevation(double lon, double lat) {
+
+	Coord c;
+	c.lon = lon;
+	c.lat = lat;
+	bool error = false;
+
+	if(readelevation_gc_mean) { 
+		if(!elevation_gc_mean.Load(c)) {
+			error = true;
+		}
+	}
+	if(readelevation_local) { 
+		if(!elevation_local.Load(c)) {
+			error = true;
+		}
+	}
+	if(readelevation_st) { 
+		if(!elevation_st.Load(c)) {
+			error = true;
+		}
+	}
+	return error;
+}
+
+bool MiscInput::loadforest_init(double lon, double lat) {
+
+	Coord c;
+	c.lon = lon;
+	c.lat = lat;
+	bool error = false;
+
+	if (readforest_init) {
+		for (int i = 0; i < nst; i++) {
+			StandType& st = stlist[i];
+			if (st.file_treeinit_st != "") {
+				if (!forest_init_st[i].Load(c)) {
+					error = true;	// skip this stand
+				}
+			}
+		}
+	}
+	return error;
 }
 
 /// Read patch-destroying disturbance interval from file
@@ -161,17 +380,200 @@ void MiscInput::getdisturbance(Gridcell& gridcell) {
 	}
 }
 
-void MiscInput::getelevation(Gridcell& gridcell) {
+/// Read patch-destroying clearcut disturbance biomass fraction from file
+void MiscInput::getdist_clearcut(Gridcell& gridcell) {
 
 	int year = date.get_calendar_year();
 
+	if(dist_clearcut.isloaded()) {
+		double dist = dist_clearcut.Get(year, "clearcut", false, true);
+		if(dist != NOTFOUND)
+			gridcell.dist_clearcut_gc = dist;
+		else
+			fail("Satellite clearcut disturbance input file is missing \"clearcut\" column\n");
+	}
+}
+
+/// Read patch-destroying fire disturbance biomass fraction from file
+void MiscInput::getdist_fire(Gridcell& gridcell) {
+
+	int year = date.get_calendar_year();
+
+	if(dist_fire.isloaded()) {
+		double dist = dist_fire.Get(year, "fire", false, true);
+		if(dist != NOTFOUND)
+			gridcell.dist_fire_gc = dist;
+		else
+			fail("Satellite fire disturbance input file is missing \"fire\" column\n");
+	}
+}
+
+/// Read patch-destroying wind disturbance biomass fraction from file
+void MiscInput::getdist_wind(Gridcell& gridcell) {
+
+	int year = date.get_calendar_year();
+
+	if(dist_wind.isloaded()) {
+		double dist = dist_wind.Get(year, "wind", false, true);
+		if(dist != NOTFOUND)
+			gridcell.dist_wind_gc = dist;
+		else
+			fail("Satellite wind disturbance input file is missing \"wind\" column\n");
+	}
+}
+
+/// Read patch-destroying barkbeetle disturbance biomass fraction from file
+void MiscInput::getdist_barkbeetle(Gridcell& gridcell) {
+
+	int year = date.get_calendar_year();
+
+	if(dist_barkbeetle.isloaded()) {
+		double dist = dist_barkbeetle.Get(year, "barkbeetle", false, true);
+		if(dist != NOTFOUND)
+			gridcell.dist_barkbeetle_gc = dist;
+		else
+			fail("Satellite barkbeetle disturbance input file is missing \"barkbeetle\" column\n");
+	}
+}
+
+/// Read patch-destroying wind disturbance probability from file
+void MiscInput::getstorm_prob(Gridcell& gridcell) {
+
+	int year = date.get_calendar_year();
+
+	if(storm_prob.isloaded()) {
+		double stormprob = storm_prob.Get(year, "WDP");
+		if(stormprob != NOTFOUND)
+			gridcell.storm_prob_gc = stormprob;
+		else
+			fail("Storm probability input file is missing \"WDP\" column\n");
+	}
+}
+
+void MiscInput::getwindload(Gridcell& gridcell) {
+
+	// Retrieve windload for grid cell
+	if (windload.isloaded()) {
+		// Cycle the windload data before and after the data period
+		int data_year;
+		if (date.get_calendar_year() < windload.GetFirstyear())
+			data_year = windload.GetnYears() - (((windload.GetFirstyear() - date.get_calendar_year() - 1) % windload.GetnYears()) + 1) + windload.GetFirstyear();
+		else
+			data_year = (date.get_calendar_year() - windload.GetFirstyear()) % windload.GetnYears() + windload.GetFirstyear();
+
+		double wind_load = windload.Get(data_year, "Wind_load");
+		if(wind_load != NOTFOUND)
+			gridcell.windload = wind_load;
+		else
+			fail("Wind load input file is missing \"Wind_load\" column\n");
+	}
+	else {
+		gridcell.windload = 0.0;
+	}
+}
+
+void MiscInput::getelevation(Gridcell& gridcell) {
+
+	// Year not really needed...
+	int year = date.get_calendar_year();
+
+	// Initialised to 0.0; this means missing value.
+	if(elevation_gc_mean.isloaded()) {
+		double elevation = elevation_gc_mean.Get(year, "elevation");
+		if(elevation != NOTFOUND)
+			gridcell.elevation_gc_mean = elevation;
+		else
+			fail("Gridcell elevation input file is missing \"elevation\" column\n");
+
+		dprintf("Mean elevation in text input file= %.0f\n", gridcell.elevation_gc_mean);
+	}
+	// Initialised to 0.0; this means missing value.
+	if(elevation_local.isloaded()) {
+		double elevation = elevation_local.Get(year, "elevation");
+		if(elevation != NOTFOUND)
+			gridcell.elevation_local = elevation;
+		else
+			fail("Local elevation input file is missing \"elevation\" column\n");
+
+		dprintf("Mean elevation = %.0f\n", gridcell.elevation_gc_mean);
+		dprintf("Local elevation = %.0f\n", gridcell.elevation_local);
+	}
+
 	// Retrieve elevation for stand types
-	for(int i=0; i<nst; i++) {
-		if(elevation_st.isloaded()) {
+	if(elevation_st.isloaded()) {
+		for(int i=0; i<nst; i++) {	
 			double elevation = elevation_st.Get(year, stlist[i].name, true);
 //			dprintf("st %s: elevation = %.0f\n", (char*)stlist[i].name, elevation);
 			if(elevation != NOTFOUND)
 				gridcell.st[i].elevation_st = elevation;
+		}
+	}
+}
+
+void MiscInput::getforest_init(Gridcell& gridcell) {
+
+	int establishment_year_test = 2000;
+	double dens_test = 0.01;
+	bool test_run = false;
+	bool print_init_info = true;
+
+	for (int s=0; s<nst;s++) {
+		StandType& st = stlist[s];
+		Gridcellst& gcst = gridcell.st[s];
+
+		if (forest_init_st[s].isloaded()) {
+
+			gcst.prescribed_establishment = true;
+
+			int ntrees_max = forest_init_st[s].GetnYears();
+			if (ntrees_max > MAX_NESTABLISH_INDIV)
+				fail("Input tree number = %d, increase value of MAX_NESTABLISH_INDIV (now %d)\n\n", ntrees_max, MAX_NESTABLISH_INDIV);
+//			int est_year = (int)forest_init_st[s].Get(0, "census_year");	// census year should be the same for all trees in a stand type in a gricell
+			int est_year = (int)forest_init_st[s].Get(0, "init_year");	// changed this for the European simulations
+
+			if (est_year != NOTFOUND)
+				gcst.establishment_list.establishment_year = est_year;
+			else
+				gcst.establishment_list.establishment_year = establishment_year_test;
+
+			if(print_init_info)
+				dprintf("\nTree cohorts initialised for stand type %s from input file year %d\n", (char*)st.name, gcst.establishment_list.establishment_year);
+
+			for (int i = 0;i < ntrees_max; i++) {	// read values for all trees (for now: Year column 0, 1, ...)
+				for (int p = 0;p < npft;p++) {
+					Pft& pft = pftlist[p];
+					char pftname[MAXNAMESIZE] = { NULL };
+
+					forest_init_st[s].Get_string(i, "str_pft", pftname);
+					if (!strcmp((char*)(pftlist[p].name), pftname)) {
+						double biomass = forest_init_st[s].Get(i, "biomass");
+						double dbh = forest_init_st[s].Get(i, "dbh");
+						double dens = forest_init_st[s].Get(i, "dens");
+						if (dens != NOTFOUND) {
+							gcst.establishment_list.est_array[i].dens = dens / 10000.0;		// per ha to per m2
+						}
+						else {
+							gcst.establishment_list.est_array[i].dens = dens_test;
+						}
+						int age = (int)forest_init_st[s].Get(i, "tree_age", true);	// Suppress warning if column not found.
+						if(age != NOTFOUND && age > 0) {
+							gcst.establishment_list.est_array[i].age = age;
+						}
+						else {
+							 gcst.establishment_list.est_array[i].age = 0;
+							/// Age set in establish_input() if column not found in input file or if value is <= 0
+						}
+
+						if(print_init_info) {
+							dprintf("Tree no.%d\t", i);
+							dprintf("%s: dbh = %.1f cm, dens = %.1f/ha, age = %d\n", pftname, dbh, dens, age);
+						}
+						strcpy(gcst.establishment_list.est_array[i].pft_name, pftname);
+						gcst.establishment_list.est_array[i].biomass = biomass;
+						gcst.establishment_list.est_array[i].diam = dbh;
+					}
+				}
+			}
 		}
 	}
 }
@@ -218,6 +620,7 @@ std::set<int> MiscInput::get_static_disturbances() const {
 void MiscInput::getmiscinput_static(Gridcell& gridcell) {
 
 	getelevation(gridcell);
+	getforest_init(gridcell);
 	if (ifdisturb && disttype == DETERMINISTIC) {
 		gridcell.static_disturbances = get_static_disturbances();
 	}
@@ -229,6 +632,12 @@ void MiscInput::getmiscinput_yearly(Gridcell& gridcell) {
 		return;
 	}
 	getdisturbance(gridcell);
+	getdist_clearcut(gridcell);
+	getdist_fire(gridcell);
+	getdist_wind(gridcell);
+	getdist_barkbeetle(gridcell);
+	getstorm_prob(gridcell);
+	getwindload(gridcell);
 }
 
 LandcoverInput::LandcoverInput()
@@ -248,6 +657,8 @@ void LandcoverInput::init(xtring file_gridlist) {
 		return;
 
 	int input_precision_parsed = 0;
+	int input_precision_parsed_grossLUC = 0;
+	int input_precision_parsed_grossSTC = 0;
 	int input_precision_use = 0;
 	ListArray_id<Coord> gridlist;
 	read_gridlist(gridlist, file_gridlist);
@@ -310,6 +721,8 @@ void LandcoverInput::init(xtring file_gridlist) {
 				}
 
 				input_precision_parsed = LUdata.GetPrecision();
+//				if(input_precision_parsed == -1 && !input_precision_force)
+//					fail("Scientific notation area fraction input only supported when input_precision_force is defined\n");
 
 				LU_input_present = true;
 			}
@@ -319,11 +732,26 @@ void LandcoverInput::init(xtring file_gridlist) {
 	if (!lcfrac_fixed) {
 		// Open file for LUC transitions
 		file_grossLUC = param["file_grossLUC"].str;
+		file_grossSTC = param["file_grossSTC"].str;
 		if(file_grossLUC != "") {
 			if(!grossLUC.Open(file_grossLUC, gridlist))
 				fail("initio: could not open %s for input",(char*)file_grossLUC);
-			all_fracs_const = false;	// needed for some tests with static net land cover fractions
+			all_fracs_const = false;	// needed for some tests with static net land cover are fractions
 			gross_land_transfer = LC_GROSS_INPUT;
+
+			input_precision_parsed_grossLUC = grossLUC.GetPrecision();
+//			if(input_precision_parsed == -1 && !input_precision_force)
+//				fail("Scientific notation area fraction input only supported when input_precision_force is defined\n");
+		}
+		else if(file_grossSTC != "") {
+			if(!grossSTC.Open(file_grossSTC, gridlist))
+				fail("initio: could not open %s for input",(char*)file_grossSTC);
+			all_fracs_const = false;	// needed for some tests with static net stand type area fractions
+			gross_land_transfer = ST_GROSS_INPUT;
+
+			input_precision_parsed_grossSTC = grossSTC.GetPrecision();
+//			if(input_precision_parsed == -1 && !input_precision_force)
+//				fail("Scientific notation area fraction input only supported when input_precision_force is defined\n");
 		}
 		else {
 			gross_land_transfer = NO_GROSS_INPUT;
@@ -356,13 +784,15 @@ void LandcoverInput::init(xtring file_gridlist) {
 			if(!st_data[lc].Open(file_lu_st[lc], gridlist)) {
 				fail("could not open %s for input",(char*)file_lu_st[lc]);
 			}
-			else  {
+			else {
 				st_input = true;
 				frac_fixed[lc] = false;
 				if(st_data[lc].GetFormat() == TextInput::LOCAL_YEARLY || st_data[lc].GetFormat() == TextInput::GLOBAL_YEARLY) 
 					all_fracs_const = false;				// Set all_fracs_const to false if yearly data
 
 				input_precision_parsed_st = st_data[lc].GetPrecision();
+//				if(input_precision_parsed_st == -1 && !input_precision_force)
+//					fail("Scientific notation area fraction input only supported when input_precision_force is defined\n");
 				if(input_precision_parsed_st > input_precision_parsed_st_max)
 					input_precision_parsed_st_max = input_precision_parsed_st;
 				if(input_precision_parsed != input_precision_parsed_st) {
@@ -388,6 +818,10 @@ void LandcoverInput::init(xtring file_gridlist) {
 		stlist.nextobj();
 	}
 
+	bool use_STC_prec = false;
+	bool use_grossLUC_prec = false;
+	bool use_grossSTC_prec = false;
+
 	if(st_input) {
 		if(input_precision_parsed > input_precision_parsed_st_max) {
 			dprintf("Using LC input precision (%d)\n\n", input_precision_parsed);
@@ -395,8 +829,26 @@ void LandcoverInput::init(xtring file_gridlist) {
 		else if(input_precision_parsed < input_precision_parsed_st_max) {
 			dprintf("Using ST input precision (%d)\n\n", input_precision_parsed_st_max);
 			input_precision_parsed = input_precision_parsed_st_max;
+			use_STC_prec = true;
 		}
 	}
+
+	if(input_precision_parsed_grossLUC > input_precision_parsed) {
+		input_precision_parsed = input_precision_parsed_grossLUC;
+		use_grossLUC_prec = true;
+	}
+	if(input_precision_parsed_grossSTC > input_precision_parsed) {
+		input_precision_parsed = input_precision_parsed_grossSTC;
+		use_grossSTC_prec = true;
+	}
+	if(use_grossSTC_prec)
+		dprintf("Using gross STC input precision (%d)\n\n", input_precision_parsed);
+	else if(use_grossLUC_prec)
+		dprintf("Using gross LUC input precision (%d)\n\n", input_precision_parsed);
+	else if(use_STC_prec)
+		dprintf("Using ST input precision (%d)\n\n", input_precision_parsed_st_max);
+	else
+		dprintf("Using LC input precision (%d)\n\n", input_precision_parsed);
 
 	input_precision_use = input_precision_parsed;
 
@@ -413,7 +865,7 @@ void LandcoverInput::init(xtring file_gridlist) {
 	INPUT_RESOLUTION = INPUT_RESOLUTION - INPUT_RESOLUTION * ORIGINAL_INPUT_RESOLUTION;
 
 	if(input_precision_force)
-		dprintf("Manual instruction file input=%d\n\n", input_precision_force);
+		dprintf("Manual instruction file input precision=%d\n\n", input_precision_force);
 	if(LU_input_present) {
 		dprintf("Land cover fraction input precision parsed=%d, used=%d\n", input_precision_parsed, input_precision_use);
 		dprintf("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n\n");
@@ -581,25 +1033,28 @@ bool LandcoverInput::loadlandcover(double lon, double lat) {
 
 			if(!grossLUC.Load(c)) {
 				dprintf("Data for %.3f,%.3f missing in gross LUC transitions input file.\n",c.lon,c.lat);
-				gross_input_present = false;
+				gross_LC_input_present = false;
 			}
 			else {
-				gross_input_present = true;
+				gross_LC_input_present = true;
 			}
 		}
-	}
+		if(gross_land_transfer == ST_GROSS_INPUT && !LUerror) {
 
-	if (peatduration) {
-		// Load landcover area fraction data from input file to data object
-		if (!Peatdata.Load(c)) {
-			dprintf("Problems with peat duration input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n", c.lon, c.lat);
+			if(!grossSTC.Load(c)) {
+				dprintf("Data for %.3f,%.3f missing in gross STC transitions input file.\n",c.lon,c.lat);
+				gross_ST_input_present = false;
+			}
+			else {
+				gross_ST_input_present = true;
+			}
 		}
 	}
 
 	for(int lc=0; lc<NLANDCOVERTYPES && !LUerror; lc++) {
 
 		if(run[lc] && !frac_fixed[lc]) {
-			
+
 			/* Stand type fraction data: read from stand type fraction file; dynamic, so data for all years are loaded to st_data object and 
 			 * transferred to gridcell.landcover.frac[] each year in getlandcover()	
 			 */
@@ -618,6 +1073,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 
 	const char* lcnames[]={"URBAN", "CROPLAND", "PASTURE", "FOREST", "NATURAL", "PEATLAND", "BARREN"};
 	double sum_tot=0.0, sum_active=0.0;
+	double sum_tot_nextyear=0.0, sum_active_nextyear=0.0;
 	Landcover& lc = gridcell.landcover;
 
 	// Calender year of start of simulation (after spinup)
@@ -658,8 +1114,11 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 
 			for(int i=0;i<NLANDCOVERTYPES;i++) {
 				lc.frac[i] = 1.0 * run[i] / (double)nactive_landcovertypes;	// only set fractions that are active
+				lc.frac_nextyear[i] = 1.0 * run[i] / (double)nactive_landcovertypes;	// only set fractions that are active
 				sum_active += lc.frac[i];
 				sum_tot = sum_active;
+				sum_active_nextyear += lc.frac_nextyear[i];
+				sum_tot_nextyear = sum_active_nextyear;
 			}		
 		}
 	}
@@ -679,10 +1138,14 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 			if(LUdata.Get(year, 0) < 0.0) {		// Missing data (negative values)
 				if(date.year == 1)
 					dprintf("Missing landcover fraction data for year %d, natural vegetation fraction set to 1.0\n", year);
-				for(int i=0;i<NLANDCOVERTYPES;i++)
+				for(int i=0;i<NLANDCOVERTYPES;i++) {
 					lc.frac[i] = 0.0;
+					lc.frac_nextyear[i] = 0.0;
+				}
 				lc.frac[NATURAL] = 1.0;
 				sum_active = 1.0;
+				lc.frac_nextyear[NATURAL] = 1.0;
+				sum_active_nextyear = 1.0;
 			}
 			else {
 
@@ -690,42 +1153,50 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 
 					if(run[i]) {
 						double lcfrac = 0.0;
+						double lcfrac_nextyear = 0.0;
 						switch(i)
 						{
 						case URBAN:
 							lcfrac = LUdata.Get(year,"URBAN");
+							lcfrac_nextyear = LUdata.Get((year + 1),"URBAN");
 							break;
 						case CROPLAND:
 							lcfrac = LUdata.Get(year,"CROPLAND");
+							lcfrac_nextyear = LUdata.Get((year + 1),"CROPLAND");
 							break;
 						case PASTURE:
 							lcfrac = LUdata.Get(year,"PASTURE");
+							lcfrac_nextyear = LUdata.Get((year + 1),"PASTURE");
 							break;
 						case FOREST:
 							lcfrac = LUdata.Get(year,"FOREST");
+							lcfrac_nextyear = LUdata.Get((year + 1),"FOREST");
 							break;
 						case NATURAL:
 							lcfrac = LUdata.Get(year,"NATURAL");
+							lcfrac_nextyear = LUdata.Get((year + 1),"NATURAL");
 							break;
 						case PEATLAND:
 							lcfrac = LUdata.Get(year,"PEATLAND");
+							lcfrac_nextyear = LUdata.Get((year + 1),"PEATLAND");
 							break;
 						case BARREN:
 							lcfrac = LUdata.Get(year,"BARREN");
+							lcfrac_nextyear = LUdata.Get((year + 1),"BARREN");
 							break;
 						default:
 							if(date.year == 0)
 								dprintf("Modify code to deal with landcover input!\n");
 						}
-							
+
 						if(lcfrac == NOTFOUND) {	// land cover not found in input file
 							lcfrac = 0.0;
-						} 
-						else if(lcfrac < 0.0 ) {	// discard unreasonable values
+						}
+						else if(lcfrac < 0.0) {	// discard unreasonable values
 							if(printyear)
 								dprintf("WARNING ! landcover fraction size out of limits, set to 0.0\n");
 							lcfrac = 0.0;
-						} 
+						}
 						else if(lcfrac > 1.01) {	// discard unreasonable values
 							if(printyear)
 								dprintf("WARNING ! %d landcover %d fraction size %f out of limits, set to 1.0\n",
@@ -735,6 +1206,26 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 						lc.frac[i] = lcfrac;
 						sum_tot += lcfrac;
 						sum_active += run[i] * lc.frac[i];
+/// frac_nextyear used for tree init procedure
+						if(lcfrac_nextyear == NOTFOUND) {	// land cover not found in input file
+							lcfrac_nextyear = 0.0;
+						} 
+						else if(lcfrac_nextyear < 0.0 ) {	// discard unreasonable values
+							if(printyear)
+								dprintf("WARNING ! %d landcover %d %s fraction size %f out of limits, set to 0.0\n", 
+									date.get_calendar_year(), i, lcnames[i], lcfrac);
+							lcfrac_nextyear = 0.0;
+						} 
+						else if(lcfrac_nextyear > 1.01) {	// discard unreasonable values
+							if(printyear)
+								dprintf("WARNING ! %d landcover %d %s fraction size %f out of limits, set to 1.0\n", 
+									date.get_calendar_year(), i, lcnames[i], lcfrac);
+							lcfrac_nextyear = 1.0;
+						}
+						lc.frac_nextyear[i] = lcfrac_nextyear;
+						sum_tot_nextyear += lcfrac_nextyear;
+						sum_active_nextyear += run[i] * lc.frac_nextyear[i];
+////////////////////////////
 					}
 				}
 
@@ -791,10 +1282,44 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 						sum_active += lc.frac[i];
 					}
 				}
+/// frac_nextyear used for tree init procedure
+				if (grassforcrop) {
+					lc.frac_nextyear[PASTURE]+=lc.frac_nextyear[CROPLAND];
+					lc.frac_nextyear[CROPLAND]=0.0;
+				}
+				if(sum_tot_nextyear != 1.0 && sum_tot_nextyear != 0.0) {		// Check input data, rescale if sum !=1.0	
+
+					sum_active_nextyear = 0.0;		// reset sum of active landcover fractions
+
+					if(sum_tot_nextyear < 0.99 || sum_tot_nextyear > 1.01) {
+						if(printyear) {
+							dprintf("WARNING ! next year's landcover fraction sum is %4.2f for input year %d\n", sum_tot_nextyear, (year + 1));
+							dprintf("Rescaling landcover fractions !\n");
+						}
+					}
+
+					double sum_dynamic_nextyear = sum_tot_nextyear - lc.frac_nextyear[BARREN];
+					double sum_dynamic_adjusted_nextyear = 1.0 - lc.frac_nextyear[BARREN];
+
+					for(int i=0; i<NLANDCOVERTYPES; i++) {
+						if(no_barren_frac_corr) {
+							if(i != BARREN) {
+								lc.frac_nextyear[i] /= sum_dynamic_nextyear / sum_dynamic_adjusted_nextyear;
+							}
+						}
+						else {
+							lc.frac_nextyear[i] /= sum_tot_nextyear;
+						}
+						sum_active_nextyear += lc.frac_nextyear[i];
+					}
+				}
+
+//////////////////////////////////////////////
 			}
 		}
 		else {
 			lc.frac[NATURAL] = 0.0;
+			lc.frac_nextyear[NATURAL] = 0.0;
 		}
 
 		/* NB. These calculations are based on the assumption that the NATURAL type area is what is left after the other types are summed.
@@ -845,6 +1370,53 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 			}
 		}
 
+/// frac_nextyear used for tree init procedure
+		if(!negligible(sum_active_nextyear - 1.0, -14))	{
+
+//			if(date.year == 0)
+//				dprintf("Landcover fraction sum not 1.0 !\n");
+
+			if(run[NATURAL]) {	// Transfer landcover areas not simulated to NATURAL fraction, if simulated.		
+//				if(date.year == 0) {
+//					if(sum_active < 1.0)
+//						dprintf("Inactive fractions (%4.3f) transferred to NATURAL fraction.\n", 1.0-sum_active);
+//					else
+//						dprintf("New landcover type fraction (%4.3f) subtracted from NATURAL fraction (%4.3f).\n",
+//							sum_active-1.0, lc.frac[NATURAL]);
+//				}
+
+				lc.frac_nextyear[NATURAL] += (1.0 - sum_active_nextyear);
+				// difference (can be negative) 1.0-(sum of active landcover fractions) are added to the natural fraction
+				
+//				if(date.year==0)
+//					dprintf("New NATURAL fraction is %4.3f.\n", lc.frac[NATURAL]);
+
+				sum_active_nextyear = 1.0;		// sum_active should now be 1.0
+
+				if(lc.frac_nextyear[NATURAL] < 0.0) {	// If new landcover type fraction is bigger than the natural fraction
+												// (something wrong in the distribution of input file area fractions)						
+//					if(date.year == 0)
+//						dprintf("New landcover type fraction is bigger than NATURAL fraction, rescaling landcover fractions !.\n");
+
+					sum_active_nextyear -= lc.frac_nextyear[NATURAL];	// fraction not possible to transfer moved back to sum_active, which
+													// will now be >1.0 again
+					lc.frac_nextyear[NATURAL] = 0.0;
+
+					for(int i=0; i<NLANDCOVERTYPES; i++) {
+						lc.frac_nextyear[i] /= sum_active_nextyear;		// fraction rescaled to unity sum
+//						if(run[i] && date.year == 0)
+//							dprintf("Landcover type %d fraction is %4.3f\n", i, lc.frac[i]);
+					}
+				}
+			}
+			else {
+//				if(date.year == 0)
+//					dprintf("Non-unity fraction sum retained.\n");				// let sum remain non-unity
+			}
+		}
+
+//////////////////////////////////////////////
+
 		if(nyears_cropland_ramp) {
 
 			bool doramp = false;
@@ -889,7 +1461,13 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 			gcst.frac = 1.0;
 		else if(frac_fixed[st.landcover] && (st.landcover != CROPLAND || !frac_fixed_default_crops))
 			gcst.frac = 1.0 / (double)nst_lc[st.landcover];
-
+/// frac_nextyear used for tree init procedure
+		gcst.frac_nextyear = 0.0;
+		if(nst_lc[st.landcover] == 1)
+			gcst.frac_nextyear = 1.0;
+		else if(frac_fixed[st.landcover] && (st.landcover != CROPLAND || !frac_fixed_default_crops))
+			gcst.frac_nextyear = 1.0 / (double)nst_lc[st.landcover];
+///
 		stlist.nextobj();
 	}
 
@@ -900,6 +1478,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 		if(run[lc] && gridcell.landcover.frac[lc] && (!frac_fixed[lc] || lc == CROPLAND && frac_fixed_default_crops)) {
 
 			double sum = 0.0;
+			double sum_nextyear = 0.0;
 
 			bool printyear = year >= st_data[lc].GetFirstyear() && st_data[lc].GetFirstyear() >= 0;
 
@@ -932,11 +1511,32 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 						if(!st_data[lc].NormalisedData())
 							frac /= sum_tot;	// Scale by same factor as land cover fractions !
 						sum += gridcell.st[i].frac = frac;
+
+/// frac_nextyear used for tree init procedure
+						double frac_nextyear = st_data[lc].Get((year + 1),stlist[i].name);
+
+						if(frac_nextyear == NOTFOUND) {	// stand type not found in input file
+							frac_nextyear = 0.0;
+						}
+						else if(frac_nextyear < 0.0)	{	// correct unreasonable values
+							if(printyear && gridcell.landcover.frac[lc])
+								dprintf("WARNING ! %s fraction size out of limits, set to 0.0\n", lcnames[lc]);
+							frac_nextyear = 0.0;
+						}
+						else if(frac_nextyear > 1.01) {	// correct unreasonable values
+							if(printyear)
+								dprintf("WARNING ! %s fraction size out of limits, set to 1.0\n", lcnames[lc]);
+							frac_nextyear = 1.0;
+						}
+						if(!st_data[lc].NormalisedData())
+							frac_nextyear /= sum_tot_nextyear;	// Scale by same factor as land cover fractions !
+						sum_nextyear += gridcell.st[i].frac_nextyear = frac_nextyear;
+//						gridcell.st[i].frac_nextyear = frac_nextyear;
 					}
 				}
 
 				if(sum == 0.0) {
-					fail("lc %d st fraction sum is zero. Check input data\n", lc);
+					fail("%s st fraction sum is zero. Check input data\n", lcnames[lc]);
 				}
 			}
 
@@ -966,6 +1566,33 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 					dprintf("Rescaling %s  fractions year %d !\n", lcnames[lc], date.get_calendar_year());
 				}
 			}
+/// frac_nextyear used for tree init procedure
+			if(sum_nextyear > 0.0) {
+
+				// rescale active fractions so sum is 1.0 (or land cover fraction value)
+
+				double ratio = sum_nextyear;
+
+				if(!st_data[lc].NormalisedData())
+					ratio /= gridcell.landcover.frac_nextyear[lc];
+
+				stlist.firstobj();
+				while(stlist.isobj) {
+					StandType& st = stlist.getobj();
+					Gridcellst& gcst = gridcell.st[st.id];
+					if(st.landcover == lc) {
+//						gcst.frac_old_orig = gcst.frac;
+						gcst.frac_nextyear /= ratio;
+					}
+					stlist.nextobj();
+				}
+
+				if((ratio < 0.99 || ratio > 1.01) && printyear) {	// warn if sum is significantly different from 1.0 
+					dprintf("WARNING ! %s st fraction sum is %7.5f for input year %d while LC fraction is %7.5f\n", 
+						(char*)lcnames[lc], sum_nextyear, (year + 1), gridcell.landcover.frac_nextyear[lc]);
+					dprintf("Rescaling %s fractions for next year %d !\n", lcnames[lc], (date.get_calendar_year() + 1));
+				}
+			}
 		}
 	}
 
@@ -989,6 +1616,17 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 		if(gcst.frac < INPUT_RESOLUTION)
 			gcst.frac = 0.0; 
 		gcst.frac_change = gcst.frac - gcst.frac_old;
+
+/// frac_nextyear used for tree init procedure
+		if(frac_fixed[st.landcover] || st_data[st.landcover].NormalisedData())
+			gcst.frac_nextyear = gcst.frac_nextyear * lc.frac_nextyear[st.landcover];
+		// Ignore very small fraction changes unless frac_old is 0 and frac larger than limit or if frac smaller than limit.
+		if(fabs(gcst.frac - gcst.frac_nextyear) < INPUT_RESOLUTION * 0.1 && !(!gcst.frac && gcst.frac_nextyear > INPUT_RESOLUTION)
+				&& !(gcst.frac_nextyear < INPUT_RESOLUTION))
+			gcst.frac_nextyear = gcst.frac;
+		if(gcst.frac_nextyear < INPUT_RESOLUTION)
+			gcst.frac_nextyear = 0.0; 
+
 		stlist.nextobj();
 	}
 
@@ -1088,7 +1726,7 @@ double LandcoverInput::get_crop_fractions(Gridcell& gridcell, int year, TimeData
 				StandType& st = stlist.getobj();
 				Gridcellst& gcst = gridcell.st[st.id];
 				if(st.landcover == CROPLAND) {
-					if(st.rotation.nmanagements == 1 && st.get_management(0).wateruse == RAINFED) {
+					if(st.rotation.nmanagements == 1 && st.get_management(0).hydrology == RAINFED) {
 						if(gridcell.get_lat() > 30 || gridcell.get_lat() < -30) {
 							if(pftlist[pftlist.getpftid(st.get_management(0).pftname)].tb <= 5) {
 								gcst.frac = 1.0;
@@ -1128,7 +1766,7 @@ double LandcoverInput::get_crop_fractions(Gridcell& gridcell, int year, TimeData
 	return sum;
 }
 
-bool LandcoverInput::get_land_transitions(Gridcell& gridcell) {
+bool LandcoverInput::get_land_transitions(Gridcell& gridcell, double* st_frac_transfer) {
 
 	bool result = false;
 	if(gross_land_transfer == ST_GROSS_INPUT) {
@@ -1137,6 +1775,7 @@ bool LandcoverInput::get_land_transitions(Gridcell& gridcell) {
 		 * Landcover and stand type net fractions still need to be read from file as previously.
 		 * return get_st_transfer(gridcell);
 		 */
+		result = get_st_transfer(gridcell, gridcell.landcover.frac_transfer, st_frac_transfer);
 
 		// Currently no code for gross stand type transfer option
 	}
@@ -1150,6 +1789,43 @@ bool LandcoverInput::get_land_transitions(Gridcell& gridcell) {
 	return result;
 }
 
+/// Read ST transitions from file
+/** This implementation uses stand type area fraction transfer values in columns with names of the transfers according to
+ *	[from_st]_[to_st] in the header line. The calendar year column value in this file needs to be the year preceding the
+ *	updated area fraction value in the net LC and ST fraction files. No warnings are issued for missing columns for the ST transfer combinations.
+ *  The consistency between gross ST transfer input and net LC and ST files is the responsibility of the end user and is not checked by this function.
+ */
+bool LandcoverInput::get_st_transfer(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVERTYPES], double* st_frac_transfer) {
+
+	double tot_frac_ch = 0.0;
+
+	if(!grossSTC.isloaded() || date.get_calendar_year() < getfirsthistyear() + 1)
+		return false;
+
+	// Before second year of net land cover input gross_lc_change_frac must be zero.
+
+	int year = date.get_calendar_year() - 1;
+
+	for(int from=0; from<nst; from++) {
+		for(int to=0; to<nst; to++) {
+
+			char st_transfer_column[100] = { '\0'};
+			sprintf(st_transfer_column, "%s_%s", (char*)stlist[from].name, (char*)stlist[to].name);
+
+			double frac_transfer;
+			frac_transfer = grossSTC.Get(year, st_transfer_column, true);
+			if(frac_transfer == NOTFOUND)
+				frac_transfer = 0.0;
+			st_frac_transfer[index(from, to)] += frac_transfer;
+			lc_frac_transfer[stlist[from].landcover][stlist[to].landcover] += frac_transfer;
+		}
+	}
+
+	if(tot_frac_ch > 1.0e-14)
+		return true;
+	else
+		return false;
+}
 
 /// Read LUC transitions from file
 /** This implementation uses LUH2 gross transfer standard text format input files (see guess.doc). Transitions to and from  
@@ -1679,7 +2355,7 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 										effective_corr = min(residual_error[from], fabs(residual_error[to]));
 										// Make sure lc_frac_transfer[third][from] not negative
 										if(partition_adjustment[third][from]) {
-											effective_corr = min(effective_corr, lc_frac_transfer[third][from] 
+											effective_corr = min(effective_corr, lc_frac_transfer[third][from]
 												/ partition_adjustment[third][from]);
 										}
 										// Make sure resulting frac[third] not overshot and frac[from] not depleted
@@ -1871,7 +2547,7 @@ void adjust_gross_transfers(Gridcell& gridcell, double landcoverfrac_change[], d
 										// Make sure resulting frac[third] not overshot and frac[from] not depleted
 										if(partition_adjustment[from][third]) {
 											effective_corr = 
-												min(effective_corr, max(0.0, gridcell.landcover.frac[third] - gross_lc_increase[third] + effective_corr) 
+												min(effective_corr, max(0.0, gridcell.landcover.frac[third] - gross_lc_increase[third] + effective_corr)
 													/ partition_adjustment[from][third]);
 											effective_corr = 
 												min(effective_corr, max(0.0, gridcell.landcover.frac_old[from] - gross_lc_decrease[from]) 
@@ -2042,27 +2718,27 @@ void ManagementInput::init(xtring file_gridlist) {
 			readharvestdates = true;
 		}
 
-		file_Nfert = param["file_Nfert"].str;
-		if (file_Nfert != "") {
-			if (!Nfert.Open(file_Nfert, gridlist))
-				fail("initio: could not open %s for input", (char*)file_Nfert);
+		file_Nfert=param["file_Nfert"].str;
+		if(	file_Nfert != "")	{
+			if(!Nfert.Open(file_Nfert, gridlist))
+				fail("initio: could not open %s for input",(char*)file_Nfert);
 			readNfert = true;
 		}
-		if (param.find(xtring("file_NfertMan"))) {
-			file_NfertMan = param["file_NfertMan"].str;
-			if (file_NfertMan != "") {
-				if (!NfertMan.Open(file_NfertMan, gridlist))
-					fail("initio: could not open %s for input", (char*)file_NfertMan);
+		if(param.find(xtring("file_NfertMan"))) {
+			file_NfertMan=param["file_NfertMan"].str;
+			if(	file_NfertMan != "")	{
+				if(!NfertMan.Open(file_NfertMan, gridlist))
+					fail("initio: could not open %s for input",(char*)file_NfertMan);
 				readNman = true;
 			}
 		}
 	}
 
-	if (run_landcover) {
-		file_Nfert_st = param["file_Nfert_st"].str;
-		if (file_Nfert_st != "") {
-			if (!Nfert_st.Open(file_Nfert_st, gridlist))
-				fail("initio: could not open %s for input", (char*)file_Nfert_st);
+	if(run_landcover) {
+		file_Nfert_st=param["file_Nfert_st"].str;
+		if(	file_Nfert_st != "")	{
+			if(!Nfert_st.Open(file_Nfert_st, gridlist))
+				fail("initio: could not open %s for input",(char*)file_Nfert_st);
 			readNfert_st = true;
 		}
 		// See getwoodharvest() for input file format and content of text files
@@ -2078,6 +2754,74 @@ void ManagementInput::init(xtring file_gridlist) {
 				fail("initio: could not open %s for input",(char*)file_woodharv_cmass);
 			readwoodharvest_cmass = true;
 		}
+
+		file_woodharv_prob_BL = param["file_woodharv_prob_BL"].str;
+		if(file_woodharv_prob_BL != "")	{
+			if(!woodharv_prob_BL.Open(file_woodharv_prob_BL, gridlist))
+				fail("initio: could not open %s for input",(char*)file_woodharv_prob_BL);
+			readwoodharv_prob_BL = true;
+		}
+		file_woodharv_prob_NL = param["file_woodharv_prob_NL"].str;
+		if (file_woodharv_prob_NL != "") {
+			if (!woodharv_prob_NL.Open(file_woodharv_prob_NL, gridlist))
+				fail("initio: could not open %s for input", (char*)file_woodharv_prob_NL);
+			readwoodharv_prob_NL = true;
+		}
+		file_CC_prob_BL = param["file_CC_prob_BL"].str;
+		if (file_CC_prob_BL != "") {
+			if (!CC_prob_BL.Open(file_CC_prob_BL, gridlist))
+				fail("initio: could not open %s for input", (char*)file_CC_prob_BL);
+			readCC_prob_BL = true;
+		}
+		file_CC_prob_NL = param["file_CC_prob_NL"].str;
+		if (file_CC_prob_NL != "") {
+			if (!CC_prob_NL.Open(file_CC_prob_NL, gridlist))
+				fail("initio: could not open %s for input", (char*)file_CC_prob_NL);
+			readCC_prob_NL = true;
+		}
+		file_woodharv_intens_mean_BL = param["file_woodharv_intens_mean_BL"].str;
+		if (file_woodharv_intens_mean_BL != "") {
+			if (!woodharv_intens_mean_BL.Open(file_woodharv_intens_mean_BL, gridlist))
+				fail("initio: could not open %s for input", (char*)file_woodharv_intens_mean_BL);
+			readwoodharv_intens_mean_BL = true;
+		}
+		file_woodharv_intens_mean_NL = param["file_woodharv_intens_mean_NL"].str;
+		if (file_woodharv_intens_mean_NL != "") {
+			if (!woodharv_intens_mean_NL.Open(file_woodharv_intens_mean_NL, gridlist))
+				fail("initio: could not open %s for input", (char*)file_woodharv_intens_mean_NL);
+			readwoodharv_intens_mean_NL = true;
+		}
+		file_woodharv_intens_sd_BL = param["file_woodharv_intens_sd_BL"].str;
+		if (file_woodharv_intens_sd_BL != "") {
+			if (!woodharv_intens_sd_BL.Open(file_woodharv_intens_sd_BL, gridlist))
+				fail("initio: could not open %s for input", (char*)file_woodharv_intens_sd_BL);
+			readwoodharv_intens_sd_BL = true;
+		}
+		file_woodharv_intens_sd_NL = param["file_woodharv_intens_sd_NL"].str;
+		if (file_woodharv_intens_sd_NL != "") {
+			if (!woodharv_intens_sd_NL.Open(file_woodharv_intens_sd_NL, gridlist))
+				fail("initio: could not open %s for input", (char*)file_woodharv_intens_sd_NL);
+			readwoodharv_intens_sd_NL = true;
+		}
+		file_woodharv_size_preference_BL = param["file_woodharv_size_preference_BL"].str;
+		if (file_woodharv_size_preference_BL != "") {
+			if (!woodharv_size_preference_BL.Open(file_woodharv_size_preference_BL, gridlist))
+				fail("initio: could not open %s for input", (char*)file_woodharv_size_preference_BL);
+			readwoodharv_size_preference_BL = true;
+		}
+		file_woodharv_size_preference_NL = param["file_woodharv_size_preference_NL"].str;
+		if (file_woodharv_size_preference_NL != "") {
+			if (!woodharv_size_preference_NL.Open(file_woodharv_size_preference_NL, gridlist))
+				fail("initio: could not open %s for input", (char*)file_woodharv_size_preference_NL);
+			readwoodharv_size_preference_NL = true;
+		}
+		file_woodharv_intensity_scalar = param["file_woodharv_intensity_scalar"].str;
+		if(file_woodharv_intensity_scalar != "")	{
+			if(!woodharv_intensity_scalar.Open(file_woodharv_intensity_scalar, gridlist))
+				fail("initio: could not open %s for input",(char*)file_woodharv_intensity_scalar);
+			readwoodharv_intensity_scalar = true;
+		}
+
 		// See getcutinterval() for input file format and content of text file
 		file_cutinterval_st = param["file_cutinterval_st"].str;
 		if(file_cutinterval_st != "")	{
@@ -2105,6 +2849,15 @@ void ManagementInput::init(xtring file_gridlist) {
 		}
 	}
 
+	file_burned_area = param["file_presc_burned_area"].str;
+	if(file_burned_area != "")	{
+		if(!presc_burned_area.Open(file_burned_area, gridlist))
+			fail("initio: could not open %s for input",(char*)file_burned_area);
+		readpresc_burned_area = true;
+		if(presc_burned_area_start == FAR_PREHISTORIC_YEAR || presc_burned_area_end == FAR_FUTURE_YEAR)
+			fail("presc_burned_area_start and presc_burned_area_end must be defined in the instruction file when burned area input is present\n");
+	}
+
 	if (run[PASTURE]) {
 		file_grazing = param["file_grazing"].str;
 		if (file_grazing != "") {
@@ -2125,10 +2878,18 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 	c.lat = lat;
 	bool LUerror = false;
 
+	if(readpresc_burned_area) {
+		if (!presc_burned_area.Load(c)) {
+			dprintf("Problems with prescribed burned area input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+			LUerror = true;	// skip this stand
+			dprintf("Prescribed burned area data not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
 	if(readsowingdates) { 
 		if(!sdates.Load(c)) {
 			dprintf("Problems with sowing date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
 			LUerror = true;	// skip this stand
+			dprintf("Sowing date data not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
 
@@ -2136,24 +2897,25 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 		if(!hdates.Load(c)) {
 			dprintf("Problems with harvest date input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
 			LUerror = true;	// skip this stand
+			dprintf("Harvest date data not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
 
 	if(readNfert && !LUerror) {
 		if(!Nfert.Load(c)) {
-				dprintf("Problems with N fertilization input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
-				LUerror = true;	// skip this stand
+			dprintf("Problems with N fertilization input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+			LUerror = true;	// skip this stand
 			dprintf("N fertilization data not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
 
-	if (readNman && !LUerror) {
-		if (!NfertMan.Load(c)) {
-			dprintf("N manure data not found for %.2f,%.2f.\n", c.lon, c.lat);
+	if(readNman && !LUerror) {
+		if(!NfertMan.Load(c)) {
+			dprintf("Manure data not found for %.2f,%.2f.\n",c.lon,c.lat);
 		}
 	}
-	if (readNfert_st && !LUerror) {
-		if (!Nfert_st.Load(c)) {
+	if(readNfert_st && !LUerror) {
+		if(!Nfert_st.Load(c)) {
 			dprintf("Problems with N fertilization input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
 			LUerror = true;	// skip this stand
 			dprintf("N fertilization data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
@@ -2161,18 +2923,90 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 	}
 	if(readwoodharvest_frac && !LUerror) {
 		if(!woodharv_frac.Load(c)) {
-				dprintf("Problems with wood harvest fraction input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
-				LUerror = true;	// skip this stand
+			dprintf("Problems with wood harvest fraction input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+			LUerror = true;	// skip this stand
 			dprintf("Wood harvest fraction data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
 	if(readwoodharvest_cmass && !LUerror) {
 		if(!woodharv_cmass.Load(c)) {
-				dprintf("Problems with wood harvest volume input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
-				LUerror = true;	// skip this stand
+			dprintf("Problems with wood harvest volume input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+			LUerror = true;	// skip this stand
 			dprintf("Wood harvest cmass data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
+
+	if (readwoodharv_prob_BL && !LUerror) {
+		if (!woodharv_prob_BL.Load(c)) {
+			dprintf("Problems with BL wood harvest probability input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+			LUerror = true;	// skip this stand
+			dprintf("BL wood harvest probability data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+	if (readwoodharv_prob_NL && !LUerror) {
+		if (!woodharv_prob_NL.Load(c)) {
+			dprintf("Problems with NL wood harvest probability input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+			LUerror = true;	// skip this stand
+			dprintf("NL wood harvest probability data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+	if (readCC_prob_BL && !LUerror) {
+		if (!CC_prob_BL.Load(c)) {
+			dprintf("Problems with BL wood harvest probability input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+			LUerror = true;	// skip this stand
+			dprintf("BL wood harvest probability data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+	if (readCC_prob_NL && !LUerror) {
+		if (!CC_prob_NL.Load(c)) {
+			dprintf("Problems with NL wood harvest probability input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+			LUerror = true;	// skip this stand
+			dprintf("Wood harvest fraction data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+	if (readwoodharv_intens_mean_BL && !LUerror) {
+		if (!woodharv_intens_mean_BL.Load(c)) {
+			dprintf("Problems with BL tree thinning probability input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+			LUerror = true;	// skip this stand
+			dprintf(" BL tree thinning probability data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+	if (readwoodharv_intens_mean_NL && !LUerror) {
+		if (!woodharv_intens_mean_NL.Load(c)) {
+			dprintf("Problems with NL tree thinning probability input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+			LUerror = true;	// skip this stand
+			dprintf("NL tree thinning probability data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+	if (readwoodharv_intens_sd_BL && !LUerror) {
+		if (!woodharv_intens_sd_BL.Load(c)) {
+			dprintf("Problems with BL tree thinning SD probability input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+			LUerror = true;	// skip this stand
+			dprintf("BL tree thinning SD probability data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+	if (readwoodharv_intens_sd_NL && !LUerror) {
+		if (!woodharv_intens_sd_NL.Load(c)) {
+			dprintf("Problems with NL tree thinning SD probability input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+			LUerror = true;	// skip this stand
+			dprintf("NL tree thinning SD probability data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+	if (readwoodharv_size_preference_BL && !LUerror) {
+		if (!woodharv_size_preference_BL.Load(c)) {
+			dprintf("Problems with thinning size preference input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+			LUerror = true;	// skip this stand
+			dprintf("Thinning size preference data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+	if (readwoodharv_size_preference_NL && !LUerror) {
+		if (!woodharv_size_preference_NL.Load(c)) {
+			dprintf("Problems with thinning size preference input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+			LUerror = true;	// skip this stand
+			dprintf("Thinning size preference data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+
 	if(readcutinterval_st && !LUerror) { 
 		if(!cutinterval_st.Load(c)) {
 			LUerror = true;	// skip this stand
@@ -2181,8 +3015,17 @@ bool ManagementInput::loadmanagement(double lon, double lat) {
 	}
 	if(readfirstmanageyear_st && !LUerror) { 
 		if(!firstmanageyear_st.Load(c)) {
+			dprintf("Problems with first management year input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
 			LUerror = true;	// skip this stand
 			dprintf("firstmanageyear data for stand types not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
+		}
+	}
+
+	if(readwoodharv_intensity_scalar && !LUerror) { 
+		if(!woodharv_intensity_scalar.Load(c)) {
+			dprintf("Problems with probabilistic wood harvest intensity scalar input file. EXCLUDING STAND at %.3f,%.3f from simulation.\n\n", c.lon, c.lat);
+			LUerror = true;	// skip this stand
+			dprintf("probabilistic wood harvest intensity scalar data not found in input file for %.2f,%.2f.\n\n", c.lon, c.lat);
 		}
 	}
 
@@ -2284,13 +3127,30 @@ void ManagementInput::getNfert(Gridcell& gridcell) {
 		}
 	}
 
-	if (Nfert_st.isloaded()) {
-		for (int i = 0; i < nst; i++) {
-			gridcell.st[stlist[i].id].nfert = Nfert_st.Get(year, stlist[i].name);
+	if(Nfert_st.isloaded()) {
+		for(int i=0; i<nst; i++)	{
+			gridcell.st[stlist[i].id].nfert = Nfert_st.Get(year,stlist[i].name);
 		}
 	}
 }
 
+/// Load prescribed burned area from file
+void ManagementInput::getburned_area(Gridcell& gridcell) {
+
+	int year = date.get_calendar_year();
+
+	if(presc_burned_area.isloaded()) {
+		//CLNdprintf("CLN getba \n");
+		for(int i=0; i<365; i++)	{
+
+			//CLNdprintf("CLN getba %d ",i);
+			char day_srt[50] = {0};
+			sprintf(day_srt, "%d", i);
+			gridcell.prescribed_burned_area[i] = presc_burned_area.Get(year, day_srt);
+			//CLNdprintf(" ba %f \n",gridcell.prescribed_burned_area[i]);
+		}
+	}
+}
 /// Read wood harvest from file
 /** This implementation uses LUH2 wood harvest (area fraction or C mass) standard text format input files (see indata.h).
  *  Harvest of primary forest, primary non-forested land, mature secondary and young secondary forest and secondary non-forested
@@ -2318,7 +3178,7 @@ void ManagementInput::getwoodharvest(Gridcell& gridcell, LandcoverInput& landcov
 			if(stand.landcover == NATURAL) {
 				for(unsigned int j=0;j<stand.nobj;j++) {
 					Patch& patch = stand[j];
-					cmass_wood += patch.cmass_wood() / stand.npatch();
+					cmass_wood += patch.cmass_wood() / (double)stand.npatch();
 				}
 				nstands++;
 			}
@@ -2344,13 +3204,14 @@ void ManagementInput::getwoodharvest(Gridcell& gridcell, LandcoverInput& landcov
 				gridcell.landcover.wood_harvest.sec_young_frac += (frac_transfer = woodharv_frac.Get(year,"secnf_harv")) != NOTFOUND ? frac_transfer : 0.0;
 		}
 		if(woodharv_cmass.isloaded()) {
-
+			// kg: divide by gridcell area (m2); NB. last parameter 3 if old cru climate (llc)
 			// All removed C mass (including branches and attached leaves); kg/m2
-			gridcell.landcover.wood_harvest.prim_cmass += (frac_transfer = woodharv_cmass.Get(year,"primf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
-			gridcell.landcover.wood_harvest.prim_cmass += (frac_transfer = woodharv_cmass.Get(year,"primn_bioh")) != NOTFOUND ? frac_transfer : 0.0;
-			gridcell.landcover.wood_harvest.sec_mature_cmass += (frac_transfer = woodharv_cmass.Get(year,"secmf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
-			gridcell.landcover.wood_harvest.sec_young_cmass += (frac_transfer = woodharv_cmass.Get(year,"secyf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
-			gridcell.landcover.wood_harvest.sec_young_cmass += (frac_transfer = woodharv_cmass.Get(year,"secnf_bioh")) != NOTFOUND ? frac_transfer : 0.0;
+			double cellsize =  pixelsize(gridcell.get_lat(), 0.5, 0.5, 0) * 1.0e6;	// km2 to m2
+			gridcell.landcover.wood_harvest.prim_cmass += ((frac_transfer = woodharv_cmass.Get(year,"primf_bioh")) != NOTFOUND ? frac_transfer : 0.0) / cellsize;
+			gridcell.landcover.wood_harvest.prim_cmass += ((frac_transfer = woodharv_cmass.Get(year,"primn_bioh")) != NOTFOUND ? frac_transfer : 0.0) / cellsize;
+			gridcell.landcover.wood_harvest.sec_mature_cmass += ((frac_transfer = woodharv_cmass.Get(year,"secmf_bioh")) != NOTFOUND ? frac_transfer : 0.0) / cellsize;
+			gridcell.landcover.wood_harvest.sec_young_cmass += ((frac_transfer = woodharv_cmass.Get(year,"secyf_bioh")) != NOTFOUND ? frac_transfer : 0.0) / cellsize;
+			gridcell.landcover.wood_harvest.sec_young_cmass += ((frac_transfer = woodharv_cmass.Get(year,"secnf_bioh")) != NOTFOUND ? frac_transfer : 0.0) / cellsize;
 		}
 	}
 }
@@ -2467,7 +3328,164 @@ void ManagementInput::gettargetcutting(Gridcell& gridcell) {
 	}
 }
 
+void get_forest_structure(Patch& patch, bool& conifer, char* forest_structure_column) {
+
+	double BA_BL = 0.0;
+	double BA_NL = 0.0;
+	double BA_tot = 0.0;
+
+	double dens = 0.0;
+	double diam_sq = 0.0;
+
+	// Decide if broadleaved or needleleaved patch
+	Vegetation& vegetation = patch.vegetation;
+	vegetation.firstobj();
+	while (vegetation.isobj) {
+		Individual& indiv = vegetation.getobj();
+		if (indiv.pft.lifeform == TREE && indiv.diam >= 0.1) {		// trees > 10 cm diam; OK for BA too ?
+			double BA = indiv.diam * indiv.diam * 0.25 * PI;
+			if (indiv.pft.leafphysiognomy == BROADLEAF)
+				BA_BL += BA * indiv.densindiv;
+			else if (indiv.pft.leafphysiognomy == NEEDLELEAF)
+				BA_NL += BA * indiv.densindiv;
+			dens += indiv.densindiv;
+			diam_sq += indiv.diam * indiv.diam * indiv.densindiv;
+		}
+		vegetation.nextobj();
+	}
+	if (BA_NL > BA_BL)
+		conifer = true;
+	else
+		conifer = false;
+
+	BA_tot = BA_NL + BA_BL;
+
+	// Convert from m-2 to ha-1
+	BA_tot *= M2_PER_HA;
+
+	if (dens)
+		diam_sq = pow(diam_sq / dens, 0.5);
+
+	// Convert diam_sq m to cm
+	diam_sq *= 100;
+
+	int ba_bin = -1;
+	int diam_bin = -1;
+
+	for (int ba = 0; ba < nBA_bins; ba++) {
+		double ba_low = BA_bin_min + ba * BA_bin_size;
+		double ba_high = BA_bin_min + (ba + 1) * BA_bin_size;
+
+		if (BA_tot >= ba_low && BA_tot < ba_high || iflast_bin_inclusive && ba == (nBA_bins - 1) && BA_tot >= ba_low)
+			ba_bin = ba;
+	}
+	for (int d = 0; d < ndiam_bins; d++) {
+
+		double d_low = diam_bin_min + d * diam_bin_size;
+		double d_high = diam_bin_min + (d + 1) * diam_bin_size;
+
+		if (diam_sq >= d_low && diam_sq < d_high || iflast_bin_inclusive && d == (ndiam_bins - 1) && d >= d_low)
+			diam_bin = d;
+	}
+
+	char buffer[100] = { '\0'};
+	sprintf(buffer, "D%d_BA%d", (diam_bin_min + diam_bin * diam_bin_size), (BA_bin_min + ba_bin * BA_bin_size));
+	strcpy(forest_structure_column, buffer);
+}
+
+void ManagementInput::getwoodharvest_probability(Gridcell& gridcell) {
+
+	int year = date.get_calendar_year();
+
+	// Loop through all forest stands and patches that have harvest_system "PROBABILITY_INPUT"
+	// Set harvest and clearcut probabilitied and thinning intensity means and standard deviations
+	for (unsigned int i = 0; i < gridcell.nbr_stands(); i++) {
+		Stand& stand = gridcell[i];
+		ManagementType& mt = stand.get_current_management();
+		if (mt.harvest_system == "PROBABILITY_INPUT") {
+			for (unsigned int j = 0; j < stand.nobj;j++) {
+				Patch& patch = stand[j];
+				if (!patch.management_started || !patch.cmass_wood())
+					continue;
+				char forest_structure_column[100] = { '\0'};
+				bool conifer = false;
+				get_forest_structure(patch, conifer, forest_structure_column);
+
+				// If forest structure is not within any BA-diameter groups (as when mean diameter is < 10 cm), the variables are set to 0.
+				if (conifer) {
+					if (woodharv_prob_NL.isloaded()) {
+						patch.harvest_probability = woodharv_prob_NL.Get(year, forest_structure_column, true);
+						if (patch.harvest_probability == NOTFOUND)
+							patch.harvest_probability = 0.0;
+					}
+					if (CC_prob_NL.isloaded()) {
+						patch.clearcut_probability = CC_prob_NL.Get(year, forest_structure_column, true);
+						if (patch.clearcut_probability == NOTFOUND)
+							patch.clearcut_probability = 0.0;
+					}
+					if (woodharv_intens_mean_NL.isloaded()) {
+						patch.thinning_intensity_mean = woodharv_intens_mean_NL.Get(year, forest_structure_column, true);
+						if (patch.thinning_intensity_mean == NOTFOUND)
+							patch.thinning_intensity_mean = 0.0;
+					}
+					if (woodharv_intens_sd_NL.isloaded()) {
+						patch.thinning_intensity_sd = woodharv_intens_sd_NL.Get(year, forest_structure_column, true);
+						if (patch.thinning_intensity_sd == NOTFOUND)
+							patch.thinning_intensity_sd = 0.0;
+					}
+					if (woodharv_size_preference_NL.isloaded()) {
+						patch.thinning_size_preference = (int)woodharv_size_preference_NL.Get(year, forest_structure_column, true);
+						if (patch.thinning_size_preference == NOTFOUND)
+							patch.thinning_size_preference = 0;
+					}
+					if (woodharv_intensity_scalar.isloaded()) {
+						double harvest_intensity = woodharv_intensity_scalar.Get(year, "CF", true);
+						if (harvest_intensity != NOTFOUND)
+							patch.harvest_probability *= harvest_intensity;
+					}
+				}
+				else {
+					if (woodharv_prob_BL.isloaded()) {
+						patch.harvest_probability = woodharv_prob_BL.Get(year, forest_structure_column, true);
+						if (patch.harvest_probability == NOTFOUND)
+							patch.harvest_probability = 0.0;
+					}
+					if (CC_prob_BL.isloaded()) {
+						patch.clearcut_probability = CC_prob_BL.Get(year, forest_structure_column, true);
+						if (patch.clearcut_probability == NOTFOUND)
+							patch.clearcut_probability = 0.0;
+					}
+					if (woodharv_intens_mean_BL.isloaded()) {
+						patch.thinning_intensity_mean = woodharv_intens_mean_BL.Get(year, forest_structure_column, true);
+						if (patch.thinning_intensity_mean == NOTFOUND)
+							patch.thinning_intensity_mean = 0.0;
+					}
+					if (woodharv_intens_sd_BL.isloaded()) {
+						patch.thinning_intensity_sd = woodharv_intens_sd_BL.Get(year, forest_structure_column, true);
+						if (patch.thinning_intensity_sd == NOTFOUND)
+							patch.thinning_intensity_sd = 0.0;
+					}
+					if (woodharv_size_preference_BL.isloaded()) {
+						patch.thinning_size_preference = (int)woodharv_size_preference_BL.Get(year, forest_structure_column, true);
+						if (patch.thinning_size_preference == NOTFOUND)
+							patch.thinning_size_preference = 0;
+					}
+					if (woodharv_intensity_scalar.isloaded()) {
+						double harvest_intensity = woodharv_intensity_scalar.Get(year, "BF", true);
+						if (harvest_intensity != NOTFOUND)
+							patch.harvest_probability *= harvest_intensity;
+					}
+				}
+			}
+		}
+	}
+}
+
 void ManagementInput::getmanagement(Gridcell& gridcell, LandcoverInput& landcover_input) {
+
+	if (!date.day && readpresc_burned_area) {
+		getburned_area(gridcell);
+	}
 
 	// check for grazing every day
 	if (read_grazing) {
@@ -2491,7 +3509,7 @@ void ManagementInput::getmanagement(Gridcell& gridcell, LandcoverInput& landcove
 			getNfert(gridcell);
 	}
 	// Read wood harvest from input file, put into gridcell.landcover.wood_harvest struct
-	if(readwoodharvest_frac || readwoodharvest_cmass)		
+	if(readwoodharvest_frac || readwoodharvest_cmass)
 		getwoodharvest(gridcell, landcover_input);
 	// Read cutting interval from input file
 	if(readcutinterval_st)
@@ -2502,4 +3520,11 @@ void ManagementInput::getmanagement(Gridcell& gridcell, LandcoverInput& landcove
 	// Read firstmanageyear from input file
 	if(readfirstmanageyear_st)
 		getfirstmanageyear(gridcell);
+
+	// Read probabilistic wood harvest from input files; allow either thinning or clearcut components to be turned off
+	if (readwoodharv_prob_BL && readwoodharv_prob_NL) {	
+		if((readCC_prob_BL && readCC_prob_NL) || (readwoodharv_intens_mean_BL && readwoodharv_intens_mean_NL 
+			&& readwoodharv_intens_sd_BL && readwoodharv_intens_sd_NL))
+			getwoodharvest_probability(gridcell);
+	}
 }

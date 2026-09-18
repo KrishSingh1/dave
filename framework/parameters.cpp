@@ -27,6 +27,7 @@
 xtring title;
 vegmodetype vegmode;
 firemodeltype firemodel;
+simfireversiontype burnedareamodel;
 weathergeneratortype weathergenerator;
 hydrologytype hydrology;
 energytype energy;
@@ -34,6 +35,8 @@ moistdecaytype moistdecay;
 
 int npatch;
 int npatch_secondarystand;
+int npatch_disturbedstand;
+int npatch_treeinit;
 bool reduce_all_stands;
 int age_limit_reduce;
 double patcharea;
@@ -49,9 +52,14 @@ bool ifleafdamage;
 bool ifcalccton;
 int estinterval;
 double distinterval;
-disturbancetype disttype;
+davedisturbancetype disttype;
 xtring file_disturb;
 bool ifcdebt;
+
+bool ifnewalloc;
+bool ifvolhght;
+bool ifprintallommort;				// Whether to print which mortality function was triggered (1) or not (0)
+
 double depth_soil;
 
 bool ifcentury;
@@ -112,6 +120,11 @@ double layer_thickness_canopy = 0;
 int energy_balance_maxiter;
 double energy_balance_eps;
 
+bool storm_mortality = false; // Apply calculated wind damage to mortality
+bool insect_mortality = false; // Apply calculated insect damage to mortality
+double m_stormfactor; // Callibration factor for storm damage from sensitivity and WL, Eq. 15 Lagergren et al
+bool print_storm_stand = false;
+
 
 // Soil, arctic and wetland options
 double slope;						// Whether to use fixed slope value (>=0 degree) or input data (<0) 
@@ -156,7 +169,8 @@ bool ifslowharvestpool;
 bool ifintercropgrass;
 bool ifcalcdynamic_phu;
 int gross_land_transfer;
-bool gross_input_present = false;
+bool gross_LC_input_present = false;
+bool gross_ST_input_present = false;
 bool ifprimary_lc_transfer = false;
 bool use_primary_lc_transfer = false;
 bool ifprimary_to_secondary_transfer = false;
@@ -171,13 +185,23 @@ bool textured_soil;
 bool disturb_pasture;
 bool grassforcrop;
 bool map_text_file = true;
+bool ifback_disturb_as_harv = false;
 
+int presc_burned_area_start = FAR_PREHISTORIC_YEAR;		// ON from the beginning of the simulatiob unless value set in instruction file
+int presc_burned_area_end = FAR_FUTURE_YEAR;			// ON to the end of the simulatiob unless value set in instruction file
+
+int fire_popdens_method = 1; // default simfire.bin
+int fixed_popdens_hist = 0;
+int fixed_popdens_year = -10000;
 xtring state_path;
 bool restart;
 bool save_state;
 int state_year;
 int verbosity;
-
+int storm_mortality_firstyear = FAR_PREHISTORIC_YEAR;		// OFF unless value set in instruction file
+int storm_mortality_lastyear = FAR_FUTURE_YEAR;				// OFF unless value set in instruction file
+int insect_mortality_firstyear= FAR_PREHISTORIC_YEAR;		// OFF unless value set in instruction file
+int insect_mortality_lastyear = FAR_FUTURE_YEAR;			// OFF unless value set in instruction file
 
 bool ifdailyoutput;
 
@@ -189,12 +213,54 @@ bool readNfert_st = false;
 bool read_grazing = false;
 bool readdisturbance = false;
 bool readdisturbance_st = false;
+bool readwindload = false;
 bool readcutinterval_st = false;
+bool readelevation_gc_mean = false;
+bool readelevation_local = false;
 bool readelevation_st = false;
+bool readdist_clearcut = false;
+bool readdist_fire = false;
+bool readdist_wind = false;
+bool readdist_barkbeetle = false;
+int disturbance_input_firstyear = FAR_PREHISTORIC_YEAR;		// ON from the beginning of the simulatiob unless value set in instruction file
+int disturbance_input_lastyear = FAR_FUTURE_YEAR;			// ON to the end of the simulatiob unless value set in instruction file
+bool readstorm_prob = false;
+bool readpresc_burned_area = false;
+
+bool readforest_init = false;
+bool forest_init_poolsoil = false;
 bool readfirstmanageyear_st = false;
 bool readtargetcutting = false;
 bool readwoodharvest_frac = false;
 bool readwoodharvest_cmass = false;
+
+bool readwoodharv_prob_BL = false;
+bool readwoodharv_prob_NL = false;
+bool readCC_prob_BL = false;
+bool readCC_prob_NL = false;
+bool readwoodharv_intens_mean_BL = false;
+bool readwoodharv_intens_mean_NL = false;
+bool readwoodharv_intens_sd_BL = false;
+bool readwoodharv_intens_sd_NL = false;
+bool readwoodharv_size_preference_BL = false;
+bool readwoodharv_size_preference_NL = false;
+bool readwoodharv_intensity_scalar = false;
+
+bool ifthin_prob_distribution = false;
+bool clearcutprob_off = false;
+int clearcutprob_input_firstyear = FAR_PREHISTORIC_YEAR;	// ON from the beginning of the simulatiob unless value set in instruction file
+int clearcutprob_input_lastyear = FAR_FUTURE_YEAR;			// ON to the end of the simulatiob unless value set in instruction file
+
+int nBA_bins = -1;
+int BA_bin_size = -1;
+int BA_bin_min = -1;
+int ndiam_bins = -1;
+int diam_bin_size = -1;
+int diam_bin_min = -1;
+bool iflast_bin_inclusive = false;
+
+bool forest_init_from_biomass = true;
+
 bool harvest_secondary_to_new_stand = true;
 bool harvest_burn_thin_trees = false;
 bool printseparatestands = false;
@@ -255,18 +321,19 @@ bool Paramlist::isparam(xtring name) {
 ///////////////////////////////////////////////////////////////////////////////////////
 // ENUM DECLARATIONS OF INTEGER CONSTANTS FOR PLIB INTERFACE
 
-enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_PARAM,BLOCK_ST,BLOCK_MT};
-enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,CB_SELECTION, CB_STLANDCOVER, 
-	CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT, CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB,
-	CB_MTSELECTION, CB_MTPLANTDENSITY, CB_MTTARGETFRAC, CB_MTTARGETFRACFILENAME, CB_MTWATERUSE, CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM, 
-	CB_PFT, CB_STSELECTION, CB_STPLANTDENSITY, CB_STTARGETFRAC, CB_STTARGETFRACFILENAME, CB_STWATERUSE, CB_MANAGEMENT1, 
-	CB_MANAGEMENT2, CB_MANAGEMENT3, CB_PATHWAY, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_STRPARAM, CB_NUMPARAM, 
-	CB_WATERUPTAKE, CB_MTCOMPOUND, CB_FIREMODEL, CB_WEATHERGENERATOR, CB_DISTTYPE, CB_HYDROLOGY, CB_ENERGY, CB_MOISTDECAY};
+enum {BLOCK_GLOBAL,BLOCK_PFT,BLOCK_IFT,BLOCK_PARAM,BLOCK_ST,BLOCK_MT};
+enum {CB_NONE,CB_VEGMODE,CB_CHECKGLOBAL,CB_LIFEFORM,CB_LANDCOVER,CB_PHENOLOGY,CB_LEAFPHYSIOGNOMY,CB_SELECTION, CB_STLANDCOVER,
+	CB_STINTERCROP, CB_STNATURALVEG, CB_CHECKST, CB_CHECKMT, CB_MTPLANTINGSYSTEM, CB_MTHARVESTSYSTEM, CB_MTPFT, CB_STREESTAB, CB_MTREESTAB, 
+	CB_MTSELECTION, CB_MTPLANTDENSITY, CB_MTTARGETFRAC, CB_MTTARGETFRACFILENAME, CB_MTHYDROLOGY, CB_IFTHOSTS, CB_MTWATERUSE, CB_PLANTINGSYSTEM, CB_HARVESTSYSTEM,
+	CB_PFT, CB_STSELECTION, CB_STPLANTDENSITY, CB_STTREEINITFILENAME, CB_STTARGETFRAC, CB_STTARGETFRACFILENAME, CB_STHYDROLOGY, CB_MANAGEMENT1,
+	CB_MANAGEMENT2, CB_MANAGEMENT3, CB_PATHWAY, CB_ROOTFRAC, CB_EST, CB_CHECKPFT, CB_CHECKIFT, CB_STRPARAM, CB_NUMPARAM,
+	CB_WATERUPTAKE, CB_MTCOMPOUND, CB_FIREMODEL, CB_WEATHERGENERATOR, CB_SIMFIREVERSION, CB_DISTTYPE, CB_HYDROLOGY, CB_ENERGY, CB_MOISTDECAY};
 
 // File local variables
 namespace {
 
 Pft* ppft; // pointer to Pft object currently being assigned to
+Ift* pift;
 StandType* pst;
 ManagementType* pmt;
 
@@ -277,11 +344,14 @@ bool ifhelp=false;
 
 // 'include' parameter for currently scanned PFT
 bool includepft;
+bool includeift;
 bool includest;
 bool includemt;
 
 // 'include' parameter per PFT
 std::map<xtring, bool> includepft_map;
+// 'include' parameter per IFT
+std::map<xtring, bool> includeift_map;
 // 'include' parameter per ST
 std::map<xtring, bool> includest_map;
 // 'include' parameter per MT
@@ -293,6 +363,7 @@ std::map<xtring, bool> includemt_map;
 // minor modifications) we don't check again (because plib's itemparsed() function
 // doesn't remember the old parsed parameters).
 std::map<xtring, bool> checked_pft;
+std::map<xtring, bool> checked_ift;
 std::map<xtring, bool> checked_st;
 std::map<xtring, bool> checked_mt;
 }
@@ -303,6 +374,7 @@ void initsettings() {
 	// Parameters not initialised here must be set in instruction script
 
 	firemodel=BLAZE;
+	burnedareamodel=SIMFIRE_GLOBAL;
 	weathergenerator=GWGEN;
 	hydrology=GERTEN;
 	energy=CNSTEP_FULL;
@@ -389,6 +461,14 @@ void initpft(Pft& pft,xtring& setname) {
 	pft.gdd0_min = 0.0;
 	pft.gdd0_max = 100000.0;
 	pft.has_aerenchyma = false;
+}
+
+void initift(Ift& ift, xtring& setname) {
+
+	// Initialises a PFT object
+	// Parameters not initialised here must be set in instruction script
+
+	ift.name = setname;
 }
 
 void initst(StandType& st,xtring& setname) {
@@ -567,6 +647,8 @@ void plib_declarations(int id,xtring setname) {
 			"Generic patch-destroying disturbance interval (years)");
 		declareitem("firemodel",&strparam,12,CB_FIREMODEL,
 			"Fire model mode (\"BLAZE\", \"GLOBFIRM\", \"NOFIRE\" , \"\")" );
+		declareitem("burned_area_model",&strparam,20,CB_SIMFIREVERSION,
+			"Fire model mode (\"SIMFIRE_GLOBAL\", \"SIMFIRE_EUROPE\", \"\")" );
 		declareitem("ifdisturb",&ifdisturb,1,CB_NONE,
 			"Whether generic patch-destroying disturbance enabled (0,1)");
 		declareitem("disttype", &strparam, 20, CB_DISTTYPE,
@@ -589,6 +671,10 @@ void plib_declarations(int id,xtring setname) {
 			"Number of patches simulated");
 		declareitem("npatch_secondarystand",&npatch_secondarystand,1,1000,1,CB_NONE,
 			"Number of patches simulated in secondary stands");
+		declareitem("npatch_disturbedstand",&npatch_disturbedstand,1,1000,1,CB_NONE,
+			"Number of patches simulated in secondary stands created by prescribed disturbance");
+		declareitem("npatch_treeinit",&npatch_treeinit,1,1000,1,CB_NONE,
+			"Number of patches simulated in stands created at whole tree initialisation with option forest_init_poolsoil");
 		declareitem("reduce_all_stands",&reduce_all_stands,1,CB_NONE,
 			"Whether to reduce equal percentage of all stands of a stand type at land cover change");
 		declareitem("age_limit_reduce",&age_limit_reduce,0,1000,1,CB_NONE,
@@ -688,6 +774,23 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifthawaffectrootdist", &ifthawaffectrootdist, 1, CB_NONE,
 			"Whether thaw depth affects root distribution (1 by default), or not (0)");
 
+		declareitem("ifnewalloc",&ifnewalloc,1,CB_NONE,
+			"Whether to use the new allocation calculations (1), or the original (0)");
+		declareitem("ifvolhght",&ifvolhght,1,CB_NONE,
+			"Whether to use the new tree volume to height calculations (1), or the original (0)");
+		declareitem("ifprintallommort", &ifprintallommort, 1, CB_NONE,
+			"Whether to print which mortality function was triggered (1) or not (0)");
+
+		declareitem("nBA_bins",&nBA_bins,1,1000,1,CB_NONE, "Number of basal area bins in harvest probablilty input");
+		declareitem("BA_bin_size",&BA_bin_size,0,1000,1,CB_NONE, "Size of basal area bins in harvest probablilty input");
+		declareitem("BA_bin_min",&BA_bin_min,0,1000,1,CB_NONE, "Value of first (smallest) basal area bin in harvest probablilty input");
+		declareitem("ndiam_bins",&ndiam_bins,1,1000,1,CB_NONE, "Number of diameter bins in harvest probablilty input");
+		declareitem("diam_bin_size",&diam_bin_size,0,1000,1,CB_NONE, "Size of diameter bins in harvest probablilty input");
+		declareitem("diam_bin_min",&diam_bin_min,0,1000,1,CB_NONE, "Value of first (smallest) diameter bin in harvest probablilty input");
+		declareitem("iflast_bin_inclusive",&iflast_bin_inclusive,1,CB_NONE,"Whether last (largest) bin includes all larger values");
+
+		declareitem("forest_init_from_biomass",&forest_init_from_biomass,1,CB_NONE,"Whether forest initialisation uses biomass rather than diameter from input");
+
 		declareitem("surf_li_scalar", &surf_li_scalar, 0.0, 10.0, 1, CB_NONE,
 			"Cali");
 		declareitem("soil_om_scalar", &soil_om_scalar, 0.0, 10.0, 1, CB_NONE,
@@ -727,6 +830,11 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("printseparatestands",&printseparatestands,1,CB_NONE,
 			"Whether to print multiple stands within a stand type (except cropland) separately");
 		declareitem("iftillage",&iftillage,1,CB_NONE,"Whether to simulate tillage by increasing soil respiration");
+		declareitem("ifthin_prob_distribution", &ifthin_prob_distribution, 1, CB_NONE, "Whether to draw thinning probabilities from a normal distribution");
+		declareitem("clearcutprob_off", &clearcutprob_off, 1, CB_NONE, "Whether to turn off clearcuts while using clearcut probabilities input to bypass thinning");
+		declareitem("clearcutprob_input_firstyear",&clearcutprob_input_firstyear,0,20000,1,CB_NONE, "First year to apply pronabilistic clearcut from input data");
+		declareitem("clearcutprob_input_lastyear",&clearcutprob_input_lastyear,0,20000,1,CB_NONE, "Last year to apply pronabilistic clearcut from input data");
+		declareitem("forest_init_poolsoil", &forest_init_poolsoil, 1, CB_NONE, "Whether to pool soil and reduce stands to one stand per stand type at prescribed establishment");
 		declareitem("harvest_natural_to_forest",&harvest_natural_to_forest,1,CB_NONE,
 			"Whether to harvest (remove) wood at natural-to-forest transitions");
 		declareitem("harvest_burn_thin_trees",&harvest_burn_thin_trees,1,CB_NONE,
@@ -736,6 +844,25 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("disturb_pasture",&disturb_pasture,1,CB_NONE,"Whether fire and disturbances enabled on pastures (0,1)");
 		declareitem("grassforcrop",&grassforcrop,1,CB_NONE,"grassforcrop");
 		declareitem("map_text_file", &map_text_file, 1, CB_NONE, "Whether to map text input file data in index file");
+        declareitem("ifback_disturb_as_harv",&ifback_disturb_as_harv,1,CB_NONE,
+            "Whether generic patch-destroying disturbance should be enacted as wood harvest (0,1)");
+		declareitem("fire_popdens_method",&fire_popdens_method,0,2,1,CB_NONE,"Fire popdens input methods: 0=(undefined), 1=simfire binary (default if not specified), 2=netcdf within cfxinput");
+		declareitem("fixed_popdens_hist",&fixed_popdens_hist,0,2,1,CB_NONE,"cfxinput only: fire population density handling (0)=no influence (even in spinup popdens can change, default), (1)=popdens start from year fixed_popdens_year onward, (2)=allways use popdens of fixed_popdens_year");
+		declareitem("fixed_popdens_year",&fixed_popdens_year,-10000,2100,1,CB_NONE, "cfxinput only: Year of popdens to use for fixed_popdens_hist>0");
+		declareitem("presc_burned_area_start",&presc_burned_area_start,0,2300,1,CB_NONE,"Year from which on burned area will be prescribed");
+		declareitem("presc_burned_area_end",&presc_burned_area_end,0,2300,1,CB_NONE,"Year until which burned area will be prescribed");
+
+		declareitem("disturbance_input_firstyear",&disturbance_input_firstyear,0,20000,1,CB_NONE, "First year to apply prescribed disturbance from input data");
+		declareitem("disturbance_input_lastyear",&disturbance_input_lastyear,0,20000,1,CB_NONE, "Last year to apply prescribed disturbance from input data");
+
+		declareitem("storm_mortality",&storm_mortality,1,CB_NONE,"Apply calculated storm damage to mortality");
+		declareitem("storm_mortality_firstyear", &storm_mortality_firstyear, 0, 99999, 1, CB_NONE, "Apply calculated storm damage to mortality from specified year");
+		declareitem("storm_mortality_lastyear", &storm_mortality_lastyear, 0, 99999, 1, CB_NONE, "Apply calculated storm damage to mortality to specified year");
+		declareitem("insect_mortality",&insect_mortality,1,CB_NONE, "Apply calculated insect damage to mortality");
+		declareitem("insect_mortality_firstyear", &insect_mortality_firstyear, 0, 99999, 1, CB_NONE, "Apply calculated insect damage to mortality from specified year");
+		declareitem("insect_mortality_lastyear", &insect_mortality_lastyear, 0, 99999, 1, CB_NONE, "Apply calculated insect damage to mortality to specified year");
+		declareitem("m_stormfactor",&m_stormfactor,0.0,1.0e6,1,CB_NONE,"Callibration factor for storm damage from sensitivity and WL");
+		declareitem("print_storm_stand",&print_storm_stand,1,CB_NONE,"Whether to print storm sensitivity and damage for multiple stands within a stand type (except cropland) separately");
 
 		declareitem("state_path", &state_path, 300, CB_NONE, "State files directory (for restarting from, or saving state files)");
 		declareitem("restart", &restart, 1, CB_NONE, "Whether to restart from state files");
@@ -746,6 +873,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("ifdailyoutput", &ifdailyoutput, 1, CB_NONE, "Whether to produce daily output. Unspecified means no, do not.");
 
 		declareitem("pft",BLOCK_PFT,CB_NONE,"Header for block defining PFT");
+		declareitem("ift", BLOCK_IFT, CB_NONE, "Header for block defining IFT");
 		declareitem("param",BLOCK_PARAM,CB_NONE,"Header for custom parameter block");
 		declareitem("st",BLOCK_ST,CB_NONE,"Header for block defining StandType");
 		declareitem("mt",BLOCK_MT,CB_NONE,"Header for block defining Management");
@@ -989,6 +1117,8 @@ void plib_declarations(int id,xtring setname) {
 			"Parameter 'A' in growth temperature relationship (K-1) (Parent & Tardieu 2012) ");	
 		declareitem("reprfrac",&ppft->reprfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of NPP allocated to reproduction");
+		declareitem("reprage", &ppft->reprage, 0.0, 200.0, 1, CB_NONE,
+			"Tree age at start of NPP allocation to reproduction");
 		declareitem("crownfrac",&ppft->crownfrac,0.0,1.0,1,CB_NONE,
 			"Fraction of NPP allocated to crowns");
 		declareitem("culmfrac",&ppft->culmfrac,0.0,1.0,1,CB_NONE,
@@ -1037,6 +1167,8 @@ void plib_declarations(int id,xtring setname) {
 		// for the shrub allometries.
 		declareitem("k_allom2",&ppft->k_allom2,1.0,1.0e4,1,CB_NONE,
 			"Constant in allometry equations");
+		declareitem("bole_ratio",&ppft->bole_ratio,0.0,1.0,1,CB_NONE,
+			"Bole to height ratio");
 		declareitem("k_allom3",&ppft->k_allom3,0.1,1.0,1,CB_NONE,
 			"Constant in allometry equations");
 		declareitem("k_rp",&ppft->k_rp,1.0,5.0,1,CB_NONE,
@@ -1247,7 +1379,51 @@ void plib_declarations(int id,xtring setname) {
 			"min GDD0 for survival/establishment");
 		declareitem("gdd0_max", &ppft->gdd0_max, 0.0, 100000.0, 1, CB_NONE,
 			"max GDD0 for survival/establishment");
+		declareitem("storm_sensiv",&ppft->storm_sensiv,0.0,1.0,1,CB_NONE,
+			"parameter of storm sensitivity");
+		declareitem("eff_h",&ppft->eff_h,0.0,1.0,1,CB_NONE,
+			"parameter of shelter efficiency");
+
 		callwhendone(CB_CHECKPFT);
+
+		break;
+
+	case BLOCK_IFT:
+
+		if (!ifhelp) {
+
+			pift = 0;
+
+			// Was this mt already created?
+			for (size_t p = 0; p < iftlist.nobj; ++p) {
+				if (iftlist[(unsigned int)p].name == setname) {
+					pift = &iftlist[(unsigned int)p];
+				}
+			}
+
+			if (pift == 0) {
+				// Create and initialise a new st object and obtain a reference to it
+
+				pift = &iftlist.createobj();
+				initift(*pift, setname);
+				includeift_map[setname] = true;
+			}
+		}
+
+		declareitem("include", &includeift, 1, CB_NONE, "Include IFT in analysis");
+		declareitem("survive_temp_min", &pift->survive_temp_min, -60, 20, 1, CB_NONE, "Minimum winter temperature for survival");
+		declareitem("flight_temp_min", &pift->flight_temp_min, 0.0, 30.0, 1, CB_NONE, "Low temperature limit for swarming");
+		declareitem("flight_temp_max", &pift->flight_temp_max, 0.0, 50.0, 1, CB_NONE, "High temperature limit for swarming");
+		declareitem("flight_season_end_temp", &pift->flight_season_end_temp, 0.0, 50.0, 1, CB_NONE, "Temperature trigger for end of flight season");
+		declareitem("dev_temp_base", &pift->dev_temp_base, 0.0, 30.0, 1, CB_NONE, "Base temperature for heat sum calculation");
+		declareitem("spring_swarming_heat_sum_target", &pift->spring_swarming_heat_sum_target, 0.0, 500.0, 1, CB_NONE, "Heat sum requirement for spring swarming");
+		declareitem("dev_heat_sum_target", &pift->dev_heat_sum_target, 0.0, 2000.0, 1, CB_NONE, "Heat sum requirement for full development");
+		declareitem("egg_dev_start_delay", &pift->egg_dev_start_delay, 0, 100, 1, CB_NONE, "Delay from egg deposition to start of development (days)");
+		declareitem("dev_diapause_success_limit_frac", &pift->dev_diapause_success_limit_frac, 0.0, 1.0, 1, CB_NONE, "Developlent stage required for successful diapause");
+		declareitem("dev_reemergence_frac", &pift->dev_reemergence_frac, 0.0, 1.0, 1, CB_NONE, "Developlent stage required for sister brood reemergence");
+		declareitem("host_pft", &strparam, 200, CB_IFTHOSTS, "String of host pft names");
+
+		callwhendone(CB_CHECKIFT);
 
 		break;
 
@@ -1276,6 +1452,7 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("mtinclude",&includemt,1,CB_NONE,"Include ManagementType in analysis");
 		declareitem("firstmanageyear",&pmt->firstmanageyear,0,3000,1,CB_NONE,"First calender year of management");
 		declareitem("firstcutyear",&pmt->firstcutyear,0,3000,1,CB_NONE,"First calender year of cutting");
+		declareitem("clearcut_first_manageyear", &pmt->clearcut_first_manageyear, 1, CB_NONE, "Whether to clearcut a stand in firstmanageyear (when not created in year 0) (0,1)");
 		declareitem("firstcutyear_is_referenceyear",&pmt->firstcutyear_is_referenceyear,1,CB_NONE,
 			"Whether the reference year for cutting timing is firstcutyear");
 		declareitem("firstclearcutyear",&pmt->firstclearcutyear,0,3000,1,CB_NONE,"First calender year of clearcut");
@@ -1287,6 +1464,7 @@ void plib_declarations(int id,xtring setname) {
 			"Whether young (1) or old (2) individuals are preferentially cut, or no preference (0)");
 		declareitem("targetthinselectdiam",&pmt->targetthinselectdiam,0,2,1,CB_NONE,
 			"Whether small (1) or large (2) diameter individuals are preferentially cut, or no preference (0)");
+		declareitem("reestab",&strparam,16,CB_MTREESTAB, "Re-establishment (\"NONE\", \"RESTRICTED\" or \"ALL\")");
 		declareitem("planting_system",&strparam,32,CB_MTPLANTINGSYSTEM,"Planting system");
 		declareitem("harvest_system",&strparam,32,CB_MTHARVESTSYSTEM,"Harvest system");
 		declareitem("pft",&strparam,16,CB_MTPFT,"PFT name");
@@ -1302,7 +1480,7 @@ void plib_declarations(int id,xtring setname) {
 			"Whether patch (1) or stand (2,3) deviations from pft cmass fraction targets used");
 		declareitem("suppress_second_target",&pmt->suppress_second_target,1,CB_NONE,
 			"Whether to stop cutting to reach pft fraction targets when the second (continuous) period starts");
-		declareitem("wateruse",&strparam,16,CB_MTWATERUSE, "water use of crop (\"RAINFED\" or \"IRRIGATED\")");
+		declareitem("hydrology",&strparam,16,CB_MTHYDROLOGY, "Hydrology of crop (\"RAINFED\" or \"IRRIGATED\")");
 //		declareitem("irrigation",&pmt->firr,0.0,1.0,1,CB_NONE,"Irrigation of crop");
 		declareitem("sdate",&pmt->sdate,0,364,1,CB_NONE,"Sowing date of crop");
 		declareitem("hdate",&pmt->hdate,0,364,1,CB_NONE,"Harvest date of crop");
@@ -1311,7 +1489,11 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("fallow",&pmt->fallow,1,CB_NONE,"Fallow in place of crop");
 		declareitem("relaxed_establishment",&pmt->relaxed_establishment,1,CB_NONE,"Whether to ignore climate establishment limits");
 		declareitem("suppress_fire",&pmt->suppress_fire,1,CB_NONE,"Whether to suppress fires");
+		declareitem("suppress_fire_firstyear",&pmt->suppress_fire_firstyear,0,3000,1,CB_NONE,"First calender year of fire suppression when suppress_fire is true");
+		declareitem("suppress_fire_lastyear",&pmt->suppress_fire_lastyear,0,3000,1,CB_NONE,"Last calender year of fire suppression when suppress_fire is true");
 		declareitem("suppress_disturbance",&pmt->suppress_disturbance,1,CB_NONE,"Whether to suppress disturbances");
+		declareitem("suppress_disturbance_firstyear",&pmt->suppress_disturbance_firstyear,0,3000,1,CB_NONE,"First calender year of disturbance suppression when suppress_disturbance is true");
+		declareitem("suppress_disturbance_lastyear",&pmt->suppress_disturbance_lastyear,0,3000,1,CB_NONE,"Last calender year of disturbance suppression when suppress_disturbance is true");
 		declareitem("set_planting_density",&pmt->set_planting_density,1,CB_NONE,
 			"Whether to use planting densities for tree pft:s after clearcut");
 		declareitem("cutfirstyear",&pmt->cutfirstyear,0,2,1,CB_NONE,
@@ -1409,20 +1591,21 @@ void plib_declarations(int id,xtring setname) {
 			"Cover crop (\"NOINTERCROP\" or \"NATURALGRASS\")");
 		declareitem("naturalveg",&strparam,16,CB_STNATURALVEG,
 			"Natural pfts (\"GRASSONLY\" or \"ALL\")");
-		declareitem("reestab",&strparam,16,CB_STREESTAB,
-			"Re-establishment (\"NONE\", \"RESTRICTED\" or \"ALL\")");
 
 		declareitem("distinterval",&pst->distinterval,0.0,10000.0,1,CB_NONE,"Stand-type-specific disturbance interval");
 		declareitem("multicrop",&pst->rotation.multicrop,1,CB_NONE,"Whether to grow several crops in a year ");
 		declareitem("firstrotyear",&pst->rotation.firstrotyear,0,3000,1,CB_NONE,"First calender year of rotation");
 		declareitem("rotation_wait_for_cc",&pst->rotation_wait_for_cc,1,CB_NONE,
 			"Whether to wait for clearcut before moving to next mt in a forestry rotation");
+		// st-level input
+		declareitem("file_treeinit_st", &strparam, 300, CB_STTREEINITFILENAME, "tree initialisation input file name");
 
 		for(int i = 0; i < NROTATIONPERIODS_MAX; ++i) {
 			if(i == 0) {
 				declareitem("management1",&strparam,32,CB_MANAGEMENT1,"");
 				declareitem("firstmanageyear",&pst->management.firstmanageyear,0,3000,1,CB_NONE,"First calender year of management");
 				declareitem("firstcutyear",&pst->management.firstcutyear,0,3000,1,CB_NONE,"First calender year of cutting");
+				declareitem("clearcut_first_manageyear", &pst->management.clearcut_first_manageyear, 1, CB_NONE, "Whether to clearcut a stand in firstmanageyear (when not created in year 0) (0,1)");
 				declareitem("firstcutyear_is_referenceyear",&pst->management.firstcutyear_is_referenceyear,1,CB_NONE,
 					"Whether the reference age for thinning timing is time since firstcutyear rather than the pach age");
 				declareitem("firstclearcutyear",&pst->management.firstclearcutyear,0,3000,1,CB_NONE,"First calender year of clearcut");
@@ -1434,6 +1617,7 @@ void plib_declarations(int id,xtring setname) {
 					"Whether young (1) or old (2) individuals are preferentially cut, or no preference (0)");
 				declareitem("targetthinselectdiam",&pst->management.targetthinselectdiam,0,2,1,CB_NONE,
 					"Whether small (1) or large (2) diameter individuals are preferentially cut, or no preference (0)");
+				declareitem("reestab",&strparam,16,CB_STREESTAB, "Re-establishment (\"NONE\", \"RESTRICTED\" or \"ALL\")");
 				declareitem("planting_system",&strparam,32,CB_PLANTINGSYSTEM,"Planting system of management 1");
 				declareitem("harvest_system",&strparam,32,CB_HARVESTSYSTEM,"Harvest system of management 1");
 				declareitem("pft",&strparam,16,CB_PFT,"PFT name of management 1");
@@ -1451,7 +1635,7 @@ void plib_declarations(int id,xtring setname) {
 					"Whether patch (1) or stand (2,3) deviations from pft cmass fraction targets used");
 				declareitem("suppress_second_target",&pst->management.suppress_second_target,1,CB_NONE,
 					"Whether to stop cutting to reach pft fraction targets when the second (continuous) period starts");
-				declareitem("wateruse",&strparam,16,CB_STWATERUSE, "Water use of crop 1 (\"RAINFED\" or \"IRRIGATED\")");
+				declareitem("hydrology",&strparam,16,CB_STHYDROLOGY, "Hydrology of crop 1 (\"RAINFED\" or \"IRRIGATED\")");
 //				declareitem("irrigation",&pst->management.firr,0.0,1.0,1,CB_NONE,"Irrigation of crop 1");
 				declareitem("sdate",&pst->management.sdate,0,364,1,CB_NONE,"Sowing date of crop 1");
 				declareitem("hdate",&pst->management.hdate,0,364,1,CB_NONE,"Harvest date of crop 1");
@@ -1460,7 +1644,11 @@ void plib_declarations(int id,xtring setname) {
 				declareitem("fallow",&pst->management.fallow,1,CB_NONE,"Fallow in place of crop 1");
 				declareitem("relaxed_establishment",&pst->management.relaxed_establishment,1,CB_NONE,"Whether to ignore climate establishment limits");
 				declareitem("suppress_fire",&pst->management.suppress_fire,1,CB_NONE,"Whether to suppress fires");
+				declareitem("suppress_fire_firstyear",&pst->management.suppress_fire_firstyear,0,3000,1,CB_NONE,"First calender year of fire suppression when suppress_fire is true");
+				declareitem("suppress_fire_lastyear",&pst->management.suppress_fire_lastyear,0,3000,1,CB_NONE,"Last calender year of fire suppression when suppress_fire is true");
 				declareitem("suppress_disturbance",&pst->management.suppress_disturbance,1,CB_NONE,"Whether to suppress disturbances");
+				declareitem("suppress_disturbance_firstyear",&pst->management.suppress_disturbance_firstyear,0,3000,1,CB_NONE,"First calender year of disturbance suppression when suppress_disturbance is true");
+				declareitem("suppress_disturbance_lastyear",&pst->management.suppress_disturbance_lastyear,0,3000,1,CB_NONE,"Last calender year of disturbance suppression when suppress_disturbance is true");
 				declareitem("set_planting_density",&pst->management.set_planting_density,1,CB_NONE,
 					"Whether to use tree pft planting densities after clearcut");
 				declareitem("cutfirstyear",&pst->management.cutfirstyear,0,2,1,CB_NONE,
@@ -1581,6 +1769,8 @@ void badins(xtring missing) {
 void plib_callback(int callback) {
 
 	xtring message;
+	int i;
+	double numval;
 
 	switch (callback) {
 
@@ -1612,6 +1802,25 @@ void plib_callback(int callback) {
 		else {
 			sendmessage("Error",
 				"Unknown weathergenerator (valid types: \"GWGEN\", \"INTERP\")");
+			plibabort();
+		}
+		break;
+	case CB_FIREMODEL:
+		if (strparam.upper()=="BLAZE") firemodel=BLAZE;
+		else if (strparam.upper()=="GLOBFIRM") firemodel=GLOBFIRM;
+		else if (strparam.upper()=="NOFIRE" || strparam=="") firemodel=NOFIRE;
+		else {
+			sendmessage("Error",
+				"Unknown fire model setting (valid types: \"BLAZE\", \"GLOBFIRM\", \"NOFIRE\", \"nil\" , \"\")" );
+			plibabort();
+		}
+		break;
+	case CB_SIMFIREVERSION:
+		if (strparam.upper()=="SIMFIRE_GLOBAL") burnedareamodel=SIMFIRE_GLOBAL;
+		else if (strparam.upper()=="SIMFIRE_EUROPE") burnedareamodel=SIMFIRE_EUROPE;
+		else {
+			sendmessage("Error",
+				"Unknown burned area model version setting (valid types: \"SIMFIRE_GLOBAL\", \"SIMFIRE_EUROPE\")" );
 			plibabort();
 		}
 		break;
@@ -1653,16 +1862,6 @@ void plib_callback(int callback) {
 		else {
 			sendmessage("Error",
 				"Unknown moistdecay function (valid types: \"FRIEND\", \"YAN\")");
-			plibabort();
-		}
-		break;
-	case CB_FIREMODEL:
-		if (strparam.upper()=="BLAZE") firemodel=BLAZE;
-		else if (strparam.upper()=="GLOBFIRM") firemodel=GLOBFIRM;
-		else if (strparam.upper()=="NOFIRE" || strparam=="") firemodel=NOFIRE;
-		else {
-			sendmessage("Error",
-				"Unknown fire model setting (valid types: \"BLAZE\", \"GLOBFIRM\", \"NOFIRE\", \"nil\" , \"\")" );
 			plibabort();
 		}
 		break;
@@ -1718,11 +1917,14 @@ void plib_callback(int callback) {
 			plibabort();
 		}
 		break;
+	case CB_IFTHOSTS:
+		pift->host_pft = strparam;
+		break;
 	case CB_STNATURALVEG:
 		pst->naturalveg = strparam.upper();
 		break;
-	case CB_STREESTAB:
-		pst->reestab = strparam.upper();
+	case CB_MTREESTAB:
+		pmt->reestab = strparam.upper();
 		break;
 	case CB_MTPLANTINGSYSTEM:
 		pmt->planting_system = strparam.upper();
@@ -1745,13 +1947,13 @@ void plib_callback(int callback) {
 	case CB_MTTARGETFRACFILENAME:
 		pmt->file_targetfrac_pft_mt = strparam;
 		break;
-	case CB_MTWATERUSE:
-		if (strparam.upper()=="RAINFED") pmt->wateruse = RAINFED;
-		else if (strparam.upper()=="IRRIGATED") pmt->wateruse = IRRIGATED;
+	case CB_MTHYDROLOGY:
+		if (strparam.upper()=="RAINFED") pmt->hydrology = RAINFED;
+		else if (strparam.upper()=="IRRIGATED") pmt->hydrology = IRRIGATED;
 		else 
 		{
 			sendmessage("Error",
-				"Unknown water use type (valid types: \"RAINFED\", \"IRRIGATED\")");
+				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
 			plibabort();
 		}
 		break;
@@ -1763,6 +1965,9 @@ void plib_callback(int callback) {
 		break;
 	case CB_MANAGEMENT3:
 		pst->mtnames[2] = strparam;
+		break;
+	case CB_STREESTAB:
+		pst->management.reestab = strparam.upper();
 		break;
 	case CB_PLANTINGSYSTEM:
 		pst->management.planting_system = strparam.upper();
@@ -1782,16 +1987,20 @@ void plib_callback(int callback) {
 	case CB_STTARGETFRAC:
 		pst->management.targetfrac = strparam;
 		break;
+// st-level input
+	case CB_STTREEINITFILENAME:
+		pst->file_treeinit_st = strparam;
+		break;
 	case CB_STTARGETFRACFILENAME:
 		pst->management.file_targetfrac_pft_mt = strparam;
 		break;
-	case CB_STWATERUSE:
-		if (strparam.upper()=="RAINFED") pst->management.wateruse = RAINFED;
-		else if (strparam.upper()=="IRRIGATED") pst->management.wateruse = IRRIGATED;
-		else
+	case CB_STHYDROLOGY:
+		if (strparam.upper()=="RAINFED") pst->management.hydrology = RAINFED;
+		else if (strparam.upper()=="IRRIGATED") pst->management.hydrology = IRRIGATED;
+		else 
 		{
 			sendmessage("Error",
-				"Unknown water use type (valid types: \"RAINFED\", \"IRRIGATED\")");
+				"Unknown hydrology type (valid types: \"RAINFED\", \"IRRIGATED\")");
 			plibabort();
 		}
 		break;
@@ -1853,6 +2062,7 @@ void plib_callback(int callback) {
 				sendmessage("Error", "BLAZE cannot be run with vegmode=POPULATION");
 				plibabort();
 			}
+			if (!itemparsed("burned_area_model")) badins("burned_area_model");
 		}
 		if (!itemparsed("ifcalcsla")) badins("ifcalcsla");
 		if (!itemparsed("ifcalccton")) badins("ifcalccton");
@@ -2044,6 +2254,8 @@ void plib_callback(int callback) {
 			if (!itemparsed("harvest_secondary_to_new_stand")) badins("harvest_secondary_to_new_stand");
 			if (!itemparsed("transfer_level")) badins("transfer_level");
 			if (!itemparsed("iftransfer_to_new_stand")) badins("iftransfer_to_new_stand");
+			if (!itemparsed("suppress_disturbance_in_forestry_stands")) badins("suppress_disturbance_in_forestry_stands");
+			if (!itemparsed("printseparatestands")) badins("printseparatestands");
 			if (!itemparsed("suppress_disturbance_in_forestry_stands")) badins("suppress_disturbance_in_forestry_stands");
 			if (!itemparsed("printseparatestands")) badins("printseparatestands");
 			if(run[CROPLAND]) {
@@ -2241,6 +2453,22 @@ void plib_callback(int callback) {
 			}
 		}
 
+		//	delete unused ift:s from iftlist
+
+		iftlist.firstobj();
+		while (iftlist.isobj) {
+			Ift& ift = iftlist.getobj();
+			bool include = includeift_map[ift.name];
+
+			if (!include) {
+				// Remove this stand type from list
+				iftlist.killobj();
+			}
+			else {
+				iftlist.nextobj();
+			}
+		}
+
 		/// Set nmanagements and verify that crop rotations have defined pftnames
 		stlist.firstobj();
 		while (stlist.isobj) {
@@ -2261,7 +2489,7 @@ void plib_callback(int callback) {
 								st.management = mt;
 						}
 						else {
-							fail("Check stand type rotation parameter setting, mt missing in instruction file\n");
+							fail("Check stand type rotation parameter setting, mt %s missing in instruction file\n", (char*)st.mtnames[rot]);
 						}
 					}
 					else {
@@ -2323,7 +2551,16 @@ void plib_callback(int callback) {
 			pftlist.nextobj();
 		}
 
-		// Set ids and nmt variable after removing unused mts ; NB: LandcoverInputModule::init() may remove more mts
+		// Set nift variable
+		nift = 0;
+		iftlist.firstobj();
+		while (iftlist.isobj) {
+			Ift& ift = iftlist.getobj();
+			ift.id = nift++;
+			iftlist.nextobj();
+		}
+
+		// Set ids and nmt variable after removing unused mts ; NB: LandcoverInput::init() may remove more mts
 		nmt = 0;
 		mtlist.firstobj();
 		while (mtlist.isobj) {
@@ -2356,7 +2593,7 @@ void plib_callback(int callback) {
 				st.management.id = mt_new.id;
 				// Management type copies stored in the stand type and in the mtlist are identical at this point, but the main method to
 				// get managements should be by calling stand.get_current_management() or st.get_management(), retrieving the mtlist copy.
-				// If unused mt:s removed in LandcoverInputModule::init(), the id of remaining mt:s are updated in both copies.
+				// If unused mt:s removed in LandcoverInput::init(), the id of remaining mt:s are updated in both copies.
 				st.mtnames[0] = mt_new.name;
 				st.rotation.nmanagements = 1;			// In case not already set (mt from "Natural" stand type).
 			}
@@ -2523,6 +2760,7 @@ void plib_callback(int callback) {
 					if (!itemparsed("frac_seed")) badins("frac_seed");
 				}
 				if (ppft->lifeform == TREE) {
+					if (!itemparsed("reprage")) badins("reprage");
 					if (!itemparsed("boleht_frac")) badins("boleht_frac");
 					if (ifdailytree) {
 						if (!itemparsed("cstarv_inflect")) badins("cstarv_inflect");
@@ -2632,7 +2870,7 @@ void plib_callback(int callback) {
 						if (ppft->sd_adjust) {
 							if (!itemparsed("sd_adjust_par1")) badins("sd_adjust_par1");
 							if (!itemparsed("sd_adjust_par2")) badins("sd_adjust_par2");
-							if (!itemparsed("sd_adjust_par3")) badins("sd_adjust_par3");						
+							if (!itemparsed("sd_adjust_par3")) badins("sd_adjust_par3");
 						}
 						if (!itemparsed("hlimitdatenh")) badins("hlimitdatenh");
 						if (!itemparsed("hlimitdatesh")) badins("hlimitdatesh");
@@ -2733,6 +2971,8 @@ void plib_callback(int callback) {
 				if (!itemparsed("k_allom3")) badins("k_allom3");
 				if (!itemparsed("k_rp")) badins("k_rp");
 				if (!itemparsed("k_latosa")) badins("k_latosa");
+				if (!itemparsed("storm_sensiv")) badins("storm_sensiv");
+				if (!itemparsed("eff_h")) badins("eff_h");
 				if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 					if (!itemparsed("kest_repr")) badins("kest_repr");
 					if (!itemparsed("kest_bg")) badins("kest_bg");
@@ -2780,6 +3020,17 @@ void plib_callback(int callback) {
 
 		break;
 
+	case CB_CHECKIFT:
+		if (!checked_ift[pift->name]) {
+			checked_ift[pift->name] = true;
+		}
+
+		if (itemparsed("include")) {
+			includeift_map[pift->name] = includeift;
+		}
+
+		break;
+
 	case CB_CHECKST:
 		if (!checked_st[pst->name]) {
 			checked_st[pst->name] = true;
@@ -2822,17 +3073,21 @@ void read_instruction_file(const char* insfilename) {
 	// Initialise PFT StandType and ManagementType count
 
 	npft = 0;
+	nift = 0;
 	nst = 0;
 	nmt = 0;
 
 	checked_pft.clear();
+	checked_ift.clear();
 	includepft_map.clear();
 	checked_st.clear();
 	includest_map.clear();
+	includeift_map.clear();
 	checked_mt.clear();
 	includemt_map.clear();
 
 	pftlist.killall();
+	iftlist.killall();
 	stlist.killall();
 	mtlist.killall();
 

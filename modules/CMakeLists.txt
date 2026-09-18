@@ -36,6 +36,7 @@ set(headers
   hydraulics.h
   davephotosynthesis.h
   kdtree.h
+  storm.h
   )
 
 set(source  
@@ -73,6 +74,7 @@ set(source
   daveoutputhelpers.cpp
   hydraulics.cpp
   davephotosynthesis.cpp
+  storm.cpp
   )
 
 include(add_guess_sources)

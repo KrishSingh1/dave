@@ -431,9 +431,16 @@ try {
 }
 }
 
-void DaveInput::getlandcover(Gridcell& gridcell) {
+bool DaveInput::getlandcover(Gridcell& gridcell, double* st_frac_transfer) {
 	// Proxy this request through to the landcover input module.
+	bool gross_change = false;
+
 	landcover_input.getlandcover(gridcell);
+	if(st_frac_transfer) {
+		if(landcover_input.get_land_transitions(gridcell, st_frac_transfer))
+			gross_change = true;
+	}
+	return gross_change;
 }
 
 void DaveInput::getmanagement(Gridcell& gridcell) {

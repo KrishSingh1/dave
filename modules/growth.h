@@ -17,6 +17,7 @@
 #define LPJ_GUESS_GROWTH_H
 
 #include "guess.h"
+#include "equationsolvers.h"
 
 typedef enum {dormant, vegetative, reproductive} growthstage;
 
@@ -24,7 +25,7 @@ double fracmass_lpj(double fpc_low,double fpc_high,Individual& indiv);
 void leaf_phenology(Patch& patch,Climate& climate);
 bool allometry(Individual& indiv); // guess2008 - now returns bool instead of void
 void establishment_biomass(double cmass_init, double ltor, Individual& indiv, double nmass_init = 0.0);
-void allocation_init(double bminit,double ltor,Individual& indiv);
+void allocation_init(double bminit,double ltor,Individual& indiv,double patch_fpc = 0);
 void growth(Stand& stand,Patch& patch);
 void growth_daily(Patch& patch);
 void growth_daily_grass_warlind(Patch& patch);

@@ -53,7 +53,7 @@ int stepfromdate(int day, int step) {
 }
 
 /// Help function to access two-dimentional arrays that have been created dynamically
-int index(int from, int to, int ncols = nst) {
+int index(int from, int to, int ncols) {
 
 	return from * ncols + to;
 }
@@ -80,7 +80,7 @@ void landcover_init(Gridcell& gridcell, InputModule* input_module) {
 	}
 
 	// get landcover and crop area fractions from landcover input file(s) or ins-file.
-	input_module->getlandcover(gridcell);
+	input_module->getlandcover(gridcell, NULL);
 
 	for(unsigned int s=0; s<stlist.nobj; s++) {
 		StandType& st = stlist[s];
@@ -1527,9 +1527,9 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
  *   - transfer_sompool.ntoc
  */
 void donor_stand_change(Gridcell& gridcell, double& receiving_area, landcover_change_transfer& to,
-		int landcover_receptor = -1, int landcover_donor = -1,
-		int stid_receptor = -1, int stid_donor = -1,
-		int standid = -1, lc_change_harvest_params* harv_params = NULL) {
+		int landcover_receptor, int landcover_donor,
+		int stid_receptor, int stid_donor,
+		int standid, lc_change_harvest_params* harv_params, bool forest_init) {
 
 	int count = 0;
 	Landcover& lc = gridcell.landcover;
@@ -1537,6 +1537,7 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_area, landcover_ch
 	for(unsigned int i=0; i<gridcell.nbr_stands(); i++) {
 
 		Stand& stand = gridcell[i];
+		Gridcellst& gcst = gridcell.st[stand.stid];
 
 		double donor_area = 0.0;
 
@@ -1658,13 +1659,14 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_area, landcover_ch
 					case FOREST:
 					case URBAN:
 					case PEATLAND:
+						indiv.mortflux(1.0, MORT_HARV_LUC, donor_area / (double)stand.nobj,true);
 						if(harv_params) {
 							harvest_wood(cp, indiv.diam, indiv.pft, indiv.alive, 1.0, harv_params->harv_eff, 
-								harv_params->res_outtake_twig, harv_params->res_outtake_coarse_root);
+								harv_params->res_outtake_twig, harv_params->res_outtake_coarse_root, forest_init);
 						}
 						else {
 							harvest_wood(cp, indiv.diam, indiv.pft, indiv.alive, 1.0, harv_eff_mean, 
-								res_outtake_twig_mean, res_outtake_coarse_root_mean);
+								res_outtake_twig_mean, res_outtake_coarse_root_mean, forest_init);
 						}
 						break;
 					case BARREN: // Assuming there is nothing to harvest on barren
@@ -1690,6 +1692,9 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_area, landcover_ch
 
 					double scale_lc = donor_area / (double)stand.nobj;
 
+					// gcst.acflux_harvest includes all types of LUX fluxes
+					gcst.acflux_harvest += cp.acflux_harvest * scale_lc;
+
 					if(stand.landcover == NATURAL || stand.landcover == FOREST) {
 						lc.acflux_wood_harvest += wood_harvest_ratio * cp.acflux_harvest * scale_lc;
 						lc.acflux_wood_harvest_lc[stand.landcover] += wood_harvest_ratio * cp.acflux_harvest * scale_lc;
@@ -1702,6 +1707,8 @@ void donor_stand_change(Gridcell& gridcell, double& receiving_area, landcover_ch
 						lc.cmass_stem_toprod += wood_harvest_ratio * cp.acflux_harvest_wood_toprod * scale_lc;
 						lc.cmass_harv_tolitter += wood_harvest_ratio * cp.acflux_harvest_tolitter * scale_lc;
 						lc.cmass_harv_killed += wood_harvest_ratio * indiv.ccont() * scale_lc;
+						// if (indiv.diam >= 0.1)
+						// 	lc.cmass_harv_killed_plus10cm += wood_harvest_ratio * indiv.ccont() * scale_lc;
 
 						double clearing_ratio = clearing_to_pasture_ratio + clearing_to_cropland_ratio;
 						lc.acflux_clearing += clearing_ratio * cp.acflux_harvest * scale_lc;
@@ -1869,8 +1876,8 @@ void stand_dynamics(Gridcell& gridcell) {
  *  \param standid							restricts receiving stands to a certain stand, default no restriction
  */
 void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
-		bool LCchangeCtransfer, int landcover = -1, int stid = -1,
-		double donorfrac_rel = 1.0, int standid = -1) {
+		bool LCchangeCtransfer, int landcover, int stid,
+		double donorfrac_rel, int standid) {
 
 	Gridcell::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
@@ -1912,6 +1919,8 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 							(ppft.nmass_litter_sap * old_frac + from.transfer_nmass_litter_sap[i] * added_frac) / new_frac;
 						ppft.nmass_litter_heart = 
 							(ppft.nmass_litter_heart * old_frac + from.transfer_nmass_litter_heart[i] * added_frac) / new_frac;
+						ppft.nmass_litter_repr =
+							(ppft.nmass_litter_repr * old_frac + from.transfer_nmass_litter_repr[i] * added_frac) / new_frac;
 						ppft.nmass_litter_NH4 = 
 							(ppft.nmass_litter_NH4 * old_frac + from.transfer_nmass_litter_NH4[i] * added_frac) / new_frac;
 
@@ -1922,6 +1931,61 @@ void receiving_stand_change(Gridcell& gridcell, landcover_change_transfer& from,
 							ppft.nmass_harvested_products_slow = 
 								(ppft.nmass_harvested_products_slow * old_frac + from.transfer_nmass_harvested_products_slow[i] * added_frac) / new_frac;
 						}
+
+						double old_NPP_flux = patch.fluxes.get_annual_flux(Fluxes::NPP, ppft.id);
+						patch.fluxes.report_flux(Fluxes::NPP, ppft.id, (old_NPP_flux * old_frac + from.transfer_aflux_NPP_pft[i] * added_frac) / new_frac - old_NPP_flux);
+						double old_GPP_flux = patch.fluxes.get_annual_flux(Fluxes::GPP, ppft.id);
+						patch.fluxes.report_flux(Fluxes::GPP, ppft.id, (old_GPP_flux * old_frac + from.transfer_aflux_GPP_pft[i] * added_frac) / new_frac - old_GPP_flux);
+
+						ppft.cmass_harv_killed = 
+							(ppft.cmass_harv_killed * old_frac + from.transfer_cmass_harv_killed[i] * added_frac) / new_frac;
+						ppft.cmass_dist_clearcut_killed = 
+							(ppft.cmass_dist_clearcut_killed * old_frac + from.transfer_cmass_dist_clearcut_killed[i] * added_frac) / new_frac;
+						ppft.cmass_dist_fire_killed = 
+							(ppft.cmass_dist_fire_killed * old_frac + from.transfer_cmass_dist_fire_killed[i] * added_frac) / new_frac;
+						ppft.cmass_dist_wind_killed = 
+							(ppft.cmass_dist_wind_killed * old_frac + from.transfer_cmass_dist_wind_killed[i] * added_frac) / new_frac;
+						ppft.cmass_dist_barkbeetle_killed = 
+							(ppft.cmass_dist_barkbeetle_killed * old_frac + from.transfer_cmass_dist_barkbeetle_killed[i] * added_frac) / new_frac;
+
+						ppft.cmass_wood_harv_killed = 
+							(ppft.cmass_wood_harv_killed * old_frac + from.transfer_cmass_wood_harv_killed[i] * added_frac) / new_frac;
+						ppft.cmass_wood_harv = 
+							(ppft.cmass_wood_harv * old_frac + from.transfer_cmass_wood_harv[i] * added_frac) / new_frac;
+						ppft.cmass_wood_harv_toprod = 
+							(ppft.cmass_wood_harv_toprod * old_frac + from.transfer_cmass_wood_harv_toprod[i] * added_frac) / new_frac;
+						ppft.cmass_harv_tolitter = 
+							(ppft.cmass_harv_tolitter * old_frac + from.transfer_cmass_harv_tolitter[i] * added_frac) / new_frac;
+						ppft.cmass_wood_clearcut = 
+							(ppft.cmass_wood_clearcut * old_frac + from.transfer_cmass_wood_clearcut[i] * added_frac) / new_frac;
+						ppft.cmass_wood_thin = 
+							(ppft.cmass_wood_thin * old_frac + from.transfer_cmass_wood_thin[i] * added_frac) / new_frac;
+						ppft.cmass_thin_killed = 
+							(ppft.cmass_thin_killed * old_frac + from.transfer_cmass_thin_killed[i] * added_frac) / new_frac;
+						ppft.cmass_mort = 
+							(ppft.cmass_mort * old_frac + from.transfer_cmass_mort[i] * added_frac) / new_frac;
+						ppft.cmass_leaf_root_turnover = 
+							(ppft.cmass_leaf_root_turnover * old_frac + from.transfer_cmass_leaf_root_turnover[i] * added_frac) / new_frac;
+						ppft.cmass_repr = 
+							(ppft.cmass_repr * old_frac + from.transfer_cmass_repr[i] * added_frac) / new_frac;
+						ppft.cmass_est = 
+							(ppft.cmass_est * old_frac + from.transfer_cmass_est[i] * added_frac) / new_frac;
+						ppft.cmass_harv_killed_plus10cm = 
+							(ppft.cmass_harv_killed_plus10cm * old_frac + from.transfer_cmass_harv_killed_plus10cm[i] * added_frac) / new_frac;
+						ppft.cmass_thin_killed_plus10cm = 
+							(ppft.cmass_thin_killed_plus10cm * old_frac + from.transfer_cmass_thin_killed_plus10cm[i] * added_frac) / new_frac;
+						ppft.cmass_wood_harv_killed_plus10cm = 
+							(ppft.cmass_wood_harv_killed_plus10cm * old_frac + from.transfer_cmass_wood_harv_killed_plus10cm[i] * added_frac) / new_frac;
+						ppft.cmass_clearcut_killed_plus10cm = 
+							(ppft.cmass_clearcut_killed_plus10cm * old_frac + from.transfer_cmass_clearcut_killed_plus10cm[i] * added_frac) / new_frac;
+						ppft.cmass_dist_clearcut_killed_plus10cm = 
+							(ppft.cmass_dist_clearcut_killed_plus10cm * old_frac + from.transfer_cmass_dist_clearcut_killed_plus10cm[i] * added_frac) / new_frac;
+						ppft.cmass_dist_fire_killed_plus10cm = 
+							(ppft.cmass_dist_fire_killed_plus10cm * old_frac + from.transfer_cmass_dist_fire_killed_plus10cm[i] * added_frac) / new_frac;
+						ppft.cmass_dist_wind_killed_plus10cm = 
+							(ppft.cmass_dist_wind_killed_plus10cm * old_frac + from.transfer_cmass_dist_wind_killed_plus10cm[i] * added_frac) / new_frac;
+						ppft.cmass_dist_barkbeetle_killed_plus10cm = 
+							(ppft.cmass_dist_barkbeetle_killed_plus10cm * old_frac + from.transfer_cmass_dist_barkbeetle_killed_plus10cm[i] * added_frac) / new_frac;
 					}
 
 					// Soil
@@ -2244,8 +2308,6 @@ double transfer_to_new_stand_from_stand(Gridcell& gridcell, double* st_frac_tran
 
 					if(stand.landcover == NATURAL && (stlist[stid_receptor].naturalveg == ""))
 						dprintf("WARNING: cloning natural stand without allowing natural pft:s to grow in the new stand. Was this intended ?\n");
-
-					landcover_change_transfer transfer;
 
 					new_stand.cloned = true;
 					new_stand.gross_frac_increase = 0.0;
@@ -2904,7 +2966,7 @@ bool check_fractions4(Gridcell& gridcell) {
  *  OUTPUT PARAMETERS
  *  \param LCchangeCtransfer				whether to transfer carbon, nitrogen and water of reduced stands to expanding stands
  */
-bool lc_changed(Gridcell& gridcell, bool& LCchangeCtransfer, InputModule* input_module) {
+bool lc_changed(Gridcell& gridcell, bool& LCchangeCtransfer, InputModule* input_module, double* st_frac_transfer) {
 
 	double stfrac_sum_old[NLANDCOVERTYPES] = {0.0};
 	double change_stand = 0.0;
@@ -2918,7 +2980,7 @@ bool lc_changed(Gridcell& gridcell, bool& LCchangeCtransfer, InputModule* input_
 
 	// Get new gridcell.landcoverfrac and/or standtype.frac from LUdata and CFTdata
 
-	input_module->getlandcover(gridcell);	
+	bool gross_change = input_module->getlandcover(gridcell, st_frac_transfer);	
 
 	// Check if any changes in land fractions have been made
 
@@ -2997,7 +3059,7 @@ bool lc_changed(Gridcell& gridcell, bool& LCchangeCtransfer, InputModule* input_
 		change = true;
 	}
 
-	return change;
+	return change || gross_change;
 }
 
 /// Transfers harvested forest area to transition matrix
@@ -3105,13 +3167,36 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 		stlist.nextobj();
 	}
 
+	// Zero and update stand fraction variables every year (used to be done only years with LUC)
+	for(unsigned int i = 0; i < gridcell.st.nobj; i++) {
+		Gridcellst& gcst = gridcell.st[i];
+		gcst.nstands = 0;
+	}
+
+	for(unsigned int i = 0; i < gridcell.nbr_stands(); i++) {
+		Stand& stand = gridcell[i];
+
+		stand.frac_old = stand.get_gridcell_fraction();
+		stand.frac_temp = stand.frac_old;
+		stand.frac_change = 0.0;
+		stand.gross_frac_increase = 0.0;
+		stand.gross_frac_decrease = 0.0;
+		stand.cloned_fraction = 0.0;
+		if(stand.transfer_area_st) {
+			for(int i=0;i<nst;i++)
+				stand.transfer_area_st[i] = 0.0;
+		}
+		gridcell.st[stand.stid].nstands++;
+	}
+
 	// Get new landcover and stand type area fractions from input files, read transition arrays.
 	if(!all_fracs_const || !no_changes) {
-		/* This call returns 0, causing this function to return, if no significant landcover changes this year, 
+		/* This call returns 0, causing this function to return, if no significant landcover changes this year,
+		 * including gross transitions.
 		 * sets LCchangeCtransfer to 0 if unbalanced landcover changes (if some landcovers are inactivated), 
 		 * thus inactivating transfer of C and N.
 		 */
-		if(lc_changed(gridcell, LCchangeCtransfer, input_module)) {
+		if(lc_changed(gridcell, LCchangeCtransfer, input_module, st_frac_transfer)) {
 			no_changes = false;
 		}
 	}
@@ -3123,12 +3208,13 @@ void landcover_dynamics(Gridcell& gridcell, InputModule* input_module) {
 
 	// Transfer all landcover changes to stand type transition matrix, if not already done.
 
-	if(gross_land_transfer == ST_GROSS_INPUT) {
+	if(gross_land_transfer == ST_GROSS_INPUT && gross_ST_input_present) {
 
 		// Option to read stand type transitions from file.
-		fail("Currently no code for gross stand type transfer option\n");
+		if(check_fractions(gridcell, lc.frac_change, lc.frac_transfer, st_frac_transfer, true))
+			dprintf("Fraction error when using stand type transition input\n\n");
 	}
-	else if(gross_land_transfer == LC_GROSS_INPUT && gross_input_present) {
+	else if(gross_land_transfer == LC_GROSS_INPUT && gross_LC_input_present) {
 
 		// Option to read landcover transitions from file. Update the st_frac_transfer array.
 		set_st_change_array(gridcell, lc.frac_transfer, st_frac_transfer, lc.forest_lc_subset_transfer, forest_st_subset_transfer);
@@ -3485,10 +3571,11 @@ landcover_change_transfer::landcover_change_transfer() {
 	transfer_cmass_litter_leaf = transfer_cmass_litter_sap = transfer_cmass_litter_heart = NULL;
 	transfer_cmass_litter_root = transfer_cmass_litter_repr = transfer_cmass_harvested_products_slow = NULL;
 	transfer_nmass_litter_leaf = transfer_nmass_litter_sap = transfer_nmass_litter_heart = NULL;
-	transfer_nmass_litter_root = transfer_nmass_litter_NH4 = transfer_nmass_harvested_products_slow = NULL;
+	transfer_nmass_litter_root = transfer_nmass_litter_repr = transfer_nmass_harvested_products_slow = NULL;
+	transfer_nmass_litter_NH4 = NULL;
 
-	transfer_acflux_harvest = transfer_anflux_harvest = transfer_depth = transfer_wcont_evap = transfer_anfix_calc = 0.0;
-	transfer_wmass_ssw = transfer_imass_ssw = transfer_temp_ssw = 0.0;
+	transfer_acflux_harvest = transfer_anflux_harvest = transfer_wcont_evap = 0.0;
+	transfer_anfix_calc = 0.0;
 
 	// Sum soil layers
 	transfer_soil_nsoillayers = 0;
@@ -3526,11 +3613,45 @@ landcover_change_transfer::landcover_change_transfer() {
 		transfer_snow_temp[lyr] = 0.0;
 	}
 
+	transfer_aflux_NPP_pft = NULL;
+	transfer_aflux_GPP_pft = NULL;
+
+	transfer_cmass_harv_killed = NULL;
+	transfer_cmass_dist_clearcut_killed = NULL;
+	transfer_cmass_dist_fire_killed = NULL;
+	transfer_cmass_dist_wind_killed = NULL;
+	transfer_cmass_dist_barkbeetle_killed = NULL;
+
+	transfer_cmass_wood_harv_killed = NULL;
+	transfer_cmass_wood_harv = NULL;
+	transfer_cmass_wood_harv_toprod = NULL;
+	transfer_cmass_harv_tolitter = NULL;
+	transfer_cmass_wood_clearcut = NULL;
+	transfer_cmass_wood_thin = NULL;
+	transfer_cmass_thin_killed = NULL;
+	transfer_cmass_mort_wood = NULL;
+	transfer_cmass_mort = NULL;
+	transfer_cmass_leaf_root_turnover = NULL;
+	transfer_cmass_repr = NULL;
+	transfer_cmass_est = NULL;
+	transfer_cmass_harv_killed_plus10cm = NULL;
+	transfer_cmass_thin_killed_plus10cm = NULL;
+	transfer_cmass_wood_harv_killed_plus10cm = NULL;
+	transfer_cmass_clearcut_killed_plus10cm = NULL;
+	transfer_cmass_dist_clearcut_killed_plus10cm = NULL;
+	transfer_cmass_dist_fire_killed_plus10cm = NULL;
+	transfer_cmass_dist_wind_killed_plus10cm = NULL;
+	transfer_cmass_dist_barkbeetle_killed_plus10cm = NULL;
+	transfer_cmass_mort_wood_plus10cm = NULL;
+
 	allocate();
 }
 
 /// landcover_change_transfer deconstructor
 landcover_change_transfer::~landcover_change_transfer() {
+
+	if(transfer_aflux_NPP_pft) delete[] transfer_aflux_NPP_pft;
+	if(transfer_aflux_GPP_pft) delete[] transfer_aflux_GPP_pft;
 
 	if(transfer_cmass_litter_leaf) delete[] transfer_cmass_litter_leaf;
 	if(transfer_cmass_litter_sap) delete[] transfer_cmass_litter_sap;
@@ -3542,12 +3663,44 @@ landcover_change_transfer::~landcover_change_transfer() {
 	if(transfer_nmass_litter_sap) delete[] transfer_nmass_litter_sap;
 	if(transfer_nmass_litter_heart) delete[] transfer_nmass_litter_heart;
 	if(transfer_nmass_litter_root) delete[] transfer_nmass_litter_root;
+	if (transfer_nmass_litter_repr) delete[] transfer_nmass_litter_repr;
 	if(transfer_nmass_litter_NH4) delete[] transfer_nmass_litter_NH4;
 	if(transfer_nmass_harvested_products_slow) delete[] transfer_nmass_harvested_products_slow;
+
+	if(transfer_cmass_harv_killed) delete[] transfer_cmass_harv_killed;
+	if(transfer_cmass_dist_clearcut_killed) delete[] transfer_cmass_dist_clearcut_killed;
+	if(transfer_cmass_dist_fire_killed) delete[] transfer_cmass_dist_fire_killed;
+	if(transfer_cmass_dist_wind_killed) delete[] transfer_cmass_dist_wind_killed;
+	if(transfer_cmass_dist_barkbeetle_killed) delete[] transfer_cmass_dist_barkbeetle_killed;
+
+	if(transfer_cmass_wood_harv_killed) delete[] transfer_cmass_wood_harv_killed;
+	if(transfer_cmass_wood_harv) delete[] transfer_cmass_wood_harv;
+	if(transfer_cmass_wood_harv_toprod) delete[] transfer_cmass_wood_harv_toprod;
+	if(transfer_cmass_harv_tolitter) delete[] transfer_cmass_harv_tolitter;
+	if(transfer_cmass_wood_clearcut) delete[] transfer_cmass_wood_clearcut;
+	if(transfer_cmass_wood_thin) delete[] transfer_cmass_wood_thin;
+	if(transfer_cmass_thin_killed) delete[] transfer_cmass_thin_killed;
+	if(transfer_cmass_mort_wood) delete[] transfer_cmass_mort_wood;
+	if(transfer_cmass_mort) delete[] transfer_cmass_mort;
+	if(transfer_cmass_leaf_root_turnover) delete[] transfer_cmass_leaf_root_turnover;
+	if(transfer_cmass_repr) delete[] transfer_cmass_repr;
+	if(transfer_cmass_est) delete[] transfer_cmass_est;
+	if(transfer_cmass_harv_killed_plus10cm) delete[] transfer_cmass_harv_killed_plus10cm;
+	if(transfer_cmass_thin_killed_plus10cm) delete[] transfer_cmass_thin_killed_plus10cm;
+	if(transfer_cmass_wood_harv_killed_plus10cm) delete[] transfer_cmass_wood_harv_killed_plus10cm;
+	if(transfer_cmass_clearcut_killed_plus10cm) delete[] transfer_cmass_clearcut_killed_plus10cm;
+	if(transfer_cmass_dist_clearcut_killed_plus10cm) delete[] transfer_cmass_dist_clearcut_killed_plus10cm;
+	if(transfer_cmass_dist_fire_killed_plus10cm) delete[] transfer_cmass_dist_fire_killed_plus10cm;
+	if(transfer_cmass_dist_wind_killed_plus10cm) delete[] transfer_cmass_dist_wind_killed_plus10cm;
+	if(transfer_cmass_dist_barkbeetle_killed_plus10cm) delete[] transfer_cmass_dist_barkbeetle_killed_plus10cm;
+	if(transfer_cmass_mort_wood_plus10cm) delete[] transfer_cmass_mort_wood_plus10cm;
 }
 
 /// allocates memory for landcover_change_transfer object
 void landcover_change_transfer::allocate() {
+
+	transfer_aflux_NPP_pft = new double[npft];
+	transfer_aflux_GPP_pft = new double[npft];
 
 	transfer_cmass_litter_leaf = new double[npft];
 	transfer_cmass_litter_sap = new double[npft];
@@ -3560,10 +3713,43 @@ void landcover_change_transfer::allocate() {
 	transfer_nmass_litter_sap = new double[npft];
 	transfer_nmass_litter_heart = new double[npft];
 	transfer_nmass_litter_root = new double[npft];
+	transfer_nmass_litter_repr = new double[npft];
 	transfer_nmass_litter_NH4 = new double[npft];
 	transfer_nmass_harvested_products_slow = new double[npft];
 
+	transfer_cmass_harv_killed = new double[npft];
+	transfer_cmass_dist_clearcut_killed = new double[npft];
+	transfer_cmass_dist_fire_killed = new double[npft];
+	transfer_cmass_dist_wind_killed = new double[npft];
+	transfer_cmass_dist_barkbeetle_killed = new double[npft];
+
+	transfer_cmass_wood_harv_killed = new double[npft];
+	transfer_cmass_wood_harv = new double[npft];
+	transfer_cmass_wood_harv_toprod = new double[npft];
+	transfer_cmass_harv_tolitter = new double[npft];
+	transfer_cmass_wood_clearcut = new double[npft];
+	transfer_cmass_wood_thin = new double[npft];
+	transfer_cmass_thin_killed = new double[npft];
+	transfer_cmass_mort_wood = new double[npft];
+	transfer_cmass_mort = new double[npft];
+	transfer_cmass_leaf_root_turnover = new double[npft];
+	transfer_cmass_repr = new double[npft];
+	transfer_cmass_est = new double[npft];
+	transfer_cmass_harv_killed_plus10cm = new double[npft];
+	transfer_cmass_thin_killed_plus10cm = new double[npft];
+	transfer_cmass_wood_harv_killed_plus10cm = new double[npft];
+	transfer_cmass_clearcut_killed_plus10cm = new double[npft];
+	transfer_cmass_dist_clearcut_killed_plus10cm = new double[npft];
+	transfer_cmass_dist_fire_killed_plus10cm = new double[npft];
+	transfer_cmass_dist_wind_killed_plus10cm = new double[npft];
+	transfer_cmass_dist_barkbeetle_killed_plus10cm = new double[npft];
+	transfer_cmass_mort_wood_plus10cm = new double[npft];
+
 	for(int i=0;i<npft;i++) {
+
+		transfer_aflux_NPP_pft[i] = 0.0;
+		transfer_aflux_GPP_pft[i] = 0.0;
+
 		transfer_cmass_litter_leaf[i] = 0.0;
 		transfer_cmass_litter_sap[i] = 0.0;
 		transfer_cmass_litter_heart[i] = 0.0;
@@ -3574,8 +3760,37 @@ void landcover_change_transfer::allocate() {
 		transfer_nmass_litter_sap[i] = 0.0;
 		transfer_nmass_litter_heart[i] = 0.0;
 		transfer_nmass_litter_root[i] = 0.0;
+		transfer_nmass_litter_repr[i] = 0.0;
 		transfer_nmass_litter_NH4[i] = 0.0;
 		transfer_nmass_harvested_products_slow[i] = 0.0;
+
+		transfer_cmass_harv_killed[i] = 0.0;
+		transfer_cmass_dist_clearcut_killed[i] = 0.0;;
+		transfer_cmass_dist_fire_killed[i] = 0.0;;
+		transfer_cmass_dist_wind_killed[i] = 0.0;
+		transfer_cmass_dist_barkbeetle_killed[i] = 0.0;
+
+		transfer_cmass_wood_harv_killed[i] = 0.0;
+		transfer_cmass_wood_harv[i] = 0.0;
+		transfer_cmass_wood_harv_toprod[i] = 0.0;
+		transfer_cmass_harv_tolitter[i] = 0.0;
+		transfer_cmass_wood_clearcut[i] = 0.0;
+		transfer_cmass_wood_thin[i] = 0.0;
+		transfer_cmass_thin_killed[i] = 0.0;
+		transfer_cmass_mort_wood[i] = 0.0;
+		transfer_cmass_mort[i] = 0.0;
+		transfer_cmass_leaf_root_turnover[i] = 0.0;
+		transfer_cmass_repr[i] = 0.0;
+		transfer_cmass_est[i] = 0.0;
+		transfer_cmass_harv_killed_plus10cm[i] = 0.0;
+		transfer_cmass_thin_killed_plus10cm[i] = 0.0;
+		transfer_cmass_wood_harv_killed_plus10cm[i] = 0.0;
+		transfer_cmass_clearcut_killed_plus10cm[i] = 0.0;
+		transfer_cmass_dist_clearcut_killed_plus10cm[i] = 0.0;
+		transfer_cmass_dist_fire_killed_plus10cm[i] = 0.0;
+		transfer_cmass_dist_wind_killed_plus10cm[i] = 0.0;
+		transfer_cmass_dist_barkbeetle_killed_plus10cm[i] = 0.0;
+		transfer_cmass_mort_wood_plus10cm[i] = 0.0;
 	}
 }
 

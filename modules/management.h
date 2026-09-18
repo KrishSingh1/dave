@@ -19,16 +19,23 @@ void harvest_crop(Individual& indiv, Pft& pft, bool alive, bool isintercropgrass
 /// Sets forest management for all stands this year
 void manage_forests(Gridcell& gridcell);
 
+void prescribed_disturbance(Gridcell& gridcell);
+
+void establish_input_gridcell(Gridcell& gridcell);	// Rescale area fractions to next year's values, pool soil.
+
+
 /// Sets management strength for individual trees to achieve prescribed tree pft composition
 void set_forest_pft_structure(Gridcell& gridcell);
 
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
 void harvest_wood(Harvest_CN& indiv_cp, double diam,Pft& pft, bool alive, double frac_cut, double harv_eff,
-				  double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0);
+				  double res_outtake_twig = 0.0, double res_outtake_coarse_root = 0.0, bool forest_init = false);
 
 /// Harvest function used for managed forest and for clearing natural vegetation at land use change.
 void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double res_outtake_twig = 0.0,
-				  double res_outtake_coarse_root = 0.0, bool lc_change = false);
+				  double res_outtake_coarse_root = 0.0, bool lc_change = false,
+				  bool forest_init = false, disturbancetype disttype = CLEARCUT,
+				  bool thin = false);
 
 /// Harvest function for pasture, representing grazing.
 void harvest_pasture(Harvest_CN& indiv_cp, Pft& pft, bool alive);
@@ -37,7 +44,7 @@ void harvest_pasture(Harvest_CN& indiv_cp, Pft& pft, bool alive);
 void harvest_pasture(Individual& indiv, Pft& pft, bool alive, bool lc_change = false);
 
 /// Harvest function for managed forest
-void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed);
+void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed, lc_change_harvest_params* harv_params = NULL, disturbancetype disttype = CLEARCUT);
 
 /// Transfers all carbon and nitrogen from living tissue to litter.
 void kill_remaining_vegetation(Harvest_CN& indiv_cp, Pft& pft, bool alive, bool istruecrop_or_intercropgrass, bool burn = false);
@@ -89,21 +96,63 @@ double check_harvest_cmass(Patch& patch, bool stem_cmass_only = false, bool chec
 // Returns harvestable cmass for stand
 double check_harvest_cmass(Stand& stand, bool stem_cmass_only = false, bool check_selection = false);
 
+
+// Returns mean diameter for patch
+double check_mean_diam(Patch& patch, bool check_selection = false);
+
+// Returns mean diameter for stand
+double check_mean_diam(Stand& stand, bool check_selection = false);
+
+// Returns root mean square diameter for patch
+double check_mean_diam_rms(Patch& patch, bool check_selection = false);
+
+// Returns root mean square diameter for stand
+double check_mean_diam_rms(Stand& stand, bool check_selection = false);
+
+// Returns fire index(?) for patch
+double check_fire_sensitivity(Patch& patch, bool check_selection = false);
+
+// Returns fire index(?) for stand
+double check_fire_sensitivity(Stand& stand, bool check_selection = false);
+
+// Returns mean diameter for patch
+double check_storm_sensitivity(Patch& patch, bool check_selection = false);
+
+// Returns mean diameter for stand
+double check_storm_sensitivity(Stand& stand, bool check_selection = false);
+
+// Returns mean diameter for patch
+double check_barkbeetle_sensitivity(Patch& patch, bool check_selection = false);
+
+// Returns mean diameter for stand
+double check_barkbeetle_sensitivity(Stand& stand, bool check_selection = false);
+
+
+
 /// Class for ranking stands by harvestable cmass etc.
 class Rank_stands {
 
 	Gridcell& gridcell;
 	std::vector<double> cmass_harvest_vect;
 	std::vector<double> cmass_harvest_wood_vect;
+
+	std::vector<double> diam_vect;
+	std::vector<double> diam_rms_vect;
+	std::vector<double> fire_sensitivity_vect;
+	std::vector<double> storm_sensitivity_vect;
+	std::vector<double> barkbeetle_sensitivity_vect;
+
 	std::vector<std::pair<double,int> > sort_vect;
 
 public:
 
+	unsigned int nstands_initial;
+
 	void sort_data(std::vector<double> v) {
 
 		sort_vect.clear();
-		sort_vect.reserve(gridcell.nbr_stands());
-		for(unsigned int i=0;i<gridcell.nbr_stands();i++) {
+		sort_vect.reserve(nstands_initial);
+		for(unsigned int i=0;i<nstands_initial;i++) {
 			Stand& stand = gridcell[i];
 			sort_vect.push_back(std::make_pair(v[i],i));
 		}
@@ -117,14 +166,37 @@ public:
 		sort_data(cmass_harvest_wood_vect);
 	}
 
+	void sort_diameter() {
+		sort_data(diam_vect);
+	}
+	void sort_diameter_rms() {
+		sort_data(diam_rms_vect);
+	}
+	void sort_fire_sensitivity() {
+		sort_data(fire_sensitivity_vect);
+	}
+	void sort_storm_sensitivity() {
+		sort_data(storm_sensitivity_vect);
+	}
+	void sort_barkbeetle_sensitivity() {
+		sort_data(barkbeetle_sensitivity_vect);
+	}
+
 	Rank_stands(Gridcell& gridcellX) : gridcell(gridcellX) {
 
-		cmass_harvest_vect.reserve(gridcell.nbr_stands());
-		cmass_harvest_wood_vect.reserve(gridcell.nbr_stands());
-		for(unsigned int i=0;i<gridcell.nbr_stands();i++) {
+		nstands_initial = gridcell.nbr_stands();	// Save stand number before creation of new stands
+
+		cmass_harvest_vect.reserve(nstands_initial);
+		cmass_harvest_wood_vect.reserve(nstands_initial);
+		for(unsigned int i=0;i<nstands_initial;i++) {
 			Stand& stand = gridcell[i];
 			cmass_harvest_vect.push_back(check_harvest_cmass(stand));
-			cmass_harvest_wood_vect.push_back(check_harvest_cmass(stand, true));
+			cmass_harvest_wood_vect.push_back(check_harvest_cmass(stand));
+			diam_vect.push_back(check_mean_diam(stand));
+			diam_rms_vect.push_back(check_mean_diam_rms(stand, true));	// Prioritise stands with trees present in the PFT selection
+			fire_sensitivity_vect.push_back(check_fire_sensitivity(stand));
+			storm_sensitivity_vect.push_back(check_storm_sensitivity(stand));
+			barkbeetle_sensitivity_vect.push_back(check_barkbeetle_sensitivity(stand));
 		}
 		// Make sure sort_vect is filled
 		sort_cmass_harvest();
@@ -139,6 +211,22 @@ public:
 	double get_cmass_harvest_wood(int rank) {
 		return cmass_harvest_wood_vect[sort_vect[rank].second];
 	}
+
+	double get_diam(int rank) {
+		return diam_vect[sort_vect[rank].second];
+	}
+	double get_diam_rms(int rank) {
+		return diam_rms_vect[sort_vect[rank].second];
+	}
+	double get_fire_sensitivity(int rank) {
+		return fire_sensitivity_vect[sort_vect[rank].second];
+	}
+	double get_storm_sensitivity(int rank) {
+		return storm_sensitivity_vect[sort_vect[rank].second];
+	}
+	double get_barkbeetle_sensitivity(int rank) {
+		return barkbeetle_sensitivity_vect[sort_vect[rank].second];
+	}
 };
 
 /// Class for ranking patches by harvestable cmass etc.
@@ -147,6 +235,13 @@ class Rank_patches {
 	Stand& stand;
 	std::vector<double> cmass_harvest_vect;
 	std::vector<double> cmass_harvest_wood_vect;
+
+	std::vector<double> diam_vect;
+	std::vector<double> diam_rms_vect;
+	std::vector<double> fire_sensitivity_vect;
+	std::vector<double> storm_sensitivity_vect;
+	std::vector<double> barkbeetle_sensitivity_vect;
+
 	std::vector<std::pair<double,int> > sort_vect;
 
 public:
@@ -167,6 +262,22 @@ public:
 	}
 	void sort_cmass_harvest_wood() {
 		sort_data(cmass_harvest_wood_vect);
+	}
+
+	void sort_diameter() {
+		sort_data(diam_vect);
+	}
+	void sort_diameter_rms() {
+		sort_data(diam_rms_vect);
+	}
+	void sort_fire_sensitivity() {
+		sort_data(fire_sensitivity_vect);
+	}
+	void sort_storm_sensitivity() {
+		sort_data(storm_sensitivity_vect);
+	}
+	void sort_barkbeetle_sensitivity() {
+		sort_data(barkbeetle_sensitivity_vect);
 	}
 
 	Rank_patches(Stand& standX) : stand(standX) {
@@ -190,6 +301,22 @@ public:
 	}
 	double get_cmass_harvest_wood(int rank) {
 		return cmass_harvest_wood_vect[sort_vect[rank].second];
+	}
+
+	double get_diam(int rank) {
+		return diam_vect[sort_vect[rank].second];
+	}
+	double get_diam_rms(int rank) {
+		return diam_rms_vect[sort_vect[rank].second];
+	}
+	double get_fire_sensitivity(int rank) {
+		return fire_sensitivity_vect[sort_vect[rank].second];
+	}
+	double get_storm_sensitivity(int rank) {
+		return storm_sensitivity_vect[sort_vect[rank].second];
+	}
+	double get_barkbeetle_sensitivity(int rank) {
+		return barkbeetle_sensitivity_vect[sort_vect[rank].second];
 	}
 };
 
@@ -248,8 +375,10 @@ struct Harvest_CN {
 	double cmass_agpool;
 	double cmass_stem;
 	double cmass_dead_leaf;
-	double debt_excess;
+	double cmass_repr;
+	double cmass_crown;
 	double cmass_storage;
+	double debt_excess;
 	double nmass_leaf;
 	double nmass_leafs[4];
 	double nmass_root;
@@ -258,6 +387,8 @@ struct Harvest_CN {
 	double nmass_ho;
 	double nmass_agpool;
 	double nmass_dead_leaf;
+	double nmass_repr;
+	double nmass_crown;
 	double nstore_longterm;
 	double nstore_labile;
 	double max_n_storage;
@@ -291,6 +422,8 @@ struct Harvest_CN {
 		cmass_litter_leaf = cmass_litter_root = cmass_litter_sap = cmass_litter_heart = 0.0;
 		nmass_litter_leaf = nmass_litter_root = nmass_litter_sap = nmass_litter_heart = nmass_litter_NH4 = 0.0;
 		acflux_harvest = anflux_harvest = 0.0;
+		cmass_repr = cmass_crown = cmass_storage = 0.0;
+		nmass_repr = nmass_crown = nmass_storage = 0.0;
 		cmass_harvested_products_slow = nmass_harvested_products_slow = 0.0;
 		acflux_harvest_wood = acflux_harvest_wood_toprod = acflux_harvest_tolitter = 0.0;
 		cmass_leafs[0] = cmass_leafs[1] = cmass_leafs[2] = cmass_leafs[3] = cmass_storage = 0.0;
@@ -334,14 +467,44 @@ struct Harvest_CN {
 			}
 
 			if (ifdailygrass && indiv.pft.is_grass()) {
-				cmass_leafs[0] = indiv.cmass_leafs[0];
-				cmass_leafs[1] = indiv.cmass_leafs[1];
-				cmass_leafs[2] = indiv.cmass_leafs[2];
-				cmass_leafs[3] = indiv.cmass_leafs[3];
+				if (ifdavegrowth) {
+					// DAVE daily grass with 2 leaf pools.
+					cmass_leafs[0] = indiv.cmass_leafs[0];
+					cmass_leafs[1] = indiv.cmass_leafs[1];
+					cmass_leafs[2] = 0.0;
+					cmass_leafs[3] = 0.0;
+
+					nmass_leafs[0] = indiv.nmass_leafs[0];
+					nmass_leafs[1] = indiv.nmass_leafs[1];
+					nmass_leafs[2] = 0.0;
+					nmass_leafs[3] = 0.0;
+				} else {
+					// DW daily grass with 4 leaf pools.
+					cmass_leafs[0] = indiv.cmass_leafs[0];
+					cmass_leafs[1] = indiv.cmass_leafs[1];
+					cmass_leafs[2] = indiv.cmass_leafs[2];
+					cmass_leafs[3] = indiv.cmass_leafs[3];
+
+					nmass_leafs[0] = indiv.nmass_leafs[0];
+					nmass_leafs[1] = indiv.nmass_leafs[1];
+					nmass_leafs[2] = indiv.nmass_leafs[2];
+					nmass_leafs[3] = indiv.nmass_leafs[3];
+					nmass_storage = indiv.nmass_storage;
+				}
 				cmass_storage = indiv.cmass_storage;
 			}
 		}
 
+		if (indiv.pft.dave_allocation()) {
+			cmass_crown = indiv.cmass_crown;
+			nmass_crown = indiv.nmass_crown;
+
+			cmass_repr = indiv.cmass_repr;
+			nmass_repr = indiv.nmass_repr;
+
+			cmass_storage = indiv.cmass_storage;
+			nmass_storage = indiv.nmass_storage;
+		}
 
 		nmass_leaf = indiv.nmass_leaf;
 		nmass_root = indiv.nmass_root;
@@ -356,14 +519,6 @@ struct Harvest_CN {
 			nmass_ho = indiv.cropindiv->nmass_ho;
 			nmass_agpool = indiv.cropindiv->nmass_agpool;
 			nmass_dead_leaf = indiv.cropindiv->nmass_dead_leaf;
-		}
-
-		if (ifdailygrass && indiv.pft.is_grass()) {
-			nmass_leafs[0] = indiv.nmass_leafs[0];
-			nmass_leafs[1] = indiv.nmass_leafs[1];
-			nmass_leafs[2] = indiv.nmass_leafs[2];
-			nmass_leafs[3] = indiv.nmass_leafs[3];
-			nmass_storage = indiv.nmass_storage;
 		}
 
 		if(copy_dead_C) {
@@ -419,14 +574,44 @@ struct Harvest_CN {
 				// indiv.cropindiv->grs_cmass_dead_leaf = cmass_dead_leaf;	// We can't use grs_cmass here !
 				// indiv.cropindiv->grs_cmass_stem = cmass_stem;
 			}
+		}
 
-			if (ifdailygrass && indiv.pft.is_grass()) {
+		if (ifdailygrass && indiv.pft.is_grass()) {
+			if (ifdavegrowth) {
+				// DAVE daily grass with 2 leaf pools.
+				indiv.cmass_leafs[0] = cmass_leafs[0];
+				indiv.cmass_leafs[1] = cmass_leafs[1];
+				indiv.cmass_leafs[2] = 0.0;
+				indiv.cmass_leafs[3] = 0.0;
+
+				indiv.nmass_leafs[0] = nmass_leafs[0];
+				indiv.nmass_leafs[1] = nmass_leafs[1];
+				indiv.nmass_leafs[2] = 0.0;
+				indiv.nmass_leafs[3] = 0.0;
+			} else {
+				// DW daily grass with 4 leaf pools.
 				indiv.cmass_leafs[0] = cmass_leafs[0];
 				indiv.cmass_leafs[1] = cmass_leafs[1];
 				indiv.cmass_leafs[2] = cmass_leafs[2];
 				indiv.cmass_leafs[3] = cmass_leafs[3];
-				indiv.cmass_storage = cmass_storage;
+
+				indiv.nmass_leafs[0] = nmass_leafs[0];
+				indiv.nmass_leafs[1] = nmass_leafs[1];
+				indiv.nmass_leafs[2] = nmass_leafs[2];
+				indiv.nmass_leafs[3] = nmass_leafs[3];
+				indiv.nmass_storage = nmass_storage;
 			}
+		}
+
+		if (indiv.pft.dave_allocation()) {
+			indiv.cmass_crown = cmass_crown;
+			indiv.nmass_crown = nmass_crown;
+
+			indiv.cmass_repr = cmass_repr;
+			indiv.nmass_repr = nmass_repr;
+
+			indiv.cmass_storage = cmass_storage;
+			indiv.nmass_storage = nmass_storage;
 		}
 
 		indiv.nmass_leaf = nmass_leaf;
@@ -442,14 +627,6 @@ struct Harvest_CN {
 			indiv.cropindiv->nmass_ho = nmass_ho;
 			indiv.cropindiv->nmass_agpool = nmass_agpool;
 			indiv.cropindiv->nmass_dead_leaf = nmass_dead_leaf;
-		}
-
-		if (ifdailygrass && indiv.pft.is_grass()) {
-			indiv.nmass_leafs[0] = nmass_leafs[0];
-			indiv.nmass_leafs[1] = nmass_leafs[1];
-			indiv.nmass_leafs[2] = nmass_leafs[2];
-			indiv.nmass_leafs[3] = nmass_leafs[3];
-			indiv.nmass_storage = nmass_storage;
 		}
 
 		ppft.cmass_litter_leaf = cmass_litter_leaf;

@@ -3,6 +3,7 @@
 /// \brief Implementation of the common output module
 ///
 /// \author Joe Siltberg
+/// $Date: 2015-04-09 18:40:34 +0200 (Thu, 09 Apr 2015) $
 ///
 /// This Source Code Form is subject to the terms of the Mozilla Public
 /// License, v. 2.0. If a copy of the MPL was not distributed with this
@@ -25,37 +26,44 @@ REGISTER_OUTPUT_MODULE("misc", MiscOutput)
 
 MiscOutput::MiscOutput() {
 	// Annual output variables
-	declare_parameter("file_cmass_landscape", &file_cmass_landscape, 300, "C biomass output file");
+	declare_parameter("file_cmass_active_cropland", &file_cmass_active_cropland, 300, "Annual cropland cmass output file");
+	declare_parameter("file_cmass_active_pasture", &file_cmass_active_pasture, 300, "Annual pasture cmass output file");
+	declare_parameter("file_cmass_active_natural", &file_cmass_active_natural, 300, "Annual natural vegetation cmass output file");
+	declare_parameter("file_cmass_active_forest", &file_cmass_active_forest, 300, "Annual managed forest cmass output file");
+	declare_parameter("file_cmass_active_peatland", &file_cmass_active_peatland, 300, "Annual peatland cmass output file");
 	declare_parameter("file_cmass_cropland", &file_cmass_cropland, 300, "Annual cropland cmass output file");
 	declare_parameter("file_cmass_pasture", &file_cmass_pasture, 300, "Annual pasture cmass output file");
 	declare_parameter("file_cmass_natural", &file_cmass_natural, 300, "Annual natural vegetation cmass output file");
 	declare_parameter("file_cmass_forest", &file_cmass_forest, 300, "Annual managed forest cmass output file");
 	declare_parameter("file_cmass_peatland", &file_cmass_peatland, 300, "Annual peatland cmass output file");
-	declare_parameter("file_cmass_landscape_cropland", &file_cmass_landscape_cropland, 300, "Annual cropland cmass output file");
-	declare_parameter("file_cmass_landscape_pasture", &file_cmass_landscape_pasture, 300, "Annual pasture cmass output file");
-	declare_parameter("file_cmass_landscape_natural", &file_cmass_landscape_natural, 300, "Annual natural vegetation cmass output file");
-	declare_parameter("file_cmass_landscape_forest", &file_cmass_landscape_forest, 300, "Annual managed forest cmass output file");
-	declare_parameter("file_cmass_landscape_peatland", &file_cmass_landscape_peatland, 300, "Annual peatland cmass output file");
-	declare_parameter("file_anpp_landscape", &file_anpp_landscape, 300, "Annual NPP output file");
+	declare_parameter("file_anpp_active_cropland", &file_anpp_active_cropland, 300, "Annual cropland NPP output file");
+	declare_parameter("file_anpp_active_pasture", &file_anpp_active_pasture, 300, "Annual pasture NPP output file");
+	declare_parameter("file_anpp_active_natural", &file_anpp_active_natural, 300, "Annual natural vegetation NPP output file");
+	declare_parameter("file_anpp_active_forest", &file_anpp_active_forest, 300, "Annual managed forest NPP output file");
+	declare_parameter("file_anpp_active_peatland", &file_anpp_active_peatland, 300, "Annual peatland NPP output file");
 	declare_parameter("file_anpp_cropland", &file_anpp_cropland, 300, "Annual cropland NPP output file");
 	declare_parameter("file_anpp_pasture", &file_anpp_pasture, 300, "Annual pasture NPP output file");
 	declare_parameter("file_anpp_natural", &file_anpp_natural, 300, "Annual natural vegetation NPP output file");
 	declare_parameter("file_anpp_forest", &file_anpp_forest, 300, "Annual managed forest NPP output file");
 	declare_parameter("file_anpp_peatland", &file_anpp_peatland, 300, "Annual peatland NPP output file");
-	declare_parameter("file_anpp_landscape_cropland", &file_anpp_landscape_cropland, 300, "Annual cropland NPP output file");
-	declare_parameter("file_anpp_landscape_pasture", &file_anpp_landscape_pasture, 300, "Annual pasture NPP output file");
-	declare_parameter("file_anpp_landscape_natural", &file_anpp_landscape_natural, 300, "Annual natural vegetation NPP output file");
-	declare_parameter("file_anpp_landscape_forest", &file_anpp_landscape_forest, 300, "Annual managed forest NPP output file");
-	declare_parameter("file_anpp_landscape_peatland", &file_anpp_landscape_peatland, 300, "Annual peatland NPP output file");
-	declare_parameter("file_lai_landscape", &file_lai_landscape, 300, "Annual NPP output file");
-	declare_parameter("file_lai_landscape_cropland", &file_lai_landscape_cropland, 300, "Annual cropland LAI output file");
-	declare_parameter("file_lai_landscape_pasture", &file_lai_landscape_pasture, 300, "Annual pasture LAI output file");
-	declare_parameter("file_lai_landscape_natural", &file_lai_landscape_natural, 300, "Annual natural vegetation LAI output file");
-	declare_parameter("file_lai_landscape_forest", &file_lai_landscape_forest, 300, "Annual managed forest LAI output file");
-	declare_parameter("file_lai_landscape_peatland", &file_lai_landscape_peatland, 300, "Annual peatland LAI output file");
-	declare_parameter("file_yield",&file_yield,300, "Crop yield output file");
-	declare_parameter("file_yield1",&file_yield1,300,"Crop first yield output file");
-	declare_parameter("file_yield2",&file_yield2,300,"Crop second yield output file");
+	declare_parameter("file_lai_cropland", &file_lai_cropland, 300, "Annual cropland LAI output file");
+	declare_parameter("file_lai_pasture", &file_lai_pasture, 300, "Annual pasture LAI output file");
+	declare_parameter("file_lai_natural", &file_lai_natural, 300, "Annual natural vegetation LAI output file");
+	declare_parameter("file_lai_forest", &file_lai_forest, 300, "Annual managed forest LAI output file");
+	declare_parameter("file_lai_peatland", &file_lai_peatland, 300, "Annual peatland LAI output file");
+
+	declare_parameter("file_anpp_gridcell_natural", &file_anpp_gridcell_natural, 300, "Annual natural vegetation NPP per gridcell area output file");
+	declare_parameter("file_anpp_gridcell_forest", &file_anpp_gridcell_forest, 300, "Annual managed forest NPP per gridcell area output file");
+	declare_parameter("file_cmass_gridcell_natural", &file_cmass_gridcell_natural, 300, "Annual natural vegetation cmass per gridcell area output file");
+	declare_parameter("file_cmass_gridcell_forest", &file_cmass_gridcell_forest, 300, "Annual managed forest cmass per gridcell area output file");
+	declare_parameter("file_aaet_gridcell_natural", &file_aaet_gridcell_natural, 300, "Annual natural vegetation AET per gridcell area output file");
+	declare_parameter("file_aaet_gridcell_forest", &file_aaet_gridcell_forest, 300, "Annual managed forest AET per gridcell area output file");
+	declare_parameter("file_lai_gridcell_natural", &file_lai_gridcell_natural, 300, "Annual natural vegetation LAI per gridcell area output file");
+	declare_parameter("file_lai_gridcell_forest", &file_lai_gridcell_forest, 300, "Annual managed forest LAI per gridcell area output file");
+
+	declare_parameter("file_yield_active",&file_yield_active,300, "Crop yield output file");
+	declare_parameter("file_yield1_active",&file_yield1_active,300,"Crop first yield output file");
+	declare_parameter("file_yield2_active",&file_yield2_active,300,"Crop second yield output file");
 	declare_parameter("file_sdate1",&file_sdate1,300,"Crop first sowing date output file");
 	declare_parameter("file_sdate2",&file_sdate2,300,"Crop second sowing date output file");
 	declare_parameter("file_hdate1",&file_hdate1,300,"Crop first harvest date output file");
@@ -66,102 +74,222 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_fhi",&file_fhi,300,"Crop attained fraction of harvest index output file");
 	declare_parameter("file_irrigation",&file_irrigation,300,"Crop irrigation output file");
 	declare_parameter("file_seasonality",&file_seasonality,300,"Seasonality output file");
-	declare_parameter("file_cflux_cropland", &file_cflux_cropland, 300, "C fluxes output file");
-	declare_parameter("file_cflux_pasture", &file_cflux_pasture, 300, "C fluxes output file");
-	declare_parameter("file_cflux_natural", &file_cflux_natural, 300, "C fluxes output file");
-	declare_parameter("file_cflux_forest", &file_cflux_forest, 300, "C fluxes output file");
-	declare_parameter("file_cflux_peatland", &file_cflux_peatland, 300, "C fluxes output file");
+	declare_parameter("file_cflux_cropland", &file_cflux_cropland, 300, "C fluxes per gridcell area output file");
+	declare_parameter("file_cflux_pasture", &file_cflux_pasture, 300, "C fluxes per gridcell area output file");
+	declare_parameter("file_cflux_natural", &file_cflux_natural, 300, "C fluxes per gridcell area output file");
+	declare_parameter("file_cflux_forest", &file_cflux_forest, 300, "C fluxes per gridcell area output file");
+	declare_parameter("file_cflux_peatland", &file_cflux_peatland, 300, "C fluxes per gridcell area output file");
 	declare_parameter("file_cflux_forestry", &file_cflux_forestry, 300, "C fluxes per gridcell area output file");
 	declare_parameter("file_cflux_regrowth", &file_cflux_regrowth, 300, "C fluxes per gridcell area output file");
 	declare_parameter("file_cflux_primary", &file_cflux_primary, 300, "C fluxes per gridcell area output file");
 	declare_parameter("file_dens_natural", &file_dens_natural, 300, "Natural vegetation tree density output file");
 	declare_parameter("file_dens_forest", &file_dens_forest, 300, "Managed forest tree density output file");
-	declare_parameter("file_cpool_cropland", &file_cpool_cropland, 300, "Soil C output file");
-	declare_parameter("file_cpool_pasture", &file_cpool_pasture, 300, "Soil C output file");
-	declare_parameter("file_cpool_natural", &file_cpool_natural, 300, "Soil C output file");
-	declare_parameter("file_cpool_forest", &file_cpool_forest, 300, "Soil C output file");
-	declare_parameter("file_cpool_peatland", &file_cpool_peatland, 300, "Soil C output file");
+	declare_parameter("file_cpool_cropland", &file_cpool_cropland, 300, "C pool per gridcell area output file");
+	declare_parameter("file_cpool_pasture", &file_cpool_pasture, 300, "C pool per gridcell area output file");
+	declare_parameter("file_cpool_natural", &file_cpool_natural, 300, "C pool per gridcell area output file");
+	declare_parameter("file_cpool_forest", &file_cpool_forest, 300, "C pool per gridcell area output file");
+	declare_parameter("file_cpool_peatland", &file_cpool_peatland, 300, "C pool per gridcell area file");
 	declare_parameter("file_cpool_forestry", &file_cpool_forestry, 300, "C pool per gridcell area output file");
 	declare_parameter("file_cpool_regrowth", &file_cpool_regrowth, 300, "C pool per gridcell area output file");
 	declare_parameter("file_cpool_primary", &file_cpool_primary, 300, "C pool per gridcell area output file");
-	declare_parameter("file_nflux_cropland", &file_nflux_cropland, 300, "N fluxes output file");
-	declare_parameter("file_nflux_pasture", &file_nflux_pasture, 300, "N fluxes output file");
-	declare_parameter("file_nflux_natural", &file_nflux_natural, 300, "N fluxes output file");
-	declare_parameter("file_nflux_forest", &file_nflux_forest, 300, "N fluxes output file");
-	declare_parameter("file_nflux_peatland", &file_nflux_peatland, 300, "N fluxes output file");
-	declare_parameter("file_npool_cropland", &file_npool_cropland, 300, "Soil N output file");
-	declare_parameter("file_npool_pasture", &file_npool_pasture, 300, "Soil N output file");
-	declare_parameter("file_npool_natural", &file_npool_natural, 300, "Soil N output file");
-	declare_parameter("file_npool_forest", &file_npool_forest, 300, "Soil N output file");
-	declare_parameter("file_npool_peatland", &file_npool_peatland, 300, "Soil N output file");
-	declare_parameter("file_aaet_natural", &file_aaet_natural, 300, "Annual natural vegetation AET output file");
-	declare_parameter("file_aaet_forest", &file_aaet_forest, 300, "Annual managed forest AET output file");
-	declare_parameter("file_fpc_natural", &file_fpc_natural, 300, "Annual natural vegetation FPC output file");
-	declare_parameter("file_fpc_forest", &file_fpc_forest, 300, "Annual managed forest FPC output file");
-	declare_parameter("file_lai_natural", &file_lai_natural, 300, "Annual natural vegetation LAI output file");
-	declare_parameter("file_lai_forest", &file_lai_forest, 300, "Annual managed forest LAI output file");
+	declare_parameter("file_nflux_cropland", &file_nflux_cropland, 300, "N fluxes per gridcell area output file");
+	declare_parameter("file_nflux_pasture", &file_nflux_pasture, 300, "N fluxes per gridcell area output file");
+	declare_parameter("file_nflux_natural", &file_nflux_natural, 300, "N fluxes per gridcell area output file");
+	declare_parameter("file_nflux_forest", &file_nflux_forest, 300, "N fluxes per gridcell area output file");
+	declare_parameter("file_nflux_peatland", &file_nflux_peatland, 300, "N fluxes per gridcell area output file");
+	declare_parameter("file_npool_cropland", &file_npool_cropland, 300, "N pool per gridcell area output file");
+	declare_parameter("file_npool_pasture", &file_npool_pasture, 300, "N pool per gridcell area output file");
+	declare_parameter("file_npool_natural", &file_npool_natural, 300, "N pool per gridcell area output file");
+	declare_parameter("file_npool_forest", &file_npool_forest, 300, "N pool per gridcell area output file");
+	declare_parameter("file_npool_peatland", &file_npool_peatland, 300, "Soil N output per gridcell area file");
+	declare_parameter("file_aaet_active_natural", &file_aaet_active_natural, 300, "Annual natural vegetation AET output file");
+	declare_parameter("file_aaet_active_forest", &file_aaet_active_forest, 300, "Annual managed forest AET output file");
+	declare_parameter("file_fpc_active_natural", &file_fpc_active_natural, 300, "Annual natural vegetation FPC output file");
+	declare_parameter("file_fpc_active_forest", &file_fpc_active_forest, 300, "Annual managed forest FPC output file");
+	declare_parameter("file_lai_active_natural", &file_lai_active_natural, 300, "Annual natural vegetation LAI output file");
+	declare_parameter("file_lai_active_forest", &file_lai_active_forest, 300, "Annual managed forest LAI output file");
 	declare_parameter("file_speciesdiam_natural", &file_speciesdiam_natural, 300, "Mean species diameter (cm)");
 	declare_parameter("file_speciesdiam_forest", &file_speciesdiam_forest, 300, "Mean species diameter (cm)");
 	declare_parameter("file_speciesheights_natural", &file_speciesheights_natural, 300, "Mean species height (m)");
 	declare_parameter("file_speciesheights_forest", &file_speciesheights_forest, 300, "Mean species height (m)");
-
-	declare_parameter("file_csoil_depth_cropland", &file_csoil_depth_cropland, 300, "Soil C at depths output file");
-	declare_parameter("file_csoil_depth_pasture", &file_csoil_depth_pasture, 300, "Soil C at depths output file");
-	declare_parameter("file_csoil_depth_natural", &file_csoil_depth_natural, 300, "Soil C at depths output file");
-	declare_parameter("file_csoil_depth_forest", &file_csoil_depth_forest, 300, "Soil C at depths output file");
-	declare_parameter("file_csoil_depth_peatland", &file_csoil_depth_peatland, 300, "Soil C at depths output file");
 
 	declare_parameter("file_soil_nflux_cropland", &file_soil_nflux_cropland, 300, "Soil N fluxes output file");
 	declare_parameter("file_soil_nflux_pasture", &file_soil_nflux_pasture, 300, "Soil N fluxes output file");
 	declare_parameter("file_soil_nflux_natural", &file_soil_nflux_natural, 300, "Soil N fluxes output file");
 	declare_parameter("file_soil_nflux_forest", &file_soil_nflux_forest, 300, "Soil N fluxes output file");
 	declare_parameter("file_soil_n2o_flux", &file_soil_n2o_flux, 300, "Soil N2O fluxes per landcover output file, includes a Total.noBar (Total without BARREN contributions)");
-
+	declare_parameter("file_frac_natural", &file_frac_natural, 300, "PFT area fraction output file");
+	declare_parameter("file_frac_forest", &file_frac_forest, 300, "PFT area fraction output file");
 	declare_parameter("file_agestruct_natural", &file_agestruct_natural, 300, "Age structure (tree density)");
 	declare_parameter("file_agestruct_forest", &file_agestruct_forest, 300, "Age structure (tree density)");
 	declare_parameter("file_diamstruct_natural", &file_diamstruct_natural, 300, "Diameter structure (tree density)");
 	declare_parameter("file_diamstruct_forest", &file_diamstruct_forest, 300, "Diameter structure (tree density)");
-	declare_parameter("file_diamstruct_cmass_natural", &file_diamstruct_cmass_natural, 300, "Diameter structure (cmass_wood_potharv)");
-	declare_parameter("file_diamstruct_cmass_forest", &file_diamstruct_cmass_forest, 300, "Diameter structure (cmass_wood_potharv)");
+	declare_parameter("file_diamstruct_cmass_natural", &file_diamstruct_cmass_natural, 300, "Diameter structure (cmass_wood)");
+	declare_parameter("file_diamstruct_cmass_forest", &file_diamstruct_cmass_forest, 300, "Diameter structure (cmass_wood)");
+	declare_parameter("file_diamstruct_cmass_leaf_natural", &file_diamstruct_cmass_leaf_natural, 300, "Diameter structure (cmass_wood_leaf)");
+	declare_parameter("file_diamstruct_cmass_leaf_forest", &file_diamstruct_cmass_leaf_forest, 300, "Diameter structure (cmass_wood_leaf)");
+	declare_parameter("file_diamstruct_cmass_wood_natural", &file_diamstruct_cmass_wood_natural, 300, "Diameter structure (cmass_wood)");
+	declare_parameter("file_diamstruct_cmass_wood_forest", &file_diamstruct_cmass_wood_forest, 300, "Diameter structure (cmass_wood)");
+	declare_parameter("file_diamstruct_cmass_froot_natural", &file_diamstruct_cmass_froot_natural, 300, "Diameter structure (cmass_root)");
+	declare_parameter("file_diamstruct_cmass_froot_forest", &file_diamstruct_cmass_froot_forest, 300, "Diameter structure (cmass_root)");
+	declare_parameter("file_diamstruct_cmass_wood_inc_natural", &file_diamstruct_cmass_wood_inc_natural, 300, "Diameter structure (cmass increment)");
+	declare_parameter("file_diamstruct_cmass_wood_inc_forest", &file_diamstruct_cmass_wood_inc_forest, 300, "Diameter structure (cmass increment)");
+	declare_parameter("file_diamstruct_ba_natural", &file_diamstruct_ba_natural, 300, "Diameter structure (basal area)");
+	declare_parameter("file_diamstruct_ba_forest", &file_diamstruct_ba_forest, 300, "Diameter structure (basal area)");
+	declare_parameter("file_agestruct_standage_natural", &file_agestruct_standage_natural, 300, "Age structure (stand age)");
+	declare_parameter("file_agestruct_standage_forest", &file_agestruct_standage_forest, 300, "Age structure (stand age)");
+	declare_parameter("file_agestruct_standage_cropland", &file_agestruct_standage_cropland, 300, "Age structure (stand age)");
+	declare_parameter("file_agestruct_standage_pasture", &file_agestruct_standage_pasture, 300, "Age structure (stand age)");
 
 	declare_parameter("file_anpp_sts", &file_anpp_sts, 300, "stand type anpp output file");
 	declare_parameter("file_lai_sts", &file_lai_sts, 300, "stand type lai output file");
-	declare_parameter("file_lai_tree_sts", &file_lai_tree_sts, 300, "stand type tree lai output file");
 	declare_parameter("file_cmass_sts", &file_cmass_sts, 300, "stand type cmass output file");
+	declare_parameter("file_cmass_harv_killed_sts", &file_cmass_harv_killed_sts, 300,
+		"stand type whole tree harvest cmass output file");
+	declare_parameter("file_cmass_thin_killed_sts", &file_cmass_thin_killed_sts, 300,
+		"stand type whole tree thinning cmass output file");
+	declare_parameter("file_cmass_clearcut_killed_sts", &file_cmass_clearcut_killed_sts, 300,
+		"stand type whole tree non-satellite clearcut disturbance cmass output file");
+	declare_parameter("file_cmass_fire_killed_sts", &file_cmass_fire_killed_sts, 300,
+		"stand type whole tree prognostic fire disturbance cmass output file");
+	declare_parameter("file_cmass_wind_killed_sts", &file_cmass_wind_killed_sts, 300,
+		"stand type whole tree prognostic wind disturbance cmass output file");
+	declare_parameter("file_cmass_barkbeetle_killed_sts", &file_cmass_barkbeetle_killed_sts, 300,
+		"stand type whole tree prognostic bark beetle disturbance cmass output file");
+	declare_parameter("file_cmass_dist_default_sts", &file_cmass_dist_default_sts, 300,
+		"stand type whole tree killed in default patch-destroying disturbance cmass output file");
+	declare_parameter("file_cmass_dist_prescribed_sts", &file_cmass_dist_prescribed_sts, 300,
+		"stand type whole tree killed in prescribed patch-destroying disturbance cmass output file");
+	declare_parameter("file_cmass_dist_clearcut_killed_sts", &file_cmass_dist_clearcut_killed_sts, 300,
+		"stand type whole tree prescribed (satellite) clearcut disturbance cmass output file");
+	declare_parameter("file_cmass_dist_fire_killed_sts", &file_cmass_dist_fire_killed_sts, 300,
+		"stand type whole tree prescribed fire disturbance cmass output file");
+	declare_parameter("file_cmass_dist_wind_killed_sts", &file_cmass_dist_wind_killed_sts, 300,
+		"stand type whole tree prescribed wind disturbance cmass output file");
+	declare_parameter("file_cmass_dist_barkbeetle_killed_sts", &file_cmass_dist_barkbeetle_killed_sts, 300,
+		"stand type whole tree prescribed bark beetle disturbance cmass output file");
+	declare_parameter("file_agpp_sts", &file_agpp_sts, 300, "stand type agpp output file");
+
+	declare_parameter("file_anpp_tree_sts", &file_anpp_tree_sts, 300, "stand type tree lai output file");
+	declare_parameter("file_agpp_tree_sts", &file_agpp_tree_sts, 300, "stand type tree lai output file");
+	declare_parameter("file_aautresp_tree_sts", &file_aautresp_tree_sts, 300, "stand type tree lai output file");
+	declare_parameter("file_aautresp_root_tree_sts", &file_aautresp_root_tree_sts, 300, "stand type tree lai output file");
+	declare_parameter("file_aautresp_sap_tree_sts", &file_aautresp_sap_tree_sts, 300, "stand type tree lai output file");
+	declare_parameter("file_aautresp_leaf_tree_sts", &file_aautresp_leaf_tree_sts, 300, "stand type tree lai output file");
+	declare_parameter("file_aautresp_growth_tree_sts", &file_aautresp_growth_tree_sts, 300, "stand type tree lai output file");
+
+	declare_parameter("file_lai_tree_sts", &file_lai_tree_sts, 300, "stand type tree lai output file");
 	declare_parameter("file_cmass_tree_sts", &file_cmass_tree_sts, 300, "stand type tree cmass output file");
 	declare_parameter("file_cmass_tree_mort_sts", &file_cmass_tree_mort_sts, 300,
 		"stand type cmass of trees killed by mortality output file");
+
 	declare_parameter("file_cmass_wood_sts", &file_cmass_wood_sts, 300, "stand type wood cmass output file");
-	declare_parameter("file_cmass_harv_killed_sts", &file_cmass_harv_killed_sts, 300,
-		"stand type whole tree harvest cmass output file");
+	declare_parameter("file_cmass_wood_harv_killed_sts", &file_cmass_wood_harv_killed_sts, 300, "stand type gross wood harvest (standard plus prescribed) cmass output file");
 	declare_parameter("file_cmass_wood_harv_sts", &file_cmass_wood_harv_sts, 300,
-		"stand type wood harvest cmass output file");
+		"stand type net wood harvest (standard plus prescribed) cmass output file");
 	declare_parameter("file_cmass_wood_harv_toprod_sts", &file_cmass_wood_harv_toprod_sts, 300,
-		"stand type wood harvest product cmass output file");
+		"stand type wood harvest (standard plus prescribed) product cmass output file");
 	declare_parameter("file_cmass_wood_thin_sts", &file_cmass_wood_thin_sts, 300,
-		"stand type thinning wood harvest cmass output file");
+		"stand type thinning net wood harvest cmass output file");
 	declare_parameter("file_cmass_wood_clearcut_sts", &file_cmass_wood_clearcut_sts, 300,
-		"stand type clearcut wood harvest cmass output file");
+		"stand type clearcut (standard plus prescribed) net wood harvest cmass output file");
+	declare_parameter("file_cmass_wood_mort_sts", &file_cmass_wood_mort_sts, 300, "stand type cmass of trees killed by mortality output file");
+	declare_parameter("file_cmass_wood_inc_sts", &file_cmass_wood_inc_sts, 300, "stand type wood productivity output file");
+
+	declare_parameter("file_csoil_sts", &file_csoil_sts, 300, "stand type soil C output file");
+	declare_parameter("file_clitter_sts", &file_clitter_sts, 300, "stand type litter C output file");
+	declare_parameter("file_clitter_course_sts", &file_clitter_course_sts, 300, "stand type course litter C output file");
+	declare_parameter("file_clitter_fine_sts", &file_clitter_fine_sts, 300, "stand type fine litter C output file");
+	declare_parameter("file_rh_sts", &file_rh_sts, 300, "stand type heterotrophic respiration C output file");
+	declare_parameter("file_rh_clitter_course_sts", &file_rh_clitter_course_sts, 300, "stand type course wood heterotrophic respiration C output file");
+	declare_parameter("file_rh_clitter_fine_sts", &file_rh_clitter_fine_sts, 300, "stand type fine wood heterotrophic respiration C output file");
+	declare_parameter("file_csink_sts", &file_csink_sts, 300, "stand type carbon sink output file");
+	declare_parameter("file_luc_cflux_sts", &file_luc_cflux_sts, 300, "stand type carbon lost in LUC output file");
+	declare_parameter("file_nsoil_sts", &file_nsoil_sts, 300, "stand type soil N output file");
+	declare_parameter("file_nlitter_sts", &file_nlitter_sts, 300, "stand type litter N output file");
+	declare_parameter("file_nlitter_course_sts", &file_nlitter_course_sts, 300, "stand type course litter N output file");
+	declare_parameter("file_nlitter_fine_sts", &file_nlitter_fine_sts, 300, "stand type fine litter N output file");
+
+	declare_parameter("file_transpiration_sts", &file_transpiration_sts, 300, "stand type transpiration output file");
+	declare_parameter("file_runoff_sts", &file_runoff_sts, 300, "stand type runoff output file");
+	declare_parameter("file_intercep_sts", &file_intercep_sts, 300, "stand type interception output file");
+	declare_parameter("file_evap_sts", &file_evap_sts, 300, "stand type evaporation file");
+
+	declare_parameter("file_dens_sts", &file_dens_sts, 300, "stand type tree density output file");
+	declare_parameter("file_height_sts", &file_height_sts, 300, "stand type height output file");
+	declare_parameter("file_diam_sts", &file_diam_sts, 300, "stand type tree mean diameter output file");
+	declare_parameter("file_diam_g_sts", &file_diam_g_sts, 300, "stand type tree quadratic mean diameter output file");
+
+	declare_parameter("file_cmass_plus10cm_sts", &file_cmass_plus10cm_sts, 300, "stand type cmass output file");
+	declare_parameter("file_cmass_harv_killed_plus10cm_sts", &file_cmass_harv_killed_plus10cm_sts, 300,
+		"stand type whole tree harvest cmass output file");
+	declare_parameter("file_cmass_dist_clearcut_killed_plus10cm_sts", &file_cmass_dist_clearcut_killed_plus10cm_sts, 300,
+		"stand type whole tree clearcut disturbance cmass output file");
+	declare_parameter("file_cmass_dist_fire_killed_plus10cm_sts", &file_cmass_dist_fire_killed_plus10cm_sts, 300,
+		"stand type whole tree fire disturbance cmass output file");
+	declare_parameter("file_cmass_dist_wind_killed_plus10cm_sts", &file_cmass_dist_wind_killed_plus10cm_sts, 300,
+		"stand type whole tree wind disturbance cmass output file");
+	declare_parameter("file_cmass_dist_barkbeetle_killed_plus10cm_sts", &file_cmass_dist_barkbeetle_killed_plus10cm_sts, 300,
+		"stand type whole tree bark beetle disturbance cmass output file");
+	declare_parameter("file_dens_plus10cm_sts", &file_dens_plus10cm_sts, 300, "stand type tree density output file");
+	declare_parameter("file_height_plus10cm_sts", &file_height_plus10cm_sts, 300, "stand type height output file");
+	declare_parameter("file_diam_plus10cm_sts", &file_diam_plus10cm_sts, 300, "stand type tree quadratic mean diameter output file");
+	declare_parameter("file_diam_g_plus10cm_sts", &file_diam_g_plus10cm_sts, 300, "stand type tree quadratic mean diameter output file");
+
+	declare_parameter("file_cmass_wood_plus10cm_sts", &file_cmass_wood_plus10cm_sts, 300, "stand type wood productivity output file");
+	declare_parameter("file_cmass_wood_harv_killed_plus10cm_sts", &file_cmass_wood_harv_killed_plus10cm_sts, 300, "stand type wood harvest cmass output file");
+	declare_parameter("file_cmass_wood_inc_plus10cm_sts", &file_cmass_wood_inc_plus10cm_sts, 300, "stand type wood productivity output file");
+	declare_parameter("file_cmass_wood_mort_plus10cm_sts", &file_cmass_wood_mort_plus10cm_sts, 300, "stand type wood productivity output file");
+
+	declare_parameter("file_height_sts_patch_mean", &file_height_sts_patch_mean, 300, "stand type height output file");
+	declare_parameter("file_diam_sts_patch_mean", &file_diam_sts_patch_mean, 300, "stand type tree quadratic mean diameter output file");
+	declare_parameter("file_diam_g_sts_patch_mean", &file_diam_g_sts_patch_mean, 300, "stand type tree quadratic mean diameter output file");
+
+	declare_parameter("file_height_plus10cm_sts_patch_mean", &file_height_plus10cm_sts_patch_mean, 300, "stand type height output file");
+	declare_parameter("file_diam_plus10cm_sts_patch_mean", &file_diam_plus10cm_sts_patch_mean, 300, "stand type tree quadratic mean diameter output file");
+	declare_parameter("file_diam_g_plus10cm_sts_patch_mean", &file_diam_g_plus10cm_sts_patch_mean, 300, "stand type tree quadratic mean diameter output file");
+
 	declare_parameter("file_cutinterval_sts", &file_cutinterval_sts, 1000,
 		"Mean latest cutting interval (patch age at year of clearcut) output file");
 	declare_parameter("file_cutinterval_thisyear_sts", &file_cutinterval_thisyear_sts, 1000,
 		"Mean stand type cut interval this year output file");
-	declare_parameter("file_diam_g_sts", &file_diam_g_sts, 300, "stand type tree quadratic mean diameter output file");
-	declare_parameter("file_dens_sts", &file_dens_sts, 300, "stand type tree density output file");
-	declare_parameter("file_height_sts", &file_height_sts, 300, "stand type height output file");
-	declare_parameter("file_csoil_sts", &file_csoil_sts, 300, "stand type soil output file");
-	declare_parameter("file_clitter_sts", &file_clitter_sts, 300, "stand type litter output file");
-	declare_parameter("file_csink_sts", &file_csink_sts, 300, "stand type carbon sink output file");
-	declare_parameter("file_nstand_sts", &file_nstand_sts, 300, "stand type stand number output file");
 
-	declare_parameter("file_forest_cmass_harv_killed", &file_forest_cmass_harv_killed, 300,
+	declare_parameter("file_nstand_sts", &file_nstand_sts, 300, "stand type stand number output file");
+	declare_parameter("file_npatch_sts", &file_npatch_sts, 300, "stand type patch number output file");
+
+	declare_parameter("file_frac_sts", &file_frac_sts, 300, "stand type are fraction output file");
+
+	declare_parameter("file_forest_cmass_harv_killed_active", &file_forest_cmass_harv_killed_active, 300,
 		"Killed forest C biomass during wood harvest output file");
+
+	declare_parameter("file_cmass_active_plus10cm", &file_cmass_active_plus10cm, 300, "C biomass output file");
+	declare_parameter("file_forest_cmass_harv_killed_active_plus10cm", &file_forest_cmass_harv_killed_active_plus10cm, 300,
+		"Killed forest C biomass during wood harvest output file");
+	declare_parameter("file_dens_plus10cm", &file_dens_plus10cm, 300, "Tree density output file");
+	declare_parameter("file_speciesheights_plus10cm", &file_speciesheights_plus10cm, 300, "Mean species heights");
+	declare_parameter("file_speciesdiam_plus10cm", &file_speciesdiam_plus10cm, 300, "Mean species diameter (cm)");
 
 	declare_parameter("file_forest_vegc", &file_forest_vegc, 300, "Forest vegetation output file");
 	declare_parameter("file_forest_cflux_veg", &file_forest_cflux_veg, 300, "Forest C fluxes to and from vegetation output file");
 	declare_parameter("file_forest_harvest", &file_forest_harvest, 300, "Forest harvest output file");
 	declare_parameter("file_harvest_flux_luc", &file_harvest_flux_luc, 300,
 		"Harvest output file for simulations with wood harvest modelled as luc, using eg. LUH2 input");
+
+	declare_parameter("file_cflux_harvest", &file_cflux_harvest, 300, "Harvest flux output file");
+	declare_parameter("file_harvest_volume", &file_harvest_volume, 300, "Harvest volume output file");
+
+	declare_parameter("file_storm", &file_storm, 300, "Storm indicators output file");
+	declare_parameter("file_storm_si_sts", &file_storm_si_sts, 300, "Stand type level storm sensitivity index");
+	declare_parameter("file_storm_frac_pot_sts", &file_storm_frac_pot_sts, 300, "Stand type level potentially storm damaged fraction");
+	declare_parameter("file_storm_frac_sts", &file_storm_frac_sts, 300, "Stand type level storm damaged fraction");
+	declare_parameter("file_storm_dw_pot_sts", &file_storm_dw_pot_sts, 300, "Potential stand type level storm damaged wood biomass C");
+	declare_parameter("file_storm_dw_sts", &file_storm_dw_sts, 300, "Stand type level storm damaged wood biomass C");
+	declare_parameter("file_insect_dw_sts", &file_insect_dw_sts, 300, "Stand type level insect damaged wood biomass C");
+
+	declare_parameter("file_cmort_storm_sts", &file_cmort_storm_sts, 300, "Stand type level storm damaged biomass C");
+	declare_parameter("file_cmort_insect_sts", &file_cmort_insect_sts, 300, "Stand type level insect damaged biomass C");
+	declare_parameter("file_cmort_fire_sts", &file_cmort_fire_sts, 300, "Stand type level fire damaged biomass C");
+	declare_parameter("file_cmort_clearcut_sts", &file_cmort_clearcut_sts, 300, "Stand type level clearcut biomass C");
 
 	//daily
 	declare_parameter("file_daily_lai",&file_daily_lai,300,"Daily output.");
@@ -193,14 +321,6 @@ MiscOutput::MiscOutput() {
 	declare_parameter("file_daily_nuptake",&file_daily_nuptake,300,"Daily output.");
 
 	declare_parameter("file_daily_climate",&file_daily_climate,300,"Daily output.");
-	declare_parameter("file_daily_snow_depth", &file_daily_snow_depth, 300, "Daily snow depth output.");
-	declare_parameter("file_daily_snow_density", &file_daily_snow_density, 300, "Daily snow density output.");
-	declare_parameter("file_daily_snow_k", &file_daily_snow_k, 300, "Daily snow thermal conductivity output.");
-	declare_parameter("file_daily_snow_c", &file_daily_snow_c, 300, "Daily snow heat capacity output.");
-
-	declare_parameter("file_daily_temp", &file_daily_temp, 300, "Daily air, snow and soil temperature output.");
-	declare_parameter("file_dtemp_depth", &file_dtemp_depth, 300, "Daily air and soil temperature for Russian sites output.");
-	declare_parameter("file_daily_wcont", &file_daily_wcont, 300, "Daily wcont output.");
 
 	declare_parameter("file_daily_fphu",&file_daily_fphu,300,"Daily DS output file"); //daglig ds
 
@@ -212,18 +332,18 @@ MiscOutput::MiscOutput() {
 		declare_parameter("file_daily_storage",&file_daily_storage,300,"Daily storage allocation output file");
 	}
 
-	print_anpp_stand = true;
-	print_lai_stand = true;
-	print_cmass_stand = true;
+	print_anpp_stand = false;
+	print_lai_stand = false;
+	print_cmass_stand = false;
 	print_cmass_mort_stand = false;
 	print_cmass_wood_stand = false;
 	print_cmass_wood_harv_stand = false;
 	print_height_stand = false;
 	print_diam_stand = false;
 	print_dens_stand = false;
-	print_agestruct_stand = true;
+	print_agestruct_stand = false;
 	print_diamstruct_stand = false;
-	print_diamstruct_cmass_stand = true;
+	print_diamstruct_cmass_stand = false;
 
 	declare_parameter("print_anpp_stand",&print_anpp_stand,
 		"Whether to print pft anpp for multiple stands within a stand type (except cropland) separately");
@@ -251,20 +371,43 @@ MiscOutput::MiscOutput() {
 		"Whether to print cmass_potharv in diameter classes for multiple stands within a stand type (except cropland) separately");
 
 	printstandtypes = false;
-	print_cmass_pft_st = true;
+	print_cmass_pft_st = false;
 	print_diamstruct_cmass_st = false;
+	print_diamstruct_cmass_leaf_st = false;
+	print_diamstruct_cmass_wood_st = false;
+	print_diamstruct_cmass_froot_st = false;
+	print_diamstruct_cmass_wood_inc_st = false;
 	print_cmass_harv_killed_pft_st = false;
+	print_transpiration_pft_st = false;
 
 	declare_parameter("printstandtypes", &printstandtypes, "Whether stand type output enabled (0,1)");
-	declare_parameter("print_cmass_pft_st",&print_cmass_pft_st,"Whether to print pft cmass for stand types (except cropland) separately");
+	declare_parameter("print_cmass_pft_st",&print_cmass_pft_st,"Whether to print pft cmass for stand types (except cropland) separately");	// Not sure if cropland st:s are excluded: check !
 	declare_parameter("print_diamstruct_cmass_st",&print_diamstruct_cmass_st,
 		"Whether to print pft cmass in diameter classes for stand types (except cropland) separately");
+	declare_parameter("print_diamstruct_cmass_leaf_st",&print_diamstruct_cmass_leaf_st,
+		"Whether to print pft leaf cmass in diameter classes for stand types (except cropland) separately");
+	declare_parameter("print_diamstruct_cmass_wood_st",&print_diamstruct_cmass_wood_st,
+		"Whether to print pft wood cmass in diameter classes for stand types (except cropland) separately");
+	declare_parameter("print_diamstruct_cmass_froot_st",&print_diamstruct_cmass_froot_st,
+		"Whether to print pft fine root cmass in diameter classes for stand types (except cropland) separately");
+	declare_parameter("print_diamstruct_cmass_wood_inc_st",&print_diamstruct_cmass_wood_inc_st,
+		"Whether to print pft wood increment cmass in diameter classes for stand types (except cropland) separately");
 	declare_parameter("print_cmass_harv_killed_pft_st",&print_cmass_harv_killed_pft_st,
 		"Whether to print pft cmass killed in harvest for stand types (except cropland) separately");
+	declare_parameter("print_transpiration_pft_st",&print_transpiration_pft_st,"Whether to print pft transpiration for stand types (except cropland) separately");
 
-	Table* out_cmass_pft_st = NULL;
-	Table* out_cmass_harv_killed_pft_st = NULL;
-	Table* out_diamstruct_cmass_st = NULL;
+	declare_parameter("print_standagestruct_st",&print_standagestruct_st,
+		"Whether to print stand distribution in age classes for stand types separately");
+
+	out_cmass_pft_st = NULL;
+	out_cmass_harv_killed_pft_st = NULL;
+	out_transpiration_pft_st = NULL;
+	out_diamstruct_cmass_st = NULL;
+	out_diamstruct_cmass_leaf_st = NULL;
+	out_diamstruct_cmass_wood_st = NULL;
+	out_diamstruct_cmass_froot_st = NULL;
+	out_diamstruct_cmass_wood_inc_st = NULL;
+	out_standagestruct_st = NULL;
 
 	for(int id=0;id<MAXNUMBER_STANDS;id++) {
 		out_anpp_stand[id] = NULL;
@@ -280,6 +423,13 @@ MiscOutput::MiscOutput() {
 		out_diamstruct_stand[id] = NULL;
 		out_diamstruct_cmass_stand[id] = NULL;
 	}
+	if (firemodel==BLAZE) {
+		declare_parameter("file_daily_blaze",     &file_daily_blaze,     300,"Daily BLAZE output file");
+        	//declare_parameter("file_single_fire",     &file_single_fire,     300,"Single fire output file");
+	}
+
+	// From EC-Earth
+	declare_parameter("file_monthly_mlambda", &file_monthly_mlambda, 300, "Monthly lambda output file");
 }
 
 MiscOutput::~MiscOutput() {
@@ -289,12 +439,24 @@ MiscOutput::~MiscOutput() {
 			delete[] out_cmass_pft_st;
 		if(out_diamstruct_cmass_st)
 			delete[] out_diamstruct_cmass_st;
+		if(out_diamstruct_cmass_leaf_st)
+			delete[] out_diamstruct_cmass_leaf_st;
+		if(out_diamstruct_cmass_wood_st)
+			delete[] out_diamstruct_cmass_wood_st;
+		if(out_diamstruct_cmass_froot_st)
+			delete[] out_diamstruct_cmass_froot_st;
+		if(out_diamstruct_cmass_wood_inc_st)
+			delete[] out_diamstruct_cmass_wood_inc_st;
+		if(out_transpiration_pft_st)
+			delete[] out_transpiration_pft_st;
 		if(out_cmass_harv_killed_pft_st)
 			delete[] out_cmass_harv_killed_pft_st;
+		if(out_standagestruct_st)
+			delete[] out_standagestruct_st;
 	}
 }
 
-/// Help function to print forest structure header s
+/// Help function to print forest structure header columns
 std::vector<std::string> get_structure_string(const char* type) {
 
 	char buffer2[300]={'\0'};
@@ -302,53 +464,53 @@ std::vector<std::string> get_structure_string(const char* type) {
 
 	if(!strcmp(type, "age")) {
 
-				for(int i=0;i<NFOREST_STRUCTURAL_CLASSES;i++) {
+		for(int i=0;i<NFOREST_STRUCTURAL_CLASSES;i++) {
 
-					// age structure
-					int age_from, age_to;
+			// age structure
+			int age_from, age_to;
 
-					if(i < (NFOREST_STRUCTURAL_CLASSES - 1)) {			// 1-10,...,291-300
-						age_from = i*10+1;
-						age_to = i*10+10;
-					}
-					else if(i<NFOREST_STRUCTURAL_CLASSES) {			// >300y, not used in column header
-						age_from = i*10+1;
-						age_to = 1500;
-					}
+			if(i < (NFOREST_STRUCTURAL_CLASSES - 1)) {			// 1-10,...,291-300
+				age_from = i*10+1;
+				age_to = i*10+10;
+			}
+			else if(i<NFOREST_STRUCTURAL_CLASSES) {			// >300y, not used in column header
+				age_from = i*10+1;
+				age_to = 1500;
+			}
 
-					if(i == (NFOREST_STRUCTURAL_CLASSES - 1)) {
-						sprintf(buffer2, ">300");
-					}
-					else {
-						sprintf(buffer2, "%d_%d", age_from, age_to);
-					}
-					struct_vect.push_back(buffer2);					
-				}
+			if(i == (NFOREST_STRUCTURAL_CLASSES - 1)) {
+				sprintf(buffer2, "gt300");
+			}
+			else {
+				sprintf(buffer2, "%d_%d", age_from, age_to);
+			}
+			struct_vect.push_back(buffer2);					
+		}
 	}
 	else if (!strcmp(type, "diam")) {
 
-				for(int i=0;i<NFOREST_STRUCTURAL_CLASSES;i++) {
+		for(int i=0;i<NFOREST_STRUCTURAL_CLASSES;i++) {
 
-					// diameter structure
-					double diam_from, diam_to;
+			// diameter structure
+			double diam_from, diam_to;
 
-					if(i < (NFOREST_STRUCTURAL_CLASSES - 1)) {			//  1-5,...,135-150
-						diam_from = (double)(i*5);
-						diam_to = (double)(i*5+5);
-					}
-					else if(i<NFOREST_STRUCTURAL_CLASSES) {			// >150cm	// not used in column header
-						diam_from = i*10+1;
-						diam_to = 1500;
-					}
+			if(i < (NFOREST_STRUCTURAL_CLASSES - 1)) {			//  1-5,...,135-150
+				diam_from = (double)(i*5);
+				diam_to = (double)(i*5+5);
+			}
+			else if(i<NFOREST_STRUCTURAL_CLASSES) {			// >150cm	// not used in column header
+				diam_from = i*5+1;
+				diam_to = 1500;
+			}
 
-					if(i == (NFOREST_STRUCTURAL_CLASSES - 1)) {
-						sprintf(buffer2, ">150");				// >150cm
-					}
-					else {
-						sprintf(buffer2, "%.0f_%.0f", diam_from, diam_to);
-					}
-					struct_vect.push_back(buffer2);
-				}
+			if(i == (NFOREST_STRUCTURAL_CLASSES - 1)) {
+				sprintf(buffer2, "gt150");				// >150cm
+			}
+			else {
+				sprintf(buffer2, "%.0f_%.0f", diam_from, diam_to);
+			}
+			struct_vect.push_back(buffer2);
+		}
 	}
 
 	return struct_vect;
@@ -368,9 +530,6 @@ void MiscOutput::init() {
  *  the output channel to create the table.
  */
 void MiscOutput::define_output_tables() {
-
-	char lyr_nr[20];
-
 	// create a vector with the pft names
 	std::vector<std::string> pfts;
 
@@ -426,6 +585,7 @@ void MiscOutput::define_output_tables() {
 	// CMASS
 	ColumnDescriptors cmass_columns;
 	cmass_columns += ColumnDescriptors(pfts,               8, 3);
+	ColumnDescriptors cmass_active_columns = cmass_columns;
 	cmass_columns += ColumnDescriptor("Total",             8, 3);
 	ColumnDescriptors cmass_columns_lc = cmass_columns;
 	cmass_columns += ColumnDescriptors(landcovers,        13, 3);
@@ -483,10 +643,8 @@ void MiscOutput::define_output_tables() {
 	cflux_columns_for_regr += ColumnDescriptor("NEE-LU",				10, 5);
 
 	// FOREST WOOD HARVEST
-	ColumnDescriptors harv_columns;
-	harv_columns += ColumnDescriptors(pfts,								10, 5);
-	harv_columns += ColumnDescriptor("Total",							10, 5);
-	harv_columns += ColumnDescriptors(landcovers,						13, 5);
+	ColumnDescriptors harv_columns_active;
+	harv_columns_active += ColumnDescriptors(pfts,								10, 5);
 
 	ColumnDescriptors forest_harv_columns;
 	forest_harv_columns += ColumnDescriptor("lucharv_totvegC",		16, 5);
@@ -536,7 +694,7 @@ void MiscOutput::define_output_tables() {
 	forest_cflux_veg_columns += ColumnDescriptor("nat_reprC",			10, 5);
 	forest_cflux_veg_columns += ColumnDescriptor("nat_clonedC",			12, 5);
 	forest_cflux_veg_columns += ColumnDescriptor("nat_cflux",			10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("nat_NAI",				 9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("nat_NAI",				10, 5);
 
 	forest_cflux_veg_columns += ColumnDescriptor("for_npp",				 9, 5);
 	forest_cflux_veg_columns += ColumnDescriptor("for_harvC",			10, 5);
@@ -548,7 +706,7 @@ void MiscOutput::define_output_tables() {
 	forest_cflux_veg_columns += ColumnDescriptor("for_reprC",			10, 5);
 	forest_cflux_veg_columns += ColumnDescriptor("for_clonedC",			12, 5);
 	forest_cflux_veg_columns += ColumnDescriptor("for_cflux",			10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("for_NAI",				 9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("for_NAI",				10, 5);
 
 	forest_cflux_veg_columns += ColumnDescriptor("tot_npp",				 9, 5);
 	forest_cflux_veg_columns += ColumnDescriptor("tot_harvC",			10, 5);
@@ -560,7 +718,7 @@ void MiscOutput::define_output_tables() {
 	forest_cflux_veg_columns += ColumnDescriptor("tot_reprC",			10, 5);
 	forest_cflux_veg_columns += ColumnDescriptor("tot_clonedC",			12, 5);
 	forest_cflux_veg_columns += ColumnDescriptor("tot_cflux",			10, 5);
-	forest_cflux_veg_columns += ColumnDescriptor("tot_NAI",				 9, 5);
+	forest_cflux_veg_columns += ColumnDescriptor("tot_NAI",				10, 5);
 
 	// CPOOL
 	ColumnDescriptors cpool_columns;
@@ -572,8 +730,8 @@ void MiscOutput::define_output_tables() {
 		cpool_columns += ColumnDescriptor("SoilsC",        8, 3);
 	}
 	else {
-		cpool_columns += ColumnDescriptor("LitterC",       9, 3);
-		cpool_columns += ColumnDescriptor("SoilC",         9, 3);
+		cpool_columns += ColumnDescriptor("LitterC",       8, 3);
+		cpool_columns += ColumnDescriptor("SoilC",         8, 3);
 	}
 	if (run_landcover && ifslowharvestpool) {
 		 cpool_columns += ColumnDescriptor("HarvSlowC",   10, 3);
@@ -640,7 +798,7 @@ void MiscOutput::define_output_tables() {
 	nflux_columns += ColumnDescriptor("flux",              8, 2);
 	nflux_columns += ColumnDescriptor("leach",             8, 2);
 	if (run_landcover) {
-		nflux_columns += ColumnDescriptor("seed",         8, 2);
+		nflux_columns += ColumnDescriptor("seed",          8, 2);
 		nflux_columns += ColumnDescriptor("harvest",       8, 2);
 		nflux_columns += ColumnDescriptor("LU_ch",         8, 3);
 		nflux_columns += ColumnDescriptor("Slow_h",        8, 3);
@@ -658,11 +816,28 @@ void MiscOutput::define_output_tables() {
 	soil_n2o_flux_columns += ColumnDescriptor("Total.noBar", 13, 5); // Total without BARREN contributions
 	soil_n2o_flux_columns += ColumnDescriptor("Total", 10, 5);
 
+	// Storm
+	ColumnDescriptors storm_columns;
+	storm_columns += ColumnDescriptor("SI", 9, 3);
+	storm_columns += ColumnDescriptor("DamFracPot", 11, 3);
+	storm_columns += ColumnDescriptor("DamFrac", 9, 3);
+	storm_columns += ColumnDescriptor("DamWoodCPot", 12, 3);
+	storm_columns += ColumnDescriptor("DamWoodC", 9, 3);
+	storm_columns += ColumnDescriptor("InsDamWoodC", 12, 6);
+	storm_columns += ColumnDescriptor("InsectPI", 9, 3);
+
+	ColumnDescriptors cflux_harvest_columns;
+	cflux_harvest_columns += ColumnDescriptor("cc", 9, 5);
+	cflux_harvest_columns += ColumnDescriptor("thin", 9, 5);
+	cflux_harvest_columns += ColumnDescriptor("cc_presc", 9, 5);
+	cflux_harvest_columns += ColumnDescriptor("wind_presc", 9, 5);
+	cflux_harvest_columns += ColumnDescriptor("bb_presc", 9, 5);
+
 	// ST
 	ColumnDescriptors st_columns;
 	st_columns += ColumnDescriptors(sts,            15, 3);
 	ColumnDescriptors st_dens_columns;
-	st_dens_columns += ColumnDescriptors(sts,       15, 4);
+	st_dens_columns += ColumnDescriptors(sts,       15, 5);	// Increased to 5 decimals
 	ColumnDescriptors st_columns_age;
 	st_columns_age += ColumnDescriptors(sts,       15, 1);
 	ColumnDescriptors st_columns_int;
@@ -670,122 +845,88 @@ void MiscOutput::define_output_tables() {
 	ColumnDescriptors st_height_columns;
 	st_height_columns += ColumnDescriptors(sts,    15, 2);
 
+	ColumnDescriptors st_ext_columns = st_columns;
+	st_ext_columns += ColumnDescriptor("Total", 10, 4);
+	st_ext_columns += ColumnDescriptors(landcovers, 13, 3);
+	ColumnDescriptors st_ext_dens_columns = st_dens_columns;
+	st_ext_dens_columns += ColumnDescriptor("Total", 10, 5);
+	st_ext_dens_columns += ColumnDescriptors(landcovers, 13, 5);
+	ColumnDescriptors st_ext_height_columns = st_height_columns;
+	st_ext_height_columns += ColumnDescriptor("Total", 10, 2);
+	st_ext_height_columns += ColumnDescriptors(landcovers, 13, 2);
+	ColumnDescriptors st_ext_runoff_columns = st_columns_age;
+	st_ext_runoff_columns += ColumnDescriptor("Total", 10, 1);
+	st_ext_runoff_columns += ColumnDescriptors(landcovers, 13, 1);
+
+	ColumnDescriptors st_int_ext_columns = st_columns_int;
+	st_columns_int += ColumnDescriptor("Total", 10, 0);
+	st_columns_int += ColumnDescriptors(landcovers, 13, 0);
+
 	// FOREST STRUCTURE OUTPUT
 	ColumnDescriptors agestruct_columns;
 	agestruct_columns += ColumnDescriptors(get_structure_string("age"),			       9, 2);
+	ColumnDescriptors standagestruct_columns;
+	standagestruct_columns += ColumnDescriptors(get_structure_string("age"),		   9, 3);
 	ColumnDescriptors diamstruct_columns;
 	diamstruct_columns += ColumnDescriptors(get_structure_string("diam"),              9, 2);
 	ColumnDescriptors diamstruct_cmass_columns;
 	diamstruct_cmass_columns += ColumnDescriptors(get_structure_string("diam"),        9, 3);
 
-	// Create soil depth columns
-	ColumnDescriptors surfsoildepth_columns;
-	xtring depths[] = { "d0_0.3", "d0.3_0.5", "d0.5_1", "d1_1.5", "d1.5_2", "d2_3", "d3_max", "Total" };
-	surfsoildepth_columns += ColumnDescriptor("Surf", 9, 3);
-	for (int d = 0; d < 8; d++) {
-		surfsoildepth_columns += ColumnDescriptor(depths[d], 9, 3);
-	}
-
 	ColumnDescriptors daily_climate_columns;
 	daily_climate_columns += ColumnDescriptor("Temp",   12, 6);
 	daily_climate_columns += ColumnDescriptor("Prec",   12, 6);
-	daily_climate_columns += ColumnDescriptor("Rad",    14, 3);		
-
-	// Create snow layer columns
-	ColumnDescriptors daily_snow_columns, daily_snow_k_columns, daily_snow_c_columns;
-	if (ifmultilayersnow) {
-		for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
-			sprintf(lyr_nr, "snow%d", lyr);
-			daily_snow_columns += ColumnDescriptor(lyr_nr, 8, 2);
-			daily_snow_k_columns += ColumnDescriptor(lyr_nr, 10, 3);
-			daily_snow_c_columns += ColumnDescriptor(lyr_nr, 10, 1);
-		}
-	}
-	else {
-		daily_snow_columns += ColumnDescriptor("Total", 8, 2);
-		daily_snow_k_columns += ColumnDescriptor("Total", 10, 3);
-		daily_snow_c_columns += ColumnDescriptor("Total", 10, 1);
-	}
-
-	ColumnDescriptors tsoil_columns;
-	tsoil_columns += ColumnDescriptor("air", 8, 2);
-	tsoil_columns += ColumnDescriptor("d20", 8, 2);
-	tsoil_columns += ColumnDescriptor("d40", 8, 2);
-	tsoil_columns += ColumnDescriptor("d80", 8, 2);
-	tsoil_columns += ColumnDescriptor("d120", 8, 2);
-	tsoil_columns += ColumnDescriptor("d160", 8, 2);
-	tsoil_columns += ColumnDescriptor("d240", 8, 2);
-	tsoil_columns += ColumnDescriptor("d320", 8, 2);
-
-	// Create snow and soil layer columns
-	ColumnDescriptors snowsoillyr_columns;
-	snowsoillyr_columns += ColumnDescriptor("air", 8, 2);
-	if (hydrology == GERTEN) {
-		for (int lyr = 0; lyr < NSOILLAYERS_SIMPLE; lyr++) {
-			sprintf(lyr_nr, "soil%d", lyr);
-			snowsoillyr_columns += ColumnDescriptor(lyr_nr, 8, 2);
-		}
-	}
-	else {
-		for (int lyr = NSNOWLAYERS_MAX - 1; lyr >= 0; lyr--) {
-			sprintf(lyr_nr, "snow%d", lyr);
-			snowsoillyr_columns += ColumnDescriptor(lyr_nr, 8, 2);
-		}
-		for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
-			sprintf(lyr_nr, "soil%d", lyr);
-			snowsoillyr_columns += ColumnDescriptor(lyr_nr, 8, 2);
-		}
-		for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
-			sprintf(lyr_nr, "pad%d", lyr);
-			snowsoillyr_columns += ColumnDescriptor(lyr_nr, 8, 2);
-		}
-	}
-
-	// Create snow and soil layer columns
-	ColumnDescriptors soillyr_columns;
-	for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
-		sprintf(lyr_nr, "soil%d", lyr);
-		soillyr_columns += ColumnDescriptor(lyr_nr, 8, 4);
-	}
-	for (int lyr = 0; lyr < NPADLAYERS; lyr++) {
-		sprintf(lyr_nr, "pad%d", lyr);
-	}
+	daily_climate_columns += ColumnDescriptor("Rad",    14, 3);
 
 	ColumnDescriptors daily_columns;
 	daily_columns += ColumnDescriptors(crop_pfts, 13, 3);
 
+	// BLAZE output
+	ColumnDescriptors blaze_daily_columns;
+	blaze_daily_columns += ColumnDescriptor("die_r",         6, 0);
+	blaze_daily_columns += ColumnDescriptor("fireProb%",    16, 12);
+	blaze_daily_columns += ColumnDescriptor("effBurnedArea",15, 9);
+	blaze_daily_columns += ColumnDescriptor("kbdi",          6, 1);
+	blaze_daily_columns += ColumnDescriptor("ffdi",          6, 0);
+	blaze_daily_columns += ColumnDescriptor("max_pfli",      9, 0);
+	blaze_daily_columns += ColumnDescriptor("mean_pfli",    10, 0);
+
 	// *** ANNUAL OUTPUT VARIABLES ***
 
-	create_output_table(out_forest_cmass_harv_killed,  file_forest_cmass_harv_killed,     harv_columns);
+	create_output_table(out_forest_cmass_harv_killed_active,  file_forest_cmass_harv_killed_active,     harv_columns_active);
 
-	create_output_table(out_cmass_cropland, file_cmass_cropland, cmass_columns_lc);
-	create_output_table(out_cmass_pasture,  file_cmass_pasture,  cmass_columns_lc);
-	create_output_table(out_cmass_natural,  file_cmass_natural,  cmass_columns_lc);
-	create_output_table(out_cmass_forest,   file_cmass_forest,   cmass_columns_lc);
+	create_output_table(out_cmass_active_plus10cm, file_cmass_active_plus10cm, cmass_active_columns);
+	create_output_table(out_forest_cmass_harv_killed_active_plus10cm, file_forest_cmass_harv_killed_active_plus10cm, harv_columns_active);
+	create_output_table(out_dens_plus10cm, file_dens_plus10cm, dens_columns);
+	create_output_table(out_speciesheights_plus10cm, file_speciesheights_plus10cm, speciesheights_columns);
+	create_output_table(out_speciesdiam_plus10cm, file_speciesdiam_plus10cm, speciesheights_columns);
+
+	create_output_table(out_cmass_active_cropland, file_cmass_active_cropland, cmass_columns_lc);
+	create_output_table(out_cmass_active_pasture,  file_cmass_active_pasture,  cmass_columns_lc);
+	create_output_table(out_cmass_active_natural,  file_cmass_active_natural,  cmass_columns_lc);
+	create_output_table(out_cmass_active_forest,   file_cmass_active_forest,   cmass_columns_lc);
+	create_output_table(out_cmass_active_peatland,	file_cmass_active_peatland, cmass_columns_lc);
+	create_output_table(out_anpp_active_cropland,  file_anpp_active_cropland,  anpp_columns_lc);
+	create_output_table(out_anpp_active_pasture,   file_anpp_active_pasture,   anpp_columns_lc);
+	create_output_table(out_anpp_active_natural,   file_anpp_active_natural,   anpp_columns_lc);
+	create_output_table(out_anpp_active_forest,    file_anpp_active_forest,    anpp_columns_lc);
+	create_output_table(out_anpp_active_peatland, file_anpp_active_peatland, anpp_columns_lc);
+
+	create_output_table(out_cmass_cropland,	file_cmass_cropland, cmass_columns_lc);
+	create_output_table(out_cmass_pasture,	file_cmass_pasture,  cmass_columns_lc);
+	create_output_table(out_cmass_natural,	file_cmass_natural,  cmass_columns_lc);
+	create_output_table(out_cmass_forest,		file_cmass_forest,   cmass_columns_lc);
 	create_output_table(out_cmass_peatland,	file_cmass_peatland, cmass_columns_lc);
-	create_output_table(out_anpp_cropland,  file_anpp_cropland,  anpp_columns_lc);
-	create_output_table(out_anpp_pasture,   file_anpp_pasture,   anpp_columns_lc);
-	create_output_table(out_anpp_natural,   file_anpp_natural,   anpp_columns_lc);
-	create_output_table(out_anpp_forest,    file_anpp_forest,    anpp_columns_lc);
-	create_output_table(out_anpp_peatland,  file_anpp_peatland,  anpp_columns_lc);
-	create_output_table(out_cmass_landscape,			file_cmass_landscape,          cmass_columns);
-	create_output_table(out_cmass_landscape_cropland,	file_cmass_landscape_cropland, cmass_columns_lc);
-	create_output_table(out_cmass_landscape_pasture,	file_cmass_landscape_pasture,  cmass_columns_lc);
-	create_output_table(out_cmass_landscape_natural,	file_cmass_landscape_natural,  cmass_columns_lc);
-	create_output_table(out_cmass_landscape_forest,		file_cmass_landscape_forest,   cmass_columns_lc);
-	create_output_table(out_cmass_landscape_peatland,	file_cmass_landscape_peatland, cmass_columns_lc);
-	create_output_table(out_anpp_landscape,				file_anpp_landscape,           anpp_columns);
-	create_output_table(out_anpp_landscape_cropland,	file_anpp_landscape_cropland,  anpp_columns_lc);
-	create_output_table(out_anpp_landscape_pasture,		file_anpp_landscape_pasture,   anpp_columns_lc);
-	create_output_table(out_anpp_landscape_natural,		file_anpp_landscape_natural,   anpp_columns_lc);
-	create_output_table(out_anpp_landscape_forest,		file_anpp_landscape_forest,    anpp_columns_lc);
-	create_output_table(out_anpp_landscape_peatland,	file_anpp_landscape_peatland,  anpp_columns_lc);
-	create_output_table(out_lai_landscape,				file_lai_landscape,            dens_columns);
-	create_output_table(out_lai_landscape_cropland,		file_lai_landscape_cropland,   dens_columns_lc);
-	create_output_table(out_lai_landscape_pasture,		file_lai_landscape_pasture,    dens_columns_lc);
-	create_output_table(out_lai_landscape_natural,		file_lai_landscape_natural,    dens_columns_lc);
-	create_output_table(out_lai_landscape_forest,		file_lai_landscape_forest,     dens_columns_lc);
-	create_output_table(out_lai_landscape_peatland,		file_lai_landscape_peatland,   dens_columns_lc);
+	create_output_table(out_anpp_cropland,	file_anpp_cropland,  anpp_columns_lc);
+	create_output_table(out_anpp_pasture,		file_anpp_pasture,   anpp_columns_lc);
+	create_output_table(out_anpp_natural,		file_anpp_natural,   anpp_columns_lc);
+	create_output_table(out_anpp_forest,		file_anpp_forest,    anpp_columns_lc);
+	create_output_table(out_anpp_peatland,	file_anpp_peatland,  anpp_columns_lc);
+	create_output_table(out_lai_cropland,		file_lai_cropland,   dens_columns_lc);
+	create_output_table(out_lai_pasture,		file_lai_pasture,    dens_columns_lc);
+	create_output_table(out_lai_natural,		file_lai_natural,    dens_columns_lc);
+	create_output_table(out_lai_forest,			file_lai_forest,     dens_columns_lc);
+	create_output_table(out_lai_peatland,		file_lai_peatland,   dens_columns_lc);
+
 	create_output_table(out_dens_natural,   file_dens_natural,   dens_columns_lc);
 	create_output_table(out_dens_forest,    file_dens_forest,    dens_columns_lc);
 	create_output_table(out_cflux_cropland, file_cflux_cropland, cflux_columns);
@@ -798,21 +939,30 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_cpool_natural,  file_cpool_natural,  cpool_columns);
 	create_output_table(out_cpool_forest,	file_cpool_forest,   cpool_columns);
 	create_output_table(out_cpool_peatland, file_cpool_peatland, cpool_columns);
-	create_output_table(out_aaet_natural,   file_aaet_natural,   aaet_columns_lc);
-	create_output_table(out_aaet_forest,    file_aaet_forest,    aaet_columns_lc);
-	create_output_table(out_lai_natural,    file_lai_natural,    dens_columns_lc);
-	create_output_table(out_lai_forest,     file_lai_forest,     dens_columns_lc);
-	create_output_table(out_fpc_natural,    file_fpc_natural,    cmass_columns_lc);
-	create_output_table(out_fpc_forest,     file_fpc_forest,     cmass_columns_lc);
+	create_output_table(out_aaet_active_natural,   file_aaet_active_natural,   aaet_columns_lc);
+	create_output_table(out_aaet_active_forest,    file_aaet_active_forest,    aaet_columns_lc);
+	create_output_table(out_lai_active_natural,    file_lai_active_natural,    dens_columns_lc);
+	create_output_table(out_lai_active_forest,     file_lai_active_forest,     dens_columns_lc);
+	create_output_table(out_fpc_active_natural,    file_fpc_active_natural,    cmass_columns_lc);
+	create_output_table(out_fpc_active_forest,     file_fpc_active_forest,     cmass_columns_lc);
 	create_output_table(out_speciesdiam_natural,   file_speciesdiam_natural,   speciesheights_columns);
 	create_output_table(out_speciesdiam_forest,    file_speciesdiam_forest,    speciesheights_columns);
 	create_output_table(out_speciesheights_natural, file_speciesheights_natural, speciesheights_columns);
 	create_output_table(out_speciesheights_forest,  file_speciesheights_forest,  speciesheights_columns);
 
+	create_output_table(out_aaet_gridcell_natural,   file_aaet_gridcell_natural,   aaet_columns_lc);
+	create_output_table(out_aaet_gridcell_forest,    file_aaet_gridcell_forest,    aaet_columns_lc);
+	create_output_table(out_lai_gridcell_natural,    file_lai_gridcell_natural,    dens_columns_lc);
+	create_output_table(out_lai_gridcell_forest,     file_lai_gridcell_forest,     dens_columns_lc);
+	create_output_table(out_cmass_gridcell_natural,  file_cmass_gridcell_natural,  dens_columns_lc);
+	create_output_table(out_cmass_gridcell_forest,   file_cmass_gridcell_forest,   dens_columns_lc);
+	create_output_table(out_anpp_gridcell_natural,   file_anpp_gridcell_natural,   dens_columns_lc);
+	create_output_table(out_anpp_gridcell_forest,    file_anpp_gridcell_forest,    dens_columns_lc);
+
 	if (run_landcover && run[CROPLAND]) {
-		create_output_table(out_yield,      file_yield,          crop_columns);
-		create_output_table(out_yield1,     file_yield1,         crop_columns);
-		create_output_table(out_yield2,     file_yield2,         crop_columns);
+		create_output_table(out_yield_active,      file_yield_active,          crop_columns);
+		create_output_table(out_yield1_active,     file_yield1_active,         crop_columns);
+		create_output_table(out_yield2_active,     file_yield2_active,         crop_columns);
 		create_output_table(out_sdate1,     file_sdate1,         date_columns);
 		create_output_table(out_sdate2,     file_sdate2,         date_columns);
 		create_output_table(out_hdate1,     file_hdate1,         date_columns);
@@ -842,37 +992,109 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_soil_nflux_pasture,  file_soil_nflux_pasture,  soil_nflux_columns);
 	create_output_table(out_soil_nflux_natural,  file_soil_nflux_natural,  soil_nflux_columns);
 	create_output_table(out_soil_nflux_forest,	file_soil_nflux_forest,   soil_nflux_columns);
-	
+
+	create_output_table(out_frac_natural,	file_frac_natural,	dens_columns_lc);
+	create_output_table(out_frac_forest,	file_frac_forest,	dens_columns_lc);
+
 	create_output_table(out_soil_n2o_flux,	file_soil_n2o_flux,   soil_n2o_flux_columns);
 	// TODO		create_output_table(out_nflux_peatland, file_nflux_peatland, nflux_columns);
 
-	create_output_table(out_csoil_depth_cropland, file_csoil_depth_cropland, surfsoildepth_columns);
-	create_output_table(out_csoil_depth_pasture, file_csoil_depth_pasture, surfsoildepth_columns);
-	create_output_table(out_csoil_depth_natural, file_csoil_depth_natural, surfsoildepth_columns);
-	create_output_table(out_csoil_depth_forest, file_csoil_depth_forest, surfsoildepth_columns);
-	create_output_table(out_csoil_depth_peatland, file_csoil_depth_peatland, surfsoildepth_columns);
-
-	create_output_table(out_anpp_sts,					file_anpp_sts,					st_columns);
-	create_output_table(out_lai_sts,        file_lai_sts,           st_columns);
-	create_output_table(out_lai_tree_sts,   file_lai_tree_sts,      st_columns);
-	create_output_table(out_cmass_sts,					file_cmass_sts,					st_columns);
-	create_output_table(out_cmass_tree_sts,				file_cmass_tree_sts,			st_columns);
-	create_output_table(out_cmass_tree_mort_sts,		file_cmass_tree_mort_sts,		st_columns);
-	create_output_table(out_cmass_harv_killed_sts,		file_cmass_harv_killed_sts,		st_columns);
-	create_output_table(out_cmass_wood_sts,				file_cmass_wood_sts,			st_columns);
-	create_output_table(out_cmass_wood_harv_sts,		file_cmass_wood_harv_sts,		st_columns);
-	create_output_table(out_cmass_wood_harv_toprod_sts, file_cmass_wood_harv_toprod_sts,st_dens_columns);
-	create_output_table(out_cmass_wood_thin_sts,		file_cmass_wood_thin_sts,		st_columns);
-	create_output_table(out_cmass_wood_clearcut_sts,	file_cmass_wood_clearcut_sts,   st_columns);
-	create_output_table(out_diam_g_sts,					file_diam_g_sts,				st_dens_columns);
+	create_output_table(out_anpp_sts,					file_anpp_sts,					st_ext_columns);
+	create_output_table(out_agpp_sts,					file_agpp_sts,					st_ext_columns);
+	create_output_table(out_anpp_tree_sts,					file_anpp_tree_sts,					st_ext_columns);
+	create_output_table(out_agpp_tree_sts,					file_agpp_tree_sts,					st_ext_columns);
+	create_output_table(out_aautresp_tree_sts,					file_aautresp_tree_sts,					st_ext_columns);
+	create_output_table(out_aautresp_root_tree_sts,					file_aautresp_root_tree_sts,					st_ext_columns);
+	create_output_table(out_aautresp_sap_tree_sts,					file_aautresp_sap_tree_sts,					st_ext_columns);
+	create_output_table(out_aautresp_leaf_tree_sts,					file_aautresp_leaf_tree_sts,					st_ext_columns);
+	create_output_table(out_aautresp_growth_tree_sts,					file_aautresp_growth_tree_sts,					st_ext_columns);
+	create_output_table(out_lai_sts,					file_lai_sts,					st_ext_columns);
+	create_output_table(out_lai_tree_sts,				file_lai_tree_sts,				st_ext_columns);
+	create_output_table(out_cmass_sts,					file_cmass_sts,					st_ext_columns);
+	create_output_table(out_cmass_tree_sts,				file_cmass_tree_sts,			st_ext_columns);
+	create_output_table(out_cmass_tree_mort_sts,		file_cmass_tree_mort_sts,		st_ext_dens_columns);
+	create_output_table(out_cmass_harv_killed_sts,		file_cmass_harv_killed_sts,		st_ext_dens_columns);
+	create_output_table(out_cmass_thin_killed_sts,		file_cmass_thin_killed_sts,		st_ext_dens_columns);
+	create_output_table(out_cmass_clearcut_killed_sts,	file_cmass_clearcut_killed_sts,	st_ext_dens_columns);
+	create_output_table(out_cmass_fire_killed_sts,		file_cmass_fire_killed_sts,		st_ext_dens_columns);
+	create_output_table(out_cmass_wind_killed_sts,		file_cmass_wind_killed_sts,		st_ext_dens_columns);
+	create_output_table(out_cmass_barkbeetle_killed_sts,		file_cmass_barkbeetle_killed_sts,		st_ext_dens_columns);
+	create_output_table(out_cmass_dist_clearcut_killed_sts,	file_cmass_dist_clearcut_killed_sts,		st_ext_dens_columns);
+	create_output_table(out_cmass_dist_fire_killed_sts,	file_cmass_dist_fire_killed_sts,		st_ext_dens_columns);
+	create_output_table(out_cmass_dist_default_sts,				file_cmass_dist_default_sts,		st_ext_dens_columns);
+	create_output_table(out_cmass_dist_prescribed_killed_sts,				file_cmass_dist_prescribed_sts,		st_ext_dens_columns);
+	create_output_table(out_cmass_dist_wind_killed_sts,	file_cmass_dist_wind_killed_sts,		st_ext_dens_columns);
+	create_output_table(out_cmass_dist_barkbeetle_killed_sts,		file_cmass_dist_barkbeetle_killed_sts,		st_ext_dens_columns);
+	create_output_table(out_cmass_wood_sts,				file_cmass_wood_sts,			st_ext_columns);
+	create_output_table(out_cmass_wood_harv_killed_sts, file_cmass_wood_harv_killed_sts, st_ext_dens_columns);
+	create_output_table(out_cmass_wood_harv_sts,		file_cmass_wood_harv_sts,		st_ext_dens_columns);
+	create_output_table(out_cmass_wood_harv_toprod_sts, file_cmass_wood_harv_toprod_sts,st_ext_dens_columns);
+	create_output_table(out_cmass_wood_thin_sts,		file_cmass_wood_thin_sts,		st_ext_dens_columns);
+	create_output_table(out_cmass_wood_clearcut_sts,	file_cmass_wood_clearcut_sts,   st_ext_dens_columns);
+	create_output_table(out_cmass_wood_inc_sts,			file_cmass_wood_inc_sts,		st_ext_dens_columns);
+	create_output_table(out_cmass_wood_mort_sts,		file_cmass_wood_mort_sts,		st_ext_dens_columns);
+	create_output_table(out_diam_sts,					file_diam_sts,					st_ext_height_columns);	
+	create_output_table(out_diam_g_sts,					file_diam_g_sts,				st_ext_height_columns);	// 2 decimals only in this branch
 	create_output_table(out_cutinterval_sts,			file_cutinterval_sts,			st_columns_age);
 	create_output_table(out_cutinterval_thisyear_sts,	file_cutinterval_thisyear_sts,  st_columns_age);
-	create_output_table(out_dens_sts,					file_dens_sts,					st_dens_columns);
-	create_output_table(out_height_sts,					file_height_sts,				st_height_columns);
-	create_output_table(out_csoil_sts,					file_csoil_sts,					st_columns);
-	create_output_table(out_clitter_sts,				file_clitter_sts,				st_columns);
-	create_output_table(out_csink_sts,					file_csink_sts,					st_columns);
+	create_output_table(out_dens_sts,					file_dens_sts,					st_ext_dens_columns);
+	create_output_table(out_height_sts,					file_height_sts,				st_ext_height_columns);
+	create_output_table(out_csoil_sts,					file_csoil_sts,					st_ext_columns);
+	create_output_table(out_clitter_sts,				file_clitter_sts,				st_ext_columns);
+	create_output_table(out_clitter_course_sts,			file_clitter_course_sts,		st_ext_columns);
+	create_output_table(out_clitter_fine_sts,			file_clitter_fine_sts,			st_ext_columns);
+	create_output_table(out_rh_sts,						file_rh_sts,					st_ext_columns);
+	create_output_table(out_rh_clitter_course_sts,		file_rh_clitter_course_sts,		st_ext_columns);
+	create_output_table(out_rh_clitter_fine_sts,		file_rh_clitter_fine_sts,		st_ext_columns);
+	create_output_table(out_csink_sts,					file_csink_sts,					st_ext_dens_columns);
+	create_output_table(out_luc_cflux_sts,				file_luc_cflux_sts,				st_ext_columns);
+	create_output_table(out_nsoil_sts,					file_nsoil_sts,					st_ext_columns);
+	create_output_table(out_nlitter_sts,				file_nlitter_sts,				st_ext_dens_columns);
+	create_output_table(out_nlitter_course_sts,			file_nlitter_course_sts,		st_ext_dens_columns);
+	create_output_table(out_nlitter_fine_sts,			file_nlitter_fine_sts,			st_ext_dens_columns);
 	create_output_table(out_nstand_sts,					file_nstand_sts,				st_columns_int);
+	create_output_table(out_npatch_sts,					file_npatch_sts,				st_columns_int);
+	create_output_table(out_frac_sts,					file_frac_sts,					st_ext_dens_columns);
+
+	create_output_table(out_storm_si_sts,				file_storm_si_sts,				st_ext_columns);
+	create_output_table(out_storm_frac_sts,				file_storm_frac_sts,			st_ext_columns);
+	create_output_table(out_storm_frac_pot_sts,			file_storm_frac_pot_sts,		st_ext_columns);
+	create_output_table(out_storm_dw_sts,				file_storm_dw_sts,				st_ext_dens_columns);
+	create_output_table(out_storm_dw_pot_sts,			file_storm_dw_pot_sts,			st_ext_columns);
+	create_output_table(out_insect_dw_sts,				file_insect_dw_sts,				st_ext_dens_columns);
+
+	create_output_table(out_cmort_storm_sts,			file_cmort_storm_sts,			st_ext_dens_columns);
+	create_output_table(out_cmort_insect_sts,			file_cmort_insect_sts,			st_ext_dens_columns);
+	create_output_table(out_cmort_fire_sts,				file_cmort_fire_sts,			st_ext_dens_columns);
+	create_output_table(out_cmort_clearcut_sts,			file_cmort_clearcut_sts,		st_ext_dens_columns);
+
+	create_output_table(out_cmass_plus10cm_sts, file_cmass_plus10cm_sts, st_ext_columns);
+	create_output_table(out_cmass_harv_killed_plus10cm_sts, file_cmass_harv_killed_plus10cm_sts, st_ext_dens_columns);
+	create_output_table(out_cmass_dist_clearcut_killed_plus10cm_sts, file_cmass_dist_clearcut_killed_plus10cm_sts, st_ext_dens_columns);
+	create_output_table(out_cmass_dist_fire_killed_plus10cm_sts, file_cmass_dist_fire_killed_plus10cm_sts, st_ext_dens_columns);
+	create_output_table(out_cmass_dist_wind_killed_plus10cm_sts, file_cmass_dist_wind_killed_plus10cm_sts, st_ext_dens_columns);
+	create_output_table(out_cmass_dist_barkbeetle_killed_plus10cm_sts, file_cmass_dist_barkbeetle_killed_plus10cm_sts, st_ext_dens_columns);
+	create_output_table(out_cmass_wood_plus10cm_sts, file_cmass_wood_plus10cm_sts, st_ext_columns);
+	create_output_table(out_cmass_wood_harv_killed_plus10cm_sts, file_cmass_wood_harv_killed_plus10cm_sts, st_ext_dens_columns);
+	create_output_table(out_cmass_wood_mort_plus10cm_sts, file_cmass_wood_mort_plus10cm_sts, st_ext_dens_columns);
+	create_output_table(out_cmass_wood_inc_plus10cm_sts, file_cmass_wood_inc_plus10cm_sts, st_ext_dens_columns);
+	create_output_table(out_dens_plus10cm_sts, file_dens_plus10cm_sts, st_ext_dens_columns);
+	create_output_table(out_height_plus10cm_sts, file_height_plus10cm_sts, st_ext_height_columns);
+	create_output_table(out_diam_plus10cm_sts, file_diam_plus10cm_sts, st_ext_height_columns);
+	create_output_table(out_diam_g_plus10cm_sts, file_diam_g_plus10cm_sts, st_ext_height_columns);
+
+	create_output_table(out_transpiration_sts,			file_transpiration_sts,         st_ext_runoff_columns);
+	create_output_table(out_runoff_sts,					file_runoff_sts,				st_ext_runoff_columns);
+	create_output_table(out_intercep_sts,				file_intercep_sts,				st_ext_runoff_columns);
+	create_output_table(out_evap_sts,					file_evap_sts,					st_ext_runoff_columns);
+
+	create_output_table(out_height_plus10cm_sts_patch_mean, file_height_plus10cm_sts_patch_mean, st_ext_height_columns);
+	create_output_table(out_diam_plus10cm_sts_patch_mean, file_diam_plus10cm_sts_patch_mean, st_ext_height_columns);
+	create_output_table(out_diam_g_plus10cm_sts_patch_mean, file_diam_g_plus10cm_sts_patch_mean, st_ext_height_columns);
+
+	create_output_table(out_height_sts_patch_mean, file_height_sts_patch_mean, st_ext_height_columns);
+	create_output_table(out_diam_sts_patch_mean, file_diam_sts_patch_mean, st_ext_height_columns);
+	create_output_table(out_diam_g_sts_patch_mean, file_diam_g_sts_patch_mean, st_ext_height_columns);
 
 	create_output_table(out_forest_harvest,				file_forest_harvest,			forest_harv_columns);
 	create_output_table(out_forest_vegc,				file_forest_vegc,				forest_vegc_columns);
@@ -884,7 +1106,7 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_cpool_forestry,				file_cpool_forestry,			cpool_columns_for_regr);
 	create_output_table(out_cpool_regrowth,				file_cpool_regrowth,			cpool_columns_for_regr);
 	create_output_table(out_cpool_primary,				file_cpool_primary,				cpool_columns_for_regr);
-	create_output_table(out_harvest_flux_luc,			file_harvest_flux_luc,				harv_columns_luc);
+	create_output_table(out_harvest_flux_luc,			file_harvest_flux_luc,			harv_columns_luc);
 
 	create_output_table(out_agestruct_natural, file_agestruct_natural, agestruct_columns);
 	create_output_table(out_agestruct_forest, file_agestruct_forest, agestruct_columns);
@@ -892,17 +1114,42 @@ void MiscOutput::define_output_tables() {
 	create_output_table(out_diamstruct_forest, file_diamstruct_forest, diamstruct_columns);
 	create_output_table(out_diamstruct_cmass_natural, file_diamstruct_cmass_natural, diamstruct_cmass_columns);
 	create_output_table(out_diamstruct_cmass_forest, file_diamstruct_cmass_forest, diamstruct_cmass_columns);
+	create_output_table(out_diamstruct_cmass_leaf_natural, file_diamstruct_cmass_leaf_natural, diamstruct_cmass_columns);
+	create_output_table(out_diamstruct_cmass_leaf_forest, file_diamstruct_cmass_leaf_forest, diamstruct_cmass_columns);
+	create_output_table(out_diamstruct_cmass_wood_natural, file_diamstruct_cmass_wood_natural, diamstruct_cmass_columns);
+	create_output_table(out_diamstruct_cmass_wood_forest, file_diamstruct_cmass_wood_forest, diamstruct_cmass_columns);
+	create_output_table(out_diamstruct_cmass_froot_natural, file_diamstruct_cmass_froot_natural, diamstruct_cmass_columns);
+	create_output_table(out_diamstruct_cmass_froot_forest, file_diamstruct_cmass_froot_forest, diamstruct_cmass_columns);
+	create_output_table(out_diamstruct_cmass_wood_inc_natural, file_diamstruct_cmass_wood_inc_natural, diamstruct_cmass_columns);
+	create_output_table(out_diamstruct_cmass_wood_inc_forest, file_diamstruct_cmass_wood_inc_forest, diamstruct_cmass_columns);
+	create_output_table(out_diamstruct_ba_natural, file_diamstruct_ba_natural, diamstruct_columns);
+	create_output_table(out_diamstruct_ba_forest, file_diamstruct_ba_forest, diamstruct_columns);
+	create_output_table(out_agestruct_standage_natural, file_agestruct_standage_natural, standagestruct_columns);
+	create_output_table(out_agestruct_standage_forest, file_agestruct_standage_forest, standagestruct_columns);
+	create_output_table(out_agestruct_standage_cropland, file_agestruct_standage_cropland, standagestruct_columns);
+	create_output_table(out_agestruct_standage_pasture, file_agestruct_standage_pasture, standagestruct_columns);
+
+	create_output_table(out_cflux_harvest, file_cflux_harvest, cflux_harvest_columns);
+	create_output_table(out_harvest_volume, file_harvest_volume, cflux_harvest_columns);
+
+	create_output_table(out_storm, file_storm, storm_columns);
 
 	if(printstandtypes) {
 		char dirname[200]={'\0'};
 		// Put files in separate directory only on Windows for now.
 #ifdef _MSC_VER
-		strcpy(dirname, "st_output/");
+		strcpy(dirname, "st_output\\");
 		make_directory(dirname);
 #endif
 		out_cmass_pft_st = new Table[nst];
-		out_diamstruct_cmass_st = new Table[nst];
 		out_cmass_harv_killed_pft_st = new Table[nst];
+		out_transpiration_pft_st = new Table[nst];
+		out_diamstruct_cmass_st = new Table[nst];
+		out_diamstruct_cmass_leaf_st = new Table[nst];
+		out_diamstruct_cmass_wood_st = new Table[nst];
+		out_diamstruct_cmass_froot_st = new Table[nst];
+		out_diamstruct_cmass_wood_inc_st = new Table[nst];
+		out_standagestruct_st = new Table[nst];
 
 		for(int i=0;i<nst;i++) {
 			StandType& st = stlist[i];
@@ -919,6 +1166,14 @@ void MiscOutput::define_output_tables() {
 				strcat(outfilename, buffer);
 				create_output_table(out_cmass_pft_st[i], outfilename, anpp_columns_lc);
 			}
+			if(print_transpiration_pft_st) {
+				outfilename[0] = '\0';
+				strcpy(outfilename, dirname);
+				strcat(outfilename, "transpiration_");
+				strcat(outfilename, (char*)st.name);
+				strcat(outfilename, buffer);
+				create_output_table(out_transpiration_pft_st[i], outfilename, anpp_columns_lc);
+			}
 			if(print_diamstruct_cmass_st) {
 				outfilename[0] = '\0';
 				strcpy(outfilename, dirname);
@@ -927,6 +1182,38 @@ void MiscOutput::define_output_tables() {
 				strcat(outfilename, "_st.out");
 				create_output_table(out_diamstruct_cmass_st[i], outfilename, diamstruct_cmass_columns);
 			}
+			if(print_diamstruct_cmass_leaf_st) {
+				outfilename[0] = '\0';
+				strcpy(outfilename, dirname);
+				strcat(outfilename, "diamstruct_cmass_leaf_");
+				strcat(outfilename, (char*)st.name);
+				strcat(outfilename, "_st.out");
+				create_output_table(out_diamstruct_cmass_leaf_st[i], outfilename, diamstruct_cmass_columns);
+			}
+			if(print_diamstruct_cmass_wood_st) {
+				outfilename[0] = '\0';
+				strcpy(outfilename, dirname);
+				strcat(outfilename, "diamstruct_cmass_wood_");
+				strcat(outfilename, (char*)st.name);
+				strcat(outfilename, "_st.out");
+				create_output_table(out_diamstruct_cmass_wood_st[i], outfilename, diamstruct_cmass_columns);
+			}
+			if(print_diamstruct_cmass_froot_st) {
+				outfilename[0] = '\0';
+				strcpy(outfilename, dirname);
+				strcat(outfilename, "diamstruct_cmass_froot_");
+				strcat(outfilename, (char*)st.name);
+				strcat(outfilename, "_st.out");
+				create_output_table(out_diamstruct_cmass_froot_st[i], outfilename, diamstruct_cmass_columns);
+			}
+			if(print_diamstruct_cmass_wood_inc_st) {
+				outfilename[0] = '\0';
+				strcpy(outfilename, dirname);
+				strcat(outfilename, "diamstruct_cmass_wood_inc_");
+				strcat(outfilename, (char*)st.name);
+				strcat(outfilename, "_st.out");
+				create_output_table(out_diamstruct_cmass_wood_inc_st[i], outfilename, diamstruct_cmass_columns);
+			}
 			if(print_cmass_harv_killed_pft_st) {
 				outfilename[0] = '\0';
 				strcpy(outfilename, dirname);
@@ -934,6 +1221,14 @@ void MiscOutput::define_output_tables() {
 				strcat(outfilename, (char*)st.name);
 				strcat(outfilename, buffer);
 				create_output_table(out_cmass_harv_killed_pft_st[i], outfilename, anpp_columns_lc);
+			}
+			if(print_standagestruct_st) {
+				outfilename[0] = '\0';
+				strcpy(outfilename, dirname);
+				strcat(outfilename, "standagestruct_");
+				strcat(outfilename, (char*)st.name);
+				strcat(outfilename, buffer);
+				create_output_table(out_standagestruct_st[i], outfilename, standagestruct_columns);
 			}
 		}
 	}
@@ -964,17 +1259,6 @@ void MiscOutput::define_output_tables() {
 
 	create_output_table(out_daily_climate,				file_daily_climate,				daily_climate_columns);
 
-	create_output_table(out_daily_snow_depth,           file_daily_snow_depth,          daily_snow_columns);
-	create_output_table(out_daily_snow_density,         file_daily_snow_density,        daily_snow_columns);
-	create_output_table(out_daily_snow_k,               file_daily_snow_k,              daily_snow_k_columns);
-	create_output_table(out_daily_snow_c,               file_daily_snow_c,              daily_snow_c_columns);
-
-	create_output_table(out_daily_temp,                 file_daily_temp,                snowsoillyr_columns);
-
-	create_output_table(out_dtemp_depth,                file_dtemp_depth,               tsoil_columns);
-
-	create_output_table(out_daily_wcont,                file_daily_wcont,               soillyr_columns);
-
 	create_output_table(out_daily_cton,					file_daily_cton,				daily_columns);
 
 	create_output_table(out_daily_nminleach,			file_daily_nminleach,			daily_columns);
@@ -989,7 +1273,14 @@ void MiscOutput::define_output_tables() {
 		create_output_table(out_daily_root,				file_daily_root,				daily_columns);
 		create_output_table(out_daily_storage,			file_daily_storage,				daily_columns);
 	}
+	if (firemodel==BLAZE) {
+		create_output_table(out_daily_blaze,      file_daily_blaze,      blaze_daily_columns);
+	}
 
+	ColumnDescriptors mpft_columns; // EC-Earth
+	mpft_columns += ColumnDescriptors(pfts, 9, 4);
+
+	create_output_table(out_mlambda, file_monthly_mlambda, mpft_columns); // EC-Earth
 }
 
 /// Local analogue of OutputRows::add_value for restricting output
@@ -1017,15 +1308,8 @@ void outlimit_misc(OutputRows& out, const Table& table, double d) {
   */
 void MiscOutput::outannual(Gridcell& gridcell) {
 
-	if (date.year < nyear_spinup)
-		return;
-
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
-
-	// Soil sections layers [mm]
-	const int sslyr = 7;
-	double soil_sections[sslyr] = { 300.0, 500.0, 1000.0, 1500.0, 2000.0, 3000.0, 50000.0 };
 
 	double flux_veg_regrowth, flux_repr_regrowth, flux_soil_regrowth, flux_fire_regrowth, flux_est_regrowth, 
 		flux_seed_regrowth, flux_charvest_regrowth;
@@ -1035,45 +1319,12 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		flux_seed_primary, flux_charvest_primary;
 	double surfsoillitterc_regrowth, surfsoillitterc_forestry, surfsoillitterc_primary;
 	double cwdc_regrowth, cwdc_forestry, cwdc_primary;
-	double humusc_regrowth, humusc_forestry, humusc_primary;
 	double centuryc_regrowth, centuryc_forestry, centuryc_primary;
 
 	Landcover& lc = gridcell.landcover;
 	// The OutputRows object manages the next row of output for each
 	// output table
 	OutputRows out(output_channel, lon, lat, date.get_calendar_year());
-
-	for(int i=0;i<nst;i++) {
-	
-		StandType& st = stlist[i];
-		st.anpp = 0.0;
-		st.lai = 0.0;
-		st.lai_tree = 0.0;
-		st.cmass = 0.0;
-		st.cmass_tree = 0.0;
-		st.cmass_tree_mort = 0.0;
-		st.cmass_wood = 0.0;
-		st.cmass_wood_potharv = 0.0;
-		st.cmass_wood_potharv_products = 0.0;
-		st.cmass_potfuel = 0.0;
-		st.cmass_mort = 0.0;
-		st.cmass_fire = 0.0;
-		st.cmass_dist = 0.0;
-		st.cmass_leaf_root_turnover = 0.0;
-		st.cmass_repr = 0.0;
-		st.cmass_est = 0.0;
-		st.cmass_wood_harv = 0.0;
-		st.cmass_wood_harv_toprod = 0.0;
-		st.cmass_wood_clearcut = 0.0;
-		st.cmass_harv_killed = 0.0;
-		st.cmass_harv_tolitter = 0.0;
-		st.densindiv = 0.0;
-		st.diam_g = 0.0;
-		st.csoil = 0.0;
-		st.clitter = 0.0;
-		st.csink = 0.0;
-		st.height = 0.0;
-	}
 
 	double mean_standpft_cmass_landscape=0.0;
 	double mean_standpft_anpp_landscape=0.0;
@@ -1090,7 +1341,17 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double landcover_densindiv_total[NLANDCOVERTYPES]={0.0};
 	double landcover_cmass_harv_killed[NLANDCOVERTYPES]={0.0};
 
+	double landcover_cmass_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+	double landcover_cmass_harv_killed_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+	double landcover_densindiv_total_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+
 	double mean_standpft_cmass_harv_killed=0.0;
+
+	double mean_standpft_cmass_plus10cm = 0.0;
+	double mean_standpft_cmass_harv_killed_plus10cm = 0.0;
+	double mean_standpft_densindiv_total_plus10cm = 0.0;
+	double mean_standpft_heightindiv_total_plus10cm = 0.0;
+	double mean_standpft_diamindiv_total_plus10cm = 0.0;
 
 	double mean_standpft_anpp_lc[NLANDCOVERTYPES]={0.0};
 	double mean_standpft_cmass_lc[NLANDCOVERTYPES]={0.0};
@@ -1104,7 +1365,12 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double mean_standpft_diamindiv_total_lc[NLANDCOVERTYPES]={0.0};
 	double mean_standpft_heightindiv_total_lc[NLANDCOVERTYPES]={0.0};
 
-	double gridcellpft_cmass_harv_killed=0.0;
+	double gridcellpft_anpp_lc[NLANDCOVERTYPES]={0.0};
+	double gridcellpft_cmass_lc[NLANDCOVERTYPES]={0.0};
+	double gridcellpft_aaet_lc[NLANDCOVERTYPES]={0.0};
+	double gridcellpft_lai_lc[NLANDCOVERTYPES]={0.0};
+
+	double gridcellpft_cmass_harv_killed=0.0;	// NOT USED ?
 
 	double cmass_gridcell=0.0;
 	double anpp_gridcell=0.0;
@@ -1123,6 +1389,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double irrigation_gridcell=0.0;
 
 	double cmass_harv_killed_gridcell=0.0;
+
+	double cmass_gridcell_plus10cm = 0.0;
+	double cmass_harv_killed_gridcell_plus10cm = 0.0;
+	double dens_gridcell_plus10cm = 0.0;
 
 	double standpft_cmass=0.0;
 	double standpft_cmass_wood=0.0;
@@ -1155,15 +1425,28 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double standpft_heightindiv_total = 0.0;
 	double standpft_diamindiv_total = 0.0;
 
+	double standpft_cmass_plus10cm = 0.0;
+	double standpft_densindiv_total_plus10cm = 0.0;
+	double standpft_heightindiv_total_plus10cm = 0.0;
+	double standpft_diamindiv_total_plus10cm = 0.0;
+	double standpft_diam_g_plus10cm = 0.0;
+	double standpft_cmass_harv_killed_plus10cm = 0.0;
+
+	// from EC-Earth
+	double pft_mlambda_gpp[12][MAXNUMBER_PFTS] = { 0.0 };
+	double pft_mgpp[12][MAXNUMBER_PFTS] = { 0.0 };
+
 	double* st_pft_cmass = new double[nst];
 	double* st_total_cmass = new double[nst];
 	double* st_pft_cmass_harv_killed = new double[nst];
 	double* st_total_cmass_harv_killed = new double[nst];
+	double* st_pft_aaet = new double[nst];
+	double* st_total_aaet = new double[nst];
 	
-
 	for(int stid=0; stid<nst; stid++) {
 		st_total_cmass[stid] = 0.0;
 		st_total_cmass_harv_killed[stid] = 0.0;
+		st_total_aaet[stid] = 0.0;
 	}
 
 	pftlist.firstobj();
@@ -1172,6 +1455,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		for(int stid=0; stid<nst; stid++) {
 			st_pft_cmass[stid] = 0.0;
 			st_pft_cmass_harv_killed[stid] = 0.0;
+			st_pft_aaet[stid] = 0.0;
 		}
 
 		Pft& pft=pftlist.getobj();
@@ -1181,6 +1465,12 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		mean_standpft_lai_landscape = 0.0;
 
 		mean_standpft_cmass_harv_killed = 0.0;
+
+		mean_standpft_cmass_plus10cm = 0.0;
+		mean_standpft_cmass_harv_killed_plus10cm = 0.0;
+		mean_standpft_densindiv_total_plus10cm = 0.0;
+		mean_standpft_heightindiv_total_plus10cm = 0.0;
+		mean_standpft_diamindiv_total_plus10cm = 0.0;
 
 		// Sum values across stands, patches and PFTs
 		double mean_standpft_yield=0.0;
@@ -1200,6 +1490,11 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			mean_standpft_fpc_lc[i]=0.0;
 			mean_standpft_diamindiv_total_lc[i] = 0.0;
 			mean_standpft_heightindiv_total_lc[i] = 0.0;
+
+			gridcellpft_anpp_lc[i]=0.0;
+			gridcellpft_cmass_lc[i]=0.0;
+			gridcellpft_aaet_lc[i]=0.0;
+			gridcellpft_lai_lc[i]=0.0;
 		}
 
 		// Determine area fraction of stands where this pft is active:
@@ -1259,37 +1554,50 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			standpft_heightindiv_total = 0.0;
 			standpft_diamindiv_total = 0.0;
 
+			standpft_cmass_plus10cm = 0.0;
+			standpft_densindiv_total_plus10cm = 0.0;
+			standpft_heightindiv_total_plus10cm = 0.0;
+			standpft_diamindiv_total_plus10cm = 0.0;
+			standpft_diam_g_plus10cm = 0.0;
+			standpft_cmass_harv_killed_plus10cm = 0.0;
+
 			stand.firstobj();
 
 			// Loop through Patches
 			while (stand.isobj) {
 				Patch& patch = stand.getobj();
-				Patchpft& ppft = patch.pft[pft.id];
+				Patchpft& patchpft = patch.pft[pft.id];
 				Vegetation& vegetation = patch.vegetation;
+
+				// from EC-Earth:
+				double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
 
 				standpft_anpp += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id);
 
-				standpft_cmass_wood_harv += ppft.cmass_wood_harv;
-				standpft_cmass_wood_harv_toprod += ppft.cmass_wood_harv_toprod;
-				standpft_cmass_wood_clearcut += ppft.cmass_wood_clearcut;
-				standpft_cmass_harv_tolitter += ppft.cmass_harv_tolitter;
-				standpft_cmass_harv_killed += ppft.cmass_harv_killed;
-				standpft_cmass_mort += ppft.cmass_mort;
-				standpft_cmass_fire += ppft.cmass_fire;
-				standpft_cmass_dist += ppft.cmass_dist;
-				standpft_cmass_leaf_root_turnover += ppft.cmass_leaf_root_turnover;
-				standpft_cmass_repr += ppft.cmass_repr;
-				standpft_cmass_est += ppft.cmass_est;
-				standpft_clitter += ppft.cmass_litter_leaf + ppft.cmass_litter_root + ppft.cmass_litter_sap
-					+ ppft.cmass_litter_heart + ppft.cmass_litter_repr;
-				standpft_nlitter += ppft.nmass_litter_leaf + ppft.nmass_litter_root + ppft.nmass_litter_sap
-					+ ppft.nmass_litter_heart;
+				standpft_cmass_wood_harv += patchpft.cmass_wood_harv;
+				standpft_cmass_wood_harv_toprod += patchpft.cmass_wood_harv_toprod;
+				standpft_cmass_wood_clearcut += patchpft.cmass_wood_clearcut;
+				standpft_cmass_harv_tolitter += patchpft.cmass_harv_tolitter;
+				standpft_cmass_harv_killed += patchpft.cmass_harv_killed;
+				standpft_cmass_mort += patchpft.cmass_mort;
+				standpft_cmass_fire += patchpft.cmass_fire_killed;
+				standpft_cmass_dist += patchpft.cmass_dist;
+				standpft_cmass_leaf_root_turnover += patchpft.cmass_leaf_root_turnover;
+				standpft_cmass_repr += patchpft.cmass_repr;
+				standpft_cmass_est += patchpft.cmass_est;
+				standpft_clitter += patchpft.cmass_litter_leaf + patchpft.cmass_litter_root + patchpft.cmass_litter_sap
+					+ patchpft.cmass_litter_heart + patchpft.cmass_litter_repr;
+				standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap
+					+ patchpft.nmass_litter_heart;
+
+				standpft_cmass_harv_killed_plus10cm += patchpft.cmass_harv_killed_plus10cm;
 
 				vegetation.firstobj();
 				while (vegetation.isobj) {
 					Individual& indiv=vegetation.getobj();
 
 					if (indiv.id!=-1 && indiv.alive && indiv.pft.id==pft.id) {
+//					if (indiv.id!=-1 && indiv.alive && indiv.pft.id==pft.id && indiv.diam > 0.1) {	// TreeMort
 
 						standpft_cmass += indiv.ccont();
 						standpft_cmass_wood += indiv.cmass_wood();
@@ -1300,6 +1608,14 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 						standpft_fpc += indiv.fpc;
 						standpft_aaet += indiv.aaet;
 						standpft_lai += indiv.lai;
+
+						if (pft.lifeform == TREE && indiv.diam >= 0.1) {	// TreeMort
+							standpft_cmass_plus10cm += indiv.ccont();
+							standpft_densindiv_total_plus10cm += indiv.densindiv;
+							standpft_heightindiv_total_plus10cm += indiv.height * indiv.densindiv;
+							standpft_diamindiv_total_plus10cm += indiv.diam * indiv.densindiv;
+							standpft_diam_g_plus10cm += pow(indiv.diam, 2) * indiv.densindiv;
+						}
 
 						if (pft.landcover == CROPLAND) {
 							standpft_yield += indiv.cropindiv->harv_yield;
@@ -1315,6 +1631,13 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 									standpft_heightindiv_total += indiv.height * indiv.densindiv;
 									standpft_diam_g += pow(indiv.diam, 2) * indiv.densindiv;
 								}
+							}
+
+							// from EC-Earth
+							// Calculate monthly lambda
+							for (int m = 0; m < 12; m++) {
+								// pft_mlambda_gpp[m][pft.id] += max(0.0, indiv.mlambda_gpp[m]) * to_gridcell_average;
+								pft_mgpp[m][pft.id] += max(0.0, indiv.mgpp[m]) * to_gridcell_average;
 							}
 						}
 					}
@@ -1355,6 +1678,13 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			standpft_yield1/=(double)stand.npatch();
 			standpft_yield2/=(double)stand.npatch();
 
+			standpft_cmass_plus10cm /= (double)stand.npatch();
+			standpft_densindiv_total_plus10cm /= (double)stand.npatch();
+			standpft_heightindiv_total_plus10cm /= (double)stand.npatch();
+			standpft_diamindiv_total_plus10cm /= (double)stand.npatch();
+			standpft_diam_g_plus10cm /= (double)stand.npatch();
+			standpft_cmass_harv_killed_plus10cm /= (double)stand.npatch();
+
 			//Update landcover totals
 			landcover_cmass[stand.landcover]+=standpft_cmass*stand.get_landcover_fraction();
 			landcover_nmass[stand.landcover]+=standpft_nmass*stand.get_landcover_fraction();
@@ -1369,12 +1699,22 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			landcover_densindiv_total[stand.landcover]+=standpft_densindiv_total*stand.get_landcover_fraction();
 			landcover_cmass_harv_killed[stand.landcover]+=standpft_cmass_harv_killed*stand.get_landcover_fraction();
 
+			landcover_cmass_plus10cm[stand.landcover] += standpft_cmass_plus10cm * stand.get_landcover_fraction();
+			landcover_cmass_harv_killed_plus10cm[stand.landcover] += standpft_cmass_harv_killed_plus10cm * stand.get_landcover_fraction();
+			landcover_densindiv_total_plus10cm[stand.landcover] += standpft_densindiv_total_plus10cm * stand.get_landcover_fraction();
+
 			//Update pft means for active stands
 			if(active_fraction) {
 				mean_standpft_cmass_harv_killed += standpft_cmass_harv_killed * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_yield += standpft_yield * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_yield1 += standpft_yield1 * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_yield2 += standpft_yield2 * stand.get_gridcell_fraction() / active_fraction;
+
+				mean_standpft_cmass_plus10cm += standpft_cmass_plus10cm * stand.get_gridcell_fraction() / active_fraction;
+				mean_standpft_cmass_harv_killed_plus10cm += standpft_cmass_harv_killed_plus10cm * stand.get_gridcell_fraction() / active_fraction;
+				mean_standpft_densindiv_total_plus10cm += standpft_densindiv_total_plus10cm * stand.get_gridcell_fraction() / active_fraction;
+				mean_standpft_heightindiv_total_plus10cm += standpft_heightindiv_total_plus10cm * stand.get_gridcell_fraction() / active_fraction;
+				mean_standpft_diamindiv_total_plus10cm += standpft_diamindiv_total_plus10cm * stand.get_gridcell_fraction() / active_fraction;
 
 				//Update pft mean for active stands in landcover
 				if(active_fraction_lc[stand.landcover]) {
@@ -1405,7 +1745,12 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			mean_standpft_cmass_landscape_lc[stand.landcover] += standpft_cmass * stand.get_landcover_fraction();
 			mean_standpft_lai_landscape_lc[stand.landcover] += standpft_lai * stand.get_landcover_fraction();
 
-			gridcellpft_cmass_harv_killed += standpft_cmass_harv_killed * stand.get_gridcell_fraction();
+			gridcellpft_cmass_harv_killed += standpft_cmass_harv_killed * stand.get_gridcell_fraction();	// NOT USED  ?
+
+			gridcellpft_cmass_lc[stand.landcover] += standpft_cmass * stand.get_gridcell_fraction();
+			gridcellpft_anpp_lc[stand.landcover] += standpft_anpp * stand.get_gridcell_fraction();
+			gridcellpft_aaet_lc[stand.landcover] += standpft_aaet * stand.get_gridcell_fraction();
+			gridcellpft_lai_lc[stand.landcover] += standpft_lai * stand.get_gridcell_fraction();
 
 			//Update stand totals
 			stand.anpp += standpft_anpp;
@@ -1457,37 +1802,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			st_total_cmass[stand.stid] += standpft_cmass * stand.get_gridcell_fraction();
 			st_pft_cmass_harv_killed[stand.stid] += standpft_cmass_harv_killed * stand.get_gridcell_fraction();
 			st_total_cmass_harv_killed[stand.stid] += standpft_cmass_harv_killed * stand.get_gridcell_fraction();
-
-			if(gcst.frac) {
-				double stand_st_ratio = stand.get_gridcell_fraction() / gcst.frac;
-				st.anpp += standpft_anpp * stand_st_ratio;
-				st.lai += standpft_lai * stand_st_ratio;
-				st.cmass += standpft_cmass * stand_st_ratio;
-				st.clitter += standpft_clitter * stand_st_ratio;
-				if(pft.lifeform == TREE) {
-					st.lai_tree += standpft_lai * stand_st_ratio;
-					st.cmass_tree += standpft_cmass * stand_st_ratio;
-					st.cmass_tree_mort += standpft_cmass_mort * stand_st_ratio;
-				}
-				st.cmass_wood += standpft_cmass_wood * stand_st_ratio;
-				st.cmass_wood_potharv += standpft_cmass_wood_potharv * stand_st_ratio;
-				st.cmass_wood_potharv_products += standpft_cmass_wood_potharv_products * stand_st_ratio;
-				st.cmass_potfuel += standpft_cmass_potfuel * stand_st_ratio;
-				st.cmass_mort += standpft_cmass_mort * stand_st_ratio;
-				st.cmass_fire += standpft_cmass_fire * stand_st_ratio;
-				st.cmass_dist += standpft_cmass_dist * stand_st_ratio;
-				st.cmass_leaf_root_turnover += standpft_cmass_leaf_root_turnover * stand_st_ratio;
-				st.cmass_repr += standpft_cmass_repr * stand_st_ratio;
-				st.cmass_est += standpft_cmass_est * stand_st_ratio;
-				st.cmass_wood_harv += standpft_cmass_wood_harv * stand_st_ratio;
-				st.cmass_wood_harv_toprod += standpft_cmass_wood_harv_toprod * stand_st_ratio;
-				st.cmass_wood_clearcut += standpft_cmass_wood_clearcut * stand_st_ratio;
-				st.cmass_harv_killed += standpft_cmass_harv_killed * stand_st_ratio;
-				st.cmass_harv_tolitter += standpft_cmass_harv_tolitter * stand_st_ratio;
-				st.densindiv += standpft_densindiv_total * stand_st_ratio;
-				st.diam_g += standpft_diam_g * stand_st_ratio;
-				st.height += standpft_heightindiv_total * stand_st_ratio;
-			}
+			st_pft_aaet[stand.stid] += standpft_aaet * stand.get_gridcell_fraction();
+			st_total_aaet[stand.stid] += standpft_aaet * stand.get_gridcell_fraction();
 
 			// Update gridcell totals
 			double fraction_of_gridcell = stand.get_gridcell_fraction();
@@ -1495,6 +1811,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			anpp_gridcell+=standpft_anpp*fraction_of_gridcell;
 			lai_gridcell+=standpft_lai*fraction_of_gridcell;
 			cmass_harv_killed_gridcell+=standpft_cmass_harv_killed*fraction_of_gridcell;
+
+			cmass_gridcell_plus10cm += standpft_cmass_plus10cm * fraction_of_gridcell;
+			cmass_harv_killed_gridcell_plus10cm += standpft_cmass_harv_killed_plus10cm * fraction_of_gridcell;
+			dens_gridcell_plus10cm += standpft_densindiv_total_plus10cm * fraction_of_gridcell;
 
 			if(stand.landcover == NATURAL || stand.landcover == FOREST) {
 				if(stand.first_year) {
@@ -1525,21 +1845,34 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 						outlimit_misc(out, out_cmass_pft_st[stid], st_pft_cmass[stid] / gcst.frac);
 					if(!out_cmass_harv_killed_pft_st[stid].invalid())
 						outlimit_misc(out, out_cmass_harv_killed_pft_st[stid], st_pft_cmass_harv_killed[stid] / gcst.frac);
+					if(!out_transpiration_pft_st[stid].invalid())
+						outlimit_misc(out, out_transpiration_pft_st[stid], st_pft_aaet[stid] / gcst.frac);
 				}
 				else {
 					if(!out_cmass_pft_st[stid].invalid())
 						outlimit_misc(out, out_cmass_pft_st[stid], 0.0);
 					if(!out_cmass_harv_killed_pft_st[stid].invalid())
 						outlimit_misc(out, out_cmass_harv_killed_pft_st[stid], 0.0);
+					if(!out_transpiration_pft_st[stid].invalid())
+						outlimit_misc(out, out_transpiration_pft_st[stid], 0.0);
 				}
 			}
 		}
 
-		outlimit_misc(out, out_cmass_landscape, mean_standpft_cmass_landscape);
-		outlimit_misc(out, out_anpp_landscape,  mean_standpft_anpp_landscape);
-		outlimit_misc(out, out_lai_landscape,	mean_standpft_lai_landscape);
+		outlimit_misc(out, out_forest_cmass_harv_killed_active,  mean_standpft_cmass_harv_killed);
 
-		outlimit_misc(out, out_forest_cmass_harv_killed,  mean_standpft_cmass_harv_killed);
+		outlimit_misc(out, out_cmass_active_plus10cm, mean_standpft_cmass_plus10cm);
+		outlimit_misc(out, out_forest_cmass_harv_killed_active_plus10cm, mean_standpft_cmass_harv_killed_plus10cm);
+		outlimit_misc(out, out_dens_plus10cm, mean_standpft_densindiv_total_plus10cm);
+
+		double height = 0.0;
+		double diam = 0.0;
+		if (mean_standpft_densindiv_total_plus10cm > 0.0) {
+			height = mean_standpft_heightindiv_total_plus10cm / mean_standpft_densindiv_total_plus10cm;
+			diam = mean_standpft_diamindiv_total_plus10cm / mean_standpft_densindiv_total_plus10cm;
+		}
+		outlimit_misc(out, out_speciesheights_plus10cm, height);
+		outlimit_misc(out, out_speciesdiam_plus10cm, diam * 100.0);	//diameter output in cm
 
 		// Print to landcover files in case pft:s are common to several landcovers (currently only used in NATURAL and FOREST)
 		if (run_landcover) {
@@ -1549,18 +1882,18 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					switch (i) {
 					case CROPLAND:
 						if (run[NATURAL]) {
-//							outlimit_misc(out, out_anpp_landscape_cropland,	 mean_standpft_anpp_landscape_lc[i]);
-//							outlimit_misc(out, out_cmass_landscape_cropland, mean_standpft_cmass_landscape_lc[i]);
-//							outlimit_misc(out, out_lai_landscape_cropland,	 mean_standpft_lai_landscape_lc[i]);
+							outlimit_misc(out, out_anpp_cropland,	 mean_standpft_anpp_landscape_lc[i]);
+							outlimit_misc(out, out_cmass_cropland, mean_standpft_cmass_landscape_lc[i]);
+							outlimit_misc(out, out_lai_cropland,	 mean_standpft_lai_landscape_lc[i]);
 						}
 						break;
 					case PASTURE:
 						if (run[NATURAL]) {
-							outlimit_misc(out, out_anpp_pasture, mean_standpft_anpp_lc[i]);
-							outlimit_misc(out, out_cmass_pasture, mean_standpft_cmass_lc[i]);
-//							outlimit_misc(out, out_anpp_landscape_pasture, mean_standpft_anpp_landscape_lc[i]);
-//							outlimit_misc(out, out_cmass_landscape_pasture, mean_standpft_cmass_landscape_lc[i]);
-//							outlimit_misc(out, out_lai_landscape_pasture, mean_standpft_lai_landscape_lc[i]);
+							outlimit_misc(out, out_anpp_active_pasture, mean_standpft_anpp_lc[i]);
+							outlimit_misc(out, out_cmass_active_pasture, mean_standpft_cmass_lc[i]);
+							outlimit_misc(out, out_anpp_pasture, mean_standpft_anpp_landscape_lc[i]);
+							outlimit_misc(out, out_cmass_pasture, mean_standpft_cmass_landscape_lc[i]);
+							outlimit_misc(out, out_lai_pasture, mean_standpft_lai_landscape_lc[i]);
 						}
 						break;
 					case BARREN:
@@ -1568,15 +1901,20 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					case NATURAL:
 //						if(run[FOREST] || run[PASTURE]) {
 						if(run[FOREST]) {
-							outlimit_misc(out, out_anpp_natural, mean_standpft_anpp_lc[i]);
-							outlimit_misc(out, out_cmass_natural, mean_standpft_cmass_lc[i]);
+							outlimit_misc(out, out_anpp_active_natural, mean_standpft_anpp_lc[i]);
+							outlimit_misc(out, out_cmass_active_natural, mean_standpft_cmass_lc[i]);
 							outlimit_misc(out, out_dens_natural, mean_standpft_densindiv_total_lc[i]);
-//							outlimit_misc(out, out_anpp_landscape_natural, mean_standpft_anpp_landscape_lc[i]);
-//							outlimit_misc(out, out_cmass_landscape_natural, mean_standpft_cmass_landscape_lc[i]);
-//							outlimit_misc(out, out_lai_landscape_natural, mean_standpft_lai_landscape_lc[i]);
-							outlimit_misc(out, out_aaet_natural, mean_standpft_aaet_lc[i]);
-							outlimit_misc(out, out_lai_natural, mean_standpft_lai_lc[i]);
-							outlimit_misc(out, out_fpc_natural, mean_standpft_fpc_lc[i]);
+							outlimit_misc(out, out_anpp_natural, mean_standpft_anpp_landscape_lc[i]);
+							outlimit_misc(out, out_cmass_natural, mean_standpft_cmass_landscape_lc[i]);
+							outlimit_misc(out, out_lai_natural, mean_standpft_lai_landscape_lc[i]);
+							outlimit_misc(out, out_aaet_active_natural, mean_standpft_aaet_lc[i]);
+							outlimit_misc(out, out_lai_active_natural, mean_standpft_lai_lc[i]);
+							outlimit_misc(out, out_fpc_active_natural, mean_standpft_fpc_lc[i]);
+
+							outlimit_misc(out, out_anpp_gridcell_natural,			gridcellpft_anpp_lc[i]);
+							outlimit_misc(out, out_cmass_gridcell_natural,			gridcellpft_cmass_lc[i]);
+							outlimit_misc(out, out_aaet_gridcell_natural,			gridcellpft_aaet_lc[i]);
+							outlimit_misc(out, out_lai_gridcell_natural,				gridcellpft_lai_lc[i]);
 
 							double height = 0.0;
 							double diam = 0.0;
@@ -1587,18 +1925,24 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 							outlimit_misc(out, out_speciesheights_natural, height);
 							outlimit_misc(out, out_speciesdiam_natural, diam * 100.0);	//diameter output in cm
 						}
+						outlimit_misc(out, out_frac_natural, active_fraction_lc[i]);
 						break;
 					case FOREST:
 						if (run[NATURAL]) {
-							outlimit_misc(out, out_anpp_forest, mean_standpft_anpp_lc[i]);
-							outlimit_misc(out, out_cmass_forest, mean_standpft_cmass_lc[i]);
+							outlimit_misc(out, out_anpp_active_forest, mean_standpft_anpp_lc[i]);
+							outlimit_misc(out, out_cmass_active_forest, mean_standpft_cmass_lc[i]);
 							outlimit_misc(out, out_dens_forest, mean_standpft_densindiv_total_lc[i]);
-							outlimit_misc(out, out_anpp_landscape_forest, mean_standpft_anpp_landscape_lc[i]);
-							outlimit_misc(out, out_cmass_landscape_forest, mean_standpft_cmass_landscape_lc[i]);
-							outlimit_misc(out, out_lai_landscape_forest, mean_standpft_lai_landscape_lc[i]);
-							outlimit_misc(out, out_aaet_forest, mean_standpft_aaet_lc[i]);
-							outlimit_misc(out, out_lai_forest, mean_standpft_lai_lc[i]);
-							outlimit_misc(out, out_fpc_forest, mean_standpft_fpc_lc[i]);
+							outlimit_misc(out, out_anpp_forest, mean_standpft_anpp_landscape_lc[i]);
+							outlimit_misc(out, out_cmass_forest, mean_standpft_cmass_landscape_lc[i]);
+							outlimit_misc(out, out_lai_forest, mean_standpft_lai_landscape_lc[i]);
+							outlimit_misc(out, out_aaet_active_forest, mean_standpft_aaet_lc[i]);
+							outlimit_misc(out, out_lai_active_forest, mean_standpft_lai_lc[i]);
+							outlimit_misc(out, out_fpc_active_forest, mean_standpft_fpc_lc[i]);
+
+							outlimit_misc(out, out_anpp_gridcell_forest,			gridcellpft_anpp_lc[i]);
+							outlimit_misc(out, out_cmass_gridcell_forest,			gridcellpft_cmass_lc[i]);
+							outlimit_misc(out, out_aaet_gridcell_forest,			gridcellpft_aaet_lc[i]);
+							outlimit_misc(out, out_lai_gridcell_forest,				gridcellpft_lai_lc[i]);
 
 							double height = 0.0;
 							double diam = 0.0;
@@ -1609,16 +1953,17 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 							outlimit_misc(out, out_speciesheights_forest, height);
 							outlimit_misc(out, out_speciesdiam_forest, diam * 100.0);	//diameter output in cm
 						}
+						outlimit_misc(out, out_frac_forest, active_fraction_lc[i]);
 						break;
 					case URBAN:
 						break;
 					case PEATLAND:
 						if (run[PEATLAND]) {
-							outlimit_misc(out, out_anpp_peatland, mean_standpft_anpp_lc[i]);
-							outlimit_misc(out, out_cmass_peatland, mean_standpft_cmass_lc[i]);
-//							outlimit_misc(out, out_anpp_landscape_peatland, mean_standpft_anpp_landscape_lc[i]);
-//							outlimit_misc(out, out_cmass_landscape_peatland, mean_standpft_cmass_landscape_lc[i]);
-//							outlimit_misc(out, out_lai_landscape_peatland, mean_standpft_lai_landscape_lc[i]);
+							outlimit_misc(out, out_anpp_active_peatland, mean_standpft_anpp_lc[i]);
+							outlimit_misc(out, out_cmass_active_peatland, mean_standpft_cmass_lc[i]);
+							outlimit_misc(out, out_anpp_peatland, mean_standpft_anpp_landscape_lc[i]);
+							outlimit_misc(out, out_cmass_peatland, mean_standpft_cmass_landscape_lc[i]);
+							outlimit_misc(out, out_lai_peatland, mean_standpft_lai_landscape_lc[i]);
 						}
 						break;
 					default:
@@ -1630,9 +1975,9 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		}
 
 		if (pft.landcover == CROPLAND) {
-			outlimit_misc(out, out_yield,   mean_standpft_yield);
-			outlimit_misc(out, out_yield1,  mean_standpft_yield1);
-			outlimit_misc(out, out_yield2,  mean_standpft_yield2);
+			outlimit_misc(out, out_yield_active,   mean_standpft_yield);
+			outlimit_misc(out, out_yield1_active,  mean_standpft_yield1);
+			outlimit_misc(out, out_yield2_active,  mean_standpft_yield2);
 
 			int pft_sdate1=-1;
 			int pft_sdate2=-1;
@@ -1648,15 +1993,14 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				Stand& stand = *gc_itr;
 
 				if (stlist[stand.stid].pftinrotation(pft.name) >= 0) {
-					Patchpft& ppft = stand[0].pft[pft.id];
-					pft_sdate1=ppft.cropphen->sdate_thisyear[0];
-					pft_sdate2=ppft.cropphen->sdate_thisyear[1];
-					pft_hdate1=ppft.cropphen->hdate_harvest[0];
-					pft_hdate2=ppft.cropphen->hdate_harvest[1];
-					pft_lgp=ppft.cropphen->lgp;
-					pft_phu=ppft.cropphen->phu;
-					pft_fphu=ppft.cropphen->fphu_harv;
-					pft_fhi=ppft.cropphen->fhi_harv;
+					pft_sdate1=stand[0].pft[pft.id].cropphen->sdate_thisyear[0];
+					pft_sdate2=stand[0].pft[pft.id].cropphen->sdate_thisyear[1];
+					pft_hdate1=stand[0].pft[pft.id].cropphen->hdate_harvest[0];
+					pft_hdate2=stand[0].pft[pft.id].cropphen->hdate_harvest[1];
+					pft_lgp=stand[0].pft[pft.id].cropphen->lgp;
+					pft_phu=stand[0].pft[pft.id].cropphen->phu;
+					pft_fphu=stand[0].pft[pft.id].cropphen->fphu_harv;
+					pft_fhi=stand[0].pft[pft.id].cropphen->fhi_harv;
 				}
 
 				++gc_itr;
@@ -1683,12 +2027,16 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					outlimit_misc(out, out_cmass_pft_st[stid], st_total_cmass[stid] / gcst.frac);
 				if(!out_cmass_harv_killed_pft_st[stid].invalid())
 					outlimit_misc(out, out_cmass_harv_killed_pft_st[stid], st_total_cmass_harv_killed[stid] / gcst.frac);
+				if(!out_transpiration_pft_st[stid].invalid())
+					outlimit_misc(out, out_transpiration_pft_st[stid], st_total_aaet[stid] / gcst.frac);
 			}
 			else {
 				if(!out_cmass_pft_st[stid].invalid())
 					outlimit_misc(out, out_cmass_pft_st[stid], 0.0);
 				if(!out_cmass_harv_killed_pft_st[stid].invalid())
 					outlimit_misc(out, out_cmass_harv_killed_pft_st[stid],     0.0);
+				if(!out_transpiration_pft_st[stid].invalid())
+					outlimit_misc(out, out_transpiration_pft_st[stid], 0.0);
 			}
 		}
 	}
@@ -1702,7 +2050,6 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	c_org_leach_gridcell_regrowth = c_org_leach_gridcell_forestry = c_org_leach_gridcell_primary = 0.0;
 	surfsoillitterc_regrowth = surfsoillitterc_forestry = surfsoillitterc_primary = 0.0;
 	cwdc_regrowth = cwdc_forestry = cwdc_primary = 0.0;
-	humusc_regrowth = humusc_forestry = humusc_primary = 0.0;
 	centuryc_regrowth = centuryc_forestry = centuryc_primary = 0.0;
 
 	double flux_veg_lc[NLANDCOVERTYPES], flux_repr_lc[NLANDCOVERTYPES],
@@ -1711,8 +2058,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double flux_charvest_lc[NLANDCOVERTYPES], c_org_leach_lc[NLANDCOVERTYPES];
 	double c_litter_lc[NLANDCOVERTYPES], c_fast_lc[NLANDCOVERTYPES],
 		  c_slow_lc[NLANDCOVERTYPES], c_harv_slow_lc[NLANDCOVERTYPES];
-	double surflitterc_lc[NLANDCOVERTYPES], surfcwdc_lc[NLANDCOVERTYPES], surfhumusc_lc[NLANDCOVERTYPES], 
-		soillitterc_lc[NLANDCOVERTYPES], soilcwdc_lc[NLANDCOVERTYPES], centuryc_lc[NLANDCOVERTYPES];
+	double surfsoillitterc_lc[NLANDCOVERTYPES], cwdc_lc[NLANDCOVERTYPES],
+		 centuryc_lc[NLANDCOVERTYPES];
 
 	double n_harv_slow_lc[NLANDCOVERTYPES], availn_lc[NLANDCOVERTYPES],
 		   andep_lc[NLANDCOVERTYPES], anfert_lc[NLANDCOVERTYPES];
@@ -1721,10 +2068,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		   n_min_leach_lc[NLANDCOVERTYPES];
 	double flux_ntot_lc[NLANDCOVERTYPES], flux_nharvest_lc[NLANDCOVERTYPES],
 		   flux_nseed_lc[NLANDCOVERTYPES];
-	double surflittern_lc[NLANDCOVERTYPES], surfcwdn_lc[NLANDCOVERTYPES], surfhumusn_lc[NLANDCOVERTYPES],
-		soillittern_lc[NLANDCOVERTYPES], soilcwdn_lc[NLANDCOVERTYPES], centuryn_lc[NLANDCOVERTYPES];
-
-	double soilc_depth_lc[sslyr + 2][NLANDCOVERTYPES] = { 0.0 };
+	double surfsoillittern_lc[NLANDCOVERTYPES], cwdn_lc[NLANDCOVERTYPES],
+		   centuryn_lc[NLANDCOVERTYPES];
 
 	//N-transform
 	double flux_NH3_soil[NLANDCOVERTYPES],flux_NOx_soil[NLANDCOVERTYPES],flux_N2O_soil[NLANDCOVERTYPES],flux_N2_soil[NLANDCOVERTYPES];
@@ -1744,11 +2089,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		c_fast_lc[i]=0.0;
 		c_slow_lc[i]=0.0;
 		c_harv_slow_lc[i]=0.0;
-		surflitterc_lc[i] = 0.0;
-		surfcwdc_lc[i] = 0.0;
-		surfhumusc_lc[i] = 0.0;
-		soillitterc_lc[i] = 0.0;
-		soilcwdc_lc[i] = 0.0;
+		surfsoillitterc_lc[i]=0.0;
+		cwdc_lc[i]=0.0;
 		centuryc_lc[i]=0.0;
 
 		flux_ntot_lc[i]=0.0;
@@ -1764,11 +2106,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		n_org_leach_lc[i]=0.0;
 		n_min_leach_lc[i]=0.0;
 		n_harv_slow_lc[i]=0.0;
-		surflittern_lc[i] = 0.0;
-		surfcwdn_lc[i] = 0.0;
-		surfhumusn_lc[i] = 0.0;
-		soillittern_lc[i] = 0.0;
-		soilcwdn_lc[i] = 0.0;
+		surfsoillittern_lc[i]=0.0;
+		cwdn_lc[i]=0.0;
 		centuryn_lc[i]=0.0;
 		//N-transform
 		flux_NH3_soil[i]=0.0;
@@ -1790,7 +2129,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	while (gc_itr != gridcell.end()) {
 		Stand& stand = *gc_itr;
 		StandType& st = stlist[stand.stid];
-		Gridcellst& gcst = gridcell.st[st.id];	
+		Gridcellst& gcst = gridcell.st[st.id];
 		stand.firstobj();
 
 		if(stand.landcover == NATURAL || stand.landcover == FOREST) {
@@ -1810,8 +2149,6 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		//Loop through Patches
 		while (stand.isobj) {
 			Patch& patch = stand.getobj();
-			Soil& soil = patch.soil;
-			Fluxes& fluxes = patch.fluxes;
 
 			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
 
@@ -1825,7 +2162,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 						flux_est_forestry+=patch.fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
 						flux_seed_forestry+=patch.fluxes.get_annual_flux(Fluxes::SEEDC)*to_gridcell_average;
 						flux_charvest_forestry+=patch.fluxes.get_annual_flux(Fluxes::HARVESTC)*to_gridcell_average;
-						c_org_leach_gridcell_forestry+=patch.fluxes.get_annual_flux(Fluxes::LEACHORGC)*to_gridcell_average;
+						c_org_leach_gridcell_forestry += patch.soil.aorgCleach * to_gridcell_average;
 					}
 					else {
 						flux_veg_regrowth+=-patch.fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
@@ -1835,7 +2172,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 						flux_est_regrowth+=patch.fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
 						flux_seed_regrowth+=patch.fluxes.get_annual_flux(Fluxes::SEEDC)*to_gridcell_average;
 						flux_charvest_regrowth+=patch.fluxes.get_annual_flux(Fluxes::HARVESTC)*to_gridcell_average;
-						c_org_leach_gridcell_regrowth+=patch.fluxes.get_annual_flux(Fluxes::LEACHORGC)*to_gridcell_average;
+						c_org_leach_gridcell_regrowth += patch.soil.aorgCleach * to_gridcell_average;
 					}
 				}
 				else {
@@ -1846,204 +2183,141 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					flux_est_primary+=patch.fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
 					flux_seed_primary+=patch.fluxes.get_annual_flux(Fluxes::SEEDC)*to_gridcell_average;
 					flux_charvest_primary+=patch.fluxes.get_annual_flux(Fluxes::HARVESTC)*to_gridcell_average;
-					c_org_leach_gridcell_primary+=patch.fluxes.get_annual_flux(Fluxes::LEACHORGC)*to_gridcell_average;
+					c_org_leach_gridcell_primary += patch.soil.aorgCleach * to_gridcell_average;
 				}
 			}
 
-			flux_nseed_lc[stand.landcover]+=fluxes.get_annual_flux(Fluxes::SEEDN)*to_gridcell_average;
-			flux_nharvest_lc[stand.landcover]+=fluxes.get_annual_flux(Fluxes::HARVESTN)*to_gridcell_average;
-			flux_ntot_lc[stand.landcover]+=(fluxes.get_annual_flux(Fluxes::NH3_FIRE) +
-					   fluxes.get_annual_flux(Fluxes::NOx_FIRE) +
-					   fluxes.get_annual_flux(Fluxes::N2O_FIRE) +
-					   fluxes.get_annual_flux(Fluxes::N2_FIRE) +
-					   fluxes.get_annual_flux(Fluxes::NH3_SOIL) +
-					   fluxes.get_annual_flux(Fluxes::NO_SOIL) +
-					   fluxes.get_annual_flux(Fluxes::N2O_SOIL) +
-					   fluxes.get_annual_flux(Fluxes::N2_SOIL)) * to_gridcell_average;
+			flux_nseed_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::SEEDN)*to_gridcell_average;
+			flux_nharvest_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::HARVESTN)*to_gridcell_average;
+			flux_ntot_lc[stand.landcover]+=(patch.fluxes.get_annual_flux(Fluxes::NH3_FIRE) +
+					   patch.fluxes.get_annual_flux(Fluxes::NOx_FIRE) +
+					   patch.fluxes.get_annual_flux(Fluxes::N2O_FIRE) +
+					   patch.fluxes.get_annual_flux(Fluxes::N2_FIRE) +
+					   patch.fluxes.get_annual_flux(Fluxes::NH3_SOIL) +
+					   patch.fluxes.get_annual_flux(Fluxes::NO_SOIL) +
+					   patch.fluxes.get_annual_flux(Fluxes::N2O_SOIL) +
+					   patch.fluxes.get_annual_flux(Fluxes::N2_SOIL)) * to_gridcell_average;
 
-			flux_veg_lc[stand.landcover]+=-fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
-			flux_repr_lc[stand.landcover]+=-fluxes.get_annual_flux(Fluxes::REPRC)*to_gridcell_average;
-			flux_soil_lc[stand.landcover]+=fluxes.get_annual_flux(Fluxes::SOILC)*to_gridcell_average;
-			flux_fire_lc[stand.landcover]+=fluxes.get_annual_flux(Fluxes::FIREC)*to_gridcell_average;
-			flux_est_lc[stand.landcover]+=fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
-			flux_seed_lc[stand.landcover]+=fluxes.get_annual_flux(Fluxes::SEEDC)*to_gridcell_average;
-			flux_charvest_lc[stand.landcover]+=fluxes.get_annual_flux(Fluxes::HARVESTC)*to_gridcell_average;
+			flux_veg_lc[stand.landcover]+=-patch.fluxes.get_annual_flux(Fluxes::NPP)*to_gridcell_average;
+			flux_repr_lc[stand.landcover]+=-patch.fluxes.get_annual_flux(Fluxes::REPRC)*to_gridcell_average;
+			flux_soil_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::SOILC)*to_gridcell_average;
+			flux_fire_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::FIREC)*to_gridcell_average;
+			flux_est_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::ESTC)*to_gridcell_average;
+			flux_seed_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::SEEDC)*to_gridcell_average;
+			flux_charvest_lc[stand.landcover]+=patch.fluxes.get_annual_flux(Fluxes::HARVESTC)*to_gridcell_average;
+
+			double cpool_fast = 0;
+			double cpool_slow = 0;
+			for (size_t l = 0; l < patch.soil.nsoillayers; l++) {
+				const Soillayer &lyr = patch.soil.soillayers[l];
+				for (int r = 0; r < NSOMPOOL; r++) {
+					cpool_fast += lyr.sompool[r].cmass;
+					cpool_slow += lyr.sompool[r].cmass;
+				}
+			}
+			c_fast_lc[stand.landcover]+=cpool_fast*to_gridcell_average;
+			c_slow_lc[stand.landcover]+=cpool_slow*to_gridcell_average;
 
 			//Sum slow pools of harvested products
 			if (run_landcover && ifslowharvestpool) {
 				for (int q=0;q<npft;q++) {
-					Patchpft& ppft=patch.pft[q];
+					Patchpft& patchpft=patch.pft[q];
 					//slow pool in receiving landcover
-					c_harv_slow_lc[stand.landcover]+=ppft.cmass_harvested_products_slow*to_gridcell_average;
-					n_harv_slow_lc[stand.landcover]+=ppft.nmass_harvested_products_slow*to_gridcell_average;
+					c_harv_slow_lc[stand.landcover]+=patchpft.cmass_harvested_products_slow*to_gridcell_average;
+					n_harv_slow_lc[stand.landcover]+=patchpft.nmass_harvested_products_slow*to_gridcell_average;
 				}
 			}
 
 			//Gridcell irrigation
-			irrigation_gridcell += fluxes.get_annual_flux(Fluxes::WIRRI)*to_gridcell_average;
+			irrigation_gridcell += patch.irrigation_y*to_gridcell_average;
 
 			andep_lc[stand.landcover] += (gridcell.aNH4dep + gridcell.aNO3dep) * to_gridcell_average;
 			anfert_lc[stand.landcover] += patch.anfert * to_gridcell_average;
-			anmin_lc[stand.landcover] += soil.get_sum(&Soillayer::anmin) * to_gridcell_average;
-			animm_lc[stand.landcover] += soil.get_sum(&Soillayer::animmob) * to_gridcell_average;
-			anfix_lc[stand.landcover] += soil.anfix * to_gridcell_average;
-			n_min_leach_lc[stand.landcover] += fluxes.get_annual_flux(Fluxes::LEACHMINN) * to_gridcell_average;
-			n_org_leach_lc[stand.landcover] += fluxes.get_annual_flux(Fluxes::LEACHORGN) * to_gridcell_average;
-			c_org_leach_lc[stand.landcover] += fluxes.get_annual_flux(Fluxes::LEACHORGC) * to_gridcell_average;
-
-			availn_lc[stand.landcover] += (soil.get_sum(&Soillayer::NH4_mass) + soil.get_sum(&Soillayer::NO3_mass)) * to_gridcell_average;
+			anmin_lc[stand.landcover] += patch.soil.anmin * to_gridcell_average;
+			animm_lc[stand.landcover] += patch.soil.animmob * to_gridcell_average;
+			anfix_lc[stand.landcover] += patch.soil.anfix * to_gridcell_average;
+			n_min_leach_lc[stand.landcover] += patch.soil.aminleach * to_gridcell_average;
+			n_org_leach_lc[stand.landcover] += patch.soil.aorgNleach * to_gridcell_average;
+			c_org_leach_lc[stand.landcover] += patch.soil.aorgCleach * to_gridcell_average;
+			availn_lc[stand.landcover] += (patch.soil.NH4_mass + patch.soil.NO3_mass + patch.soil.snow.NH4_mass 
+				+ patch.soil.snow.NO3_mass) * to_gridcell_average;
 
 			//N-transform
-			flux_NH3_soil[stand.landcover] += fluxes.get_annual_flux(Fluxes::NH3_SOIL)*to_gridcell_average;
-			flux_NOx_soil[stand.landcover] += fluxes.get_annual_flux(Fluxes::NO_SOIL)*to_gridcell_average;
-			flux_N2O_soil[stand.landcover] += fluxes.get_annual_flux(Fluxes::N2O_SOIL)*to_gridcell_average;
-			flux_N2_soil[stand.landcover] += fluxes.get_annual_flux(Fluxes::N2_SOIL)*to_gridcell_average;
-			
+			flux_NH3_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::NH3_SOIL)*to_gridcell_average;
+			flux_NOx_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::NO_SOIL)*to_gridcell_average;
+			flux_N2O_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::N2O_SOIL)*to_gridcell_average;
+			flux_N2_soil[stand.landcover]	+=patch.fluxes.get_annual_flux(Fluxes::N2_SOIL)*to_gridcell_average;;
+
 			flux_N2O_soil_total +=patch.fluxes.get_annual_flux(Fluxes::N2O_SOIL)*to_gridcell_average;
 
-			availn_lc[stand.landcover] += (soil.snow.NH4_mass + soil.snow.NO3_mass) * to_gridcell_average;
-
-			for (int lyr = 0; lyr < soil.nsoillayers; lyr++) {
-				Soillayer& soillayer = soil.soillayers[lyr];
-
-				availn_lc[stand.landcover] += (soillayer.NH4_mass + soillayer.NO3_mass) * to_gridcell_average;
-
-				c_fast_lc[stand.landcover] += soillayer.cpool_fast*to_gridcell_average;
-				c_slow_lc[stand.landcover] += soillayer.cpool_slow*to_gridcell_average;
-
+			for (size_t l = 0; l < patch.soil.nsoillayers; l++) {
+				const Soillayer &lyr = patch.soil.soillayers[l];
 				for (int r = 0; r < NSOMPOOL; r++) {
 
-					Sompool& sompool = soillayer.sompool[r];
+					if (r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
+						surfsoillitterc_lc[stand.landcover] += lyr.sompool[r].cmass * to_gridcell_average;
+						surfsoillittern_lc[stand.landcover] += lyr.sompool[r].nmass * to_gridcell_average;
 
-					if (r == SURFMETA || r == SURFSTRUCT) {
-						surflitterc_lc[stand.landcover] += sompool.cmass * to_gridcell_average;
-						surflittern_lc[stand.landcover] += sompool.nmass * to_gridcell_average;
+						if(stand.landcover == NATURAL || stand.landcover == FOREST) {
+							if(stand.first_year) {
+								if(stand.lc_origin == NATURAL) {
+									surfsoillitterc_forestry += lyr.sompool[r].cmass * to_gridcell_average;
+								}
+								else {
+									surfsoillitterc_regrowth += lyr.sompool[r].cmass * to_gridcell_average;
+								}
+							}
+							else {
+								surfsoillitterc_primary += lyr.sompool[r].cmass * to_gridcell_average;
+							}
+						}
 					}
 					else if (r == SURFFWD || r == SURFCWD) {
-						surfcwdc_lc[stand.landcover] += sompool.cmass * to_gridcell_average;
-						surfcwdn_lc[stand.landcover] += sompool.nmass * to_gridcell_average;
-					}
-					else if (r == SURFMICRO || r == SURFHUMUS) {
-						surfhumusc_lc[stand.landcover] += sompool.cmass * to_gridcell_average;
-						surfhumusn_lc[stand.landcover] += sompool.nmass * to_gridcell_average;
-					}
-					else if (r == SOILMETA || r == SOILSTRUCT) {
-						soillitterc_lc[stand.landcover] += sompool.cmass * to_gridcell_average;
-						soillittern_lc[stand.landcover] += sompool.nmass * to_gridcell_average;
-					}
-					else if (r == SOILFWD || r == SOILCWD) {
-						soilcwdc_lc[stand.landcover] += sompool.cmass * to_gridcell_average;
-						soilcwdn_lc[stand.landcover] += sompool.nmass * to_gridcell_average;
-					}
-					else {
-						centuryc_lc[stand.landcover] += sompool.cmass * to_gridcell_average;
-						centuryn_lc[stand.landcover] += sompool.nmass * to_gridcell_average;
-					}
-
-					if (r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT) {
-						if(stand.landcover == NATURAL || stand.landcover == FOREST) {
-							if(stand.first_year) {
-								if(stand.lc_origin == NATURAL) {
-									surfsoillitterc_forestry += sompool.cmass * to_gridcell_average;
-								}
-								else {
-									surfsoillitterc_regrowth += sompool.cmass * to_gridcell_average;
-								}
-							}
-							else {
-								surfsoillitterc_primary += sompool.cmass * to_gridcell_average;
-							}
-						}
-					}
-					else if (r == SURFFWD || r == SURFCWD || r == SOILFWD || r == SOILCWD) {
-						if(stand.landcover == NATURAL || stand.landcover == FOREST) {
-							if(stand.first_year) {
-								if(stand.lc_origin == NATURAL) {
-									cwdc_forestry += sompool.cmass * to_gridcell_average;
-								}
-								else {	
-									cwdc_regrowth += sompool.cmass * to_gridcell_average;
-								}
-							}
-							else {
-								cwdc_primary += sompool.cmass * to_gridcell_average;
-							}
-						}
-					}
-					else if (r == SURFMICRO || r == SURFHUMUS) {
-						if(stand.landcover == NATURAL || stand.landcover == FOREST) {
-							if(stand.first_year) {
-								if(stand.lc_origin == NATURAL) {
-									humusc_forestry += sompool.cmass * to_gridcell_average;
-								}
-								else {	
-									humusc_regrowth += sompool.cmass * to_gridcell_average;
-								}
-							}
-							else {
-								humusc_primary += sompool.cmass * to_gridcell_average;
-							}
-						}
-					}
-					else {
-						st.csoil += sompool.cmass * to_gridcell_average / gcst.frac;
+						cwdc_lc[stand.landcover] += lyr.sompool[r].cmass * to_gridcell_average;
+						cwdn_lc[stand.landcover] += lyr.sompool[r].nmass * to_gridcell_average;
 
 						if(stand.landcover == NATURAL || stand.landcover == FOREST) {
 							if(stand.first_year) {
 								if(stand.lc_origin == NATURAL) {
-									centuryc_forestry += sompool.cmass * to_gridcell_average;
+									cwdc_forestry += lyr.sompool[r].cmass * to_gridcell_average;
 								}
-								else {
-									centuryc_regrowth += sompool.cmass * to_gridcell_average;
+								else {	
+									cwdc_regrowth += lyr.sompool[r].cmass * to_gridcell_average;
 								}
 							}
 							else {
-								centuryc_primary += sompool.cmass * to_gridcell_average;
+								cwdc_primary += lyr.sompool[r].cmass * to_gridcell_average;
+							}
+						}
+					}
+					else {
+						centuryc_lc[stand.landcover] += lyr.sompool[r].cmass * to_gridcell_average;
+						centuryn_lc[stand.landcover]  += lyr.sompool[r].nmass * to_gridcell_average;
+
+						if(stand.landcover == NATURAL || stand.landcover == FOREST) {
+							if(stand.first_year) {
+								if(stand.lc_origin == NATURAL) {
+									centuryc_forestry += lyr.sompool[r].cmass * to_gridcell_average;
+								}
+								else {
+									centuryc_regrowth += lyr.sompool[r].cmass * to_gridcell_average;
+								}
+							}
+							else {
+								centuryc_primary += lyr.sompool[r].cmass * to_gridcell_average;
 							}
 						}
 					}
 				}
 			}
-
-			// Soil depths total C mass excluding surface litter C mass and heteorotrophic respiration down to depth
-			double surflitc = soil.get_surflittercmass();
-
-			soilc_depth_lc[0][stand.landcover] += surflitc * to_gridcell_average;
-
-			// Soil to specific depths
-			double depth_prev = 0.0;
-			double soilc_prev = surflitc;
-
-			for (int lyr = 0; lyr < sslyr; lyr++) {
-				double depth_this = min(soil.depth, soil_sections[lyr]);
-				double depth_lyr = depth_this - depth_prev;
-
-				if (depth_lyr > 1.0e-12) {
-
-					soilc_depth_lc[lyr + 1][stand.landcover] += (soil.var_depth_ccont(depth_prev, depth_this) - soilc_prev) * to_gridcell_average;
-					soilc_prev = 0.0;
-				}
-				depth_prev = depth_this;
-			}
-
-			soilc_depth_lc[sslyr + 1][stand.landcover] += soil.ccont() * to_gridcell_average;
-
-
-			st.csink -= (-fluxes.get_annual_flux(Fluxes::NPP) + fluxes.get_annual_flux(Fluxes::REPRC) 
-				+ fluxes.get_annual_flux(Fluxes::SOILC) + fluxes.get_annual_flux(Fluxes::FIREC)
-				+ fluxes.get_annual_flux(Fluxes::ESTC) + fluxes.get_annual_flux(Fluxes::SEEDC) 
-				+ fluxes.get_annual_flux(Fluxes::LEACHORGC)) * to_gridcell_average / gcst.frac;
 
 			stand.nextobj();
 		} // patch loop
 		++gc_itr;
 	} // stand loop
 
-	outlimit_misc(out, out_cmass_landscape,  				cmass_gridcell);
-	outlimit_misc(out, out_anpp_landscape,   				anpp_gridcell);
-	outlimit_misc(out, out_lai_landscape,   				lai_gridcell);
 
-	outlimit_misc(out, out_forest_cmass_harv_killed,    cmass_harv_killed_gridcell);
+	outlimit_misc(out, out_dens_plus10cm, dens_gridcell_plus10cm);
 
 	// Print per-stand totals
 	if (printseparatestands) {
@@ -2066,6 +2340,37 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				outlimit_misc(out, out_cmass_wood_harv_stand[id][stand.stid], stand.cmass_wood_harv);
 			if(!out_cmass_mort_stand[id][stand.stid].invalid())
 				outlimit_misc(out, out_cmass_mort_stand[id][stand.stid], stand.cmass_mort);
+
+			if(!out_storm_stand[id][stand.stid].invalid() && stand.storm_init_done) { // Storm calculations for new stands are done in the beginning of next year
+
+				double stand_sens_ind = 0.0;
+				double stand_dam_wood_pot = 0.0;
+				double stand_dam_wood = 0.0;
+				double stand_storm_cmass_wood_save = 0.0;
+
+				stand.firstobj();
+
+				while (stand.isobj) {
+					// START OF LOOP THROUGH PATCHES
+					Patch& patch = stand.getobj();
+
+					stand_sens_ind += patch.storm_sens_ind * patch.storm_cmass_wood_save;	// cmass_wood weight
+					stand_dam_wood_pot += patch.storm_dam_wood_pot;
+					stand_dam_wood += patch.storm_dam_wood;
+					stand_storm_cmass_wood_save += patch.storm_cmass_wood_save;
+				}
+
+				if(stand_storm_cmass_wood_save) {
+					outlimit_misc(out, out_storm_stand[id][stand.stid], stand_sens_ind / stand_storm_cmass_wood_save * 1000.0);		// Sensitivity * 1000; cmass_wood weight
+					outlimit_misc(out, out_storm_stand[id][stand.stid], stand_dam_wood_pot / stand_storm_cmass_wood_save * 100.0); // Damaged fraction in %
+				}
+				else{
+					outlimit_misc(out, out_storm_stand[id][stand.stid], 0.0);
+					outlimit_misc(out, out_storm_stand[id][stand.stid], 0.0);
+				}
+				outlimit_misc(out, out_storm_stand[id][stand.stid], stand_dam_wood_pot);
+				outlimit_misc(out, out_storm_stand[id][stand.stid], stand_dam_wood);
+			}
 
 			++gc_itr;
 		}
@@ -2094,7 +2399,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			diam_to = (double)(i*5+5);
 		}
 		else if(i < NFOREST_STRUCTURAL_CLASSES) {					// >150cm
-			diam_from = i*10+1;
+			diam_from = i*5+1;
 			diam_to = 1500;
 		}
 		else {							// no output
@@ -2105,12 +2410,16 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		for(int lc=0; lc<NLANDCOVERTYPES; lc++) {
 
 			double age_dens_lc = 0.0, diam_dens_lc = 0.0, diam_cmass_lc = 0.0, diam_vol_lc = 0.0;
+			double diam_cmass_leaf_lc = 0.0, diam_cmass_wood_lc = 0.0, diam_cmass_froot_lc = 0.0, diam_cmass_wood_inc_lc = 0.0;
+			double diam_ba_lc = 0.0, standage_lc = 0.0;
 
 			for(int stid=0;stid<nst;stid++) {
 				StandType& st = stlist[stid];
 				Gridcellst& gcst = gridcell.st[stid];
 
-				double age_dens_st = 0.0, diam_dens_st = 0.0, diam_cmass_st = 0.0, diam_vol_st = 0.0;
+				double age_dens_st = 0.0, diam_dens_st = 0.0, diam_cmass_st = 0.0, diam_cmass_leaf_st = 0.0, diam_cmass_wood_st = 0.0;
+				double diam_cmass_froot_st = 0.0, diam_cmass_wood_inc_st = 0.0,  diam_vol_st = 0.0;
+				double standage_st = 0.0;
 
 				if(st.landcover == lc) {
 
@@ -2125,7 +2434,17 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 							double age_dens = 0.0;
 							double diam_dens = 0.0;
 							double diam_cmass = 0.0;
+							double diam_cmass_leaf = 0.0;
+							double diam_cmass_wood = 0.0;
+							double diam_cmass_froot = 0.0;
+							double diam_cmass_wood_inc = 0.0;
 							double diam_vol = 0.0;
+							double diam_ba = 0.0;
+							double standage = 0.0;
+
+							int stand_age = (date.year - stand.first_year);
+							if(stand_age >= age_from && stand_age <= age_to)
+								standage = 1.0;
 
 							stand.firstobj();
 
@@ -2140,13 +2459,21 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 								while (vegetation.isobj) {
 
 									Individual& indiv = vegetation.getobj();
-									if (indiv.pft.lifeform == TREE) {	
+									if (indiv.pft.lifeform == TREE) {
+
+										double trunk_area = PI * pow(indiv.diam / 2.0, 2);
+
 										if(indiv.age >= age_from && indiv.age <= age_to) {
 											age_dens += indiv.densindiv / (double)stand.npatch();
 										}
 										if(indiv.diam >= diam_from / 100.0 && indiv.diam < diam_to / 100.0) {
 											diam_dens += indiv.densindiv / (double)stand.npatch();
 											diam_cmass += indiv.ccont() / (double)stand.npatch();
+											diam_cmass_leaf += indiv.cmass_leaf / (double)stand.npatch();
+											diam_cmass_wood += indiv.cmass_wood() / (double)stand.npatch();
+											diam_cmass_froot += indiv.cmass_root / (double)stand.npatch();
+											diam_cmass_wood_inc += indiv.cmass_wood_inc_5.lastadd() / (double)stand.npatch();
+											diam_ba += indiv.densindiv * trunk_area / (double)stand.npatch();
 										}
 									}
 
@@ -2156,17 +2483,28 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 							}
 
 							diam_cmass_st += diam_cmass * stand.get_gridcell_fraction() / gcst.frac;
+							diam_cmass_leaf_st += diam_cmass_leaf * stand.get_gridcell_fraction() / gcst.frac;
+							diam_cmass_wood_st += diam_cmass_wood * stand.get_gridcell_fraction() / gcst.frac;
+							diam_cmass_froot_st += diam_cmass_froot * stand.get_gridcell_fraction() / gcst.frac;
+							diam_cmass_wood_inc_st += diam_cmass_wood_inc * stand.get_gridcell_fraction() / gcst.frac;
+							standage_st += standage * stand.get_gridcell_fraction() / gcst.frac;
 
 							age_dens_lc += age_dens * stand.get_gridcell_fraction() / gridcell.landcover.frac[lc];
 							diam_dens_lc += diam_dens * stand.get_gridcell_fraction() / gridcell.landcover.frac[lc];
 							diam_cmass_lc += diam_cmass * stand.get_gridcell_fraction() / gridcell.landcover.frac[lc];
+							diam_cmass_leaf_lc += diam_cmass_leaf * stand.get_gridcell_fraction() / gridcell.landcover.frac[lc];
+							diam_cmass_wood_lc += diam_cmass_wood * stand.get_gridcell_fraction() / gridcell.landcover.frac[lc];
+							diam_cmass_froot_lc += diam_cmass_froot * stand.get_gridcell_fraction() / gridcell.landcover.frac[lc];
+							diam_cmass_wood_inc_lc += diam_cmass_wood_inc * stand.get_gridcell_fraction() / gridcell.landcover.frac[lc];
+							diam_ba_lc += diam_ba * stand.get_gridcell_fraction() / gridcell.landcover.frac[lc];
+							standage_lc += standage * stand.get_gridcell_fraction() / gridcell.landcover.frac[lc];
 			
 							// print to stand output
 							if(printseparatestands) {	
 								if(!out_agestruct_stand[id][stand.stid].invalid())
-									outlimit_misc(out, out_agestruct_stand[id][stand.stid],      age_dens * 10000);
+									outlimit_misc(out, out_agestruct_stand[id][stand.stid],      age_dens * M2_PER_HA);
 								if(!out_diamstruct_stand[id][stand.stid].invalid())
-									outlimit_misc(out, out_diamstruct_stand[id][stand.stid],      diam_dens * 10000);
+									outlimit_misc(out, out_diamstruct_stand[id][stand.stid],      diam_dens * M2_PER_HA);
 								if(!out_diamstruct_cmass_stand[id][stand.stid].invalid())
 									outlimit_misc(out, out_diamstruct_cmass_stand[id][stand.stid],      diam_cmass);
 							}
@@ -2177,23 +2515,54 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					if(printstandtypes) {
 						if(!out_diamstruct_cmass_st[stid].invalid())
 							outlimit_misc(out, out_diamstruct_cmass_st[stid], diam_cmass_st);
+						if(!out_diamstruct_cmass_leaf_st[stid].invalid())
+							outlimit_misc(out, out_diamstruct_cmass_leaf_st[stid], diam_cmass_leaf_st);
+						if(!out_diamstruct_cmass_wood_st[stid].invalid())
+							outlimit_misc(out, out_diamstruct_cmass_wood_st[stid], diam_cmass_wood_st);
+						if(!out_diamstruct_cmass_froot_st[stid].invalid())
+							outlimit_misc(out, out_diamstruct_cmass_froot_st[stid], diam_cmass_froot_st);
+						if(!out_diamstruct_cmass_wood_inc_st[stid].invalid())
+							outlimit_misc(out, out_diamstruct_cmass_wood_inc_st[stid], diam_cmass_wood_inc_st);
+						if(!out_standagestruct_st[stid].invalid())
+							outlimit_misc(out, out_standagestruct_st[stid], standage_st);
 					}
 				}
 			}
+
+
 			// print to lc output
 			if(lc == NATURAL) {
-				outlimit_misc(out, out_agestruct_natural, age_dens_lc * 10000);
-				outlimit_misc(out, out_diamstruct_natural, diam_dens_lc * 10000);
+				outlimit_misc(out, out_agestruct_natural, age_dens_lc * M2_PER_HA);
+				outlimit_misc(out, out_diamstruct_natural, diam_dens_lc * M2_PER_HA);
 				outlimit_misc(out, out_diamstruct_cmass_natural, diam_cmass_lc);
+				outlimit_misc(out, out_diamstruct_cmass_leaf_natural, diam_cmass_leaf_lc);
+				outlimit_misc(out, out_diamstruct_cmass_wood_natural, diam_cmass_wood_lc);
+				outlimit_misc(out, out_diamstruct_cmass_froot_natural, diam_cmass_froot_lc);
+				outlimit_misc(out, out_diamstruct_cmass_wood_inc_natural, diam_cmass_wood_inc_lc);
+				outlimit_misc(out, out_diamstruct_ba_natural, diam_ba_lc * M2_PER_HA);
+				outlimit_misc(out, out_agestruct_standage_natural, standage_lc);
 			}
 			else if(lc == FOREST) {
-				outlimit_misc(out, out_agestruct_forest, age_dens_lc * 10000);
-				outlimit_misc(out, out_diamstruct_forest, diam_dens_lc * 10000);
+				outlimit_misc(out, out_agestruct_forest, age_dens_lc * M2_PER_HA);
+				outlimit_misc(out, out_diamstruct_forest, diam_dens_lc * M2_PER_HA);
 				outlimit_misc(out, out_diamstruct_cmass_forest, diam_cmass_lc);
+				outlimit_misc(out, out_diamstruct_cmass_leaf_forest, diam_cmass_leaf_lc);
+				outlimit_misc(out, out_diamstruct_cmass_wood_forest, diam_cmass_wood_lc);
+				outlimit_misc(out, out_diamstruct_cmass_froot_forest, diam_cmass_froot_lc);
+				outlimit_misc(out, out_diamstruct_cmass_wood_inc_forest, diam_cmass_wood_inc_lc);
+				outlimit_misc(out, out_diamstruct_ba_forest, diam_ba_lc * M2_PER_HA);
+				outlimit_misc(out, out_agestruct_standage_forest, standage_lc);
+			}
+			else if(lc == CROPLAND) {
+				outlimit_misc(out, out_agestruct_standage_cropland, standage_lc);
+			}
+			else if(lc == PASTURE) {
+				outlimit_misc(out, out_agestruct_standage_pasture, standage_lc);
 			}
 		}
 	}
 
+	// out_forest_harvest output variables
 	double cmass_wood_potharv_forest = 0.0;
 	double cmass_wood_potharv_products_forest = 0.0;
 	double cmass_potfuel_forest = 0.0;
@@ -2222,109 +2591,1678 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double cmass_harv_tolitter_natural = 0.0;
 	double cmass_harv_killed_natural = 0.0;
 
-	// Print stand type totals
-	for(int i=0;i<nst;i++) {
-		StandType& st = stlist[i];
-		Gridcellst& gcst = gridcell.st[st.id];
+	// TreeMort stand type output (with lc totals)
+	bool treemort_st_output = true;
+	bool average_plus10cm_patches_only = true;
 
-		outlimit_misc(out, out_anpp_sts, st.anpp);
-		outlimit_misc(out, out_lai_sts, st.lai);
-		outlimit_misc(out, out_lai_tree_sts, st.lai_tree);
-		outlimit_misc(out, out_cmass_sts, st.cmass);
-		outlimit_misc(out, out_cmass_tree_sts, st.cmass_tree);
-		outlimit_misc(out, out_cmass_tree_mort_sts, st.cmass_tree_mort);
-		outlimit_misc(out, out_cmass_harv_killed_sts, st.cmass_harv_killed);
-		outlimit_misc(out, out_cmass_wood_sts, st.cmass_wood);
-		outlimit_misc(out, out_cmass_wood_harv_sts, st.cmass_wood_harv);
-		outlimit_misc(out, out_cmass_wood_harv_toprod_sts, st.cmass_wood_harv_toprod);
-		outlimit_misc(out, out_cmass_wood_thin_sts, st.cmass_wood_harv - st.cmass_wood_clearcut);
-		outlimit_misc(out, out_cmass_wood_clearcut_sts, st.cmass_wood_clearcut);
-		outlimit_misc(out, out_dens_sts, st.densindiv);
-		outlimit_misc(out, out_csoil_sts, st.csoil);
-		outlimit_misc(out, out_clitter_sts, st.clitter);
-		outlimit_misc(out, out_csink_sts, st.csink);
+	if (treemort_st_output) {
 
-		double diam_g = 0.0;
-		double height = 0.0;
-		if(st.densindiv) {
-			diam_g = st.diam_g / st.densindiv;
-			diam_g = pow(diam_g, 0.5);
-			height = st.height / st.densindiv;
-		}
-		outlimit_misc(out, out_diam_g_sts, diam_g);
-		outlimit_misc(out, out_height_sts, height);
+		// Mean values among patches (_patch_mean) are identical with values weighted by stand & stand type area (_st_mean), except for individual-based variables (diam, height)
+		// The old code calculated st mean values
+		double gridcell_area_frac_plus10cm = 0.0;
 
-		// Determine number of patches of this stand type that have been clear-cut this year (area fraction not considered)
-		int npatches_cc = 0;
-		int npatches_cc_thisyear = 0;
-		double cutinterval_mean = 0.0;
-		double cutinterval_thisyear_mean = 0.0;
-		int nstands_st = 0;
+		// Tree density-weighted means
+		double gridcell_anpp = 0.0;
+		double gridcell_agpp = 0.0;
+		double gridcell_lai = 0.0;
+		double gridcell_cmass = 0.0;	// Test 1
+		double gridcell_cmass_potfuel = 0.0;
+		double gridcell_cmass_harv_killed = 0.0;
+		double gridcell_cmass_dist_clearcut_killed = 0.0;
+		double gridcell_cmass_dist_fire_killed = 0.0;
+		double gridcell_cmass_dist_wind_killed = 0.0;
+		double gridcell_cmass_dist_barkbeetle_killed = 0.0;
+		double gridcell_cmass_harv_tolitter = 0.0;
+		double gridcell_cmass_mort = 0.0;
+		double gridcell_cmass_fire = 0.0;
+		double gridcell_cmass_dist = 0.0;
+		double gridcell_cmass_leaf_root_turnover = 0.0;
+		double gridcell_cmass_repr = 0.0;
+		double gridcell_cmass_est = 0.0;
 
-		Gridcell::iterator gc_itr = gridcell.begin();
+		double gridcell_anpp_tree = 0.0;
+		double gridcell_agpp_tree = 0.0;
+		double gridcell_aautresp_root_tree = 0.0;
+		double gridcell_aautresp_sap_tree = 0.0;
+		double gridcell_aautresp_leaf_tree = 0.0;
+		double gridcell_aautresp_growth_tree = 0.0;
+		double gridcell_lai_tree = 0.0;
+		double gridcell_cmass_tree = 0.0;
+		double gridcell_cmass_tree_mort = 0.0;
 
-		// Loop through Stands
-		while (gc_itr != gridcell.end()) {
-			Stand& stand = *gc_itr;
+		double gridcell_cmass_wood = 0.0;
+		double gridcell_cmass_wood_potharv = 0.0;
+		double gridcell_cmass_wood_potharv_products = 0.0;
+		double gridcell_cmass_wood_harv_killed = 0.0;
+		double gridcell_cmass_wood_harv = 0.0;
+		double gridcell_cmass_wood_harv_toprod = 0.0;
+		double gridcell_cmass_wood_thin = 0.0;
+		double gridcell_cmass_wood_clearcut = 0.0;
+		double gridcell_cmass_wood_mort = 0.0;
+		double gridcell_cmass_wood_inc = 0.0;
 
-			if(stand.stid == i) {
+		double gridcell_csoil = 0.0;
+		double gridcell_clitter = 0.0;
+		double gridcell_clitter_course = 0.0;
+		double gridcell_clitter_fine = 0.0;
+		double gridcell_rh = 0.0;
+		double gridcell_rh_clitter_course = 0.0;
+		double gridcell_rh_clitter_fine = 0.0;
+		double gridcell_csink = 0.0;
+		double gridcell_luc_cflux = 0.0;
+		double gridcell_nsoil = 0.0;
+		double gridcell_nlitter = 0.0;
+		double gridcell_nlitter_course = 0.0;
+		double gridcell_nlitter_fine = 0.0;
 
-				nstands_st++;
+		double gridcell_aet = 0.0;
+		double gridcell_runoff = 0.0;
+		double gridcell_intercep = 0.0;
+		double gridcell_evap = 0.0;
 
-				//Loop through Patches
-				stand.firstobj();
-				while (stand.isobj) {
-					Patch& patch = stand.getobj();
-					if(patch.cutinterval_actual) {
-						npatches_cc++;
-						cutinterval_mean += patch.cutinterval_actual;
+		double gridcell_storm_sens_ind = 0.0;
+		double gridcell_storm_dam_wood_pot = 0.0;
+		double gridcell_storm_dam_wood = 0.0;
+		double gridcell_storm_cmass_wood_save = 0.0;
+		double gridcell_insect_dam_wood = 0.0;
+		double gridcell_cmass_wind_killed = 0.0;
+		double gridcell_cmass_barkbeetle_killed = 0.0;
+		double gridcell_cmass_fire_killed = 0.0;
+		double gridcell_cmass_clearcut_killed = 0.0;
+		double gridcell_cmass_thin_killed = 0.0;
+
+		double gridcell_dens = 0.0;
+		double gridcell_height = 0.0;
+		double gridcell_diam = 0.0;
+		double gridcell_diam_g = 0.0;
+
+		double gridcell_nstands = 0.0;
+		double gridcell_npatches = 0.0;
+
+		double gridcell_cmass_plus10cm = 0.0;
+		double gridcell_cmass_harv_killed_plus10cm = 0.0;
+		double gridcell_cmass_dist_clearcut_killed_plus10cm = 0.0;
+		double gridcell_cmass_dist_fire_killed_plus10cm = 0.0;
+		double gridcell_cmass_dist_wind_killed_plus10cm = 0.0;
+		double gridcell_cmass_dist_barkbeetle_killed_plus10cm = 0.0;
+		double gridcell_cmass_wood_plus10cm = 0.0;
+		double gridcell_cmass_wood_harv_killed_plus10cm = 0.0;
+		double gridcell_cmass_wood_mort_plus10cm = 0.0;
+		double gridcell_cmass_wood_inc_plus10cm = 0.0;
+
+		double gridcell_dens_plus10cm = 0.0;		
+		double gridcell_height_plus10cm = 0.0;
+		double gridcell_diam_plus10cm = 0.0;
+		double gridcell_diam_g_plus10cm = 0.0;
+
+//		double gridcell_dens_patch_mean = 0.0;		
+		double gridcell_height_patch_mean = 0.0;
+		double gridcell_diam_patch_mean = 0.0;
+		double gridcell_diam_g_patch_mean = 0.0;
+
+//		double gridcell_dens_plus10cm_patch_mean = 0.0;		
+		double gridcell_height_plus10cm_patch_mean = 0.0;
+		double gridcell_diam_plus10cm_patch_mean = 0.0;
+		double gridcell_diam_g_plus10cm_patch_mean = 0.0;
+
+		double landcover_area_frac_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+
+		// Tree density-weighted means
+		double landcover_anpp[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_agpp[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_lai[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass[NLANDCOVERTYPES] = { 0.0 };	// Test 1
+		double landcover_cmass_potfuel[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_harv_killed[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_dist_clearcut_killed[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_dist_fire_killed[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_dist_wind_killed[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_dist_barkbeetle_killed[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_harv_tolitter[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_mort[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_fire[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_dist[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_leaf_root_turnover[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_repr[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_est[NLANDCOVERTYPES] = { 0.0 };
+
+		double landcover_anpp_tree[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_agpp_tree[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_aautresp_root_tree[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_aautresp_sap_tree[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_aautresp_leaf_tree[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_aautresp_growth_tree[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_lai_tree[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_tree[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_tree_mort[NLANDCOVERTYPES] = { 0.0 };
+
+		double landcover_cmass_wood[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_wood_potharv[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_wood_potharv_products[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_wood_harv_killed[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_wood_harv[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_wood_harv_toprod[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_wood_thin[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_wood_clearcut[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_wood_mort[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_wood_inc[NLANDCOVERTYPES] = { 0.0 };
+
+		double landcover_csoil[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_clitter[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_clitter_course[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_clitter_fine[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_rh[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_rh_clitter_course[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_rh_clitter_fine[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_csink[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_luc_cflux[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_nsoil[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_nlitter[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_nlitter_course[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_nlitter_fine[NLANDCOVERTYPES] = { 0.0 };
+
+		double landcover_aet[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_runoff[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_intercep[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_evap[NLANDCOVERTYPES] = { 0.0 };
+
+		double landcover_storm_sens_ind[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_storm_dam_wood_pot[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_storm_dam_wood[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_wind_killed[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_storm_cmass_wood_save[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_insect_dam_wood[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_barkbeetle_killed[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_fire_killed[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_clearcut_killed[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_thin_killed[NLANDCOVERTYPES] = { 0.0 };
+
+		double landcover_dens[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_height[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_diam[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_diam_g[NLANDCOVERTYPES] = { 0.0 };
+
+		double landcover_nstands[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_npatches[NLANDCOVERTYPES] = { 0.0 };
+
+		double landcover_cmass_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_harv_killed_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_dist_clearcut_killed_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_dist_fire_killed_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_dist_wind_killed_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_dist_barkbeetle_killed_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_wood_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_wood_harv_killed_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_wood_mort_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_cmass_wood_inc_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+
+		double landcover_dens_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_height_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_diam_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_diam_g_plus10cm[NLANDCOVERTYPES] = { 0.0 };
+
+		// Unweighted means of patch values
+//		double landcover_dens_patch_mean[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_height_patch_mean[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_diam_patch_mean[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_diam_g_patch_mean[NLANDCOVERTYPES] = { 0.0 };
+
+//		double landcover_dens_plus10cm_patch_mean[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_height_plus10cm_patch_mean[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_diam_plus10cm_patch_mean[NLANDCOVERTYPES] = { 0.0 };
+		double landcover_diam_g_plus10cm_patch_mean[NLANDCOVERTYPES] = { 0.0 };
+
+		for (int i = 0;i < nst;i++) {
+			StandType& st = stlist[i];
+			Gridcellst& gcst = gridcell.st[st.id];
+
+			double st_area_frac_plus10cm = 0.0;
+
+			// Tree density-weighted means
+			double st_anpp = 0.0;
+			double st_agpp = 0.0;
+			double st_lai = 0.0;
+			double st_cmass = 0.0;	// Test 1
+			double st_cmass_potfuel = 0.0;
+			double st_cmass_harv_killed = 0.0;
+			double st_cmass_dist_clearcut_killed = 0.0;
+			double st_cmass_dist_fire_killed = 0.0;
+			double st_cmass_dist_wind_killed = 0.0;
+			double st_cmass_dist_barkbeetle_killed = 0.0;
+			double st_cmass_harv_tolitter = 0.0;
+			double st_cmass_mort = 0.0;
+			double st_cmass_fire = 0.0;
+			double st_cmass_dist = 0.0;
+			double st_cmass_leaf_root_turnover = 0.0;
+			double st_cmass_repr = 0.0;
+			double st_cmass_est = 0.0;
+
+			double st_anpp_tree = 0.0;
+			double st_agpp_tree = 0.0;
+			double st_aautresp_root_tree = 0.0;
+			double st_aautresp_sap_tree = 0.0;
+			double st_aautresp_leaf_tree = 0.0;
+			double st_aautresp_growth_tree = 0.0;
+			double st_lai_tree = 0.0;
+			double st_cmass_tree = 0.0;
+			double st_cmass_tree_mort = 0.0;
+
+			double st_cmass_wood = 0.0;
+			double st_cmass_wood_potharv = 0.0;
+			double st_cmass_wood_potharv_products = 0.0;
+			double st_cmass_wood_harv_killed = 0.0;
+			double st_cmass_wood_harv = 0.0;
+			double st_cmass_wood_harv_toprod = 0.0;
+			double st_cmass_wood_thin = 0.0;
+			double st_cmass_wood_clearcut = 0.0;
+			double st_cmass_wood_mort = 0.0;
+			double st_cmass_wood_inc = 0.0;
+
+			double st_csoil = 0.0;
+			double st_clitter = 0.0;
+			double st_clitter_course = 0.0;
+			double st_clitter_fine = 0.0;
+			double st_rh = 0.0;
+			double st_rh_clitter_course = 0.0;
+			double st_rh_clitter_fine = 0.0;
+			double st_csink = 0.0;
+			double st_luc_cflux = 0.0;
+			double st_nsoil = 0.0;
+			double st_nlitter = 0.0;
+			double st_nlitter_course = 0.0;
+			double st_nlitter_fine = 0.0;
+
+			double st_aet = 0.0;
+			double st_runoff = 0.0;
+			double st_intercep = 0.0;
+			double st_evap = 0.0;
+
+			double st_storm_sens_ind = 0.0;
+			double st_storm_dam_frac = 0.0;
+			double st_storm_dam_wood_pot = 0.0;
+			double st_storm_dam_wood = 0.0;
+			double st_storm_cmass_wood_save = 0.0;
+			double st_insect_dam_wood = 0.0;	
+			double st_cmass_wind_killed = 0.0;
+			double st_cmass_barkbeetle_killed = 0.0;
+			double st_cmass_fire_killed = 0.0;
+			double st_cmass_clearcut_killed = 0.0;
+			double st_cmass_thin_killed = 0.0;
+
+			double st_dens = 0.0;
+			double st_height = 0.0;
+			double st_diam = 0.0;
+			double st_diam_g = 0.0;
+
+			double st_cmass_plus10cm = 0.0;
+			double st_cmass_harv_killed_plus10cm = 0.0;
+			double st_cmass_dist_clearcut_killed_plus10cm = 0.0;
+			double st_cmass_dist_fire_killed_plus10cm = 0.0;
+			double st_cmass_dist_wind_killed_plus10cm = 0.0;
+			double st_cmass_dist_barkbeetle_killed_plus10cm = 0.0;
+			double st_cmass_wood_plus10cm = 0.0;
+			double st_cmass_wood_harv_killed_plus10cm = 0.0;
+			double st_cmass_wood_mort_plus10cm = 0.0;
+			double st_cmass_wood_inc_plus10cm = 0.0;
+
+			double st_dens_plus10cm = 0.0;
+			double st_height_plus10cm = 0.0;
+			double st_diam_plus10cm = 0.0;
+			double st_diam_g_plus10cm = 0.0;
+
+			// Unweighted means of patch values
+//			double st_dens_patch_mean = 0.0;
+			double st_height_patch_mean = 0.0;
+			double st_diam_patch_mean = 0.0;
+			double st_diam_g_patch_mean = 0.0;
+
+//			double st_dens_plus10cm_patch_mean = 0.0;
+			double st_height_plus10cm_patch_mean = 0.0;
+			double st_diam_plus10cm_patch_mean = 0.0;
+			double st_diam_g_plus10cm_patch_mean = 0.0;
+
+			int npatches_cc = 0;
+			int npatches_cc_thisyear = 0;
+			double cutinterval_mean = 0.0;
+			double cutinterval_thisyear_mean = 0.0;
+			int nstands_st = 0;
+			int npatches_st = 0;
+
+			// Gridcellst-based variables
+			if(gcst.frac_old)
+				st_luc_cflux += gcst.acflux_harvest / gcst.frac_old;	// acflux_harvest is per gridcell area
+			if(gridcell.landcover.frac_old[st.landcover])
+				landcover_luc_cflux[st.landcover] = gcst.acflux_harvest / gridcell.landcover.frac_old[st.landcover];
+			gridcell_luc_cflux += gcst.acflux_harvest;
+
+			Gridcell::iterator gc_itr = gridcell.begin();
+
+			// Loop through Stands
+			while (gc_itr != gridcell.end()) {
+				Stand& stand = *gc_itr;
+
+				if (stand.stid == i) {
+
+					double stand_area_frac_plus10cm = 0.0;
+					int stand_npatch_plus10cm = 0;
+
+					// Tree density-weighted means
+					double stand_anpp = 0.0;
+					double stand_agpp = 0.0;
+					double stand_lai = 0.0;
+					double stand_cmass = 0.0;	// Test 1
+					double stand_cmass_potfuel = 0.0;
+					double stand_cmass_harv_killed = 0.0;
+					double stand_cmass_dist_clearcut_killed = 0.0;
+					double stand_cmass_dist_fire_killed = 0.0;
+					double stand_cmass_dist_wind_killed = 0.0;
+					double stand_cmass_dist_barkbeetle_killed = 0.0;
+					double stand_cmass_harv_tolitter = 0.0;
+					double stand_cmass_mort = 0.0;
+					double stand_cmass_fire = 0.0;
+					double stand_cmass_dist = 0.0;
+					double stand_cmass_leaf_root_turnover = 0.0;
+					double stand_cmass_repr = 0.0;
+					double stand_cmass_est = 0.0;
+
+					double stand_anpp_tree = 0.0;
+					double stand_agpp_tree = 0.0;
+					double stand_aautresp_root_tree = 0.0;
+					double stand_aautresp_sap_tree = 0.0;
+					double stand_aautresp_leaf_tree = 0.0;
+					double stand_aautresp_growth_tree = 0.0;
+					double stand_lai_tree = 0.0;
+					double stand_cmass_tree = 0.0;
+					double stand_cmass_tree_mort = 0.0;
+
+					double stand_cmass_wood = 0.0;
+					double stand_cmass_wood_potharv = 0.0;
+					double stand_cmass_wood_potharv_products = 0.0;
+					double stand_cmass_wood_harv_killed = 0.0;
+					double stand_cmass_wood_harv = 0.0;
+					double stand_cmass_wood_harv_toprod = 0.0;
+					double stand_cmass_wood_thin = 0.0;
+					double stand_cmass_wood_clearcut = 0.0;
+					double stand_cmass_wood_mort = 0.0;
+					double stand_cmass_wood_inc = 0.0;
+
+					double stand_csoil = 0.0;
+					double stand_clitter = 0.0;
+					double stand_clitter_course = 0.0;
+					double stand_clitter_fine = 0.0;
+					double stand_rh = 0.0;	
+					double stand_rh_clitter_course = 0.0;
+					double stand_rh_clitter_fine = 0.0;				
+					double stand_csink = 0.0;
+					double stand_nsoil = 0.0;
+					double stand_nlitter = 0.0;
+					double stand_nlitter_course = 0.0;
+					double stand_nlitter_fine = 0.0;
+
+					double stand_aet = 0.0;
+					double stand_runoff = 0.0;
+					double stand_intercep = 0.0;
+					double stand_evap = 0.0;
+
+					double stand_storm_sens_ind = 0.0;
+					double stand_storm_dam_frac = 0.0;
+					double stand_storm_dam_wood_pot = 0.0;
+					double stand_storm_dam_wood = 0.0;
+					double stand_storm_cmass_wood_save = 0.0;
+					double stand_insect_dam_wood = 0.0;
+					double stand_cmass_wind_killed = 0.0;
+					double stand_cmass_barkbeetle_killed = 0.0;
+					double stand_cmass_fire_killed = 0.0;
+					double stand_cmass_clearcut_killed = 0.0;
+					double stand_cmass_thin_killed = 0.0;
+
+					double stand_dens = 0.0;
+					double stand_height = 0.0;
+					double stand_diam = 0.0;
+					double stand_diam_g = 0.0;
+
+					double stand_cmass_plus10cm = 0.0;
+					double stand_cmass_harv_killed_plus10cm = 0.0;
+					double stand_cmass_dist_clearcut_killed_plus10cm = 0.0;
+					double stand_cmass_dist_fire_killed_plus10cm = 0.0;
+					double stand_cmass_dist_wind_killed_plus10cm = 0.0;
+					double stand_cmass_dist_barkbeetle_killed_plus10cm = 0.0;
+
+					double stand_cmass_wood_plus10cm = 0.0;
+					double stand_cmass_wood_harv_killed_plus10cm = 0.0;
+					double stand_cmass_wood_mort_plus10cm = 0.0;
+					double stand_cmass_wood_inc_plus10cm = 0.0;
+
+					double stand_dens_plus10cm = 0.0;
+					double stand_height_plus10cm = 0.0;
+					double stand_diam_plus10cm = 0.0;
+					double stand_diam_g_plus10cm = 0.0;
+
+					// Unweighted means of patch values
+//					double stand_dens_patch_mean = 0.0;		
+					double stand_height_patch_mean = 0.0;
+					double stand_diam_patch_mean = 0.0;
+					double stand_diam_g_patch_mean = 0.0;
+
+//					double stand_dens_plus10cm_patch_mean = 0.0;		
+					double stand_height_plus10cm_patch_mean = 0.0;
+					double stand_diam_plus10cm_patch_mean = 0.0;
+					double stand_diam_g_plus10cm_patch_mean = 0.0;
+
+					nstands_st++;
+					gridcell_nstands++;
+					landcover_nstands[stand.landcover]++;
+
+					//Loop through Patches
+					stand.firstobj();
+					while (stand.isobj) {
+						Patch& patch = stand.getobj();
+						Vegetation& vegetation = patch.vegetation;
+
+						double patch_dens = 0.0;
+						double patch_height = 0.0;
+						double patch_diam = 0.0;
+						double patch_diam_g = 0.0;
+
+						double patch_dens_plus10cm = 0.0;
+						double patch_height_plus10cm = 0.0;
+						double patch_diam_plus10cm = 0.0;
+						double patch_diam_g_plus10cm = 0.0;
+
+						npatches_st++;
+						gridcell_npatches++;
+						landcover_npatches[stand.landcover]++;
+
+						// Patch-based variables
+
+						for (size_t l = 0; l < patch.soil.nsoillayers; l++) {
+							const Soillayer &lyr = patch.soil.soillayers[l];
+
+							stand_clitter_course += lyr.sompool[SURFCWD].cmass;
+							stand_nlitter_course += lyr.sompool[SURFCWD].nmass;
+							stand_rh_clitter_course -= lyr.sompool[SURFCWD].delta_cmass * 1000.0;	// Output in g/m2
+							stand_clitter_fine += lyr.sompool[SURFFWD].cmass;
+							stand_nlitter_fine += lyr.sompool[SURFFWD].nmass;
+							stand_rh_clitter_fine -= lyr.sompool[SURFFWD].delta_cmass * 1000.0;	// Output in g/m2
+
+							for (int r = 0; r < NSOMPOOL; r++) {
+
+								if (r == SURFMETA || r == SURFSTRUCT || r == SOILMETA || r == SOILSTRUCT){
+									stand_clitter += lyr.sompool[r].cmass;
+									stand_nlitter += lyr.sompool[r].nmass;
+								}
+								else if (r == SURFFWD || r == SURFCWD) {
+									stand_clitter += lyr.sompool[r].cmass;
+									stand_nlitter += lyr.sompool[r].nmass;
+								}
+								else {
+									stand_csoil += lyr.sompool[r].cmass;
+									stand_nsoil += lyr.sompool[r].nmass;
+								}
+							}
+						}
+						for (int m=0;m<12;m++) {
+							stand_rh += patch.fluxes.get_monthly_flux(Fluxes::SOILC, m);
+						}
+
+						stand_csink -= (-patch.fluxes.get_annual_flux(Fluxes::NPP) + patch.fluxes.get_annual_flux(Fluxes::REPRC) 
+							+ patch.fluxes.get_annual_flux(Fluxes::SOILC) + patch.fluxes.get_annual_flux(Fluxes::FIREC)
+							+ patch.fluxes.get_annual_flux(Fluxes::ESTC) + patch.fluxes.get_annual_flux(Fluxes::SEEDC) 
+							+ patch.soil.aorgCleach);
+
+						// stand_aet += patch.aaet;
+						// stand_runoff += patch.arunoff;
+						// stand_intercep += patch.aintercep;
+						// stand_evap += patch.aevap;
+
+						stand_storm_sens_ind += patch.storm_sens_ind * patch.storm_cmass_wood_save;	// cmass_wood weight
+						stand_storm_dam_wood_pot += patch.storm_dam_wood_pot;
+						stand_storm_dam_wood += patch.storm_dam_wood;
+						stand_storm_cmass_wood_save += patch.storm_cmass_wood_save;
+						stand_insect_dam_wood += patch.insect_dam_wood;
+
+						if(patch.cutinterval_actual) {
+							npatches_cc++;
+							cutinterval_mean += patch.cutinterval_actual;
+						}
+						if(patch.cutinterval_actual_thisyear) {
+							npatches_cc_thisyear++;
+							cutinterval_thisyear_mean += patch.cutinterval_actual_thisyear;
+						}
+
+						// Patchpft-based variables
+						pftlist.firstobj();
+						while (pftlist.isobj) {
+							Pft& pft = pftlist.getobj();
+							Patchpft& patchpft = patch.pft[pft.id];
+
+							if (pft.lifeform == TREE) {
+								stand_cmass_tree_mort += patchpft.cmass_mort;
+							}
+
+							stand_anpp += patch.fluxes.get_annual_flux(Fluxes::NPP, pft.id);
+							stand_agpp += patch.fluxes.get_annual_flux(Fluxes::GPP, pft.id);
+
+							stand_cmass_harv_killed += patchpft.cmass_harv_killed;
+							stand_cmass_dist_clearcut_killed += patchpft.cmass_dist_clearcut_killed;
+							stand_cmass_dist_fire_killed += patchpft.cmass_dist_fire_killed;
+							stand_cmass_dist_wind_killed += patchpft.cmass_dist_wind_killed;
+							stand_cmass_dist_barkbeetle_killed += patchpft.cmass_dist_barkbeetle_killed;
+							stand_cmass_harv_tolitter += patchpft.cmass_harv_tolitter;
+							stand_cmass_mort += patchpft.cmass_mort;
+							stand_cmass_fire += patchpft.cmass_fire_killed + patchpft.cmass_dist_fire_killed;
+							stand_cmass_dist += patchpft.cmass_dist;
+							stand_cmass_leaf_root_turnover += patchpft.cmass_leaf_root_turnover;
+							stand_cmass_repr += patchpft.cmass_repr;
+							stand_cmass_est += patchpft.cmass_est;
+							stand_clitter += patchpft.cmass_litter_leaf + patchpft.cmass_litter_root + patchpft.cmass_litter_sap
+								+ patchpft.cmass_litter_heart + patchpft.cmass_litter_repr;
+							// This year's nmass_litter currently belongs to the VegC compartment (as in cpool.out and cmass.out).
+//							stand_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap
+//								+ patchpft.nmass_litter_heart;
+
+							stand_cmass_wood_harv_killed += patchpft.cmass_wood_harv_killed;
+							stand_cmass_wood_harv += patchpft.cmass_wood_harv;
+							stand_cmass_wood_harv_toprod += patchpft.cmass_wood_harv_toprod;
+							stand_cmass_wood_thin += patchpft.cmass_wood_thin;
+							stand_cmass_wood_clearcut += patchpft.cmass_wood_clearcut;
+							// stand_cmass_wood_mort += patchpft.cmass_mort_wood;
+
+							stand_cmass_wind_killed += patchpft.cmass_wind_killed;
+							stand_cmass_barkbeetle_killed += patchpft.cmass_barkbeetle_killed;
+							stand_cmass_fire_killed += patchpft.cmass_fire_killed;
+							stand_cmass_clearcut_killed += patchpft.cmass_clearcut_killed;
+							stand_cmass_thin_killed += patchpft.cmass_thin_killed;
+
+							stand_cmass_harv_killed_plus10cm += patchpft.cmass_harv_killed_plus10cm;
+							stand_cmass_dist_clearcut_killed_plus10cm += patchpft.cmass_dist_clearcut_killed_plus10cm;
+							stand_cmass_dist_fire_killed_plus10cm += patchpft.cmass_dist_fire_killed_plus10cm;
+							stand_cmass_dist_wind_killed_plus10cm += patchpft.cmass_dist_wind_killed_plus10cm;
+							stand_cmass_dist_barkbeetle_killed_plus10cm += patchpft.cmass_dist_barkbeetle_killed_plus10cm;
+
+							// stand_cmass_wood_harv_killed_plus10cm += patchpft.cmass_wood_harv_killed_plus10cm;
+							// stand_cmass_wood_mort_plus10cm += patchpft.cmass_mort_wood_plus10cm;
+
+							pftlist.nextobj();
+						}
+
+						// Individual-based variables
+						vegetation.firstobj();
+						while (vegetation.isobj) {
+							Individual& indiv = vegetation.getobj();
+
+							if (indiv.id != -1 && indiv.alive) {
+
+								stand_lai += indiv.lai;
+								stand_cmass += indiv.ccont();	// Test 1
+								stand_cmass_potfuel += (check_harvest_cmass(indiv) - check_harvest_cmass(indiv, true, true));
+
+								stand_cmass_wood += indiv.cmass_wood();
+								stand_cmass_wood_potharv += check_harvest_cmass(indiv, true);
+								stand_cmass_wood_potharv_products += check_harvest_cmass(indiv, true, true);
+
+
+//								patch_cmass += indiv.ccont();	// Test 2
+
+								if (indiv.pft.lifeform == TREE) {
+
+									stand_anpp_tree += indiv.anpp;
+									stand_agpp_tree += indiv.agpp;
+									stand_aautresp_root_tree += indiv.resp_root;
+									stand_aautresp_sap_tree += indiv.resp_sap;
+									stand_aautresp_leaf_tree += indiv.resp_leaf;
+									stand_aautresp_growth_tree += indiv.resp_growth;
+									stand_lai_tree += indiv.lai;
+									stand_cmass_tree += indiv.ccont();
+
+									stand_cmass_wood_inc += indiv.cmass_wood_inc_5.lastadd();
+
+									stand_dens += indiv.densindiv;
+									stand_height += indiv.height * indiv.densindiv;
+									stand_diam += indiv.diam * indiv.densindiv;
+									stand_diam_g += pow(indiv.diam, 2) * indiv.densindiv;
+
+									patch_dens += indiv.densindiv;
+									patch_height += indiv.height * indiv.densindiv;
+									patch_diam += indiv.diam * indiv.densindiv;
+									patch_diam_g+= pow(indiv.diam, 2) * indiv.densindiv;
+
+									if (indiv.diam >= 0.1) {
+										stand_cmass_plus10cm += indiv.ccont();
+
+										stand_cmass_wood_plus10cm += indiv.cmass_wood();
+										stand_cmass_wood_inc_plus10cm += indiv.cmass_wood_inc_5.lastadd();
+
+										stand_dens_plus10cm += indiv.densindiv;
+										stand_height_plus10cm += indiv.height * indiv.densindiv;
+										stand_diam_plus10cm += indiv.diam * indiv.densindiv;
+										stand_diam_g_plus10cm += pow(indiv.diam, 2) * indiv.densindiv;
+
+										patch_dens_plus10cm += indiv.densindiv;
+										patch_height_plus10cm += indiv.height * indiv.densindiv;
+										patch_diam_plus10cm += indiv.diam * indiv.densindiv;
+										patch_diam_g_plus10cm += pow(indiv.diam, 2) * indiv.densindiv;
+									}
+								}
+							}
+							vegetation.nextobj();
+						}
+
+						if(patch_dens) {
+							patch_height /= patch_dens;
+							patch_diam /= patch_dens;
+							patch_diam_g = pow(patch_diam_g / patch_dens, 0.5);	// Complete Dg calculation for each patch
+						}
+
+						if (patch_dens_plus10cm) {
+
+							patch_height_plus10cm /= patch_dens_plus10cm;
+							patch_diam_plus10cm /= patch_dens_plus10cm;
+							patch_diam_g_plus10cm = pow(patch_diam_g_plus10cm / patch_dens_plus10cm, 0.5);	// Complete Dg calculation for each patch
+						}
+
+//						stand_cmass_patch_mean += patch_cmass;	// Test 2	EXTRA
+
+						stand_height_patch_mean += patch_height;
+						stand_diam_patch_mean += patch_diam;
+						stand_diam_g_patch_mean += patch_diam_g;
+
+						stand_height_plus10cm_patch_mean += patch_height_plus10cm;
+						stand_diam_plus10cm_patch_mean += patch_diam_plus10cm;
+						stand_diam_g_plus10cm_patch_mean += patch_diam_g_plus10cm;
+
+						if (patch_dens_plus10cm)
+							stand_npatch_plus10cm++;
+
+						stand.nextobj();
 					}
-					if(patch.cutinterval_actual_thisyear) {
-						npatches_cc_thisyear++;
-						cutinterval_thisyear_mean += patch.cutinterval_actual_thisyear;
+
+					stand_anpp /= (double)stand.npatch();
+					stand_agpp /= (double)stand.npatch();
+					stand_lai /= (double)stand.npatch();
+					stand_cmass /= (double)stand.npatch();	// Test 1
+					stand_cmass_potfuel /= (double)stand.npatch();
+					stand_cmass_harv_killed /= (double)stand.npatch();
+					stand_cmass_dist_clearcut_killed /= (double)stand.npatch();
+					stand_cmass_dist_fire_killed /= (double)stand.npatch();
+					stand_cmass_dist_wind_killed /= (double)stand.npatch();
+					stand_cmass_dist_barkbeetle_killed /= (double)stand.npatch();
+					stand_cmass_harv_tolitter /= (double)stand.npatch();
+					stand_cmass_mort /= (double)stand.npatch();
+					stand_cmass_fire /= (double)stand.npatch();
+					stand_cmass_dist /= (double)stand.npatch();
+					stand_cmass_leaf_root_turnover /= (double)stand.npatch();
+					stand_cmass_repr /= (double)stand.npatch();
+					stand_cmass_est /= (double)stand.npatch();
+
+					stand_anpp_tree /= (double)stand.npatch();
+					stand_agpp_tree /= (double)stand.npatch();
+					stand_aautresp_root_tree /= (double)stand.npatch();
+					stand_aautresp_sap_tree /= (double)stand.npatch();
+					stand_aautresp_leaf_tree /= (double)stand.npatch();
+					stand_aautresp_growth_tree /= (double)stand.npatch();
+					stand_lai_tree /= (double)stand.npatch();
+					stand_cmass_tree /= (double)stand.npatch();
+					stand_cmass_tree_mort /= (double)stand.npatch();
+
+					stand_cmass_wood /= (double)stand.npatch();
+					stand_cmass_wood_potharv /= (double)stand.npatch();
+					stand_cmass_wood_potharv_products /= (double)stand.npatch();
+					stand_cmass_wood_harv_killed /= (double)stand.npatch();
+					stand_cmass_wood_harv /= (double)stand.npatch();
+					stand_cmass_wood_harv_toprod /= (double)stand.npatch();
+					stand_cmass_wood_thin /= (double)stand.npatch();
+					stand_cmass_wood_clearcut /= (double)stand.npatch();
+					stand_cmass_wood_mort /= (double)stand.npatch();
+					stand_cmass_wood_inc /= (double)stand.npatch();
+
+					stand_csoil /= (double)stand.npatch();
+					stand_clitter /= (double)stand.npatch();
+					stand_clitter_course /= (double)stand.npatch();
+					stand_clitter_fine /= (double)stand.npatch();
+					stand_rh /= (double)stand.npatch();
+					stand_rh_clitter_course /= (double)stand.npatch();
+					stand_rh_clitter_fine /= (double)stand.npatch();				
+					stand_csink /= (double)stand.npatch();
+					stand_nsoil /= (double)stand.npatch();
+					stand_nlitter /= (double)stand.npatch();
+					stand_nlitter_course /= (double)stand.npatch();
+					stand_nlitter_fine /= (double)stand.npatch();
+
+					stand_aet /= (double)stand.npatch();
+					stand_runoff /= (double)stand.npatch();
+					stand_intercep /= (double)stand.npatch();
+					stand_evap /= (double)stand.npatch();
+
+					stand_storm_sens_ind /= (double)stand.npatch();
+					stand_storm_dam_wood_pot /= (double)stand.npatch();
+					stand_storm_dam_wood /= (double)stand.npatch();
+					stand_storm_cmass_wood_save /= (double)stand.npatch();
+
+					if(stand_storm_cmass_wood_save)
+						stand_storm_sens_ind /= stand_storm_cmass_wood_save;	// cmass_wood weight
+					else
+						stand_storm_sens_ind = 0.0;
+
+					stand_insect_dam_wood /= (double)stand.npatch();
+					stand_cmass_wind_killed /= (double)stand.npatch();
+					stand_cmass_barkbeetle_killed /= (double)stand.npatch();
+					stand_cmass_fire_killed /= (double)stand.npatch();
+					stand_cmass_clearcut_killed /= (double)stand.npatch();
+					stand_cmass_thin_killed /= (double)stand.npatch();
+
+					stand_dens /= (double)stand.npatch();
+					stand_height /= (double)stand.npatch();
+					stand_diam /= (double)stand.npatch();
+					stand_diam_g /= (double)stand.npatch();
+
+//					stand_cmass_patch_mean /= (double)stand.npatch();	// Test 2
+
+					stand_cmass_plus10cm /= (double)stand.npatch();
+					stand_cmass_harv_killed_plus10cm /= (double)stand.npatch();
+					stand_cmass_dist_clearcut_killed_plus10cm /= (double)stand.npatch();
+					stand_cmass_dist_fire_killed_plus10cm /= (double)stand.npatch();
+					stand_cmass_dist_wind_killed_plus10cm /= (double)stand.npatch();
+					stand_cmass_dist_barkbeetle_killed_plus10cm /= (double)stand.npatch();
+
+//					stand_dens_plus10cm_patch_mean /= (double)stand.npatch();
+
+					stand_cmass_wood_plus10cm /= (double)stand.npatch();
+					stand_cmass_wood_harv_killed_plus10cm /= (double)stand.npatch();
+					stand_cmass_wood_mort_plus10cm /= (double)stand.npatch();
+					stand_cmass_wood_inc_plus10cm /= (double)stand.npatch();
+
+					stand_dens_plus10cm /= (double)stand.npatch();
+					stand_height_plus10cm /= (double)stand.npatch();
+					stand_diam_plus10cm /= (double)stand.npatch();
+					stand_diam_g_plus10cm /= (double)stand.npatch();
+
+					stand_height_patch_mean /= (double)stand.npatch();
+					stand_diam_patch_mean /= (double)stand.npatch();
+					stand_diam_g_patch_mean /= (double)stand.npatch();
+
+					if (average_plus10cm_patches_only) {
+						if (stand_npatch_plus10cm) {
+							stand_height_plus10cm_patch_mean /= (double)stand_npatch_plus10cm;
+							stand_diam_plus10cm_patch_mean /= (double)stand_npatch_plus10cm;
+							stand_diam_g_plus10cm_patch_mean /= (double)stand_npatch_plus10cm;
+
+							stand_area_frac_plus10cm = stand.get_gridcell_fraction();
+						}
 					}
-					stand.nextobj();
+					else {
+						stand_height_plus10cm_patch_mean /= (double)stand.npatch();
+						stand_diam_plus10cm_patch_mean /= (double)stand.npatch();
+						stand_diam_g_plus10cm_patch_mean /= (double)stand.npatch();
+					}
+
+					st_area_frac_plus10cm += stand_area_frac_plus10cm;
+
+					if (gcst.frac) {
+						double stand_st_ratio = stand.get_gridcell_fraction() / gcst.frac;
+
+						// Patch,Patchpft & Individual-based variables
+
+						st_anpp += stand_anpp * stand_st_ratio;
+						st_agpp += stand_agpp * stand_st_ratio;
+						st_lai += stand_lai * stand_st_ratio;
+						st_cmass += stand_cmass * stand_st_ratio;	// Test 1
+						st_cmass_potfuel += stand_cmass_potfuel * stand_st_ratio;
+						st_cmass_harv_killed += stand_cmass_harv_killed * stand_st_ratio;
+						st_cmass_dist_clearcut_killed += stand_cmass_dist_clearcut_killed * stand_st_ratio;
+						st_cmass_dist_fire_killed += stand_cmass_dist_fire_killed * stand_st_ratio;
+						st_cmass_dist_wind_killed += stand_cmass_dist_wind_killed * stand_st_ratio;
+						st_cmass_dist_barkbeetle_killed += stand_cmass_dist_barkbeetle_killed * stand_st_ratio;
+						st_cmass_harv_tolitter += stand_cmass_harv_tolitter * stand_st_ratio;
+						st_cmass_mort += stand_cmass_mort * stand_st_ratio;
+						st_cmass_fire += stand_cmass_fire * stand_st_ratio;
+						st_cmass_dist += stand_cmass_dist * stand_st_ratio;
+						st_cmass_leaf_root_turnover += stand_cmass_leaf_root_turnover * stand_st_ratio;
+						st_cmass_repr += stand_cmass_repr * stand_st_ratio;
+						st_cmass_est += stand_cmass_est * stand_st_ratio;
+
+						st_anpp_tree += stand_anpp_tree * stand_st_ratio;
+						st_agpp_tree += stand_agpp_tree * stand_st_ratio;
+						st_aautresp_root_tree += stand_aautresp_root_tree * stand_st_ratio;
+						st_aautresp_sap_tree += stand_aautresp_sap_tree * stand_st_ratio;
+						st_aautresp_leaf_tree += stand_aautresp_leaf_tree * stand_st_ratio;
+						st_aautresp_growth_tree += stand_aautresp_growth_tree * stand_st_ratio;
+						st_lai_tree += stand_lai_tree * stand_st_ratio;
+						st_cmass_tree += stand_cmass_tree * stand_st_ratio;
+						st_cmass_tree_mort += stand_cmass_tree_mort * stand_st_ratio;
+
+						st_cmass_wood += stand_cmass_wood * stand_st_ratio;
+						st_cmass_wood_potharv += stand_cmass_wood_potharv * stand_st_ratio;
+						st_cmass_wood_potharv_products += stand_cmass_wood_potharv_products * stand_st_ratio;
+						st_cmass_wood_harv_killed += stand_cmass_wood_harv_killed * stand_st_ratio;
+						st_cmass_wood_harv += stand_cmass_wood_harv * stand_st_ratio;
+						st_cmass_wood_harv_toprod += stand_cmass_wood_harv_toprod * stand_st_ratio;
+						st_cmass_wood_thin += stand_cmass_wood_thin * stand_st_ratio;
+						st_cmass_wood_clearcut += stand_cmass_wood_clearcut * stand_st_ratio;
+						st_cmass_wood_mort += stand_cmass_wood_mort * stand_st_ratio;
+						st_cmass_wood_inc += stand_cmass_wood_inc * stand_st_ratio;
+
+						st_csoil += stand_csoil * stand_st_ratio;
+						st_clitter += stand_clitter * stand_st_ratio;
+						st_clitter_course += stand_clitter_course * stand_st_ratio;
+						st_clitter_fine += stand_clitter_fine * stand_st_ratio;
+						st_rh += stand_rh * stand_st_ratio;
+						st_rh_clitter_course += stand_rh_clitter_course * stand_st_ratio;
+						st_rh_clitter_fine += stand_rh_clitter_fine * stand_st_ratio;
+						st_csink += stand_csink * stand_st_ratio;
+						st_nsoil += stand_nsoil * stand_st_ratio;
+						st_nlitter += stand_nlitter * stand_st_ratio;
+						st_nlitter_course += stand_nlitter_course * stand_st_ratio;
+						st_nlitter_fine += stand_nlitter_fine * stand_st_ratio;
+
+						st_aet += stand_aet * stand_st_ratio;
+						st_runoff += stand_runoff * stand_st_ratio;
+						st_intercep += stand_intercep * stand_st_ratio;
+						st_evap += stand_evap * stand_st_ratio;
+
+						st_storm_sens_ind += stand_storm_sens_ind * stand_storm_cmass_wood_save * stand_st_ratio;	// cmass_wood weight
+						st_storm_dam_wood_pot += stand_storm_dam_wood_pot * stand_st_ratio;
+						st_storm_dam_wood += stand_storm_dam_wood * stand_st_ratio;
+						st_cmass_wind_killed += stand_cmass_wind_killed * stand_st_ratio;
+						st_storm_cmass_wood_save += stand_storm_cmass_wood_save * stand_st_ratio;
+						st_insect_dam_wood += stand_insect_dam_wood * stand_st_ratio;
+						st_cmass_barkbeetle_killed += stand_cmass_barkbeetle_killed * stand_st_ratio;
+						st_cmass_fire_killed += stand_cmass_fire_killed * stand_st_ratio;
+						st_cmass_clearcut_killed += stand_cmass_clearcut_killed * stand_st_ratio;
+						st_cmass_thin_killed += stand_cmass_thin_killed * stand_st_ratio;
+
+						st_dens += stand_dens * stand_st_ratio;
+						st_height += stand_height * stand_st_ratio;
+						st_diam += stand_diam * stand_st_ratio;
+						st_diam_g += stand_diam_g * stand_st_ratio;
+
+						st_cmass_plus10cm += stand_cmass_plus10cm * stand_st_ratio;
+						st_cmass_harv_killed_plus10cm += stand_cmass_harv_killed_plus10cm * stand_st_ratio;
+						st_cmass_dist_clearcut_killed_plus10cm += stand_cmass_dist_clearcut_killed_plus10cm * stand_st_ratio;
+						st_cmass_dist_fire_killed_plus10cm += stand_cmass_dist_fire_killed_plus10cm * stand_st_ratio;
+						st_cmass_dist_wind_killed_plus10cm += stand_cmass_dist_wind_killed_plus10cm * stand_st_ratio;
+						st_cmass_dist_barkbeetle_killed_plus10cm += stand_cmass_dist_barkbeetle_killed_plus10cm * stand_st_ratio;
+
+						st_cmass_wood_plus10cm += stand_cmass_wood_plus10cm * stand_st_ratio;
+						st_cmass_wood_harv_killed_plus10cm += stand_cmass_wood_harv_killed_plus10cm * stand_st_ratio;
+						st_cmass_wood_mort_plus10cm += stand_cmass_wood_mort_plus10cm * stand_st_ratio;
+						st_cmass_wood_inc_plus10cm += stand_cmass_wood_inc_plus10cm * stand_st_ratio;
+
+						st_dens_plus10cm += stand_dens_plus10cm * stand_st_ratio;
+						st_height_plus10cm += stand_height_plus10cm * stand_st_ratio;
+						st_diam_plus10cm += stand_diam_plus10cm * stand_st_ratio;
+						st_diam_g_plus10cm += stand_diam_g_plus10cm * stand_st_ratio;
+
+						st_height_patch_mean += stand_height_patch_mean * stand_st_ratio;
+						st_diam_patch_mean += stand_diam_patch_mean * stand_st_ratio;
+						st_diam_g_patch_mean += stand_diam_g_patch_mean * stand_st_ratio;
+
+						if (average_plus10cm_patches_only) {
+							st_height_plus10cm_patch_mean += stand_height_plus10cm_patch_mean * stand_area_frac_plus10cm;
+							st_diam_plus10cm_patch_mean += stand_diam_plus10cm_patch_mean * stand_area_frac_plus10cm;
+							st_diam_g_plus10cm_patch_mean += stand_diam_g_plus10cm_patch_mean * stand_area_frac_plus10cm;
+						}
+						else {
+							st_height_plus10cm_patch_mean += stand_height_plus10cm_patch_mean * stand_st_ratio;
+							st_diam_plus10cm_patch_mean += stand_diam_plus10cm_patch_mean * stand_st_ratio;
+							st_diam_g_plus10cm_patch_mean += stand_diam_g_plus10cm_patch_mean * stand_st_ratio;
+						}
+					}
+
+					double stand_lc_ratio = stand.get_gridcell_fraction() / gridcell.landcover.frac[stand.landcover];
+
+					landcover_anpp[stand.landcover] += stand_anpp * stand_lc_ratio;
+					landcover_agpp[stand.landcover] += stand_agpp * stand_lc_ratio;
+					landcover_lai[stand.landcover] += stand_lai * stand_lc_ratio;
+					landcover_cmass[stand.landcover] += stand_cmass * stand_lc_ratio;	// Test 1
+					landcover_cmass_potfuel[stand.landcover] += stand_cmass_potfuel * stand_lc_ratio;
+					landcover_cmass_harv_killed[stand.landcover] += stand_cmass_harv_killed * stand_lc_ratio;
+					landcover_cmass_harv_tolitter[stand.landcover] += stand_cmass_harv_tolitter * stand_lc_ratio;
+					landcover_cmass_mort[stand.landcover] += stand_cmass_mort * stand_lc_ratio;
+					landcover_cmass_fire[stand.landcover] += stand_cmass_fire * stand_lc_ratio;
+					landcover_cmass_dist[stand.landcover] += stand_cmass_dist * stand_lc_ratio;
+					landcover_cmass_leaf_root_turnover[stand.landcover] += stand_cmass_leaf_root_turnover * stand_lc_ratio;
+					landcover_cmass_repr[stand.landcover] += stand_cmass_repr * stand_lc_ratio;
+
+					landcover_anpp_tree[stand.landcover] += stand_anpp_tree * stand_lc_ratio;
+					landcover_agpp_tree[stand.landcover] += stand_agpp_tree * stand_lc_ratio;
+					landcover_aautresp_root_tree[stand.landcover] += stand_aautresp_root_tree * stand_lc_ratio;
+					landcover_aautresp_sap_tree[stand.landcover] += stand_aautresp_sap_tree * stand_lc_ratio;
+					landcover_aautresp_leaf_tree[stand.landcover] += stand_aautresp_leaf_tree * stand_lc_ratio;
+					landcover_aautresp_growth_tree[stand.landcover] += stand_aautresp_growth_tree * stand_lc_ratio;
+					landcover_lai_tree[stand.landcover] += stand_lai_tree * stand_lc_ratio;
+					landcover_cmass_tree[stand.landcover] += stand_cmass_tree * stand_lc_ratio;
+					landcover_cmass_tree_mort[stand.landcover] += stand_cmass_tree_mort * stand_lc_ratio;
+
+					landcover_cmass_wood[stand.landcover] += stand_cmass_wood * stand_lc_ratio;
+					landcover_cmass_wood_potharv[stand.landcover] += stand_cmass_wood_potharv * stand_lc_ratio;
+					landcover_cmass_wood_potharv_products[stand.landcover] += stand_cmass_wood_potharv_products * stand_lc_ratio;
+					landcover_cmass_wood_harv_killed[stand.landcover] += stand_cmass_wood_harv_killed * stand_lc_ratio;
+					landcover_cmass_dist_clearcut_killed[stand.landcover] += stand_cmass_dist_clearcut_killed * stand_lc_ratio;
+					landcover_cmass_dist_fire_killed[stand.landcover] += stand_cmass_dist_fire_killed * stand_lc_ratio;
+					landcover_cmass_dist_wind_killed[stand.landcover] += stand_cmass_dist_wind_killed * stand_lc_ratio;
+					landcover_cmass_dist_barkbeetle_killed[stand.landcover] += stand_cmass_dist_barkbeetle_killed * stand_lc_ratio;
+					landcover_cmass_wood_harv[stand.landcover] += stand_cmass_wood_harv * stand_lc_ratio;
+					landcover_cmass_wood_harv_toprod[stand.landcover] += stand_cmass_wood_harv_toprod * stand_lc_ratio;
+					landcover_cmass_wood_thin[stand.landcover] += stand_cmass_wood_thin * stand_lc_ratio;
+					landcover_cmass_wood_clearcut[stand.landcover] += stand_cmass_wood_clearcut * stand_lc_ratio;
+					landcover_cmass_wood_mort[stand.landcover] += stand_cmass_wood_mort * stand_lc_ratio;
+					landcover_cmass_wood_inc[stand.landcover] += stand_cmass_wood_inc * stand_lc_ratio;
+
+					landcover_csoil[stand.landcover] += stand_csoil * stand_lc_ratio;
+					landcover_clitter[stand.landcover] += stand_clitter * stand_lc_ratio;
+					landcover_clitter_course[stand.landcover] += stand_clitter_course * stand_lc_ratio;
+					landcover_clitter_fine[stand.landcover] += stand_clitter_fine * stand_lc_ratio;
+					landcover_rh[stand.landcover] += stand_rh * stand_lc_ratio;
+					landcover_rh_clitter_course[stand.landcover] += stand_rh_clitter_course * stand_lc_ratio;
+					landcover_rh_clitter_fine[stand.landcover] += stand_rh_clitter_fine * stand_lc_ratio;					
+					landcover_csink[stand.landcover] += stand_csink * stand_lc_ratio;
+					landcover_nsoil[stand.landcover] += stand_nsoil * stand_lc_ratio;
+					landcover_nlitter[stand.landcover] += stand_nlitter * stand_lc_ratio;
+					landcover_nlitter_course[stand.landcover] += stand_nlitter_course * stand_lc_ratio;
+					landcover_nlitter_fine[stand.landcover] += stand_nlitter_fine * stand_lc_ratio;
+
+					landcover_aet[stand.landcover] += stand_aet * stand_lc_ratio;
+					landcover_runoff[stand.landcover] += stand_runoff * stand_lc_ratio;
+					landcover_intercep[stand.landcover] += stand_intercep * stand_lc_ratio;
+					landcover_evap[stand.landcover] += stand_evap * stand_lc_ratio;
+
+					landcover_storm_sens_ind[stand.landcover] += stand_storm_sens_ind * stand_storm_cmass_wood_save * stand_lc_ratio;	// cmass_wood weight
+					landcover_storm_dam_wood_pot[stand.landcover] += stand_storm_dam_wood_pot * stand_lc_ratio;
+					landcover_storm_dam_wood[stand.landcover] += stand_storm_dam_wood * stand_lc_ratio;
+					landcover_storm_cmass_wood_save[stand.landcover] += stand_storm_cmass_wood_save * stand_lc_ratio;
+					landcover_insect_dam_wood[stand.landcover] += stand_insect_dam_wood * stand_lc_ratio;
+					landcover_cmass_wind_killed[stand.landcover] += stand_cmass_wind_killed * stand_lc_ratio;
+					landcover_cmass_barkbeetle_killed[stand.landcover] += stand_cmass_barkbeetle_killed * stand_lc_ratio;
+					landcover_cmass_fire_killed[stand.landcover] += stand_cmass_fire_killed * stand_lc_ratio;
+					landcover_cmass_clearcut_killed[stand.landcover] += stand_cmass_clearcut_killed * stand_lc_ratio;
+					landcover_cmass_thin_killed[stand.landcover] += stand_cmass_thin_killed * stand_lc_ratio;
+
+					landcover_dens[stand.landcover] += stand_dens * stand_lc_ratio;
+					landcover_height[stand.landcover] += stand_height * stand_lc_ratio;
+					landcover_diam[stand.landcover] += stand_diam * stand_lc_ratio;
+					landcover_diam_g[stand.landcover] += stand_diam_g * stand_lc_ratio;
+
+					landcover_cmass_plus10cm[stand.landcover] += stand_cmass_plus10cm * stand_lc_ratio;
+					landcover_cmass_harv_killed_plus10cm[stand.landcover] += stand_cmass_harv_killed_plus10cm * stand_lc_ratio;
+					landcover_cmass_dist_clearcut_killed_plus10cm[stand.landcover] += stand_cmass_dist_clearcut_killed_plus10cm * stand_lc_ratio;
+					landcover_cmass_dist_fire_killed_plus10cm[stand.landcover] += stand_cmass_dist_fire_killed_plus10cm * stand_lc_ratio;
+					landcover_cmass_dist_wind_killed_plus10cm[stand.landcover] += stand_cmass_dist_wind_killed_plus10cm * stand_lc_ratio;
+					landcover_cmass_dist_barkbeetle_killed_plus10cm[stand.landcover] += stand_cmass_dist_barkbeetle_killed_plus10cm * stand_lc_ratio;
+
+					landcover_cmass_wood_plus10cm[stand.landcover] += stand_cmass_wood_plus10cm * stand_lc_ratio;
+					landcover_cmass_wood_harv_killed_plus10cm[stand.landcover] += stand_cmass_wood_harv_killed_plus10cm * stand_lc_ratio;
+					landcover_cmass_wood_mort_plus10cm[stand.landcover] += stand_cmass_wood_mort_plus10cm * stand_lc_ratio;
+					landcover_cmass_wood_inc_plus10cm[stand.landcover] += stand_cmass_wood_inc_plus10cm * stand_lc_ratio;
+
+					landcover_dens_plus10cm[stand.landcover] += stand_dens_plus10cm * stand_lc_ratio;
+					landcover_height_plus10cm[stand.landcover] += stand_height_plus10cm * stand_lc_ratio;
+					landcover_diam_plus10cm[stand.landcover] += stand_diam_plus10cm * stand_lc_ratio;
+					landcover_diam_g_plus10cm[stand.landcover] += stand_diam_g_plus10cm * stand_lc_ratio;
+
+					landcover_height_patch_mean[stand.landcover] += stand_height_patch_mean * stand_lc_ratio;
+					landcover_diam_patch_mean[stand.landcover] += stand_diam_patch_mean * stand_lc_ratio;
+					landcover_diam_g_patch_mean[stand.landcover] += stand_diam_g_patch_mean * stand_lc_ratio;
+
+					if (average_plus10cm_patches_only) {
+						landcover_height_plus10cm_patch_mean[stand.landcover] += stand_height_plus10cm_patch_mean * stand_area_frac_plus10cm;
+						landcover_diam_plus10cm_patch_mean[stand.landcover] += stand_diam_plus10cm_patch_mean * stand_area_frac_plus10cm;
+						landcover_diam_g_plus10cm_patch_mean[stand.landcover] += stand_diam_g_plus10cm_patch_mean * stand_area_frac_plus10cm;
+					}
+					else {
+						landcover_height_plus10cm_patch_mean[stand.landcover] += stand_height_plus10cm_patch_mean * stand_lc_ratio;
+						landcover_diam_plus10cm_patch_mean[stand.landcover] += stand_diam_plus10cm_patch_mean * stand_lc_ratio;
+						landcover_diam_g_plus10cm_patch_mean[stand.landcover] += stand_diam_g_plus10cm_patch_mean * stand_lc_ratio;
+					}
+
+					if (stand_npatch_plus10cm)
+						landcover_area_frac_plus10cm[stand.landcover] += stand_area_frac_plus10cm;
+
+					double stand_gc_ratio = stand.get_gridcell_fraction();
+
+					gridcell_anpp += stand_anpp * stand_gc_ratio;
+					gridcell_agpp += stand_agpp * stand_gc_ratio;
+					gridcell_lai += stand_lai * stand_gc_ratio;
+					gridcell_cmass += stand_cmass * stand_gc_ratio;	// Test 1
+					gridcell_cmass_potfuel += stand_cmass_potfuel * stand_gc_ratio;
+					gridcell_cmass_harv_killed += stand_cmass_harv_killed * stand_gc_ratio;
+					gridcell_cmass_dist_clearcut_killed += stand_cmass_dist_clearcut_killed * stand_gc_ratio;
+					gridcell_cmass_dist_fire_killed += stand_cmass_dist_fire_killed * stand_gc_ratio;
+					gridcell_cmass_dist_wind_killed += stand_cmass_dist_wind_killed * stand_gc_ratio;
+					gridcell_cmass_dist_barkbeetle_killed += stand_cmass_dist_barkbeetle_killed * stand_gc_ratio;
+					gridcell_cmass_harv_tolitter += stand_cmass_harv_tolitter * stand_gc_ratio;
+					gridcell_cmass_mort += stand_cmass_mort * stand_gc_ratio;
+					gridcell_cmass_fire += stand_cmass_fire * stand_gc_ratio;
+					gridcell_cmass_dist += stand_cmass_dist * stand_gc_ratio;
+					gridcell_cmass_leaf_root_turnover += stand_cmass_leaf_root_turnover * stand_gc_ratio;
+					gridcell_cmass_repr += stand_cmass_repr * stand_gc_ratio;
+
+					gridcell_anpp_tree += stand_anpp_tree * stand_gc_ratio;
+					gridcell_agpp_tree += stand_agpp_tree * stand_gc_ratio;
+					gridcell_aautresp_root_tree += stand_aautresp_root_tree * stand_gc_ratio;
+					gridcell_aautresp_sap_tree += stand_aautresp_sap_tree * stand_gc_ratio;
+					gridcell_aautresp_leaf_tree += stand_aautresp_leaf_tree * stand_gc_ratio;
+					gridcell_aautresp_growth_tree += stand_aautresp_growth_tree * stand_gc_ratio;
+					gridcell_lai_tree += stand_lai_tree * stand_gc_ratio;
+					gridcell_cmass_tree += stand_cmass_tree * stand_gc_ratio;
+					gridcell_cmass_tree_mort += stand_cmass_tree_mort * stand_gc_ratio;
+
+					gridcell_cmass_wood += stand_cmass_wood * stand_gc_ratio;
+					gridcell_cmass_wood_potharv += stand_cmass_wood_potharv * stand_gc_ratio;
+					gridcell_cmass_wood_potharv_products += stand_cmass_wood_potharv_products * stand_gc_ratio;
+					gridcell_cmass_wood_harv_killed += stand_cmass_wood_harv_killed * stand_gc_ratio;
+					gridcell_cmass_wood_harv += stand_cmass_wood_harv * stand_gc_ratio;
+					gridcell_cmass_wood_harv_toprod += stand_cmass_wood_harv_toprod * stand_gc_ratio;
+					gridcell_cmass_wood_thin += stand_cmass_wood_thin * stand_gc_ratio;
+					gridcell_cmass_wood_clearcut += stand_cmass_wood_clearcut * stand_gc_ratio;
+					gridcell_cmass_wood_mort += stand_cmass_wood_mort * stand_gc_ratio;
+					gridcell_cmass_wood_inc += stand_cmass_wood_inc * stand_gc_ratio;
+
+					gridcell_csoil += stand_csoil * stand_gc_ratio;
+					gridcell_clitter += stand_clitter * stand_gc_ratio;
+					gridcell_clitter_course += stand_clitter_course * stand_gc_ratio;
+					gridcell_clitter_fine += stand_clitter_fine * stand_gc_ratio;
+					gridcell_rh += stand_rh * stand_gc_ratio;
+					gridcell_rh_clitter_course += stand_rh_clitter_course * stand_gc_ratio;
+					gridcell_rh_clitter_fine += stand_rh_clitter_fine * stand_gc_ratio;
+					gridcell_csink += stand_csink * stand_gc_ratio;
+					gridcell_nsoil += stand_nsoil * stand_gc_ratio;
+					gridcell_nlitter += stand_nlitter * stand_gc_ratio;
+					gridcell_nlitter_course += stand_nlitter_course * stand_gc_ratio;
+					gridcell_nlitter_fine += stand_nlitter_fine * stand_gc_ratio;
+
+					gridcell_aet += stand_aet * stand_gc_ratio;
+					gridcell_runoff += stand_runoff * stand_gc_ratio;
+					gridcell_intercep += stand_intercep * stand_gc_ratio;
+					gridcell_evap += stand_evap * stand_gc_ratio;
+
+					gridcell_storm_sens_ind += stand_storm_sens_ind * stand_storm_cmass_wood_save * stand_gc_ratio;	// cmass_wood weight
+					gridcell_storm_dam_wood_pot += stand_storm_dam_wood_pot * stand_gc_ratio;
+					gridcell_storm_dam_wood += stand_storm_dam_wood * stand_gc_ratio;
+					gridcell_storm_cmass_wood_save += stand_storm_cmass_wood_save * stand_gc_ratio;
+					gridcell_insect_dam_wood += stand_insect_dam_wood * stand_gc_ratio;
+					gridcell_cmass_wind_killed += stand_cmass_wind_killed * stand_gc_ratio;
+					gridcell_cmass_barkbeetle_killed += stand_cmass_barkbeetle_killed * stand_gc_ratio;
+					gridcell_cmass_fire_killed += stand_cmass_fire_killed * stand_gc_ratio;
+					gridcell_cmass_clearcut_killed += stand_cmass_clearcut_killed * stand_gc_ratio;
+					gridcell_cmass_thin_killed += stand_cmass_thin_killed * stand_gc_ratio;
+
+					gridcell_dens += stand_dens * stand_gc_ratio;
+					gridcell_height += stand_height * stand_gc_ratio;
+					gridcell_diam += stand_diam * stand_gc_ratio;
+					gridcell_diam_g += stand_diam_g * stand_gc_ratio;
+
+					gridcell_cmass_plus10cm += stand_cmass_plus10cm * stand_gc_ratio;
+					gridcell_cmass_harv_killed_plus10cm += stand_cmass_harv_killed_plus10cm * stand_gc_ratio;
+					gridcell_cmass_dist_clearcut_killed_plus10cm += stand_cmass_dist_clearcut_killed_plus10cm * stand_gc_ratio;
+					gridcell_cmass_dist_fire_killed_plus10cm += stand_cmass_dist_fire_killed_plus10cm * stand_gc_ratio;
+					gridcell_cmass_dist_wind_killed_plus10cm += stand_cmass_dist_wind_killed_plus10cm * stand_gc_ratio;
+					gridcell_cmass_dist_barkbeetle_killed_plus10cm += stand_cmass_dist_barkbeetle_killed_plus10cm * stand_gc_ratio;
+
+					gridcell_cmass_wood_plus10cm += stand_cmass_wood_plus10cm * stand_gc_ratio;
+					gridcell_cmass_wood_harv_killed_plus10cm += stand_cmass_wood_harv_killed_plus10cm * stand_gc_ratio;
+					gridcell_cmass_wood_mort_plus10cm += stand_cmass_wood_mort_plus10cm * stand_gc_ratio;
+					gridcell_cmass_wood_inc_plus10cm += stand_cmass_wood_inc_plus10cm * stand_gc_ratio;
+
+					gridcell_dens_plus10cm += stand_dens_plus10cm * stand_gc_ratio;
+					gridcell_height_plus10cm += stand_height_plus10cm * stand_gc_ratio;
+					gridcell_diam_plus10cm += stand_diam_plus10cm * stand_gc_ratio;
+					gridcell_diam_g_plus10cm += stand_diam_g_plus10cm * stand_gc_ratio;
+
+					gridcell_height_patch_mean += stand_height_patch_mean * stand_gc_ratio;
+					gridcell_diam_patch_mean += stand_diam_patch_mean * stand_gc_ratio;
+					gridcell_diam_g_patch_mean += stand_diam_g_patch_mean * stand_gc_ratio;
+
+					if (average_plus10cm_patches_only) {
+						gridcell_height_plus10cm_patch_mean += stand_height_plus10cm_patch_mean * stand_area_frac_plus10cm;
+						gridcell_diam_plus10cm_patch_mean += stand_diam_plus10cm_patch_mean * stand_area_frac_plus10cm;
+						gridcell_diam_g_plus10cm_patch_mean += stand_diam_g_plus10cm_patch_mean * stand_area_frac_plus10cm;
+					}
+					else {
+						gridcell_height_plus10cm_patch_mean += stand_height_plus10cm_patch_mean * stand_gc_ratio;
+						gridcell_diam_plus10cm_patch_mean += stand_diam_plus10cm_patch_mean * stand_gc_ratio;
+						gridcell_diam_g_plus10cm_patch_mean += stand_diam_g_plus10cm_patch_mean * stand_gc_ratio;
+					}
+
+					if (stand_npatch_plus10cm)
+						gridcell_area_frac_plus10cm += stand_area_frac_plus10cm;
+				}
+				++gc_itr;
+			}
+
+			if(st_storm_cmass_wood_save)
+				st_storm_sens_ind /= st_storm_cmass_wood_save;						// cmass_wood weight
+			else
+				st_storm_sens_ind = 0.0;
+
+			outlimit_misc(out, out_anpp_sts, st_anpp);
+			outlimit_misc(out, out_agpp_sts, st_agpp);
+			outlimit_misc(out, out_lai_sts, st_lai);
+			outlimit_misc(out, out_cmass_sts, st_cmass);	// TEST 1
+//			outlimit_misc(out, out_cmass_potfuel_sts, st_cmass_potfuel);
+			outlimit_misc(out, out_cmass_harv_killed_sts, st_cmass_harv_killed);
+			outlimit_misc(out, out_cmass_thin_killed_sts, st_cmass_thin_killed);
+			outlimit_misc(out, out_cmass_clearcut_killed_sts, st_cmass_clearcut_killed);
+			outlimit_misc(out, out_cmass_fire_killed_sts, st_cmass_fire_killed);
+			outlimit_misc(out, out_cmass_wind_killed_sts, st_cmass_wind_killed);
+			outlimit_misc(out, out_cmass_barkbeetle_killed_sts, st_cmass_barkbeetle_killed);
+			outlimit_misc(out, out_cmass_dist_clearcut_killed_sts, st_cmass_dist_clearcut_killed);
+			outlimit_misc(out, out_cmass_dist_fire_killed_sts, st_cmass_dist_fire_killed);
+			outlimit_misc(out, out_cmass_dist_wind_killed_sts, st_cmass_dist_wind_killed);
+			outlimit_misc(out, out_cmass_dist_barkbeetle_killed_sts, st_cmass_dist_barkbeetle_killed);
+			outlimit_misc(out, out_cmass_dist_prescribed_killed_sts, st_cmass_dist_clearcut_killed + 
+				st_cmass_dist_fire_killed + st_cmass_dist_wind_killed + st_cmass_dist_barkbeetle_killed);
+//			outlimit_misc(out, out_cmass_harv_tolitter_sts, st_cmass_harv_tolitter);
+//			outlimit_misc(out, out_cmass_mort_sts, st_cmass_mort);
+//			outlimit_misc(out, out_cmass_fire_sts, st_cmass_fire);
+			outlimit_misc(out, out_cmass_dist_default_sts, st_cmass_dist);
+//			outlimit_misc(out, out_cmass_leaf_root_turnover_sts, st_cmass_leaf_root_turnover);
+//			outlimit_misc(out, out_cmass_repr_sts, st_cmass_repr);
+
+			outlimit_misc(out, out_anpp_tree_sts, st_anpp_tree);
+			outlimit_misc(out, out_agpp_tree_sts, st_agpp_tree);
+			outlimit_misc(out, out_aautresp_tree_sts, (st_aautresp_root_tree + st_aautresp_sap_tree + st_aautresp_leaf_tree + st_aautresp_growth_tree));
+			outlimit_misc(out, out_aautresp_root_tree_sts, st_aautresp_root_tree);
+			outlimit_misc(out, out_aautresp_sap_tree_sts, st_aautresp_sap_tree);
+			outlimit_misc(out, out_aautresp_leaf_tree_sts, st_aautresp_leaf_tree);
+			outlimit_misc(out, out_aautresp_growth_tree_sts, st_aautresp_growth_tree);
+			outlimit_misc(out, out_lai_tree_sts, st_lai_tree);
+			outlimit_misc(out, out_cmass_tree_sts, st_cmass_tree);
+			outlimit_misc(out, out_cmass_tree_mort_sts, st_cmass_tree_mort);
+
+			outlimit_misc(out, out_cmass_wood_sts, st_cmass_wood);
+//			outlimit_misc(out, out_cmass_wood_potharv_sts, st_cmass_wood_potharv);
+//			outlimit_misc(out, out_cmass_wood_potharv_products_sts, st_cmass_wood_potharv_products);
+			outlimit_misc(out, out_cmass_wood_harv_killed_sts, st_cmass_wood_harv_killed);
+			outlimit_misc(out, out_cmass_wood_harv_sts, st_cmass_wood_harv);
+			outlimit_misc(out, out_cmass_wood_harv_toprod_sts, st_cmass_wood_harv_toprod);
+			outlimit_misc(out, out_cmass_wood_thin_sts, st_cmass_wood_thin);
+			outlimit_misc(out, out_cmass_wood_clearcut_sts, st_cmass_wood_clearcut);
+			outlimit_misc(out, out_cmass_wood_mort_sts, st_cmass_wood_mort);
+			outlimit_misc(out, out_cmass_wood_inc_sts, st_cmass_wood_inc);
+
+			outlimit_misc(out, out_csoil_sts, st_csoil);
+			outlimit_misc(out, out_clitter_sts, st_clitter);
+			outlimit_misc(out, out_clitter_course_sts, st_clitter_course);
+			outlimit_misc(out, out_clitter_fine_sts, st_clitter_fine);
+			outlimit_misc(out, out_rh_sts, st_rh);
+			outlimit_misc(out, out_rh_clitter_course_sts, st_rh_clitter_course);
+			outlimit_misc(out, out_rh_clitter_fine_sts, st_rh_clitter_fine);
+			outlimit_misc(out, out_csink_sts, st_csink);
+			outlimit_misc(out, out_luc_cflux_sts, st_luc_cflux);
+			outlimit_misc(out, out_nsoil_sts, st_nsoil);
+			outlimit_misc(out, out_nlitter_sts, st_nlitter);
+			outlimit_misc(out, out_nlitter_course_sts, st_nlitter_course);
+			outlimit_misc(out, out_nlitter_fine_sts, st_nlitter_fine);
+
+			outlimit_misc(out, out_transpiration_sts, st_aet);
+			outlimit_misc(out, out_runoff_sts, st_runoff);
+			outlimit_misc(out, out_intercep_sts, st_intercep);
+			outlimit_misc(out, out_evap_sts, st_evap);
+
+			outlimit_misc(out, out_storm_si_sts, st_storm_sens_ind * 1000.0);	// Storm sensitivity * 1000
+			if(st_storm_cmass_wood_save)
+				outlimit_misc(out, out_storm_frac_pot_sts, st_storm_dam_wood_pot / st_storm_cmass_wood_save * 100.0);	// Potential damaged fraction in %
+			else
+				outlimit_misc(out, out_storm_frac_pot_sts, 0.0);
+			if(st_storm_cmass_wood_save)
+				outlimit_misc(out, out_storm_frac_sts, st_storm_dam_wood / st_storm_cmass_wood_save * 100.0);	// Actual damaged fraction in %
+			else
+				outlimit_misc(out, out_storm_frac_sts, 0.0);
+			outlimit_misc(out, out_storm_dw_pot_sts, st_storm_dam_wood_pot);
+			outlimit_misc(out, out_storm_dw_sts, st_storm_dam_wood);
+			outlimit_misc(out, out_insect_dw_sts, st_insect_dam_wood);
+			outlimit_misc(out, out_cmort_storm_sts, st_cmass_wind_killed + st_cmass_dist_wind_killed);
+			outlimit_misc(out, out_cmort_insect_sts, st_cmass_barkbeetle_killed + st_cmass_dist_barkbeetle_killed);
+			outlimit_misc(out, out_cmort_fire_sts, st_cmass_fire_killed + st_cmass_dist_fire_killed);
+			outlimit_misc(out, out_cmort_clearcut_sts, st_cmass_clearcut_killed + st_cmass_dist_clearcut_killed);
+
+			outlimit_misc(out, out_dens_sts, st_dens);
+
+			outlimit_misc(out, out_frac_sts, gcst.frac);
+
+			double height = 0.0;
+			double diam = 0.0;
+			double diam_g = 0.0;
+
+			if (st_dens) {
+				height = st_height / st_dens;
+				diam = st_diam / st_dens;
+				diam_g = st_diam_g / st_dens;
+				diam_g = pow(diam_g, 0.5);
+			}
+
+			outlimit_misc(out, out_height_sts, height);
+			outlimit_misc(out, out_diam_sts, diam * 100.0);		//diameter output in cm
+			outlimit_misc(out, out_diam_g_sts, diam_g * 100.0);	//diameter output in cm;
+
+			outlimit_misc(out, out_cmass_plus10cm_sts, st_cmass_plus10cm);
+			outlimit_misc(out, out_cmass_harv_killed_plus10cm_sts, st_cmass_harv_killed_plus10cm);
+			outlimit_misc(out, out_cmass_dist_clearcut_killed_plus10cm_sts, st_cmass_dist_clearcut_killed_plus10cm);
+			outlimit_misc(out, out_cmass_dist_fire_killed_plus10cm_sts, st_cmass_dist_fire_killed_plus10cm);
+			outlimit_misc(out, out_cmass_dist_wind_killed_plus10cm_sts, st_cmass_dist_wind_killed_plus10cm);
+			outlimit_misc(out, out_cmass_dist_barkbeetle_killed_plus10cm_sts, st_cmass_dist_barkbeetle_killed_plus10cm);
+
+			outlimit_misc(out, out_cmass_wood_plus10cm_sts, st_cmass_wood_plus10cm);
+			outlimit_misc(out, out_cmass_wood_harv_killed_plus10cm_sts, st_cmass_wood_harv_killed_plus10cm);
+			outlimit_misc(out, out_cmass_wood_mort_plus10cm_sts, st_cmass_wood_mort_plus10cm);
+			outlimit_misc(out, out_cmass_wood_inc_plus10cm_sts, st_cmass_wood_inc_plus10cm);
+
+			outlimit_misc(out, out_dens_plus10cm_sts, st_dens_plus10cm);
+
+			height = 0.0;
+			diam = 0.0;
+			diam_g = 0.0;
+
+			if (st_dens_plus10cm) {
+				height = st_height_plus10cm / st_dens_plus10cm;
+				diam = st_diam_plus10cm / st_dens_plus10cm;
+				diam_g = st_diam_g_plus10cm / st_dens_plus10cm;
+				diam_g = pow(diam_g, 0.5);
+			}
+
+			outlimit_misc(out, out_height_plus10cm_sts, height);
+			outlimit_misc(out, out_diam_plus10cm_sts, diam * 100.0);		//diameter output in cm
+			outlimit_misc(out, out_diam_g_plus10cm_sts, diam_g * 100.0);	//diameter output in cm;
+
+			outlimit_misc(out, out_height_sts_patch_mean, st_height_patch_mean);
+			outlimit_misc(out, out_diam_sts_patch_mean, st_diam_patch_mean * 100.0);	//diameter output in cm
+			outlimit_misc(out, out_diam_g_sts_patch_mean, st_diam_g_patch_mean * 100.0);	//diameter output in cm
+
+			if (average_plus10cm_patches_only) {
+				if (st_area_frac_plus10cm) {
+					st_height_plus10cm_patch_mean /= st_area_frac_plus10cm;
+					st_diam_plus10cm_patch_mean /= st_area_frac_plus10cm;
+					st_diam_g_plus10cm_patch_mean /= st_area_frac_plus10cm;
 				}
 			}
-			++gc_itr;
-		}
-		outlimit_misc(out, out_cutinterval_sts, cutinterval_mean / max(1, npatches_cc));
-		outlimit_misc(out, out_cutinterval_thisyear_sts, cutinterval_thisyear_mean / max(1, npatches_cc_thisyear));
-		outlimit_misc(out, out_nstand_sts, nstands_st);
+			
+			outlimit_misc(out, out_height_plus10cm_sts_patch_mean, st_height_plus10cm_patch_mean);
+			outlimit_misc(out, out_diam_plus10cm_sts_patch_mean, st_diam_plus10cm_patch_mean * 100.0);	//diameter output in cm
+			outlimit_misc(out, out_diam_g_plus10cm_sts_patch_mean, st_diam_g_plus10cm_patch_mean * 100.0);	//diameter output in cm
 
-		if(st.landcover == FOREST) {
+			outlimit_misc(out, out_cutinterval_sts, cutinterval_mean / max(1, npatches_cc));
+			outlimit_misc(out, out_cutinterval_thisyear_sts, cutinterval_thisyear_mean / max(1, npatches_cc_thisyear));
+			outlimit_misc(out, out_nstand_sts, nstands_st);
+			outlimit_misc(out, out_npatch_sts, npatches_st);
 
-			cmass_wood_potharv_forest += st.cmass_wood_potharv * gcst.frac;
-			cmass_wood_harv_forest += st.cmass_wood_harv * gcst.frac;
-			cmass_wood_harv_toprod_forest += st.cmass_wood_harv_toprod * gcst.frac;
-			cmass_harv_tolitter_forest += st.cmass_harv_tolitter * gcst.frac;
-			cmass_harv_killed_forest += st.cmass_harv_killed * gcst.frac;
-			cmass_mort_forest += st.cmass_mort * gcst.frac;
-			cmass_fire_forest += st.cmass_fire * gcst.frac;
-			cmass_dist_forest += st.cmass_dist * gcst.frac;
-			cmass_leaf_root_turnover_forest += st.cmass_leaf_root_turnover * gcst.frac;
-			cmass_repr_forest += st.cmass_repr * gcst.frac;
-			cmass_est_forest += st.cmass_est * gcst.frac;
-			cmass_wood_potharv_products_forest += st.cmass_wood_potharv_products * gcst.frac;
-			cmass_potfuel_forest += st.cmass_potfuel * gcst.frac;
-		}
-		else if(st.landcover == NATURAL) {
+			if(st.landcover == FOREST) {
 
-			cmass_wood_potharv_natural += st.cmass_wood_potharv * gcst.frac;
-			cmass_wood_potharv_products_natural += st.cmass_wood_potharv_products * gcst.frac;
-			cmass_potfuel_natural += st.cmass_potfuel * gcst.frac;
-			cmass_mort_natural += st.cmass_mort * gcst.frac;
-			cmass_fire_natural += st.cmass_fire * gcst.frac;
-			cmass_dist_natural += st.cmass_dist * gcst.frac;
-			cmass_leaf_root_turnover_natural += st.cmass_leaf_root_turnover * gcst.frac;
-			cmass_repr_natural += st.cmass_repr * gcst.frac;
-			cmass_est_natural += st.cmass_est * gcst.frac;
-			cmass_wood_harv_natural += st.cmass_wood_harv * gcst.frac;
-			cmass_wood_harv_toprod_natural += st.cmass_wood_harv_toprod * gcst.frac;
-			cmass_harv_tolitter_natural += st.cmass_harv_tolitter * gcst.frac;
-			cmass_harv_killed_natural += st.cmass_harv_killed * gcst.frac;
+				cmass_wood_potharv_forest += st_cmass_wood_potharv * gcst.frac;
+				cmass_wood_harv_forest += st_cmass_wood_harv * gcst.frac;											// Standard harvest plus prescribed clearcut
+				cmass_wood_harv_toprod_forest += st_cmass_wood_harv_toprod * gcst.frac;								// Standard harvest plus prescribed clearcut
+				cmass_harv_tolitter_forest += st_cmass_harv_tolitter * gcst.frac;									// Standard harvest plus prescribed clearcut
+				cmass_harv_killed_forest += (st_cmass_harv_killed + st_cmass_dist_clearcut_killed + st_cmass_dist_wind_killed + st_cmass_dist_barkbeetle_killed) * gcst.frac;		// Standard harvest plus prescribed clearcut
+				cmass_mort_forest += st_cmass_mort * gcst.frac;
+				cmass_fire_forest += st_cmass_fire * gcst.frac;
+				cmass_dist_forest += st_cmass_dist * gcst.frac;
+				cmass_leaf_root_turnover_forest += st_cmass_leaf_root_turnover * gcst.frac;
+				cmass_repr_forest += st_cmass_repr * gcst.frac;
+				cmass_est_forest += st_cmass_est * gcst.frac;
+				cmass_wood_potharv_products_forest += st_cmass_wood_potharv_products * gcst.frac;
+				cmass_potfuel_forest += st_cmass_potfuel * gcst.frac;
+			}
+			else if(st.landcover == NATURAL) {
+
+				cmass_wood_potharv_natural += st_cmass_wood_potharv * gcst.frac;
+				cmass_wood_potharv_products_natural += st_cmass_wood_potharv_products * gcst.frac;
+				cmass_potfuel_natural += st_cmass_potfuel * gcst.frac;
+				cmass_mort_natural += st_cmass_mort * gcst.frac;
+				cmass_fire_natural += st_cmass_fire * gcst.frac;
+				cmass_dist_natural += st_cmass_dist * gcst.frac;
+				cmass_leaf_root_turnover_natural += st_cmass_leaf_root_turnover * gcst.frac;
+				cmass_repr_natural += st_cmass_repr * gcst.frac;
+				cmass_est_natural += st_cmass_est * gcst.frac;
+				cmass_wood_harv_natural += st_cmass_wood_harv * gcst.frac;
+				cmass_wood_harv_toprod_natural += st_cmass_wood_harv_toprod * gcst.frac;
+				cmass_harv_tolitter_natural += st_cmass_harv_tolitter * gcst.frac;
+				cmass_harv_killed_natural += (st_cmass_harv_killed + st_cmass_dist_clearcut_killed + st_cmass_dist_wind_killed + st_cmass_dist_barkbeetle_killed) * gcst.frac;
+			}
 		}
+
+		if(gridcell_storm_cmass_wood_save)
+			gridcell_storm_sens_ind /= gridcell_storm_cmass_wood_save;			// cmass_wood weight
+		else
+			gridcell_storm_sens_ind = 0.0;
+
+		outlimit_misc(out, out_anpp_sts, gridcell_anpp);
+		outlimit_misc(out, out_agpp_sts, gridcell_agpp);
+		outlimit_misc(out, out_lai_sts, gridcell_lai);
+		outlimit_misc(out, out_cmass_sts, gridcell_cmass);	// TEST 1
+//		outlimit_misc(out, out_cmass_potfuel_sts, gridcell_cmass_potfuel);				// Decide later which output is needed here
+		outlimit_misc(out, out_cmass_harv_killed_sts, gridcell_cmass_harv_killed);
+		outlimit_misc(out, out_cmass_thin_killed_sts, gridcell_cmass_thin_killed);
+		outlimit_misc(out, out_cmass_clearcut_killed_sts, gridcell_cmass_clearcut_killed);
+		outlimit_misc(out, out_cmass_fire_killed_sts, gridcell_cmass_fire_killed);
+		outlimit_misc(out, out_cmass_wind_killed_sts, gridcell_cmass_wind_killed);
+		outlimit_misc(out, out_cmass_barkbeetle_killed_sts, gridcell_cmass_barkbeetle_killed);
+		outlimit_misc(out, out_cmass_dist_clearcut_killed_sts, gridcell_cmass_dist_clearcut_killed);
+		outlimit_misc(out, out_cmass_dist_fire_killed_sts, gridcell_cmass_dist_fire_killed);
+		outlimit_misc(out, out_cmass_dist_wind_killed_sts, gridcell_cmass_dist_wind_killed);
+		outlimit_misc(out, out_cmass_dist_barkbeetle_killed_sts, gridcell_cmass_dist_barkbeetle_killed);
+		outlimit_misc(out, out_cmass_dist_prescribed_killed_sts, gridcell_cmass_dist_clearcut_killed + 
+			gridcell_cmass_dist_fire_killed + gridcell_cmass_dist_wind_killed + gridcell_cmass_dist_barkbeetle_killed);
+//		outlimit_misc(out, out_cmass_harv_tolitter_sts, gridcell_cmass_harv_tolitter);
+//		outlimit_misc(out, out_cmass_mort_sts, gridcell_cmass_mort);
+//		outlimit_misc(out, out_cmass_fire_sts, gridcell_cmass_fire);
+		outlimit_misc(out, out_cmass_dist_default_sts, gridcell_cmass_dist);
+//		outlimit_misc(out, out_cmass_leaf_root_turnover_sts, gridcell_cmass_leaf_root_turnover);
+//		outlimit_misc(out, out_cmass_repr_sts, gridcell_cmass_repr);
+
+		outlimit_misc(out, out_anpp_tree_sts, gridcell_anpp_tree);
+		outlimit_misc(out, out_agpp_tree_sts, gridcell_agpp_tree);
+		outlimit_misc(out, out_aautresp_tree_sts, (gridcell_aautresp_root_tree + gridcell_aautresp_sap_tree + gridcell_aautresp_leaf_tree + gridcell_aautresp_growth_tree));
+		outlimit_misc(out, out_aautresp_root_tree_sts, gridcell_aautresp_root_tree);
+		outlimit_misc(out, out_aautresp_sap_tree_sts, gridcell_aautresp_sap_tree);
+		outlimit_misc(out, out_aautresp_leaf_tree_sts, gridcell_aautresp_leaf_tree);
+		outlimit_misc(out, out_aautresp_growth_tree_sts, gridcell_aautresp_growth_tree);
+		outlimit_misc(out, out_lai_tree_sts, gridcell_lai_tree);
+		outlimit_misc(out, out_cmass_tree_sts, gridcell_cmass_tree);
+		outlimit_misc(out, out_cmass_tree_mort_sts, gridcell_cmass_tree_mort);
+
+		outlimit_misc(out, out_cmass_wood_sts, gridcell_cmass_wood);
+//		outlimit_misc(out, out_cmass_wood_potharv_sts, gridcell_cmass_wood_potharv);			// Decide later which output is needed here
+//		outlimit_misc(out, out_cmass_wood_potharv_products_sts, gridcell_cmass_wood_potharv_products);
+		outlimit_misc(out, out_cmass_wood_harv_killed_sts, gridcell_cmass_wood_harv_killed);
+		outlimit_misc(out, out_cmass_wood_harv_sts, gridcell_cmass_wood_harv);
+		outlimit_misc(out, out_cmass_wood_harv_toprod_sts, gridcell_cmass_wood_harv_toprod);
+		outlimit_misc(out, out_cmass_wood_thin_sts, gridcell_cmass_wood_thin);
+		outlimit_misc(out, out_cmass_wood_clearcut_sts, gridcell_cmass_wood_clearcut);
+		outlimit_misc(out, out_cmass_wood_mort_sts, gridcell_cmass_wood_mort);
+		outlimit_misc(out, out_cmass_wood_inc_sts, gridcell_cmass_wood_inc);
+
+		outlimit_misc(out, out_csoil_sts, gridcell_csoil);
+		outlimit_misc(out, out_clitter_sts, gridcell_clitter);
+		outlimit_misc(out, out_clitter_course_sts, gridcell_clitter_course);
+		outlimit_misc(out, out_clitter_fine_sts, gridcell_clitter_fine);
+		outlimit_misc(out, out_rh_sts, gridcell_rh);
+		outlimit_misc(out, out_rh_clitter_course_sts, gridcell_rh_clitter_course);
+		outlimit_misc(out, out_rh_clitter_fine_sts, gridcell_rh_clitter_fine);
+		outlimit_misc(out, out_csink_sts, gridcell_csink);
+		outlimit_misc(out, out_luc_cflux_sts, gridcell_luc_cflux);
+		outlimit_misc(out, out_nsoil_sts, gridcell_nsoil);
+		outlimit_misc(out, out_nlitter_sts, gridcell_nlitter);
+		outlimit_misc(out, out_nlitter_course_sts, gridcell_nlitter_course);
+		outlimit_misc(out, out_nlitter_fine_sts, gridcell_nlitter_fine);
+
+		outlimit_misc(out, out_runoff_sts, gridcell_runoff);
+		outlimit_misc(out, out_transpiration_sts, gridcell_aet);
+		outlimit_misc(out, out_intercep_sts, gridcell_intercep);
+		outlimit_misc(out, out_evap_sts, gridcell_evap);
+
+		outlimit_misc(out, out_storm_si_sts, gridcell_storm_sens_ind * 1000.0);	// Storm sensitivity * 1000
+		if(gridcell_storm_cmass_wood_save)
+			outlimit_misc(out, out_storm_frac_pot_sts, gridcell_storm_dam_wood_pot / gridcell_storm_cmass_wood_save * 100.0);	// Potential damaged fraction in %
+		else
+			outlimit_misc(out, out_storm_frac_pot_sts, 0.0);
+		if(gridcell_storm_cmass_wood_save)
+			outlimit_misc(out, out_storm_frac_sts, gridcell_storm_dam_wood / gridcell_storm_cmass_wood_save * 100.0);	// Actual damaged fraction in %
+		else
+			outlimit_misc(out, out_storm_frac_sts, 0.0);
+		outlimit_misc(out, out_storm_dw_pot_sts, gridcell_storm_dam_wood_pot);
+		outlimit_misc(out, out_storm_dw_sts, gridcell_storm_dam_wood);
+		outlimit_misc(out, out_cmort_storm_sts, gridcell_cmass_wind_killed + gridcell_cmass_dist_wind_killed);
+		outlimit_misc(out, out_insect_dw_sts, gridcell_insect_dam_wood);
+		outlimit_misc(out, out_cmort_insect_sts, gridcell_cmass_barkbeetle_killed + gridcell_cmass_dist_barkbeetle_killed);
+		outlimit_misc(out, out_cmort_fire_sts, gridcell_cmass_fire_killed + gridcell_cmass_dist_fire_killed);
+		outlimit_misc(out, out_cmort_clearcut_sts, gridcell_cmass_clearcut_killed + gridcell_cmass_dist_clearcut_killed);
+
+		outlimit_misc(out, out_dens_sts, gridcell_dens);
+
+		outlimit_misc(out, out_frac_sts, 1.0);
+
+		outlimit_misc(out, out_nstand_sts, gridcell_nstands);
+		outlimit_misc(out, out_npatch_sts, gridcell_npatches);
+
+		double height = 0.0;
+		double diam = 0.0;
+		double diam_g = 0.0;
+		if (gridcell_dens) {
+			height = gridcell_height / gridcell_dens;
+			diam = gridcell_diam / gridcell_dens;
+			diam_g = gridcell_diam_g / gridcell_dens;
+			diam_g = pow(diam_g, 0.5);
+		}
+
+		outlimit_misc(out, out_height_sts, height);
+		outlimit_misc(out, out_diam_sts, diam * 100.0);		//diameter output in cm
+		outlimit_misc(out, out_diam_g_sts, diam_g * 100.0);	//diameter output in cm
+
+		outlimit_misc(out, out_cmass_plus10cm_sts, gridcell_cmass_plus10cm);
+		outlimit_misc(out, out_cmass_harv_killed_plus10cm_sts, gridcell_cmass_harv_killed_plus10cm);
+		outlimit_misc(out, out_cmass_dist_clearcut_killed_plus10cm_sts, gridcell_cmass_dist_clearcut_killed_plus10cm);
+		outlimit_misc(out, out_cmass_dist_fire_killed_plus10cm_sts, gridcell_cmass_dist_fire_killed_plus10cm);
+		outlimit_misc(out, out_cmass_dist_wind_killed_plus10cm_sts, gridcell_cmass_dist_wind_killed_plus10cm);
+		outlimit_misc(out, out_cmass_dist_barkbeetle_killed_plus10cm_sts, gridcell_cmass_dist_barkbeetle_killed_plus10cm);
+
+		outlimit_misc(out, out_cmass_wood_plus10cm_sts, gridcell_cmass_wood_plus10cm);
+		outlimit_misc(out, out_cmass_wood_harv_killed_plus10cm_sts, gridcell_cmass_wood_harv_killed_plus10cm);
+		outlimit_misc(out, out_cmass_wood_mort_plus10cm_sts, gridcell_cmass_wood_mort_plus10cm);
+		outlimit_misc(out, out_cmass_wood_inc_plus10cm_sts, gridcell_cmass_wood_inc_plus10cm);
+
+		outlimit_misc(out, out_dens_plus10cm_sts, gridcell_dens_plus10cm);
+
+		height = 0.0;
+		diam = 0.0;
+		diam_g = 0.0;
+		if (gridcell_dens_plus10cm) {
+			height = gridcell_height_plus10cm / gridcell_dens_plus10cm;
+			diam = gridcell_diam_plus10cm / gridcell_dens_plus10cm;
+			diam_g = gridcell_diam_g_plus10cm / gridcell_dens_plus10cm;
+			diam_g = pow(diam_g, 0.5);
+		}
+
+		outlimit_misc(out, out_height_plus10cm_sts, height);
+		outlimit_misc(out, out_diam_plus10cm_sts, diam * 100.0);		//diameter output in cm
+		outlimit_misc(out, out_diam_g_plus10cm_sts, diam_g * 100.0);	//diameter output in cm
+
+		outlimit_misc(out, out_height_sts_patch_mean, gridcell_height_patch_mean);
+		outlimit_misc(out, out_diam_sts_patch_mean, gridcell_diam_patch_mean * 100.0);		//diameter output in cm
+		outlimit_misc(out, out_diam_g_sts_patch_mean, gridcell_diam_g_patch_mean * 100.0);	//diameter output in cm
+
+		if (average_plus10cm_patches_only) {
+			if (gridcell_area_frac_plus10cm) {
+				gridcell_height_plus10cm_patch_mean /= gridcell_area_frac_plus10cm;
+				gridcell_diam_plus10cm_patch_mean /= gridcell_area_frac_plus10cm;
+				gridcell_diam_g_plus10cm_patch_mean /= gridcell_area_frac_plus10cm;
+			}
+		}
+
+		outlimit_misc(out, out_height_plus10cm_sts_patch_mean, gridcell_height_plus10cm_patch_mean);
+		outlimit_misc(out, out_diam_plus10cm_sts_patch_mean, gridcell_diam_plus10cm_patch_mean * 100.0);		//diameter output in cm
+		outlimit_misc(out, out_diam_g_plus10cm_sts_patch_mean, gridcell_diam_g_plus10cm_patch_mean * 100.0);	//diameter output in cm
+
+		if (run_landcover) {
+			for (int lc = 0;lc < NLANDCOVERTYPES;lc++) {
+				if (run[lc]) {
+
+					if(landcover_storm_cmass_wood_save[lc])
+						landcover_storm_sens_ind[lc] /= landcover_storm_cmass_wood_save[lc];	// cmass_wood weight
+					else
+						landcover_storm_sens_ind[lc] = 0.0;
+
+					outlimit_misc(out, out_anpp_sts, landcover_anpp[lc]);
+					outlimit_misc(out, out_agpp_sts, landcover_agpp[lc]);
+					outlimit_misc(out, out_lai_sts, landcover_lai[lc]);
+					outlimit_misc(out, out_cmass_sts, landcover_cmass[lc]);
+//					outlimit_misc(out, out_cmass_potfuel_sts, landcover_cmass_potfuel[lc]);			// Decide later which output is needed here
+					outlimit_misc(out, out_cmass_harv_killed_sts, landcover_cmass_harv_killed[lc]);
+					outlimit_misc(out, out_cmass_thin_killed_sts, landcover_cmass_thin_killed[lc]);
+					outlimit_misc(out, out_cmass_clearcut_killed_sts, landcover_cmass_clearcut_killed[lc]);
+					outlimit_misc(out, out_cmass_fire_killed_sts, landcover_cmass_fire_killed[lc]);
+					outlimit_misc(out, out_cmass_wind_killed_sts, landcover_cmass_wind_killed[lc]);
+					outlimit_misc(out, out_cmass_barkbeetle_killed_sts, landcover_cmass_barkbeetle_killed[lc]);
+					outlimit_misc(out, out_cmass_dist_clearcut_killed_sts, landcover_cmass_dist_clearcut_killed[lc]);
+					outlimit_misc(out, out_cmass_dist_fire_killed_sts, landcover_cmass_dist_fire_killed[lc]);
+					outlimit_misc(out, out_cmass_dist_wind_killed_sts, landcover_cmass_dist_wind_killed[lc]);
+					outlimit_misc(out, out_cmass_dist_barkbeetle_killed_sts, landcover_cmass_dist_barkbeetle_killed[lc]);
+					outlimit_misc(out, out_cmass_dist_prescribed_killed_sts, landcover_cmass_dist_clearcut_killed[lc] + 
+						landcover_cmass_dist_fire_killed[lc] + landcover_cmass_dist_wind_killed[lc] + landcover_cmass_dist_barkbeetle_killed[lc]);
+//					outlimit_misc(out, out_cmass_harv_tolitter_sts, landcover_cmass_harv_tolitter[lc]);
+//					outlimit_misc(out, out_cmass_mort_sts, landcover_cmass_mort[lc]);
+//					outlimit_misc(out, out_cmass_fire_sts, landcover_cmass_fire[lc]);
+					outlimit_misc(out, out_cmass_dist_default_sts, landcover_cmass_dist[lc]);
+//					outlimit_misc(out, out_cmass_leaf_root_turnover_sts, landcover_cmass_leaf_root_turnover[lc]);
+//					outlimit_misc(out, out_cmass_repr_sts, landcover_cmass_repr[lc]);
+
+					outlimit_misc(out, out_anpp_tree_sts, landcover_anpp_tree[lc]);
+					outlimit_misc(out, out_agpp_tree_sts, landcover_agpp_tree[lc]);
+					outlimit_misc(out, out_aautresp_tree_sts, (landcover_aautresp_root_tree[lc] + landcover_aautresp_sap_tree[lc] + landcover_aautresp_leaf_tree[lc] + landcover_aautresp_growth_tree[lc]));
+					outlimit_misc(out, out_aautresp_root_tree_sts, landcover_aautresp_root_tree[lc]);
+					outlimit_misc(out, out_aautresp_sap_tree_sts, landcover_aautresp_sap_tree[lc]);
+					outlimit_misc(out, out_aautresp_leaf_tree_sts, landcover_aautresp_leaf_tree[lc]);
+					outlimit_misc(out, out_aautresp_growth_tree_sts, landcover_aautresp_growth_tree[lc]);
+					outlimit_misc(out, out_lai_tree_sts, landcover_lai_tree[lc]);
+					outlimit_misc(out, out_cmass_tree_sts, landcover_cmass_tree[lc]);
+					outlimit_misc(out, out_cmass_tree_mort_sts, landcover_cmass_tree_mort[lc]);
+
+					outlimit_misc(out, out_cmass_wood_sts, landcover_cmass_wood[lc]);
+//					outlimit_misc(out, out_cmass_wood_potharv_sts, landcover_cmass_wood_potharv[lc]);		// Decide later which output is needed here
+//					outlimit_misc(out, out_cmass_wood_potharv_products_sts, landcover_cmass_wood_potharv_products[lc]);
+					outlimit_misc(out, out_cmass_wood_harv_killed_sts, landcover_cmass_wood_harv_killed[lc]);
+					outlimit_misc(out, out_cmass_wood_harv_sts, landcover_cmass_wood_harv[lc]);
+					outlimit_misc(out, out_cmass_wood_harv_toprod_sts, landcover_cmass_wood_harv_toprod[lc]);
+					outlimit_misc(out, out_cmass_wood_thin_sts, landcover_cmass_wood_thin[lc]);
+					outlimit_misc(out, out_cmass_wood_clearcut_sts, landcover_cmass_wood_clearcut[lc]);
+					outlimit_misc(out, out_cmass_wood_mort_sts, landcover_cmass_wood_mort[lc]);
+					outlimit_misc(out, out_cmass_wood_inc_sts, landcover_cmass_wood_inc[lc]);
+
+					outlimit_misc(out, out_csoil_sts, landcover_csoil[lc]);
+					outlimit_misc(out, out_clitter_sts, landcover_clitter[lc]);
+					outlimit_misc(out, out_clitter_course_sts, landcover_clitter_course[lc]);
+					outlimit_misc(out, out_clitter_fine_sts, landcover_clitter_fine[lc]);
+					outlimit_misc(out, out_rh_sts, landcover_rh[lc]);
+					outlimit_misc(out, out_rh_clitter_course_sts, landcover_rh_clitter_course[lc]);
+					outlimit_misc(out, out_rh_clitter_fine_sts, landcover_rh_clitter_fine[lc]);
+					outlimit_misc(out, out_csink_sts, landcover_csink[lc]);
+					outlimit_misc(out, out_luc_cflux_sts, landcover_luc_cflux[lc]);
+					outlimit_misc(out, out_nsoil_sts, landcover_nsoil[lc]);
+					outlimit_misc(out, out_nlitter_sts, landcover_nlitter[lc]);
+					outlimit_misc(out, out_nlitter_course_sts, landcover_nlitter_course[lc]);
+					outlimit_misc(out, out_nlitter_fine_sts, landcover_nlitter_fine[lc]);
+
+					outlimit_misc(out, out_runoff_sts, landcover_runoff[lc]);
+					outlimit_misc(out, out_transpiration_sts, landcover_aet[lc]);
+					outlimit_misc(out, out_intercep_sts, landcover_intercep[lc]);
+					outlimit_misc(out, out_evap_sts, landcover_evap[lc]);
+
+					outlimit_misc(out, out_storm_si_sts, landcover_storm_sens_ind[lc] * 1000.0);	// Storm sensitivity * 1000
+					if(landcover_storm_cmass_wood_save[lc])
+						outlimit_misc(out, out_storm_frac_pot_sts, landcover_storm_dam_wood_pot[lc] / landcover_storm_cmass_wood_save[lc] * 100.0);	// Prognostic damaged fraction in %
+					else
+						outlimit_misc(out, out_storm_frac_pot_sts, 0.0);
+					if(landcover_storm_cmass_wood_save[lc])
+						outlimit_misc(out, out_storm_frac_sts, landcover_storm_dam_wood[lc] / landcover_storm_cmass_wood_save[lc] * 100.0);	// Actual damaged fraction in %
+					else
+						outlimit_misc(out, out_storm_frac_sts, 0.0);
+					outlimit_misc(out, out_storm_dw_pot_sts, landcover_storm_dam_wood_pot[lc]);
+					outlimit_misc(out, out_storm_dw_sts, landcover_storm_dam_wood[lc]);
+					outlimit_misc(out, out_insect_dw_sts, landcover_insect_dam_wood[lc]);
+					outlimit_misc(out, out_cmort_storm_sts, landcover_cmass_wind_killed[lc] + landcover_cmass_dist_wind_killed[lc]);
+					outlimit_misc(out, out_cmort_insect_sts, landcover_cmass_barkbeetle_killed[lc] + landcover_cmass_dist_barkbeetle_killed[lc]);
+					outlimit_misc(out, out_cmort_fire_sts, landcover_cmass_fire_killed[lc] + landcover_cmass_dist_fire_killed[lc]);
+					outlimit_misc(out, out_cmort_clearcut_sts, landcover_cmass_clearcut_killed[lc] + landcover_cmass_dist_clearcut_killed[lc]);
+
+					outlimit_misc(out, out_dens_sts, landcover_dens[lc]);
+
+					outlimit_misc(out, out_frac_sts, gridcell.landcover.frac[lc]);
+
+					outlimit_misc(out, out_nstand_sts, landcover_nstands[lc]);
+					outlimit_misc(out, out_npatch_sts, landcover_npatches[lc]);
+
+					double height = 0.0;
+					double diam = 0.0;
+					double diam_g = 0.0;
+					if (landcover_dens[lc]) {
+						height = landcover_height[lc] / landcover_dens[lc];
+						diam = landcover_diam[lc] / landcover_dens[lc];
+						diam_g = landcover_diam_g[lc] / landcover_dens[lc];
+						diam_g = pow(diam_g, 0.5);
+					}
+
+					outlimit_misc(out, out_height_sts, height);
+					outlimit_misc(out, out_diam_sts, diam * 100.0);		//diameter output in cm
+					outlimit_misc(out, out_diam_g_sts, diam_g * 100.0);	//diameter output in cm
+
+					outlimit_misc(out, out_cmass_plus10cm_sts, landcover_cmass_plus10cm[lc]);
+					outlimit_misc(out, out_cmass_harv_killed_plus10cm_sts, landcover_cmass_harv_killed_plus10cm[lc]);
+					outlimit_misc(out, out_cmass_dist_clearcut_killed_plus10cm_sts, landcover_cmass_dist_clearcut_killed_plus10cm[lc]);
+					outlimit_misc(out, out_cmass_dist_fire_killed_plus10cm_sts, landcover_cmass_dist_fire_killed_plus10cm[lc]);
+					outlimit_misc(out, out_cmass_dist_wind_killed_plus10cm_sts, landcover_cmass_dist_wind_killed_plus10cm[lc]);
+					outlimit_misc(out, out_cmass_dist_barkbeetle_killed_plus10cm_sts, landcover_cmass_dist_barkbeetle_killed_plus10cm[lc]);
+
+					outlimit_misc(out, out_cmass_wood_plus10cm_sts, landcover_cmass_wood_plus10cm[lc]);
+					outlimit_misc(out, out_cmass_wood_harv_killed_plus10cm_sts, landcover_cmass_wood_harv_killed_plus10cm[lc]);
+					outlimit_misc(out, out_cmass_wood_mort_plus10cm_sts, landcover_cmass_wood_mort_plus10cm[lc]);
+					outlimit_misc(out, out_cmass_wood_inc_plus10cm_sts, landcover_cmass_wood_inc_plus10cm[lc]);
+					
+					outlimit_misc(out, out_dens_plus10cm_sts, landcover_dens_plus10cm[lc]);
+
+					height = 0.0;
+					diam = 0.0;
+					diam_g = 0.0;
+					if (landcover_dens_plus10cm[lc]) {
+						height = landcover_height_plus10cm[lc] / landcover_dens_plus10cm[lc];
+						diam = landcover_diam_plus10cm[lc] / landcover_dens_plus10cm[lc];
+						diam_g = landcover_diam_g_plus10cm[lc] / landcover_dens_plus10cm[lc];
+						diam_g = pow(diam_g, 0.5);
+					}
+
+					outlimit_misc(out, out_height_plus10cm_sts, height);
+					outlimit_misc(out, out_diam_plus10cm_sts, diam * 100.0);	//diameter output in cm
+					outlimit_misc(out, out_diam_g_plus10cm_sts, diam_g * 100.0);	//diameter output in cm
+
+					outlimit_misc(out, out_height_sts_patch_mean, landcover_height_patch_mean[lc]);
+					outlimit_misc(out, out_diam_sts_patch_mean, landcover_diam_patch_mean[lc] * 100.0);		//diameter output in cm
+					outlimit_misc(out, out_diam_g_sts_patch_mean, landcover_diam_g_patch_mean[lc] * 100.0);	//diameter output in cm
+
+					if (average_plus10cm_patches_only) {
+						if (landcover_area_frac_plus10cm[lc]) {
+							landcover_height_plus10cm_patch_mean[lc] /= landcover_area_frac_plus10cm[lc];
+							landcover_diam_plus10cm_patch_mean[lc] /= landcover_area_frac_plus10cm[lc];
+							landcover_diam_g_plus10cm_patch_mean[lc] /= landcover_area_frac_plus10cm[lc];
+						}
+					}
+					outlimit_misc(out, out_height_plus10cm_sts_patch_mean, landcover_height_plus10cm_patch_mean[lc]);
+					outlimit_misc(out, out_diam_plus10cm_sts_patch_mean, landcover_diam_plus10cm_patch_mean[lc] * 100.0);		//diameter output in cm
+					outlimit_misc(out, out_diam_g_plus10cm_sts_patch_mean, landcover_diam_g_plus10cm_patch_mean[lc] * 100.0);	//diameter output in cm
+				}
+			}
+		}
+
+		outlimit_misc(out, out_storm, gridcell_storm_sens_ind * 1000.0); // Sensitivity * 1000
+		if(gridcell_storm_cmass_wood_save)
+			outlimit_misc(out, out_storm, gridcell_storm_dam_wood_pot / gridcell_storm_cmass_wood_save * 100.0); // Potential damaged fraction in %
+		else
+			outlimit_misc(out, out_storm, 0.0);
+		if(gridcell_storm_cmass_wood_save)
+			outlimit_misc(out, out_storm, gridcell_storm_dam_wood / gridcell_storm_cmass_wood_save * 100.0); // Actual damaged fraction in %
+		else
+			outlimit_misc(out, out_storm, 0.0);
+		outlimit_misc(out, out_storm, gridcell_storm_dam_wood_pot);
+		outlimit_misc(out, out_storm, gridcell_storm_dam_wood);
+
+		double insect_damwood = 0.0;
+		double insect_gc_popi = 0.0;
+		for (int i = 0; i < nift; i++) {
+			insect_damwood += gridcell.ift[i].insect_damage;
+			insect_gc_popi += gridcell.ift[i].pop_ind;
+		}
+		outlimit_misc(out, out_storm, insect_damwood);
+		outlimit_misc(out, out_storm, insect_gc_popi);
 	}
+
+	outlimit_misc(out, out_cflux_harvest, gridcell.cflux_harv_cc);
+	outlimit_misc(out, out_cflux_harvest, gridcell.cflux_harv_thin);
+	outlimit_misc(out, out_cflux_harvest, gridcell.cflux_harv_cc_prescribed);
+	outlimit_misc(out, out_cflux_harvest, gridcell.cflux_harv_wind_prescribed);
+	outlimit_misc(out, out_cflux_harvest, gridcell.cflux_harv_barkbeetle_prescribed);
+	
+	outlimit_misc(out, out_harvest_volume, gridcell.cfluxvol_harv_cc);
+	outlimit_misc(out, out_harvest_volume, gridcell.cfluxvol_harv_thin);
+	outlimit_misc(out, out_harvest_volume, gridcell.cfluxvol_harv_cc_prescribed);
+	outlimit_misc(out, out_harvest_volume, gridcell.cfluxvol_harv_wind_prescribed);
+	outlimit_misc(out, out_harvest_volume, gridcell.cfluxvol_harv_barkbeetle_prescribed);
 
 	Landcover& lcC = gridcell.landcover;
 
@@ -2355,7 +4293,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_forest_vegc, cmass_wood_potharv_products_natural + cmass_wood_potharv_products_forest);
 	outlimit_misc(out, out_forest_vegc, cmass_potfuel_natural + cmass_potfuel_forest);
 
-	// Print wood harvest total killed and fate of compartments
+	// Print wood harvest total killed and fate of compartments (All harvest events using harvest_forest(), including prescribed clearcut, storm and insect mortality)
 
 	// Primary forest harvest
 
@@ -2386,7 +4324,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	outlimit_misc(out, out_forest_harvest, lcC.acflux_wood_harvest + flux_charvest_lc[NATURAL] + flux_charvest_lc[FOREST]);
 	outlimit_misc(out, out_forest_harvest, lcC.cmass_harv_tolitter + cmass_harv_tolitter_natural + cmass_harv_tolitter_forest);
 
-	double anpp_natural = landcover_anpp[NATURAL] * lcC.frac[NATURAL];	// identical values to sum of st.anpp values
+	double anpp_natural = landcover_anpp[NATURAL] * lcC.frac[NATURAL];	// identical values to sum of st_anpp values
 	double anpp_forest = landcover_anpp[FOREST] * lcC.frac[FOREST];
 
 	double cflux_veg_natural = lcC.acflux_cloned_lc[NATURAL] - anpp_natural + lcC.cmass_harv_killed + cmass_harv_killed_natural 
@@ -2399,7 +4337,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 	double NAI_forest = -(cflux_veg_forest - lcC.acflux_cloned_lc[FOREST] - cmass_harv_killed_forest);
 	double NAI_tot = NAI_forest + NAI_natural;
 
-	// Print C fluxes to and from vegetation
+	// Print C fluxes to and from vegetation,  (harvC includes all harvest events using harvest_forest(), including prescribed clearcut, storm and insect mortality)
 	// Primary forest
 	outlimit_misc(out, out_forest_cflux_veg, -anpp_natural);
 	outlimit_misc(out, out_forest_cflux_veg, lcC.cmass_harv_killed + cmass_harv_killed_natural);
@@ -2446,26 +4384,23 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		for (int i=0;i<NLANDCOVERTYPES;i++) {
 			if (run[i]) {
 
-				outlimit_misc(out, out_cmass_landscape, landcover_cmass[i]);
-				outlimit_misc(out, out_anpp_landscape, landcover_anpp[i]);
-				outlimit_misc(out, out_lai_landscape, landcover_lai[i]);
-				outlimit_misc(out, out_forest_cmass_harv_killed,  landcover_cmass_harv_killed[i]);
+				outlimit_misc(out, out_dens_plus10cm, landcover_densindiv_total_plus10cm[i]);
 
 				switch (i) {
 				case CROPLAND:
 					if (run[CROPLAND]) {
-						// outlimit_misc(out, out_anpp_landscape_cropland,		landcover_anpp[i]);
-						// outlimit_misc(out, out_cmass_landscape_cropland,		landcover_cmass[i]);
-						// outlimit_misc(out, out_lai_landscape_cropland,		landcover_lai[i]);
+						outlimit_misc(out, out_anpp_cropland,			landcover_anpp[i]);
+						outlimit_misc(out, out_cmass_cropland,		landcover_cmass[i]);
+						outlimit_misc(out, out_lai_cropland,			landcover_lai[i]);
 					}
 					break;
 				case PASTURE:
 					if (run[NATURAL]) {
-						outlimit_misc(out, out_anpp_pasture,					landcover_anpp[i]);
-						outlimit_misc(out, out_cmass_pasture,					landcover_cmass[i]);
-						// outlimit_misc(out, out_anpp_landscape_pasture,		landcover_anpp[i]);
-						// outlimit_misc(out, out_cmass_landscape_pasture,		landcover_cmass[i]);
-						// outlimit_misc(out, out_lai_landscape_pasture,		landcover_lai[i]);
+						outlimit_misc(out, out_anpp_active_pasture,					landcover_anpp[i]);
+						outlimit_misc(out, out_cmass_active_pasture,					landcover_cmass[i]);
+						outlimit_misc(out, out_anpp_pasture,			landcover_anpp[i]);
+						outlimit_misc(out, out_cmass_pasture,			landcover_cmass[i]);
+						outlimit_misc(out, out_lai_pasture,			landcover_lai[i]);
 					}
 					break;
 				case BARREN:
@@ -2473,49 +4408,60 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				case NATURAL:
 					// if(run[FOREST] || run[PASTURE]) {
 					if(run[FOREST]) {
-						outlimit_misc(out, out_anpp_natural,					landcover_anpp[i]);
-						outlimit_misc(out, out_cmass_natural,					landcover_cmass[i]);
+						outlimit_misc(out, out_anpp_active_natural,					landcover_anpp[i]);
+						outlimit_misc(out, out_cmass_active_natural,					landcover_cmass[i]);
 						outlimit_misc(out, out_dens_natural,					landcover_densindiv_total[i]);
-						// outlimit_misc(out, out_anpp_landscape_natural,		landcover_anpp[i]);
-						// outlimit_misc(out, out_cmass_landscape_natural,		landcover_cmass[i]);
-						// outlimit_misc(out, out_lai_landscape_natural,		landcover_lai[i]);
-						outlimit_misc(out, out_aaet_natural,					landcover_aaet[i]);
-						outlimit_misc(out, out_lai_natural,						landcover_lai[i]);
-						outlimit_misc(out, out_fpc_natural,						landcover_fpc[i]);
+						outlimit_misc(out, out_anpp_natural,			landcover_anpp[i]);
+						outlimit_misc(out, out_cmass_natural,			landcover_cmass[i]);
+						outlimit_misc(out, out_lai_natural,			landcover_lai[i]);
+						outlimit_misc(out, out_aaet_active_natural,					landcover_aaet[i]);
+						outlimit_misc(out, out_lai_active_natural,						landcover_lai[i]);
+						outlimit_misc(out, out_fpc_active_natural,						landcover_fpc[i]);
+
+						outlimit_misc(out, out_anpp_gridcell_natural,    landcover_anpp[i] * gridcell.landcover.frac[i]);
+						outlimit_misc(out, out_cmass_gridcell_natural,	landcover_cmass[i] * gridcell.landcover.frac[i]);
+						outlimit_misc(out, out_aaet_gridcell_natural,	landcover_aaet[i] * gridcell.landcover.frac[i]);
+						outlimit_misc(out, out_lai_gridcell_natural,		landcover_lai[i] * gridcell.landcover.frac[i]);
 					}
+					outlimit_misc(out, out_frac_natural, gridcell.landcover.frac[i]);
 					break;
 				case FOREST:
 					if (run[NATURAL]) {
-						outlimit_misc(out, out_anpp_forest,						landcover_anpp[i]);
-						outlimit_misc(out, out_cmass_forest,					landcover_cmass[i]);
+						outlimit_misc(out, out_anpp_active_forest,						landcover_anpp[i]);
+						outlimit_misc(out, out_cmass_active_forest,					landcover_cmass[i]);
 						outlimit_misc(out, out_dens_forest,						landcover_densindiv_total[i]);
-						outlimit_misc(out, out_anpp_landscape_forest,			landcover_anpp[i]);
-						outlimit_misc(out, out_cmass_landscape_forest,			landcover_cmass[i]);
-						outlimit_misc(out, out_lai_landscape_forest,			landcover_lai[i]);
-						outlimit_misc(out, out_aaet_forest,						landcover_aaet[i]);
-						outlimit_misc(out, out_lai_forest,						landcover_lai[i]);
-						outlimit_misc(out, out_fpc_forest,						landcover_fpc[i]);
+						outlimit_misc(out, out_anpp_forest,			landcover_anpp[i]);
+						outlimit_misc(out, out_cmass_forest,			landcover_cmass[i]);
+						outlimit_misc(out, out_lai_forest,			landcover_lai[i]);
+						outlimit_misc(out, out_aaet_active_forest,						landcover_aaet[i]);
+						outlimit_misc(out, out_lai_active_forest,						landcover_lai[i]);
+						outlimit_misc(out, out_fpc_active_forest,						landcover_fpc[i]);
+
+						outlimit_misc(out, out_anpp_gridcell_forest,     landcover_anpp[i] * gridcell.landcover.frac[i]);
+						outlimit_misc(out, out_cmass_gridcell_forest,	landcover_cmass[i] * gridcell.landcover.frac[i]);
+						outlimit_misc(out, out_aaet_gridcell_forest,		landcover_aaet[i] * gridcell.landcover.frac[i]);
+						outlimit_misc(out, out_lai_gridcell_forest,		landcover_lai[i] * gridcell.landcover.frac[i]);
 					}
+					outlimit_misc(out, out_frac_forest, gridcell.landcover.frac[i]);
 					break;
 				case URBAN:
 					break;
 				case PEATLAND:
 					if (run[PEATLAND]) {
-						outlimit_misc(out, out_anpp_peatland,					landcover_anpp[i]);
-						outlimit_misc(out, out_cmass_peatland,					landcover_cmass[i]);
-						// outlimit_misc(out, out_anpp_landscape_peatland,		landcover_anpp[i]);
-						// outlimit_misc(out, out_cmass_landscape_peatland,		landcover_cmass[i]);
-						// outlimit_misc(out, out_lai_landscape_peatland,		landcover_lai[i]);
+						outlimit_misc(out, out_anpp_active_peatland,					landcover_anpp[i]);
+						outlimit_misc(out, out_cmass_active_peatland,					landcover_cmass[i]);
+						outlimit_misc(out, out_anpp_peatland,			landcover_anpp[i]);
+						outlimit_misc(out, out_cmass_peatland,		landcover_cmass[i]);
+						outlimit_misc(out, out_lai_peatland,			landcover_lai[i]);
 					}
 					break;
 				default:
 					if (date.year == nyear_spinup)
 						dprintf("Modify code to deal with landcover output!\n");
 				}
-				
+
 				// N2O info output per landcover
 				outlimit_misc(out, out_soil_n2o_flux, flux_N2O_soil[i] * M2_PER_HA);
-
 			}
 		}
 		// exclude BARREN, LUH2 BARREN is ice/water fraction, but BARREN produces n-fluxes on barren
@@ -2676,22 +4622,22 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 		// Print C pools of forests with LUC history
 		outlimit_misc(out, out_cpool_forestry, cmass_gridcell_forestry);
-		outlimit_misc(out, out_cpool_forestry, clitter_gridcell_forestry + surfsoillitterc_forestry + cwdc_forestry + humusc_forestry);
+		outlimit_misc(out, out_cpool_forestry, clitter_gridcell_forestry + surfsoillitterc_forestry + cwdc_forestry);
 		outlimit_misc(out, out_cpool_forestry, centuryc_forestry);
 		outlimit_misc(out, out_cpool_forestry, cmass_gridcell_forestry + clitter_gridcell_forestry + centuryc_forestry 
-			+ surfsoillitterc_forestry + cwdc_forestry + humusc_forestry);
+			+ surfsoillitterc_forestry + cwdc_forestry);
 
 		outlimit_misc(out, out_cpool_regrowth, cmass_gridcell_regrowth);
-		outlimit_misc(out, out_cpool_regrowth, clitter_gridcell_regrowth + surfsoillitterc_regrowth + cwdc_regrowth + humusc_regrowth);
+		outlimit_misc(out, out_cpool_regrowth, clitter_gridcell_regrowth + surfsoillitterc_regrowth + cwdc_regrowth);
 		outlimit_misc(out, out_cpool_regrowth, centuryc_regrowth);
 		outlimit_misc(out, out_cpool_regrowth, cmass_gridcell_regrowth + clitter_gridcell_regrowth + centuryc_regrowth 
-			+ surfsoillitterc_regrowth + cwdc_regrowth + humusc_regrowth);
+			+ surfsoillitterc_regrowth + cwdc_regrowth);
 
 		outlimit_misc(out, out_cpool_primary, cmass_gridcell_primary);
-		outlimit_misc(out, out_cpool_primary, clitter_gridcell_primary + surfsoillitterc_primary + cwdc_primary + humusc_primary);
+		outlimit_misc(out, out_cpool_primary, clitter_gridcell_primary + surfsoillitterc_primary + cwdc_primary);
 		outlimit_misc(out, out_cpool_primary, centuryc_primary);
 		outlimit_misc(out, out_cpool_primary, cmass_gridcell_primary + clitter_gridcell_primary + centuryc_primary 
-			+ surfsoillitterc_primary + cwdc_primary + humusc_primary);
+			+ surfsoillitterc_primary + cwdc_primary);
 
 		// Print C pools to per-landcover files
 		for (int i=0;i<NLANDCOVERTYPES;i++) {
@@ -2699,35 +4645,29 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 
 				GuessOutput::Table* table_p=NULL;
 				GuessOutput::Table* table_p_N=NULL;
-				GuessOutput::Table* table_csoil=NULL;
 
 				switch (i) {
 				case CROPLAND:
 					table_p=&out_cpool_cropland;
 					table_p_N=&out_npool_cropland;
-					table_csoil=&out_csoil_depth_cropland;
 					break;
 				case PASTURE:
 					table_p=&out_cpool_pasture;
 					table_p_N=&out_npool_pasture;
-					table_csoil=&out_csoil_depth_pasture;
 					break;
 				case NATURAL:
 					table_p=&out_cpool_natural;
 					table_p_N=&out_npool_natural;
-					table_csoil=&out_csoil_depth_natural;
 					break;
 				case FOREST:
 					table_p=&out_cpool_forest;
 					table_p_N=&out_npool_forest;
-					table_csoil=&out_csoil_depth_forest;
 					break;
 				case URBAN:
 					break;
 				case PEATLAND:
 					table_p=&out_cpool_peatland;
 					table_p_N=&out_npool_peatland;
-					table_csoil=&out_csoil_depth_peatland;
 					break;
 				case BARREN:
 					break;
@@ -2746,10 +4686,10 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 						outlimit_misc(out, *table_p, c_slow_lc[i]);
 					}
 					else {
-						outlimit_misc(out, *table_p, landcover_clitter[i] * lc.frac[i] + surflitterc_lc[i] + surfcwdc_lc[i] + surfhumusc_lc[i]);
-						outlimit_misc(out, *table_p, soillitterc_lc[i] + soilcwdc_lc[i] + centuryc_lc[i]);
-						outlimit_misc(out, *table_p_N, surflittern_lc[i] + surfcwdn_lc[i] + surfhumusn_lc[i]);
-						outlimit_misc(out, *table_p_N, soillittern_lc[i] + soilcwdn_lc[i] + centuryn_lc[i] + availn_lc[i]);
+						outlimit_misc(out, *table_p, landcover_clitter[i] * lc.frac[i] + surfsoillitterc_lc[i] + cwdc_lc[i]);
+						outlimit_misc(out, *table_p, centuryc_lc[i]);
+						outlimit_misc(out, *table_p_N, surfsoillittern_lc[i] + cwdn_lc[i]);
+						outlimit_misc(out, *table_p_N, centuryn_lc[i] + availn_lc[i]);
 					}
 
 					if (run_landcover && ifslowharvestpool) {
@@ -2767,8 +4707,8 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					cpool_total += c_fast_lc[i] + c_slow_lc[i];
 				}
 				else {
-					cpool_total += surflitterc_lc[i] + surfcwdc_lc[i] + surfhumusc_lc[i] + soillitterc_lc[i] + soilcwdc_lc[i] + centuryc_lc[i];
-					npool_total += surflittern_lc[i] + surfcwdn_lc[i] + surfhumusn_lc[i] + soillittern_lc[i] + soilcwdn_lc[i] + centuryn_lc[i] + availn_lc[i];
+					cpool_total += centuryc_lc[i] + surfsoillitterc_lc[i] + cwdc_lc[i];
+					npool_total += centuryn_lc[i] + surfsoillittern_lc[i] + cwdn_lc[i] + availn_lc[i];
 				}
 
 				// Add slow harvest pool if needed
@@ -2779,16 +4719,6 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 				if (table_p) {
 					outlimit_misc(out, *table_p, cpool_total);
 					outlimit_misc(out, *table_p_N, npool_total);
-				}
-
-				if (table_csoil) {
-					// Surface output
-					outlimit_misc(out, *table_csoil, soilc_depth_lc[0][i]);
-
-					// Soil depth and total output
-					for (int depths = 0; depths < sslyr + 1; depths++) {
-						outlimit_misc(out, *table_csoil, soilc_depth_lc[depths + 1][i]);
-					}
 				}
 			}
 		}
@@ -2826,6 +4756,18 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 		delete[] st_pft_cmass_harv_killed;
 	if(st_total_cmass_harv_killed)
 		delete[] st_total_cmass_harv_killed;
+
+	// from EC-Earth
+	// Monthly output of lambda
+	for (int m = 0; m < 12; m++) {
+
+		OutputRows out(output_channel, lon, lat, date.get_calendar_year(), m + 1);
+
+		for (int q = 0; q < npft; q++) {
+			outlimit_misc(out, out_mlambda, !negligible(pft_mgpp[m][q]) ? pft_mlambda_gpp[m][q] / pft_mgpp[m][q] : 0.0);
+		}
+	}
+
 }
 
 /// Output of simulation results at the end of each day
@@ -2833,143 +4775,26 @@ void MiscOutput::outannual(Gridcell& gridcell) {
   */
 void MiscOutput::outdaily(Gridcell& gridcell) {
 
-	if (date.year < nyear_spinup + 90) {
-		return;
-	}
-
 	double lon = gridcell.get_lon();
 	double lat = gridcell.get_lat();
-	OutputRows out(output_channel, lon, lat, date.get_calendar_year(), date.day + 1);
+	OutputRows out(output_channel, lon, lat, date.get_calendar_year(), date.day);
+
+	if (date.year < nyear_spinup) {
+		return;
+	}
 
 	outlimit_misc(out, out_daily_climate, gridcell.climate.temp);
 	outlimit_misc(out, out_daily_climate, gridcell.climate.prec);
 	outlimit_misc(out, out_daily_climate, gridcell.climate.rad);
 
-	double snow_thick[NSNOWLAYERS_MAX] = { 0.0 };
-	double snow_temp[NSNOWLAYERS_MAX] = { 0.0 };
-	double snow_density[NSNOWLAYERS_MAX] = { 0.0 };
-	double snow_k[NSNOWLAYERS_MAX] = { 0.0 };
-	double snow_c[NSNOWLAYERS_MAX] = { 0.0 };
-	double snow_frac[NSNOWLAYERS_MAX] = { 0.0 };
-
-	double wmass[NSOILLAYERS_MAX] = { 0.0 };
-	double wsats[NSOILLAYERS_MAX] = { 0.0 };
-
-	double soil_temp[NSOILLAYERS_MAX + NPADLAYERS] = { 0.0 };
-
-	double tsoil_depth[7] = { 0.0 };
-
-	// Loop through Stands
-	Gridcell::iterator gc_itr = gridcell.begin();
-	while (gc_itr != gridcell.end()) {
-		Stand& stand = *gc_itr;
-		stand.firstobj();
-
-		//Loop through Patches
-		while (stand.isobj) {
-			Soil& soil = stand.getobj().soil;
-			Snow& snow = soil.snow;
-
-			double to_gridcell_average = stand.get_gridcell_fraction() / (double)stand.npatch();
-
-			for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
-
-				if (lyr < snow.nsnowlayers) {
-					Snowlayer& snowlayer = snow.snowlayers[lyr];
-					snow_thick[lyr] += snowlayer.thickness * to_gridcell_average;
-					snow_temp[lyr] += snowlayer.temp * to_gridcell_average;
-					snow_density[lyr] += snowlayer.dens * to_gridcell_average;
-					snow_k[lyr] += snowlayer.Kh * to_gridcell_average;
-					snow_c[lyr] += snowlayer.Ch * to_gridcell_average;
-					snow_frac[lyr] += to_gridcell_average;
-				}
-			}
-
-			for (int lyr = 0; lyr < NSOILLAYERS_MAX + NPADLAYERS; lyr++) {
-
-				if (lyr >= NSOILLAYERS_MAX) {
-					soil_temp[lyr] += soil.pad.padlayers[lyr - NSOILLAYERS_MAX].temp * to_gridcell_average;
-				}
-				else if (lyr < soil.nsoillayers) {
-					soil_temp[lyr] += soil.soillayers[lyr].temp * to_gridcell_average;
-				}
-				else {
-					soil_temp[lyr] = -999.9;
-				}
-			}
-
-			for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
-
-				if (lyr < soil.nsoillayers) {
-					wmass[lyr] += soil.soillayers[lyr].wmass * to_gridcell_average;
-					wsats[lyr] += soil.soillayers[lyr].wsats * to_gridcell_average;
-				}
-				else {
-					wmass[lyr] = -999.9 * to_gridcell_average;
-					wsats[lyr] = -999.9 * to_gridcell_average;
-				}
-			}
-
-			// Russian soil depths
-			tsoil_depth[0] += soil.temp_at_depth(200.0) * to_gridcell_average;
-			tsoil_depth[1] += soil.temp_at_depth(400.0) * to_gridcell_average;
-			tsoil_depth[2] += soil.temp_at_depth(800.0) * to_gridcell_average;
-			tsoil_depth[3] += soil.temp_at_depth(1200.0) * to_gridcell_average;
-			tsoil_depth[4] += soil.temp_at_depth(1600.0) * to_gridcell_average;
-			tsoil_depth[5] += soil.temp_at_depth(2400.0) * to_gridcell_average;
-			tsoil_depth[6] += soil.temp_at_depth(3200.0) * to_gridcell_average;
-
-			stand.nextobj();
-		} // patch loop
-		++gc_itr;
-	} // stand loop
-
-	for (int lyr = 0; lyr < NSNOWLAYERS_MAX; lyr++) {
-		outlimit_misc(out, out_daily_snow_depth, snow_thick[lyr]);
-		if (!negligible(snow_frac[lyr])) {
-			outlimit_misc(out, out_daily_snow_density, snow_density[lyr] / snow_frac[lyr]);
-			outlimit_misc(out, out_daily_snow_k, snow_k[lyr] / snow_frac[lyr]);
-			outlimit_misc(out, out_daily_snow_c, snow_c[lyr] / snow_frac[lyr]);
-		}
-		else {
-			outlimit_misc(out, out_daily_snow_density, -999.9);
-			outlimit_misc(out, out_daily_snow_k, -999.9);
-			outlimit_misc(out, out_daily_snow_c, -999.9);
-		}
-	}
-
-	// Daily temperatures
-
-	// Air temperature
-	outlimit_misc(out, out_daily_temp, gridcell.climate.temp);
-
-	// Snow temperature, air temperature if no snow layer
-	for (int lyr = NSNOWLAYERS_MAX - 1; lyr >= 0; lyr--) {
-		if (!negligible(snow_frac[lyr])) {
-			outlimit_misc(out, out_daily_temp, snow_temp[lyr] / snow_frac[lyr]);
-		}
-		else {
-			outlimit_misc(out, out_daily_temp, gridcell.climate.temp);
-		}
-	}
-
-	// Soil temperature, -999.9 if soil layer not active (depending on soil depth)
-	for (int lyr = 0; lyr < NSOILLAYERS_MAX + NPADLAYERS; lyr++) {
-		outlimit_misc(out, out_daily_temp, soil_temp[lyr]);
-	}
-
-	// Soil temperature depth for Russian sites
-	outlimit_misc(out, out_dtemp_depth, gridcell.climate.temp);
-	for (int lyr = 0; lyr <7; lyr++) {
-		outlimit_misc(out, out_dtemp_depth, tsoil_depth[lyr]);
-	}
-
-	// Soil water
-	for (int lyr = 0; lyr < NSOILLAYERS_MAX; lyr++) {
-		if (wmass[lyr] > 0.0)
-			outlimit_misc(out, out_daily_wcont, wmass[lyr] / wsats[lyr]);
-		else
-			outlimit_misc(out, out_daily_wcont, 0.0);
+	if (firemodel==BLAZE) {
+		outlimit_misc(out, out_daily_blaze, (int)gridcell.dfire_die_roll);
+		outlimit_misc(out, out_daily_blaze, gridcell.dfire_probability);
+		outlimit_misc(out, out_daily_blaze, gridcell.effective_burned_area);
+		outlimit_misc(out, out_daily_blaze, gridcell.climate.kbdi);
+		outlimit_misc(out, out_daily_blaze, gridcell.climate.mcarthur_forest_fire_index);
+		outlimit_misc(out, out_daily_blaze, gridcell.climate.max_potfli);
+		outlimit_misc(out, out_daily_blaze, gridcell.climate.mean_potfli);
 	}
 }
 
@@ -2980,7 +4805,7 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell, int coordinates_precision) {
 
 	char dirname[200]={'\0'};
 #ifdef _MSC_VER
-	strcpy(dirname, "stand_output/");
+	strcpy(dirname, "stand_output\\");
 #else
 	strcpy(dirname, "../stand_output/");
 #endif
@@ -3000,6 +4825,7 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell, int coordinates_precision) {
 			out_agestruct_stand[id] = new Table[nst];
 			out_diamstruct_stand[id] = new Table[nst];
 			out_diamstruct_cmass_stand[id] = new Table[nst];
+			out_storm_stand[id] = new Table[nst];
 		}
 	}
 
@@ -3079,6 +4905,12 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell, int coordinates_precision) {
 
 			ColumnDescriptors dens_columns;
 			dens_columns += ColumnDescriptors(pfts,               8, 4);
+			
+			ColumnDescriptors storm_columns;
+			storm_columns += ColumnDescriptor("SI",                9, 3);
+			storm_columns += ColumnDescriptor("DamFrac",           9, 3);
+			storm_columns += ColumnDescriptor("DWoodC_P", 9, 3);
+			storm_columns += ColumnDescriptor("DamWoodC", 9, 3);
 
 			ColumnDescriptors agestruct_columns;
 			agestruct_columns += ColumnDescriptors(get_structure_string("age"),               9, 2);
@@ -3199,6 +5031,16 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell, int coordinates_precision) {
 					if(out_diamstruct_cmass_stand[id][stand.stid].invalid())
 						create_output_table(out_diamstruct_cmass_stand[id][stand.stid], outfilename, diamstruct_cmass_columns);
 				}
+				if(print_storm_stand) {
+					outfilename[0] = '\0';
+					strcpy(outfilename, dirname);
+					strcat(outfilename, "storm_");
+					strcat(outfilename, (char*)st.name);
+					strcat(outfilename, buffer);
+
+					if(out_storm_stand[id][stand.stid].invalid())
+						create_output_table(out_storm_stand[id][stand.stid], outfilename, storm_columns);
+				}
 			}
 
 			++gc_itr;
@@ -3210,7 +5052,7 @@ void MiscOutput::closelocalfiles(Gridcell& gridcell) {
 
 	if(!printseparatestands)
 		return;
-
+// This was removed in the crop_ncep branch (without any comments), not sure if it is needed.
 	for(int id=0;id<MAXNUMBER_STANDS;id++) {
 
 		for(int st=0;st<nst;st++) {
@@ -3238,6 +5080,8 @@ void MiscOutput::closelocalfiles(Gridcell& gridcell) {
 				close_output_table(out_diamstruct_stand[id][st]);
 			if(!out_diamstruct_cmass_stand[id][st].invalid())
 				close_output_table(out_diamstruct_cmass_stand[id][st]);
+			if(!out_storm_stand[id][st].invalid())
+				close_output_table(out_storm_stand[id][st]);
 		}
 	}
 
@@ -3266,6 +5110,8 @@ void MiscOutput::closelocalfiles(Gridcell& gridcell) {
 			delete[] out_diamstruct_stand[id];
 		if(out_diamstruct_cmass_stand[id])
 			delete[] out_diamstruct_cmass_stand[id];
+		if (out_storm_stand[id])
+			delete[] out_storm_stand[id];
 
 		out_anpp_stand[id] = NULL;
 		out_lai_stand[id] = NULL;
@@ -3279,6 +5125,7 @@ void MiscOutput::closelocalfiles(Gridcell& gridcell) {
 		out_agestruct_stand[id] = NULL;
 		out_diamstruct_stand[id] = NULL;
 		out_diamstruct_cmass_stand[id] = NULL;
+		out_storm_stand[id] = NULL;
 	}
 }
 

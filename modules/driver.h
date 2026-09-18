@@ -34,8 +34,10 @@ void dailyaccounting_patch(Patch& patch);
 void respiration_temperature_response(double temp,double& gtemp, bool ifsoil);
 void respiration_temperature_response(Soil& soil);
 void daylengthinsoleet(Climate& climate);
-double get_local_temp(Gridcell& gridcell, double gridcell_temp, double gridcell_elevation, double local_elevation);
+double get_temp_st(Gridcell& gridcell, double mean_temp);
+double get_local_temp(double gridcell_temp, double gridcell_elevation, double local_elevation);
 void climate_seasonality(Gridcell& gridcell);
+void calc_insect_phenology(Gridcell& gridcell);
 
 /*
 Different algorithms which may be used to estimate saturation vapor pressure.

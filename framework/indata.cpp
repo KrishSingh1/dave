@@ -15,8 +15,6 @@
 ///////////////////////////////////////////////////////////////////////////////////////
 
 #include "indata.h"
-#include "config.h"
-#include "guess.h"
 
 using namespace TextInput;
 
@@ -103,10 +101,9 @@ bool TimeDataD::GetHeader(char *cropnames[MAXRECORDS]) const {
 	}
 }
 
-bool TimeDataD::GetHeaderFull(char header_line[MAXLINE]) const {
+bool TimeDataD::GetHeaderFull(char *header_line) const {
 
 	if(ifheader) {
-		
 		if(format==LOCAL_YEARLY)
 			strcpy(header_line, "   Lon\t   Lat\t  Year");
 		else if(format==GLOBAL_YEARLY)
@@ -177,7 +174,7 @@ double TimeDataD::Get(int calender_year, int column) const {
 	return data[nColumns * yearX + column];
 }
 
-double TimeDataD::Get(int calender_year, const char* name, bool suppress_warning) const {
+double TimeDataD::Get(int calender_year, const char* name, bool suppress_warning, bool suppress_cycling) const {
 
 	if(memory_copy && !(format == GLOBAL_STATIC || format == GLOBAL_YEARLY))
 		return memory_copy->Get(calender_year, name);
@@ -199,7 +196,59 @@ double TimeDataD::Get(int calender_year, const char* name, bool suppress_warning
 		return NOTFOUND;
 	}
 	else {
-		return Get(calender_year, column);
+		if(suppress_cycling && (calender_year < firstyear || calender_year > (firstyear + nYears - 1)) && !(format == GLOBAL_STATIC || format == LOCAL_STATIC))
+			return 0.0;
+		else
+			return Get(calender_year, column);
+	}
+}
+
+void TimeDataD::Get_string(int calender_year, int column, char outstring[MAXNAMESIZE]) const {
+
+	if(memory_copy && !(format == GLOBAL_STATIC || format == GLOBAL_YEARLY))
+		return memory_copy->Get_string(calender_year, column, outstring);
+
+	int yearX = CalenderYearToPosition(calender_year);
+
+	if (column >= nColumns)
+		fail("TimeDataD::Get_string(): column number too high !\n");
+
+	strcpy(outstring, string_arr[nColumns * yearX + column]);
+}
+
+void TimeDataD::Get_string(int calender_year, const char* name, char outstring[MAXNAMESIZE], bool suppress_warning) const {
+
+	if(memory_copy && !(format == GLOBAL_STATIC || format == GLOBAL_YEARLY))
+		return memory_copy->Get_string(calender_year, name, outstring);
+
+	int column = -1;
+
+	for(int i=0; i<nColumns; i++) {
+
+		if(!strcmp(name, header_arr[i])) {
+			column = i;
+			break;
+		}
+	}
+
+	if(column == -1) {
+
+		if(calender_year == firstyear && !suppress_warning)
+			dprintf("WARNING. TimeDataD::Get(): Value for %s not found in %s.\n", name, fileName);
+	}
+	else {
+		return Get_string(calender_year, column, outstring);
+	}
+}
+
+void TimeDataD::Get_string_data(char** string_arrX) const {
+
+	for (int j = 0; j < nYears; j++) {
+		for (int k = 0; k < nColumns; k++) {
+			if (isstring[k]) {
+				strcpy(string_arrX[nColumns * j + k], string_arr[nColumns * j + k]);
+			}
+		}
 	}
 }
 
@@ -311,7 +360,8 @@ bool TimeDataD::ParseNormalisation() {
 		for(int y=0;y<nYears;y++) {
 			sum = 0.0;
 			for(int i=0;i<nColumns;i++) {
-				sum += Get(y + firstyear, i);
+				if(!isstring[i])
+					sum += Get(y + firstyear, i);
 			}
 			if(sum > 0.0 && (sum < 0.99 || sum > 1.01))
 				unity_data = false;
@@ -336,6 +386,7 @@ void TimeDataD::ParsePrecision() {
 	const int maxnsample = 2000;
 	int nsample = min(maxnsample, GetNCells() * nYears);
 	int first_data_column = 0;
+	bool scientific = false;
 
 	switch(format) {
 
@@ -383,18 +434,44 @@ void TimeDataD::ParsePrecision() {
 			}
 			else {
 				for(int i=first_data_column ;i<count1;i++) {
-					char word_copy[MAXNAMESIZE] = {'\0'};
-					strncpy(word_copy, s1[i], MAXNAMESIZE-1);
-					int str_length  = int(strlen(word_copy));
-					if((chp = strrchr(word_copy, '.')))
-						*chp='\0';
-					int precision_local = str_length - int(strlen(word_copy)) - 1;
-					if(precision_local > precision)
-					precision = precision_local;
+					if (!isstring[i - first_data_column] ){
+						char word_copy[MAXNAMESIZE] = { '\0' };
+						strncpy(word_copy, s1[i], MAXNAMESIZE - 1);
+						int str_length = int(strlen(word_copy));
+						int ex = 0;
+
+						for(int n=0; n<str_length;n++) {
+							char c = word_copy[n];
+							if(c == '-') {
+								int ex = atoi(&(word_copy[n+1]));
+							}
+							if(c == 'e' || c == 'E') {
+//								precision = -1;
+//								Rewind();
+//								return;
+								if(word_copy[n+1] == '-') {
+									ex = atoi(&(word_copy[n+2]));
+									word_copy[n] = '\0';
+								}
+								scientific = true;
+								break;
+							}
+						}
+						str_length = int(strlen(word_copy));
+
+						if ((chp = strrchr(word_copy, '.')))
+							*chp = '\0';
+						int precision_local = str_length - int(strlen(word_copy)) - 1;
+						precision_local += ex;
+						if (precision_local > precision)
+							precision = precision_local;
+					}
 				}
 			}
 		}
 	}
+	if(scientific)
+		dprintf("\nScientific notation detected in file %s. Combined precision = %d.\n\n", fileName, precision);
 	Rewind();
 }
 
@@ -519,27 +596,45 @@ fileformat TimeDataD::ParseFormat() {
 
 	if(!strcmp(s1[0], "lon") || !strcmp(s1[0], "Lon") || !strcmp(s1[0], "LON")) {
 
-		if(!strcmp(s1[2], "year") || !strcmp(s1[2], "Year")) {
+		if(!strcmp(s1[2], "year") || !strcmp(s1[2], "Year")
+			|| !strcmp(s1[2], "tree_no") || !strcmp(s1[2], "Tree_no")) {
 			format_local = LOCAL_YEARLY;
 			offset=2;
-			for(int i=3; i<count1; i++)
-				strncpy(header_arr[i-3],s1[i], MAXNAMESIZE-1);
+			for(int i = 3; i < count1; i++) {
+				strncpy(header_arr[i - 3], s1[i], MAXNAMESIZE - 1);
+				if (!strncmp(s1[i], "str_", 4)) {
+					isstring[i - 3] = true;
+				}
+			}
 		}
 		else {
 			format_local=LOCAL_STATIC;
-			for(int i=2; i<count1; i++)
-				strncpy(header_arr[i-2],s1[i], MAXNAMESIZE-1);
+			for(int i = 2; i < count1; i++) {
+				strncpy(header_arr[i - 2], s1[i], MAXNAMESIZE - 1);
+				if (!strncmp(s1[i], "str_", 4)) {
+					isstring[i - 2] = true;
+				}
+			}
 		}
 	}
-	else if(!strcmp(s1[0], "year") || !strcmp(s1[0], "Year")) {
+	else if(!strcmp(s1[0], "year") || !strcmp(s1[0], "Year")
+		|| !strcmp(s1[0], "tree_no") || !strcmp(s1[0], "Tree_no")) {
 			format_local = GLOBAL_YEARLY;
-			for(int i=1; i<count1; i++)
-				strncpy(header_arr[i-1],s1[i], MAXNAMESIZE-1);
+			for(int i = 1; i < count1; i++) {
+				strncpy(header_arr[i - 1], s1[i], MAXNAMESIZE - 1);
+				if (!strncmp(s1[i], "str_", 4)) {
+					isstring[i - 1] = true;
+				}
+			}
 	}
 	else if(!strcmp(s1[0], "static")) {
 			format_local=GLOBAL_STATIC;
-			for(int i=1; i<count1; i++)
-				strncpy(header_arr[i-1],s1[i], MAXNAMESIZE-1);
+			for (int i = 1; i < count1; i++) {
+				strncpy(header_arr[i - 1], s1[i], MAXNAMESIZE - 1);
+				if (!strncmp(s1[i], "str_", 4)) {
+					isstring[i - 1] = true;
+				}
+			}
 	}
 	else {
 		ifheader = false;
@@ -637,7 +732,7 @@ int TimeDataD::ParseNYears() {
 		n_yearsX = ParseNYearsLocal();
 		break;
 	default:
-		dprintf("FTimeDataD::ParseNYears: ormat in is uncorrectly set by program for file %s !\n", fileName);
+		dprintf("TimeDataD::ParseNYears: Format in is uncorrectly set by program for file %s !\n", fileName);
 		return 0;
 	}
 
@@ -802,6 +897,7 @@ int TimeDataD::ParseNYearsGlobal() {
 	int count = 0, nyears = 0;
 	char line[MAXLINE];
 	float d1 = 0,d2 = 0,d3 = 0;
+	char str_col[MAXNAMESIZE] = { '\0'}, str_col2[MAXNAMESIZE] = { '\0' };;
 
 	if(ifheader)
 		fgets(line,sizeof(line),ifp);
@@ -810,7 +906,8 @@ int TimeDataD::ParseNYearsGlobal() {
 
 		if(fgets(line,sizeof(line),ifp)) {
 
-			count=sscanf(line,"%f%f%f", &d1, &d2 ,&d3);
+			// There may be strings in the second and third column; both strings and numbers are counted correctly.
+			count = sscanf(line, "%f%s%s", &d1, &str_col, &str_col2);
 			if(count > 0) {
 
 				if(count >= 2) {
@@ -840,43 +937,37 @@ bool TimeDataD::Allocate() {	// Allocates memory for dynamic data: format & nYea
 		delete[] data;
 		data = NULL;
 	}
+	if (string_arr) {
+		for (int i = 0; i < nColumns * nYears; i++) {
+			if (string_arr[i]) {
+				delete[] string_arr[i];
+				string_arr[i] = NULL;
+			}
+		}
+		delete[] string_arr;
+		string_arr = NULL;
+	}
 
 	switch(format) {
 
 	case EMPTY:
 		break;
 	case GLOBAL_STATIC:
-		year = new int;
-		data = new double[nColumns];
-		if(year)
-			*year = 0;
-		if(data)
-			*data = 0;
-		break;
-	case GLOBAL_YEARLY:
-		year = new int[nYears];
-		data = new double[nColumns * nYears];
-		if(year) {
-			for(int i=0;i<nYears;i++)
-				year[i] = 0;
-		}
-		if(data) {
-			for(int i=0;i<nColumns*nYears;i++)
-				data[i] = 0.0;
-		}
-		break;
 	case LOCAL_STATIC:
 		year = new int;
 		data = new double[nColumns];
 		if(year)
 			*year = 0;
-		if(data)
-			for(int j=0;j<nColumns;j++)
-				data[j] = 0;
+		if (data) {
+			for (int j = 0; j < nColumns; j++)
+				data[j] = 0.0;
+		}
 		break;
+	case GLOBAL_YEARLY:
 	case LOCAL_YEARLY:
 		year = new int[nYears];
 		data = new double[nColumns * nYears];
+		string_arr = new char*[nColumns * nYears];
 		if(year) {
 			for(int i=0;i<nYears;i++)
 				year[i] = 0;
@@ -884,6 +975,18 @@ bool TimeDataD::Allocate() {	// Allocates memory for dynamic data: format & nYea
 		if(data) {
 			for(int i=0;i<nColumns*nYears;i++)
 				data[i] = 0.0;
+		}
+		if (string_arr) {
+			for (int i = 0; i < nColumns*nYears; i++)
+				string_arr[i] = NULL;
+			for (int i = 0; i < nYears; i++) {
+				for (int j = 0; j < nColumns; j++) {
+					if (isstring[j]) {
+						string_arr[nColumns * i + j] = new char[MAXNAMESIZE];
+						string_arr[nColumns * i + j][0] = { '\0'};
+					}
+				}
+			}
 		}
 		break;
 	default:
@@ -903,7 +1006,7 @@ void TimeDataD::SetOffset(double gridlist_offset) {
 bool TimeDataD::Load() {	// for GLOBAL_YEARLY and GLOBAL_STATIC data
 
 	int i = 0, count = 0, yearX = 0, yearX_previous, k = 0;
-	char line[MAXLINE], *p = NULL;
+	char line[MAXLINE], *p = NULL, str[MAXRECORDS][MAXNAMESIZE] = {'\0'};
 	double d1 = 0.0;
 	double d[MAXRECORDS] = {0.0};
 	float extra = 0.0;
@@ -932,8 +1035,10 @@ bool TimeDataD::Load() {	// for GLOBAL_YEARLY and GLOBAL_STATIC data
 				k = 0;
 				if(fgets(line, sizeof(line), ifp)) {
 
-					for(int j=0;j<nColumns;j++)
+					for (int j = 0; j < nColumns; j++) {
 						d[j] = 0.0;
+						str[j * MAXNAMESIZE][0] = '\0';
+					}
 					count = 0;
 
 					p=strtok(line, "\t\n ");	// year
@@ -952,8 +1057,12 @@ bool TimeDataD::Load() {	// for GLOBAL_YEARLY and GLOBAL_STATIC data
 
 					do {
 						p = strtok(NULL, "\t\n ");
-						if(p)
-							count += sscanf(p, "%lf", &d[k]);
+						if(p) {
+							if(isstring[k])
+								count += sscanf(p, "%s", str[k]);
+							else
+								count += sscanf(p, "%lf", &d[k]);
+						}
 						k++;
 					}
 					while(p);
@@ -962,8 +1071,12 @@ bool TimeDataD::Load() {	// for GLOBAL_YEARLY and GLOBAL_STATIC data
 
 						if(count == nColumns) {
 							year[i] = yearX;
-							for(int j=0; j<nColumns; j++)
-								data[nColumns * i + j] = d[j];
+							for (int j = 0; j < nColumns; j++) {
+								if (isstring[j])
+									strncpy(string_arr[nColumns * i + j], str[j], MAXNAMESIZE);
+								else
+									data[nColumns * i + j] = d[j];
+							}
 						}
 						else {
 							dprintf("FORMAT ERROR in input file %s: TimeDataD::Load(), count!=%d, year %d\n", fileName, nColumns, i+1);
@@ -1042,7 +1155,7 @@ bool TimeDataD::Load() {	// for GLOBAL_YEARLY and GLOBAL_STATIC data
 bool TimeDataD::LoadFromMap(Coord c) {
 
 	// With a regular grid, coordinates within the grid should be found using (spatial_resolution / 2.0) and should be 
-	// quicker than using MAX_SEARCHDISTANCE (default 1.0).
+	// quicker than using MAX_SEARCHDISTANCE (default 0.5).
 
 	double searchdist = min(spatial_resolution / 2.0, MAX_SEARCHDISTANCE);
 	double min_dist = 1000;
@@ -1102,7 +1215,7 @@ bool TimeDataD::Load(Coord c) {
 	else if(filemap)
 		return LoadFromMap(c);
 
-	char line[MAXLINE], *p=NULL;
+	char line[MAXLINE], *p=NULL, str[MAXRECORDS][MAXNAMESIZE]={NULL};
 	int i = 0, j = 0, k = 0, count1 = 0, nyears = 0, yearX = 0, yearX_previous;
 	float lonX = 0.0, latX = 0.0;
 	double d[MAXRECORDS] = {0.0};
@@ -1129,8 +1242,10 @@ bool TimeDataD::Load(Coord c) {
 					k = 0;
 					if(fgets(line, sizeof(line), ifp)) {
 
-						for(int q=0;q<nColumns;q++)
-							d[q] = 0.0;;
+						for (int q = 0;q < nColumns;q++) {
+							d[q] = 0.0;
+							str[q * MAXNAMESIZE][0] = '\0';
+						}
 						count1 = 0;
 
 						if(ifheader) {
@@ -1173,8 +1288,12 @@ bool TimeDataD::Load(Coord c) {
 						do {
 
 							p = strtok(NULL, "\t\n ");
-							if(p)
-								count1 += sscanf(p, "%lf", &d[k]);
+							if (p) {
+								if (isstring[k])
+									count1 += sscanf(p, "%s", &str[k][0]);
+								else
+									count1 += sscanf(p, "%lf", &d[k]);
+							}
 							k++;
 						}
 						while(p);
@@ -1184,8 +1303,12 @@ bool TimeDataD::Load(Coord c) {
 							if(count1 == nColumns) {
 
 								year[i] = yearX;
-								for(j=0; j<nColumns; j++)
-									data[nColumns * i + j] = d[j];
+								for (j = 0; j < nColumns; j++) {
+									if(isstring[j])
+										strncpy(string_arr[nColumns * i + j], &str[j][0], MAXNAMESIZE);
+									else
+										data[nColumns * i + j] = d[j];
+								}
 							}
 							else {
 								dprintf("FORMAT ERROR in input file %s for stand at Coordinate %.2f,%.2f: TimeDataD::Load(), count!=%d, year %d\n", 
@@ -1299,7 +1422,7 @@ bool TimeDataD::LoadNext(filepos *pos) {
 		return 1;
 	}
 
-	char line[MAXLINE], *p=NULL;
+	char line[MAXLINE], *p=NULL,  str[MAXRECORDS][MAXNAMESIZE]={NULL};
 	double d1, d2, d3, d[MAXRECORDS]={0.0};
 	bool error = false, firstyear = true;
 	filepos fpos;
@@ -1366,8 +1489,10 @@ bool TimeDataD::LoadNext(filepos *pos) {
 					int k = 0;
 					int count1 = 0;
 					int yearX = 0;
-					for(int q=0;q<nColumns;q++)
-						d[q] = 0.0;;
+					for (int q = 0;q < nColumns;q++) {
+						d[q] = 0.0;
+						str[q][0] = '\0';
+					}
 
 					if(ifheader) {
 
@@ -1384,8 +1509,12 @@ bool TimeDataD::LoadNext(filepos *pos) {
 
 					do {
 						p = strtok(NULL, "\t\n ");
-						if(p)
-							count1 += sscanf(p, "%lf", &d[k]);
+						if (p) {
+							if(isstring[k])
+								count1 += sscanf(p, "%s", &str[k][0]);
+							else
+								count1 += sscanf(p, "%lf", &d[k]);
+						}
 						k++;
 					}
 					while(p);
@@ -1394,8 +1523,12 @@ bool TimeDataD::LoadNext(filepos *pos) {
 
 						if(count1 == nColumns) {
 							year[i] = yearX;
-							for(int j=0; j<nColumns; j++)
-								data[nColumns * i + j] = d[j];
+							for (int j = 0; j < nColumns; j++) {
+								if(isstring[j])
+									strncpy(string_arr[nColumns * i + j], &str[j][0], MAXNAMESIZE);
+								else
+									data[nColumns * i + j] = d[j];
+							}
 						}
 						else {
 							dprintf("FORMAT ERROR in input file %s: TimeDataD::LoadNext(), count!=%d, year %d\n", fileName, nColumns+1, i+1);
@@ -1759,7 +1892,9 @@ TimeDataD::TimeDataD(fileformat formatX) {
 	ifheader = true;
 	for(int i=0;i<MAXRECORDS;i++) {
 		header_arr[i] = NULL;
+		isstring[i] = false;
 	}
+	string_arr = NULL;
 	currentStand.lon = 0;
 	currentStand.lat = 0;
 	data = NULL;
@@ -1819,6 +1954,16 @@ void TimeDataD::Close() {
 			header_arr[i] = NULL;
 		}
 	}
+	if(string_arr) {
+		for (int i = 0;i < nColumns * nYears;i++) {
+			if (string_arr[i]) {
+				delete[] string_arr[i];
+				string_arr[i] = NULL;
+			}
+		}
+		delete[] string_arr;
+		string_arr = NULL;
+	}
 }
 
 void TimeDataD::CopyToMemory(int ncells, ListArray_id<Coord>& lonlatlist) { //Requires gutil.h
@@ -1826,7 +1971,7 @@ void TimeDataD::CopyToMemory(int ncells, ListArray_id<Coord>& lonlatlist) { //Re
 	if(format == GLOBAL_STATIC)
 		ncells = 1;
 	memory_copy = new TimeDataDmem;
-	memory_copy->Open(ncells, this->nColumns, this->nYears);
+	memory_copy->Open(ncells, this->nColumns, this->nYears, this->isstring);
 	memory_copy->CopyFromTimeDataD(*this, lonlatlist);
 	Rewind();
 }
@@ -1879,6 +2024,37 @@ double TimeDataDmem::Get(int calender_year, const char* name, bool suppress_warn
 	}
 }
 
+void TimeDataDmem::Get_string(int calender_year, int column, char outstring[MAXNAMESIZE]) const {
+
+	int yearX = CalenderYearToPosition(calender_year);
+
+	if (column >= nColumns)
+		fail("TimeDataDmem::Get_string(): column number too high !\n");
+	strcpy(outstring, string_arr[currentCell][nColumns * yearX + column]);
+}
+
+void TimeDataDmem::Get_string(int calender_year, const char* name, char outstring[MAXNAMESIZE], bool suppress_warning) const {
+
+	int column = -1;
+
+	for (int i = 0; i < nColumns; i++) {
+
+		if (!strcmp(name, header_arr[i])) {
+			column = i;
+			break;
+		}
+	}
+
+	if (column == -1) {
+
+		if (calender_year == firstyear && !suppress_warning)
+			dprintf("WARNING. TimeDataDmem::Get(): Value for %s not found in input file\n", name);
+	}
+	else {
+		return Get_string(calender_year, column, outstring);
+	}
+}
+
 bool TimeDataDmem::Load(Coord c) {
 
 	// With a regular grid, coordinates within the grid should be found using (spatial_resolution / 2.0) and should be 
@@ -1918,10 +2094,19 @@ bool TimeDataDmem::Load(Coord c) {
 	}
 	return loaded;
 }
-void TimeDataDmem::SetData(int index, double* dataX) {
+void TimeDataDmem::SetData(int index, double* dataX, char** string_arrX) {
 
 	if(data && data[index])
 		memcpy(data[index], dataX, nColumns * nYears * sizeof(double));
+	if (string_arr && string_arr[index]) {
+		for (int j = 0; j < nYears; j++) {
+			for (int k = 0; k < nColumns; k++) {
+				if (isstring[k]) {
+					strcpy(string_arr[index][nColumns * j + k], string_arrX[nColumns * j + k]);
+				}
+			}
+		}
+	}
 }
 
 void TimeDataDmem::SetCoord(int index, Coord c) {
@@ -1930,18 +2115,36 @@ void TimeDataDmem::SetCoord(int index, Coord c) {
 	gridlist[index].lat = c.lat;
 }
 
-void TimeDataDmem::Open(int nCellsX, int nColumnsX, int nYearsX) {
+void TimeDataDmem::Open(int nCellsX, int nColumnsX, int nYearsX, bool isstringX[]) {
 
 	nCells = 0;
 	nColumns = nColumnsX;
 	nYears = nYearsX;
 	gridlist = new Coord[nCellsX];
 	data = new double*[nCellsX];
+	string_arr = new char**[nCellsX];
+
+	for (int k = 0; k < nColumns; k++)
+		isstring[k] = isstringX[k];
+
 	for(int i=0; i<nCellsX; i++) {
 		data[i] = new double[nColumns * nYears];
 		if(data[i]) {
 			for(int y=0;y<nColumns*nYears;y++)
 				data[i][y] = 0.0;
+		}
+		string_arr[i] = new char*[nColumns * nYears];
+		if (string_arr[i]) {
+			for (int j = 0; j < nColumns*nYears; j++)
+				string_arr[i][j] = NULL;
+			for (int j = 0; j < nYears; j++) {
+				for (int k = 0; k < nColumns; k++) {
+					if (isstring[k]) {
+						string_arr[i][nColumns * j + k] = new char[MAXNAMESIZE];
+						string_arr[i][nColumns * j + k][0] = '\0';
+					}
+				}
+			}
 		}
 		gridlist[i].descrip = "";
 		gridlist[i].id = 0;
@@ -1964,11 +2167,26 @@ void TimeDataDmem::Close() {
 			delete[] data[i];
 			data[i] = NULL;
 		}
+		if (string_arr[i]) {
+			for (int j = 0; j < nColumns * nYears; j++) {
+				if (string_arr[i][j]) {
+					delete[] string_arr[i][j];
+					string_arr[i][j] = NULL;
+				}
+			}
+			delete[] string_arr[i];
+			string_arr[i] = NULL;
+		}
 	}
 	if(data) {
 		delete[] data;
 		data = NULL;
 	}
+	if (string_arr) {
+		delete[] string_arr;
+		string_arr = NULL;
+	}
+
 	for(int i=0;i<MAXRECORDS;i++) {
 		if(header_arr[i]) {
 			delete[] header_arr[i]; 
@@ -2000,9 +2218,24 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 		celldata[i] = 0.0;
 	}
 
+	char **cellstring_arr = new char*[nColumns * nYears];
+	if (cellstring_arr) {
+		for (int i = 0; i < nColumns*nYears; i++)
+			cellstring_arr[i] = NULL;
+		for (int i = 0; i < nYears; i++) {
+			for (int j = 0; j < nColumns; j++) {
+				if (isstring[j]) {
+					cellstring_arr[nColumns * i + j] = new char[MAXNAMESIZE];
+					cellstring_arr[nColumns * i + j][0] = '\0';
+				}
+			}
+		}
+	}
+
 	if(Data.GetFormat() == GLOBAL_STATIC) {
 		Data.Get(celldata);
-		SetData(0, celldata);
+		Data.Get_string_data(cellstring_arr);
+		SetData(0, celldata, cellstring_arr);
 		return;
 	}
 
@@ -2026,7 +2259,8 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 
 				SetCoord(cell_no, c);
 				Data.Get(celldata);
-				SetData(cell_no, celldata);
+				Data.Get_string_data(cellstring_arr);
+				SetData(cell_no, celldata, cellstring_arr);
 				cell_no++;
 				nCells++;
 //				dprintf("lc coord %.2f, %.2f used\n", c.lon, c.lat);
@@ -2040,6 +2274,15 @@ void TimeDataDmem::CopyFromTimeDataD(TimeDataD& Data, ListArray_id<Coord>& gridl
 	}
 
 	delete[] celldata;
+	if (cellstring_arr) {
+		for (int i = 0; i < nColumns*nYears; i++) {
+			if (cellstring_arr[i]) {
+				delete[] cellstring_arr[i];
+				cellstring_arr[i] = NULL;
+			}
+		}
+		delete[] cellstring_arr;
+	}
 
 	Data.register_memory_copy(this);
 }
@@ -2052,7 +2295,9 @@ TimeDataDmem::TimeDataDmem() {
 	ifheader = false;
 	for(int i=0;i<MAXRECORDS;i++) {
 		header_arr[i] = NULL;
+		isstring[i] = false;
 	}
+	string_arr = NULL;
 	currentCell = -1;
 	loaded = false;
 }

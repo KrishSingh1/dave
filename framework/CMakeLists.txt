@@ -28,6 +28,7 @@ set(headers
   variableresolver.h
   logging.h
   ncfile.h
+  equationsolvers.h
 )
 
 set(source
@@ -58,6 +59,7 @@ set(source
   logging.cpp
   guessmath.cpp
   ncfile.cpp
+  equationsolvers.cpp
 )
 
 include(add_guess_sources)

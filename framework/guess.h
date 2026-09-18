@@ -54,6 +54,7 @@
 #include "soil.h"
 #include "guessstring.h"
 #include "interpolator.h"
+#include <random>
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL ENUMERATED TYPE DEFINITIONS
@@ -188,6 +189,24 @@ typedef enum {NO_GROSS_INPUT, LC_GROSS_INPUT, ST_GROSS_INPUT} gross_LCC_input_ty
 /// Number of forest structure (age- and diameter) classes
 const int NFOREST_STRUCTURAL_CLASSES = 31;
 
+const int N_DIAM_CLASSES_SAMP = 30;
+const double DIAM_CLASS_SIZE_SAMP = 5.0;
+
+//MORT
+/// Mortality mechanisms
+    // mortmech:
+	// 0. Other (used to be 7) climate envelope and allometry (dominates this)
+    // 1. Growth efficiency
+    // 2. Thinning
+    // 3. Age
+    // 4. Disturbance
+    // 5. Fire
+    // 6. Harvest from clear cut
+	// 7. Harvest from thinning
+	// 8. Harvest from land-use change
+
+typedef enum {MORT_OTHER,MORT_GREFF,MORT_THIN,MORT_AGE,MORT_DIST,MORT_FIRE,MORT_HARV_CCUT,MORT_HARV_THIN, MORT_HARV_LUC} mortality_mechanism;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
 
@@ -195,6 +214,9 @@ const int NFOREST_STRUCTURAL_CLASSES = 31;
 const int NTHINNINGS = 5;
 /// maximum number of thinning loops in a forest management scheme (e.g. regrowth and continuous loops)
 const int NTHINNINGLOOPS = 2;
+
+/// maximum number of individuals in a forest stand initialised from input file
+const int MAX_NESTABLISH_INDIV = 100;
 
 /// bvoc: number of monoterpene species used
 const int NMTCOMPOUNDS=NMTCOMPOUNDTYPES;
@@ -288,6 +310,14 @@ const int FAR_PREHISTORIC_YEAR = -100000;
 // value turns out to be too strict, we should relax it back to 1e-4.
 const double EPS_WATER = 1e-6;
 
+/// Insect functional type constants
+const int NGENERATIONS_MAX = 10;
+const int NREEMERGENCES_MAX = 1;
+typedef enum { EGG, LARVA1, LARVA2, LARVA3, LARVA4, PUPA, TENERAL_ADULT, OVIPOSITION, NLIFESTAGES } insect_life_stages;
+//#define USE_DAYLENGTH_LIMIT_DIAPAUSE
+// STORM number of days in 30 years, used for limit in windload calculation
+#define WIND_30Y_NDAYS 10950
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // FORWARD DECLARATIONS OF CLASSES DEFINED IN THIS FILE
 // Forward declarations of classes used as types (e.g. for reference variables in some
@@ -300,6 +330,7 @@ class Vegetation;
 class Individual;
 class Gridcell;
 class Patchpft;
+class Patchift;
 class Soil;
 class Soillayer;
 
@@ -313,12 +344,65 @@ extern Date date;
 
 /// Number of possible PFTs
 extern int npft;
+/// Number of insect types in iftlist
+extern int nift;
 /// Number of stand types in stlist
 extern int nst;
 /// Number of stand types per land cover
 extern int nst_lc[NLANDCOVERTYPES];
 /// Number of management types in stlist
 extern int nmt;
+
+struct lc_change_harvest_params {
+
+	double harv_eff;
+	double res_outtake_twig;
+	double res_outtake_coarse_root;
+	bool burn;	// to be developed
+
+	lc_change_harvest_params() {
+
+		harv_eff = 0.0;
+		res_outtake_twig = 0.0;
+		res_outtake_coarse_root = 0.0;
+		burn = false;
+	}
+};
+
+class est_struct {
+
+public:
+	xtring pft_name;
+	int age;
+	double biomass;	// Above-ground total mean tree cohort biomass (ton)
+	double diam;	// (cm)
+	double height;	// (m)
+	double dens;	// (trees/ha)
+	double cmass_leaf_est;
+	double cmass_root_est;
+
+	est_struct() {
+		age = -1;
+		biomass = -1;
+		diam = -1;
+		height = -1;
+		dens = -1;
+		cmass_leaf_est = -1;
+		cmass_root_est = -1;
+	}
+};
+
+class Establishment_list {
+
+public:
+	int establishment_year;
+
+	est_struct est_array[MAX_NESTABLISH_INDIV];
+
+	Establishment_list() {
+		establishment_year = -1;
+	}
+};
 
 /// General purpose object for handling simulation timing.
 /** In general, frameworks should use a single Date object for all simulation
@@ -1514,10 +1598,10 @@ public:
 	/// daily temperatures for the last 31 days (deg C)
 	Historic<double, 31> dtemp_31;
 
-	/// daily precipitation for the last 31 days (deg C)
+	/// daily precipitation for the last 31 days (mm)
 	Historic<double, 31> dprec_31;
 
-	/// daily eet for the last 31 days (deg C)
+	/// daily eet for the last 31 days (mm)
 	Historic<double, 31> deet_31;
 
 	/// from Grote. indicates we are in the winter to summer transition, determined from daylength increases between days
@@ -1538,6 +1622,10 @@ public:
 	/// first spinup years annual average air temperature (deg C)
 	double temp_iaavr;
 
+	// STORM
+	/// daily wind for the last 30 years, used for limit in windload calculation
+	Historic<double, WIND_30Y_NDAYS> wind_30y;
+
 	// BLAZE
 	/// average annual rainfall (mm/a)
 	double rainfall_annual_avg;
@@ -1553,6 +1641,10 @@ public:
 	double mcarthur_forest_fire_index;	
 	/// To keep track of running months daily FFDI 
 	double ffdi_monthly[30];	
+
+	// FLI
+	double max_potfli;  //daily max w.r.t. patches
+	double mean_potfli; //daily mean w.r.t. patches
 
 	// Saved parameters used by function daylengthinsoleet
 
@@ -1956,7 +2048,43 @@ public:
 		/// Number of types, must be last
 		NPERPFTFLUXTYPES
 	};
-
+	
+	//MORT	
+	/// Fluxes stored per diameter class
+	enum PerDiamFluxType {
+		///Mortality fluxes
+		STEMLOSS,
+		CROWNLOSS,
+		CLOSS,
+		STEMLOSS_GREFF,
+		CROWNLOSS_GREFF,
+		CLOSS_GREFF,
+		STEMLOSS_THIN,
+		CROWNLOSS_THIN,
+		CLOSS_THIN,
+		STEMLOSS_AGE,
+		CROWNLOSS_AGE,
+		CLOSS_AGE,
+		STEMLOSS_DIST,
+		CROWNLOSS_DIST,
+		CLOSS_DIST,
+		STEMLOSS_FIRE,
+		CROWNLOSS_FIRE,
+		CLOSS_FIRE,
+		STEMLOSS_HARV_CCUT,
+		CROWNLOSS_HARV_CCUT,
+		CLOSS_HARV_CCUT,
+		STEMLOSS_HARV_THIN,
+		CROWNLOSS_HARV_THIN,
+		CLOSS_HARV_THIN, 
+		STEMLOSS_HARV_LUC,
+		CROWNLOSS_HARV_LUC,
+		CLOSS_HARV_LUC,
+		STEMLOSS_OTHER,
+		CROWNLOSS_OTHER,
+		CLOSS_OTHER,
+		NPERDIAMFLUXTYPES
+	};
 	// emission ratios from fire (NH3, NOx, N2O, N2) Delmas et al. 1995
 	// values in .cpp file
 
@@ -1988,6 +2116,10 @@ public:
 	/// \returns daily flux for a given flux type and PFT
 	double get_daily_flux(PerPFTFluxType flux_type, int day, int pft_id) const;
 
+	//MORT
+	/// Report flux for a certain flux type
+	void report_flux(PerDiamFluxType flux_type, int diam, double value);
+
 	/// \returns daily flux for a given flux type (for all PFTs)
 	double get_daily_flux(PerPFTFluxType flux_type, int day) const;
 
@@ -2002,6 +2134,13 @@ public:
 
 	/// \returns annual flux for a given PFT and flux type
 	double get_annual_flux(PerPFTFluxType flux_type, int pft_id) const;
+
+	//MORT
+	/// \returns annual flux for a given diameter class and flux type
+	double get_annual_flux(PerDiamFluxType flux_type, int diam) const;
+
+	/// \returns annual flux for a given flux type (for all diameter classes)
+	double get_annual_flux(PerDiamFluxType flux_type) const;
 
 	/// \returns annual flux for a given flux type (for all PFTs)
 	double get_annual_flux(PerPFTFluxType flux_type) const;
@@ -2020,6 +2159,11 @@ private:
 
 	/// Stores one flux value per PFT and flux type
 	std::vector<std::vector<double> > annual_fluxes_per_pft;
+	
+	//MORT
+	/// Stores one flux value per diameter class and flux type
+	std::vector<std::vector<double> > annual_fluxes_per_diam;
+	//std::vector<std::vector<double> > annual_fluxes_per_diam_harv;
 
 	/// Stores one flux value per month and flux type
 	/** For the fluxes only stored as totals for the whole patch */
@@ -2049,11 +2193,12 @@ public:
 	/// name of management type
 	xtring name;
 	/// First management year (calendar year)
-	/** Sets time when common features for managed stands begin, e.g. relaxed establishment rules and absence of disturbance before harvest begins.
-	 *  This currently only applies for stands with wood havest */
+	/** Sets time when common features for managed stands begin, e.g. relaxed establishment rules and absence of disturbance before harvest begins. */
 	int firstmanageyear;
 	/// First year with wood harvest (calendar year)
 	int firstcutyear;
+	/// Whether to clearcut a stand in firstmanageyear (when not created in year 0)
+	bool clearcut_first_manageyear;
 	// Whether the reference age for thinning timing is time since firstcutyear rather than the pach age
 	bool firstcutyear_is_referenceyear;
 	/// First year with clearcut (calendar year)
@@ -2146,10 +2291,18 @@ public:
 	double woodharv_cmass;
 	/// Whether to ignore climate establishment limits
 	bool relaxed_establishment;
-	/// Whether to suppress fires
+	/// Whether to suppress prognostic fires
 	bool suppress_fire;
+	/// First calender year of fire suppression when suppress_fire is true
+	int suppress_fire_firstyear;
+	/// Last calender year of fire suppression when suppress_fire is true
+	int suppress_fire_lastyear;
 	/// Whether to suppress disturbance
 	bool suppress_disturbance;
+	/// First calender year of disturbance suppression when suppress_disturbance is true
+	int suppress_disturbance_firstyear;
+	/// Last calender year of disturbance suppression when suppress_disturbance is true
+	int suppress_disturbance_lastyear;
 	/// Whether to use tree pft planting densities after clearcut (plus bypass all envirinmental establishment limits)
 	bool set_planting_density;
 	/// Whether to clearcut firstmanageyear or rotation year (or first stand year); 0 = don't cut(clone), 1 = cut(don't clone), 2 = cut(clone)
@@ -2158,6 +2311,8 @@ public:
 	bool cutfirstyear_unsel;
 	/// Whether to kill grass at clearcut
 	bool killgrass_at_cc;
+	/// whether planted pft:s or all active pft:s are allowed to established after planting in a forest stand ("", "RESTRICTED", "ALL")
+	xtring reestab;
 	/// Whether to use stochastic mortality
 	bool stochmort;
 	/// Whether to use stochastic establishment
@@ -2175,8 +2330,8 @@ public:
 	/// Residue removal fraction during clearcut for coarse roots and stumps for all tree pft:s
 	double res_outtake_coarse_root_cc;
 
-	/// Water use (RAINFED,IRRIGATED) 
-	waterusetype wateruse;
+	/// hydrology (RAINFED,IRRIGATED) 
+	waterusetype hydrology;
 	/// irrigation efficiency
 //	double firr;
 	/// forced sowing date, unless sdate_force read from file
@@ -2201,6 +2356,7 @@ public:
 		id = -1;
 		firstmanageyear = FAR_FUTURE_YEAR;
 		firstcutyear = FAR_FUTURE_YEAR;
+		clearcut_first_manageyear = false;
 		firstcutyear_is_referenceyear = false;
 		firstclearcutyear = FAR_PREHISTORIC_YEAR;
 		delayduecutting = 0;
@@ -2249,11 +2405,16 @@ public:
 		woodharv_cmass = -1.0;
 		relaxed_establishment = false;
 		suppress_fire = false;
+		suppress_fire_firstyear = FAR_PREHISTORIC_YEAR;
+		suppress_fire_lastyear = FAR_FUTURE_YEAR;
 		suppress_disturbance = false;
+		suppress_disturbance_firstyear = FAR_PREHISTORIC_YEAR;
+		suppress_disturbance_lastyear = FAR_FUTURE_YEAR;
 		set_planting_density = false;
 		cutfirstyear = 1;
 		cutfirstyear_unsel = false;
 		killgrass_at_cc = false;
+		reestab = "ALL";
 		stochmort = true;
 		stochestab = true;
 		harv_eff_thin = -1.0;
@@ -2263,7 +2424,7 @@ public:
 		res_outtake_twig_cc = -1.0;
 		res_outtake_coarse_root_cc = -1.0;
 
-		wateruse = RAINFED;
+		hydrology = RAINFED;
 //		firr = 0.0;
 		sdate = -1;
 		hdate = -1;
@@ -2280,7 +2441,7 @@ public:
 	bool is_managed() {
 
 		// Add new management parameters here
-		if(pftname != "" || planting_system != "" || selection != ""||  harvest_system != "" ||  wateruse == IRRIGATED 
+		if(pftname != "" || planting_system != "" || selection != ""||  harvest_system != "" ||  hydrology == IRRIGATED 
 			|| fallow || relaxed_establishment || suppress_fire || suppress_disturbance || nfert > -1.0 || firstmanageyear < FAR_FUTURE_YEAR)
 			return true;
 		else
@@ -2381,52 +2542,23 @@ public:
 	bool rotation_wait_for_cc;
 	/// Disturbance interval (years)
 	double distinterval;
+	/// tree initialisation input file name
+	xtring file_treeinit_st;
 
 	/// intercrop (NOINTERCROP,NATURALGRASS)
 	intercroptype intercrop;
 	/// whether natural pft:s are allowed to grow in stand type
 	xtring naturalveg; // "", "GRASSONLY", "ALL"
-	/// whether planted pft:s or all active pft:s are allowed to established after planting in a forest stand ("", "RESTRICTED", "ALL")
-	xtring reestab;
-
-	/// used for output from separate stand types
-	double anpp;
-	double cmass;
-	double cmass_tree;
-	double cmass_tree_mort;
-	double cmass_wood;
-	double cmass_wood_potharv;
-	double cmass_wood_potharv_products;
-	double cmass_potfuel;
-	double cmass_mort;
-	double cmass_fire;
-	double cmass_dist;
-	double cmass_leaf_root_turnover;
-	double cmass_repr;
-	double cmass_est;
-	double cmass_wood_harv;
-	double cmass_wood_harv_toprod;
-	double cmass_wood_clearcut;
-	double cmass_harv_tolitter;
-	double cmass_harv_killed;
-	double densindiv;
-	double diam_g;
-	double csoil;
-	double clitter;
-	double csink;
-	double lai;
-	double lai_tree;
-	double height;
 
 	StandType() {
 
 		intercrop = NOINTERCROP;
 		naturalveg = "";
-		reestab = "ALL";
 		rotation_wait_for_cc = false;
 		distinterval = 1.0e10;
 		for(int m=0;m<NROTATIONPERIODS_MAX;m++)
 			mtstartyear[m] = -1;
+		file_treeinit_st = "";
 	}
 
 	ManagementType& get_management(int rot = 0) {
@@ -2493,6 +2625,133 @@ class StandTypelist : public ListArray_id<StandType> {
 
 /// The one and only linked list of StandType objects
 extern StandTypelist stlist;
+
+
+/// Holds static functional parameters for an insect functional type (IFT). 
+/** There should be one Ift object for each potentially occurring IFT.
+ */
+class Ift {
+
+public:
+	/// id code (should be zero based and sequential, 0...nift-1)
+	int id;
+	/// name of IFT
+	xtring name;
+
+	// Phenology parameters
+	int season_start_day;					// day
+	double flight_season_end_temp;			// mean T
+	double flight_temp_min;					// 16.5
+	double flight_temp_max;					// 30 in Jönsson
+	double survive_temp_min;
+	double survive_temp_max;				// Used for Phenips bark temperature
+//	double spring_swarming_min_threshold;	// 8.3
+	double spring_swarming_heat_sum_target;	// 60.5
+	double spring_infestation_min_temp;		// 16.8		// Not used anymore
+	double spring_infestation_heat_sum_target;	// 140
+	int egg_dev_start_delay;				// 7 (Jönsson); 1st and 2nd generation
+	double dev_temp_base;					// 8.3
+	double dev_temp_opt;				// 30.4
+	double dev_temp_max;		// 38.9
+	double dev_heat_sum_target;				// 557
+	double dev_diapause_success_limit_frac;	// 0.6
+	double dev_reemergence_frac;			// 0.5	; Ips tpographicus, D.frontalis
+
+	xtring host_pft;						// Should be read from ins-file
+
+	Ift() {
+
+		//		Only parameters not used by Ips_typ are initialised here. The values may have to be set here to have no effect in conditionals.
+		//		Comments with alternative values retained for now.
+		season_start_day = 0;						// Not used for Ips_typ
+//		season_start_day = 92;						// PHENIPS setting: April 1
+////		flight_season_end_temp = 15;				// (Jönssson) ; alternative: 10 (too many swarmings); Jönsson 2011: little difference between 14, 15 & 16 deg.
+//		flight_season_end_temp = 10;
+//		flight_season_end_temp = 14;				///////////////////////////////////////////// TEST: decrease for more summer swarmings, especially if flight_temp_min raised
+//		flight_temp_min = 20;						// Jönssson 2007			;	IMPORTANT ! ; lower in populations hibernating in bark
+////		flight_temp_min = 16;						// Jönssson 2011
+//		flight_temp_min = 20;						///////////////////////////////////////////// TEST: Raise for later spring swarming (too early with 20deg with cru-ncep)	
+		flight_temp_max = 60;						// (Jönssson) ; used ?
+		survive_temp_max = 50;
+		survive_temp_min = -100;
+		//		spring_swarming_min_threshold = 5;			// same as dev_temp_base
+		////		spring_swarming_heat_sum_target = 120;		// Tmean used !	(Öhrn 50 dd)		; LESS IMPORTANT (More important in the north, hibernation in soil (?: opposite relationship with cru-ncep))
+		//		spring_swarming_heat_sum_target = 140;		///////////////////////////////////////////// TEST: 120dd always reached before 20deg limit, lower further south
+		spring_infestation_heat_sum_target = 0;		// Not used
+////		egg_dev_start_delay = 7;
+////		dev_temp_base = 5;							// Annila 1969
+		dev_temp_opt = 30.4;						// PHENIPS; Not used
+		dev_temp_max = 38.9;						// PHENIPS; Not used
+////		dev_heat_sum_target = 625;					// 625 and 750 were used to account for microclimatic  and light variation (Öhrn_ 449 dd)
+////		dev_diapause_success_limit_frac = 1.0;		// Only fully adults counted in 2007 paper
+//		dev_diapause_success_limit_frac = 0.6;		// PHENIPS value; should be 1.0 for locations with litter hibernation (100% in northern range, 50% in s.Sweden and Switzerland, 0% in central & southern Europe) !
+													// 1.0 best for whole of Scandinavia (Jönsson 2011)
+		dev_diapause_success_limit_frac = 0.0;		// Default: no diapause requirement
+		dev_reemergence_frac = 0.5;					// PHENIPS value 0.5; Annila 150-200 dd (ca. 30% of 625), 122,256 (Öhrn: 0.3); Wermelinger and Seifert: most important in Scandinavia and at high elevations for Ips populations
+													// 90% of parents reemerged in Norway in 1970s (Bakke et al. 1977)
+
+		host_pft = "";
+	}
+
+	double calc_daily_heat_sum(Climate& climate) {
+
+		double heat_sum = 0.0;
+
+		if (climate.temp >= dev_temp_base && climate.temp < dev_temp_max)
+			heat_sum = climate.temp - dev_temp_base;
+		return heat_sum;
+	}
+
+	/// Returns true if pft is in host_pft string.
+	bool pftinhosts(const char* name);
+};
+
+/// A list of IFTs
+/** Functionality for building, maintaining, referencing and destroying a list array of
+ *  Ift objects. In general, there should be a single Pftlist object containing
+ *  a single list of IFTs
+ *
+ * Functionality is inherited from the ListArray_id template type in the GUTIL
+ * Library. Sequential Pft objects can be referenced as array elements by id:
+ *
+ *   Iftlist iftlist;
+ *   ...
+ *   for (i=0; i<nift; i++) {
+ *     Ift& thisift=iftlist[i];
+ *     // query or modify object thispft here
+ *   }
+ *
+ * or by iteration through the linked list:
+ *
+ *   iftlist.firstobj();
+ *   while (iftlist.isobj) {
+ *     Ift& thispft=iftlist.getobj();
+ *     // query or modify object thispft here
+ *     iftlist.nextobj();
+ *   }
+ */
+class Iftlist : public ListArray_id<Ift> {
+
+public:
+	int getiftid(xtring iftname) {
+
+		int id = -1;
+
+		for (unsigned int i = 0; i < this->nobj; i++) {
+
+			Ift& ift = (*this)[i];
+			if (ift.name == iftname) {
+				id = ift.id;
+				break;
+			}
+		}
+
+		return id;
+	}
+};
+
+/// The one and only linked list of Ift objects	
+extern Iftlist iftlist;
 
 /// TODO : Assaf copied and pasted this section as is from Grote branch (20/11/2023).
 /// senescence helper to be able to have a within year senescene of leaves and roots
@@ -2693,6 +2952,8 @@ public:
 	double A_growth;
 	/// fraction of NPP allocated to reproduction
 	double reprfrac;
+	/// tree age at start of NPP allocation to reproduction
+	double reprage;
 	/// fraction of NPP allocated to crowns
 	double crownfrac;
 	// fraction of shoot allocated to culms (=culm / (culm + leaves))
@@ -2756,6 +3017,8 @@ public:
 	double k_allom2;
 	/// constant in allometry equations
 	double k_allom3;
+	/// bole to height ratio
+	double bole_ratio;
 	/// constant in allometry equations
 	double k_rp;
 	/// tree leaf to sapwood area ratio
@@ -3093,6 +3356,10 @@ public:
 	/// autumn/spring sowing of pft:s with tempautumn = 1
 	int forceautumnsowing;	//0 = NOFORCING,  1 = AUTUMNSOWING, 2 = SPRINGSOWING
 
+	/// Storm damage parameters
+	double storm_sensiv; // Species specific parameter of storm sensitivity
+	double eff_h; // Species specific parameter of shelter efficiency used for path h calculation (section 2.6 in Lagergren et al)
+
 	double avg_cton(const double& min, const double& max) {
 		return 2.0 / (1. / min + 1. / max);
 	}
@@ -3203,6 +3470,8 @@ public:
 
 		N_appfert = 0.0;
 
+		eps_iso = 0.0;
+
 		T_vn_min=0.0;
 		T_vn_opt=0.0;
 		T_vn_max=0.0;
@@ -3252,6 +3521,8 @@ public:
 		Ha_growth = 0.0;
 		T0_growth = 0.0;
 		temp_dormancy = 0.0;
+		reprage = 0;
+		reprfrac = 0.0;
 		extkn = 0;
 		racclim = 0;
 		wscal_min_dormant = 0;
@@ -4317,6 +4588,9 @@ public:
 	/// mean root age of the individual (y)
 	double meanrootage;
 
+	/// monthly positiv gpp
+	double mgpp[12];
+
 	/// 20-day record of LAI (0-1)
 	Historic<double, 20> lai_20;
 	/// 20-day record of NSC pool (kgC/m2/d)
@@ -4411,6 +4685,10 @@ public:
 	/// bole height, i.e. height above ground of bottom of crown cylinder (m)
 	/** (individual and cohort modes only) */
 	double boleht;
+	/// Relative growth rates: log(diam) - log(dbh)
+	double relative_growth_rate;
+	/// Diameter at breast height (m)
+	double dbh;
 	/// patch-level lai for this individual or cohort (function fpar)
 	double lai;
 	/// patch-level lai for cohort in current vertical layer (function fpar)
@@ -4642,6 +4920,14 @@ public:
 	/// cutting intensity (fraction cut)
 	double man_strength;
 
+	/// Storm damage parameters
+	double allom_ind; // Allometric index depending on individual diameter and height
+	double height_ind; // Height index refecting the cohort height in relation to the mean of the patch
+	double sens_ind[6]; // Sensitivity index in 6 wind sectors
+	double sens_ind_tot;
+	double dam_frac; // Fraction of the cohort that will be damaged
+	double dam_frac_pot; // Potential fraction of the cohort that will be damaged
+
 	/// Daily allocation
 	double g_fac;
 	double gpp_fac;
@@ -4739,6 +5025,15 @@ public:
 
 	/// Report a flux associated with this Individual
 	/** Fluxes from 'new' Individuals (alive == false) will not be reported */
+	void report_flux(Fluxes::PerDiamFluxType flux_type, int diam, double value);
+
+	//MORT
+		/// Report a flux associated with this Individual
+	/** Fluxes from 'new' Individuals (alive == false) will not be reported */
+	void report_flux_luc_mort(Fluxes::PerDiamFluxType flux_type, int diam, double value);
+
+	/// Report a flux associated with this Individual
+	/** Fluxes from 'new' Individuals (alive == false) will not be reported */
 	void report_flux(Fluxes::PerPatchFluxType flux_type, double value);
 
 	/// Whether an individual is either a true crop or a cover crop grass
@@ -4784,10 +5079,12 @@ public:
 	 *  \param mortality_fire fraction of Individual's biomass killed due to
 	 *                        fire only
 	 */
-	void reduce_biomass(double mortality, double mortality_fire, double &closs, double &nloss);
+	//MORT
+	void reduce_biomass(double mortality, double mortality_fire,
+		double mortality_greff, double mortality_thin, double mortality_age, double mortality_insect, bool prescribed_fire, double &closs, double &nloss);
 
 	/// A version of the above reduce_biomass for the use with BLAZE
-	void blaze_reduce_biomass(Patch& patch, double frac_survive, double &closs, double &nloss);
+	void blaze_reduce_biomass(Patch& patch, double frac_survive, bool prescribed_fire, double &closs, double &nloss);
 
 	/// Total storage of nitrogen
 	double nstore() const {
@@ -4851,6 +5148,9 @@ public:
 	/// Gets the individual's Patchpft
 	Patchpft& patchpft() const;
 
+	//MORT
+	void mortflux(double mortality, int mortmech, double lcfrac = 1.0, bool landusechange = false);
+
 	/// returns SLA value of indiv
 	double sla() const;
 
@@ -4860,7 +5160,7 @@ public:
 	 *                 harvest will be done according to the PFT's harvest efficiency
 	 *                 and residue outtake.
 	 */
-	void kill(bool harvest = false);
+	void kill(int mortmech, bool harvest = false);
 
 	/// Annual mean wscal - water stress parameter (0-1 range; 1 = minimum stress)
 	/** Value only valid at end of year, after call to canopy_exchange().
@@ -5963,6 +6263,10 @@ public:
 	/// Equilibrium concentration of CH4 [mol L-1]
 	double Ceq_CH4;
 
+	/// Storm damage parameters
+	int soilfrostdays; // Days with soil T < 0
+	double frozen_soil_ind; // Frozen soil index
+
 	/// records the first time T is calculated
 	bool firstTempCalc;
 
@@ -6420,6 +6724,10 @@ public:
 	double anetps_ff;
 	/// water stress parameter (0-1 range; 1=minimum stress)
 	double wscal;
+	/// monthly mean wscal
+	double wscal_mean_month[12];
+	/// monthly water stress parameter for previous year, used in insect mortality, FL 211018
+	double wscal_mean_month_prev[12];
 	/// five day record of wscal. Used in daily grass growth
 	Historic<double, 5> wscal_5;
 	/// ten day record of wscal. Used in DAVE daily grass growth for determination of dormancy.
@@ -6507,22 +6815,64 @@ public:
 	double cmass_fire;
 	/// carbon lost during ´disturbance
 	double cmass_dist;
-	/// carbon lost during turnover
+	/// carbon lost during turnover (kgC/m2)
 	double cmass_leaf_root_turnover;
-	/// carbon lost to reproduction
+	/// carbon lost to reproduction (kgC/m2)
 	double cmass_repr;
-	/// carbon added at establishment
+	/// carbon added at establishment (kgC/m2)
 	double cmass_est;
-	/// carbon in biomass killed in harvest this year (kgC/m2)
+	/// carbon lost during prognostic fire (kgC/m2); doesn't have to be serialised or in lc transfer (excluded in years with prescribed disturbance)
+	double cmass_fire_killed;
+	/// carbon in biomass killed in forest harvest this year (kgC/m2)
 	double cmass_harv_killed;
-	/// harvested wood C before removing part to the product pool (kgC/m2)
+	/// carbon in biomass killed in clearcuts this year (part of cmass_harv_killed, kgC/m2); doesn't have to be serialised or in lc transfer (excluded in years with prescribed disturbance)
+	double cmass_clearcut_killed;
+	/// carbon in biomass killed in thinning this year (part of cmass_harv_killed, kgC/m2)
+	double cmass_thin_killed;
+	/// carbon lost during prognostic storm mortality (kgC/m2)
+	double cmass_wind_killed;		// Prognostic storm mortality; doesn't have to be serialised or in lc transfer (excluded in years with prescribed disturbance)
+	/// carbon lost during prognostic insect mortality (kgC/m2)
+	double cmass_barkbeetle_killed;		// Prognostic insect mortality; doesn't have to be serialised or in lc transfer (excluded in years with prescribed disturbance)
+
+	// Prescribed disturbance mortality
+	/// carbon in biomass killed in prescribed clearcut disturbance this year (kgC/m2)	: cmass_dist variables don't have to be serialised !
+	double cmass_dist_clearcut_killed;
+	/// carbon in biomass killed in prescribed fire disturbance this year (kgC/m2)
+	double cmass_dist_fire_killed;
+	/// carbon in biomass killed in prescribed wind disturbance this year (kgC/m2)
+	double cmass_dist_wind_killed;
+	/// carbon in biomass killed in prescribed barkbeetle disturbance this year (kgC/m2)
+	double cmass_dist_barkbeetle_killed;
+
+	/// standard and prescribed harvested stem wood C before removing part to the product pool (kgC/m2)
 	double cmass_wood_harv;
-	/// harvested wood C removed to the product pool (kgC/m2)
+	/// standard and prescribed harvested wood C removed to the product pool (kgC/m2)
 	double cmass_wood_harv_toprod;
-	/// trunk part of carbon harvested in clearcut
+	/// stem part of carbon harvested in standard and prescribed clearcut
 	double cmass_wood_clearcut;
-	/// harvested tree C left as litter (kgC/m2)
+	/// stem part of carbon harvested in thinning
+	double cmass_wood_thin;
+	/// standard and prescribed harvested tree C left as litter (kgC/m2)
 	double cmass_harv_tolitter;
+
+	double cmass_harv_killed_plus10cm;
+	double cmass_thin_killed_plus10cm;
+	double cmass_clearcut_killed_plus10cm;
+	double cmass_fire_killed_plus10cm;
+	double cmass_wind_killed_plus10cm;
+	double cmass_barkbeetle_killed_plus10cm;
+	double cmass_dist_clearcut_killed_plus10cm;
+	double cmass_dist_fire_killed_plus10cm;
+	double cmass_dist_wind_killed_plus10cm;
+	double cmass_dist_barkbeetle_killed_plus10cm;
+	/// standard and prescribed gross harvested stem wood C (kgC/m2)
+	double cmass_wood_harv_killed;
+	double cmass_wood_harv_killed_plus10cm;
+
+	/// stem biomass litter this year above diameter limit available for bark beetles, FL 211019
+	double insect_stem_litter;
+	/// stem biomass litter from previus year above diameter limit available for bark beetles, FL 211019
+	double insect_stem_litter_prev;
 
 	/// leaf-derived nitrogen litter for PFT on modelled area basis (kgN/m2)
 	double nmass_litter_leaf;
@@ -6641,6 +6991,10 @@ public:
 		nmass_litter_NH4 = 0.0;
 
 		wscal = 1.0;
+		for (int i = 0;i < 12;i++) {
+			wscal_mean_month[i] = 1.0;
+			wscal_mean_month_prev[i] = 1.0;
+		}
 		wscal_mean = 1.0;
 		anetps_ff = 0.0;
 		aphen = 0.0;
@@ -6652,6 +7006,7 @@ public:
 		anetps_ff_est_initial = 0.0;
 		wscal_mean_est = 0.0;
 		nsapling = 0;
+		wmass_deficit_y = 0;
 		nsapling_year = 0;
 
 		for (int mth = 0; mth < 12; mth++) {
@@ -6686,9 +7041,34 @@ public:
 		cmass_wood_harv = 0.0;
 		cmass_wood_harv_toprod = 0.0;
 		cmass_wood_clearcut = 0.0;
+		cmass_wood_thin = 0.0;
 		cmass_harv_tolitter = 0.0;
 		cmass_harv_killed = 0.0;
+		cmass_thin_killed = 0.0;
+		cmass_clearcut_killed = 0.0;
+		cmass_fire_killed = 0.0;
+		cmass_wind_killed = 0.0;
+		cmass_barkbeetle_killed = 0.0;
+		cmass_dist_clearcut_killed = 0.0;
+		cmass_dist_fire_killed = 0.0;
+		cmass_dist_wind_killed = 0.0;
+		cmass_dist_barkbeetle_killed = 0.0;
 
+		cmass_harv_killed_plus10cm = 0.0;
+		cmass_thin_killed_plus10cm = 0.0;
+		cmass_clearcut_killed_plus10cm = 0.0;
+		cmass_fire_killed_plus10cm = 0.0;
+		cmass_wind_killed_plus10cm = 0.0;
+		cmass_barkbeetle_killed_plus10cm = 0.0;
+		cmass_dist_clearcut_killed_plus10cm = 0.0;
+		cmass_dist_fire_killed_plus10cm = 0.0;
+		cmass_dist_wind_killed_plus10cm = 0.0;
+		cmass_dist_barkbeetle_killed_plus10cm = 0.0;
+		cmass_wood_harv_killed = 0.0;
+		cmass_wood_harv_killed_plus10cm = 0.0;
+
+		insect_stem_litter = 0.0;
+		insect_stem_litter_prev = 0.0;
 		dormancy_depth = 0;
 
 		// 30 years by default.
@@ -6708,6 +7088,8 @@ public:
 		amort_cstarve = 0.0;
 		amort_cstarve_ntree = 0.0;
 		dmort_cstarve_ntree = 0.0;
+		gcbase = 0.0;
+		gcbase_day = 0.0;
 	}
 
 	~Patchpft() {
@@ -6738,6 +7120,32 @@ private:
 };
 
 
+/// State variables common to all individuals of a particular IFT in a particular patch
+/** Used in individual and cohort modes only. */
+class Patchift : public Serializable {
+
+	// MEMBER VARIABLES:
+
+public:
+
+	/// id code (equal to value of member variable id in corresponding Pft object)
+	int id;
+	/// reference to corresponding Ift object in IFT list
+	Ift& ift;
+	/// Index of population size
+	double pop_ind;
+
+	// MEMBER FUNCTIONS:
+
+	/// Constructor: initialises id, ift and data members
+	Patchift(int i, Ift& p) :id(i), ift(p) {
+
+		pop_ind = 10.0;
+	}
+
+	void serialize(ArchiveStream& arch);
+};
+
 /// Stores data for a patch.
 /** In cohort and individual modes, replicate patches are
  *  required in each stand to accomodate stochastic variation; in population mode there
@@ -6757,9 +7165,12 @@ public:
 	Stand& stand;
 	/// list array [0...npft-1] of Patchpft objects (initialised in constructor)
 	ListArray_idin1<Patchpft,Pft> pft;
+
+	ListArray_idin1<Patchift, Ift> ift;
+
 	/// vegetation for this patch
 	Vegetation vegetation;
-	/// soil  for this patch
+	/// soil for this patch
 	Soil soil;
 	/// fluxes for this patch
 	Fluxes fluxes;
@@ -6787,6 +7198,12 @@ public:
 	bool burned;
 	/// BLAZE Fire line intensity (kW/m)
 	double fire_line_intensity;
+	// Year's maximum fire line intensity used for prescribed fire disturbance input
+	double fire_line_intensity_year_max;
+	// Year's maximum available fuel used for fire line intensity calculation in BLAZE
+	double available_fuel_year_max;
+	// Year's fire mortality sum used for prescribed fire disturbance input
+    double biomass_weighted_fire_mortality;
 	/// BLAZE available fuel (g/m2)
 	double avail_fuel;
 
@@ -6825,16 +7242,20 @@ public:
 	double fapar_total_avg[N_YEAR_BIOMEAVG];
 
 	/// whether management has started on this patch (usually, no disturbance or fire)
-	bool managed;
+	bool management_started;
 	/// whether cutting started on this patch
 	bool has_been_cut;
 	/// cutting intensity (initial fraction of trees cut, further selection at individual level is done in a separate function)
 	double man_strength;
 
+	long harvest_seed;
+
 	/// Non-commercial thinning (harvest to litter)
 	bool harvest_to_litter;
 	/// Whether patch has been managed this year
 	bool managed_this_year;
+	/// Whether patch has been managed previous year
+	bool managed_previous_year;
 	/// Whether patch has been clearcut this year
 	bool clearcut_this_year;
 	/// Latest cutting interval (patch age at year of clearcut)
@@ -6843,12 +7264,37 @@ public:
 	int cutinterval_actual_thisyear;
 	/// Whether patch should be planted this year
 	bool plant_this_year;
+	/// Whether patch has been disturbed (prescribed) last day of the year
+	bool prescribed_disturbed;
 	/// Whether man_strength has been partitioned on individuals this year
 	bool distributed_cutting;
 	/// Whether tree density is below limit after firstclearcutyear (when using tree density as a trigger for clearcut)
 	bool cut_due;
 	/// Initial tree density (when using Reineke's rule-based automatic thinning)
 	double dens_start;
+
+	double harvest_probability;
+	double clearcut_probability;
+	double thinning_intensity_mean;
+	double thinning_intensity_sd;
+	int thinning_size_preference;
+
+	/// Storm damage parameters
+	double height; // BA weighted average patch height taking shelter efficiency into account
+	double exp_ind[6]; // Random constant (over time) exposure index at patch level, reflecting exposure to different wind directions
+	double height_ind; // Height index for patch in relation to averaga grid cell patch height
+	double root_mass; // Current year root mass total root mass, used for thinning response
+	double root_m_th; // Root mass before the most resent thinning
+	bool thinned; // Whether the patch has been thinned after the most recent clear-cut or disturbance
+	double strength_b; //From reduction in root mass calculated strength of most recent thinning
+	double root_stab_ind; // Root stability index
+	double storm_sens_ind; // Volume weighted average sensitivity of the individuals
+	double storm_dam_wood; // Applied storm-damaged wood C mass
+	double storm_dam_wood_pot; // Potential storm damaged wood C mass
+	double storm_cmass_wood_save;
+
+	// Insect damage
+	double insect_dam_wood; // Applied insect-damaged wood C mass
 
 	/// DLE - the number of days over which wcont is averaged for this patch
 	/** i.e. those days for which daily temp > 5.0 degC */
@@ -6890,6 +7336,11 @@ public:
 	double anfert;
 	/// daily nitrogen fertilization (kgN/m2/day)
 	double dnfert;
+
+	/// daily value of irrigation water (mm), set in irrigation(), derived from water_deficit_d
+	double irrigation_d;
+	/// yearly sum of irrigation water (mm)
+	double irrigation_y;
 
 	/// whether litter is to be sent to the soil today
 	bool is_litter_day;
@@ -7017,6 +7468,8 @@ public:
 		sdate_force = -1;
 		hdate_force = -1;
 		cmass_repr = 0.0;
+		fpc_total = 0.0;
+		cmass_repr = 0.0;
 	}
 
 	void serialize(ArchiveStream& arch);
@@ -7111,6 +7564,12 @@ public:
 	/// C lost in mortality
 	double cmass_mort;
 
+	// To avoid disturbance from multiple input sources
+	bool disturbed;
+
+	/// Storm damage parameters
+	bool storm_init_done; // Check if the random storm parameters have been initialized
+
 	/// Seed for generating random numbers within this Stand
 	/** The reason why Stand has its own seed, rather than using for instance
 	 *  a single global seed is to make it easier to compare results when using
@@ -7122,6 +7581,8 @@ public:
 	 *  \see randfrac()
 	 */
 	long seed;
+
+	long harvest_seed;
 
 	/// type of landcover
 	/** \see landcovertype
@@ -7182,13 +7643,13 @@ public:
 	/// Moves crop rotation forward
 	void rotate(int rot = -1);
 	/// Sets management parameters
-	void set_management();
+	void set_management(bool savetrees_force = false);
 	/// Sets parameters for the pft:s in selection
 	void set_selection_params();
 	/// Returns area transferred to other land cover during land cover change
 	double transfer_area_lc(landcovertype to);
 	/// Initiates new stand land cover settings
-	void init_stand_lu(StandType& st, double fraction, bool suppress_disturbance = false);
+	void init_stand_lu(StandType& st, double fraction, bool suppress_disturbance = false, bool savetrees_force = false, int current_rot = 0);
 	/// Total stand carbon biomass and litter
 	double ccont(double scale_indiv = 1.0);
 	/// Total stand nitrogen biomass and litter
@@ -7215,7 +7676,7 @@ public:
      *
      *  \returns reference to the new stand
      */
-    Stand& clone(StandType& st, double fraction, bool suppress_disturbance = false);
+    Stand& clone(StandType& st, double fraction, bool suppress_disturbance = false, bool savetrees_force = false);
 
 	void serialize(ArchiveStream& arch);
 
@@ -7319,6 +7780,15 @@ public:
 	/// flag to preclude crop sowing during fallow
 	bool sowing_restriction;
 
+	Historic<double, 20> cton_leaf_avr_20;
+	Historic<double, 20> cton_root_avr_20;
+	Historic<double, 20> cton_sap_avr_20;
+	Historic<double, 20> cton_heart_avr_20;
+	Historic<double, 20> latosa_avr_20;
+	/// Running means of 15 diameter classes
+	Historic<double, 20> qsap_avr_20[N_DIAM_CLASSES_SAMP];
+	Historic<double, 20> treeage_avr_20[N_DIAM_CLASSES_SAMP];
+
 	// MEMBER FUNCTIONS
 
 	/// Constructs a Gridcellpft object
@@ -7362,6 +7832,153 @@ public:
 	void serialize(ArchiveStream& arch);
 };
 
+/// State variables common to all individuals of a particular IFT in a GRIDCELL.
+class Gridcellift : public Serializable {
+
+public:
+
+	// MEMBER VARIABLES
+
+	/// A number identifying this object within its list array
+	int id;
+
+	/// A reference to the Ift object for this Gridcellpft
+	Ift& ift;
+
+	double min_temp;						// Use for winter survival
+	double spring_flight_temp_min_adj;		// Possibility to adjust flight_temp_min by soil hibernation
+	double soil_hibernation_frac;			// Fraction of insects that hibernate in soil
+	int flight_season_end_day;						// day
+	double flight_season_end_daylength;
+	double spring_swarming_heat_sum_accum;
+	double swarm_dev_delay_heat_sum_accum;	// Only used by PHENIPS
+	int spring_swarming_start;				// day
+	bool flight_season_ended;
+	int last_flightday;
+	double dev_heat_sum_accum[NGENERATIONS_MAX][NREEMERGENCES_MAX + 1];
+	int swarming_start[NGENERATIONS_MAX][NREEMERGENCES_MAX + 1];
+	int development_start[NGENERATIONS_MAX][NREEMERGENCES_MAX + 1];
+	bool killed[NGENERATIONS_MAX][NREEMERGENCES_MAX + 1];
+	double total_heat_sum_accum;
+	double daily_heat_sum_accum[365];
+	Historic<double, 30> last_swarmingday_daylength;
+	Historic<double, 30> last_swarmingday;
+	Historic<double, 30> asp30; // Length of autumn swarming period
+	/// Number of pft names in ift.host_pft string
+	int npfthosts;
+
+	int oviposition_day;
+	int generation_ndays;
+	int generation_ndays_latest;
+	int novipositions;
+	bool waitforspring;
+
+	// For output
+	double daily_cum_development_lifestage[365][NLIFESTAGES];
+	double cum_development_lifestage[NLIFESTAGES];
+
+	/// Index of the phenology related part of the bark-beetle mortality
+	double phen_ind;
+	/// Index of population size
+	double pop_ind;
+	/// Variable used to calculate the new index of population size over ptches
+	double pop_ind_new;
+	/// Random number to be used in calculation of stem available for insect
+	double storm_rand;
+	/// Total insect damage from this insect (kg C m-2)
+	double insect_damage;
+
+	// MEMBER FUNCTIONS
+
+	/// Constructs a Gridcellpft object
+	/** \param i   The id for this object
+	 *  \param p   A reference to the Pft for this Gridcellpft
+	 */
+	Gridcellift(int i, Ift& p) :id(i), ift(p) {
+
+		min_temp = 60;
+		spring_swarming_start = -1;
+		flight_season_ended = false;
+		flight_season_end_day = 100000;
+		flight_season_end_daylength = 0;			// Not used; Jönsson 2011: earliest day; set in calc_insect_phenology() based on latitude
+		last_flightday = 100000;
+		spring_swarming_heat_sum_accum = 0.0;				// max daily air temperature
+		swarm_dev_delay_heat_sum_accum = 0.0;
+		phen_ind = 0.0;
+		pop_ind = 10.0;
+		pop_ind_new = 10.0;
+		storm_rand = 0.0;
+
+		for (int i = 0;i < NGENERATIONS_MAX;i++) {
+			for (int j = 0;j < NREEMERGENCES_MAX + 1;j++) {
+				dev_heat_sum_accum[i][j] = 0.0;	// mean bark temperature
+				swarming_start[i][j] = -1;
+				development_start[i][j] = -1;
+				killed[i][j] = false;
+			}
+		}
+		total_heat_sum_accum = 0.0;
+		for (int i = 0;i < date.MAX_YEAR_LENGTH;i++) {
+			daily_heat_sum_accum[i] = 0.0;
+			for (int j = 0;j < NLIFESTAGES;j++) {
+				daily_cum_development_lifestage[i][j] = 0.0;
+			}
+		}
+
+		oviposition_day = -1;
+		generation_ndays = 0;
+		generation_ndays_latest = 0;
+		novipositions = 0;
+		waitforspring = false;
+
+		reset_lifestage_to_prepupal();
+
+		char* pp = NULL, string_copy[200] = { 0 };
+		npfthosts = 0;
+		strcpy(string_copy, ift.host_pft);
+		pp = strtok(string_copy, "\t\n ");
+		if (pp) {
+			npfthosts++;
+		}
+		do {
+			pp = strtok(NULL, "\t\n ");
+			if (pp) {
+				npfthosts++;
+			}
+		} while (pp);
+	}
+
+	void reset();
+
+	void calc_insect_phenology(Gridcell& gridcell);
+	void calc_insect_phenology_lifestage_bentz(Gridcell& gridcell);
+	void calc_insect_phenology_lifestage_regniere(Gridcell& gridcell);
+	void reset_lifestage_to_prepupal() {
+		/// Initialise to prepupal stage for winter
+		for (int j = 0;j < NLIFESTAGES; j++) {
+			//			if(j<PUPA-1)
+			if (j < PUPA - 2)
+				cum_development_lifestage[j] = 1.0;
+			//			else if(j==PUPA-1)
+			else if (j == PUPA - 2)
+				cum_development_lifestage[j] = 0.95;
+			else
+				cum_development_lifestage[j] = 0.0;
+		}
+	}
+
+	void reset_lifestage_to_egg() {
+		/// Initialise to egg
+		for (int r = 0;r < NLIFESTAGES;r++) {
+			cum_development_lifestage[r] = 0.0;
+		}
+		oviposition_day = date.day;
+		generation_ndays = 0;
+	}
+
+	void serialize(ArchiveStream& arch);
+};
+
 /// State variables common to all individuals of a particular STANDTYPE in a GRIDCELL.
 class Gridcellst : public Serializable {
 
@@ -7381,6 +7998,8 @@ public:
 	double frac_old;
 	/// original input value of old fraction of this stand type before rescaling
 	double frac_old_orig;
+	/// next year's fraction of this stand type relative to the gridcell
+	double frac_nextyear;
 	/// fraction unavailable for transfer to other stand types
 	double protected_frac;
 
@@ -7401,6 +8020,9 @@ public:
 	/// first management year
 	int firstmanageyear_st;
 
+	bool prescribed_establishment;
+	Establishment_list establishment_list;
+
 	// current number of stands of this stand type
 	int nstands;
 
@@ -7413,6 +8035,8 @@ public:
 	double woodharv_cmass;
 	/// Lower tree diameter limit (cm) for cutting (dynamic variable)
 	double diam_cut_low;
+	// Fluxes from LUC
+	double acflux_harvest;
 
 	// MEMBER FUNCTIONS
 
@@ -7424,6 +8048,7 @@ public:
 		frac = 1.0;
 		frac_old = 0.0;
 		frac_old_orig = 0.0;
+		frac_nextyear = 0.0;
 		protected_frac = 0.0;
 		frac_change = 0.0;
 		gross_frac_increase = 0.0;
@@ -7433,11 +8058,13 @@ public:
 		woodharv_frac = -1.0;
 		woodharv_cmass = -1.0;
 		diam_cut_low = 0.0;
+		acflux_harvest = 0.0;
 		reset_cutinterval_st = false;
 		cutinterval_st = 0.0;
 		firstmanageyear_st = FAR_FUTURE_YEAR;
 		distinterval_st = 1.0e10;
 		elevation_st = 0;
+		prescribed_establishment = false;
 	}
 
 	void serialize(ArchiveStream& arch);
@@ -7455,7 +8082,7 @@ struct forest_lc_frac_transfer {
 				secondary_young[i][j] = 0.0;
 			}
 		}
-	};
+	}
 };
 
 struct forest_st_frac_transfer {
@@ -7474,7 +8101,7 @@ struct forest_st_frac_transfer {
 			secondary_young[i] = 0.0;
 		}
 
-	};
+	}
 
 	~forest_st_frac_transfer(){
 		if(primary)
@@ -7500,6 +8127,8 @@ struct Landcover : public Serializable {
 	 *  land cover.
 	 */
 	double frac_old[NLANDCOVERTYPES];
+
+	double frac_nextyear[NLANDCOVERTYPES];
 
 	double frac_change[NLANDCOVERTYPES];
 
@@ -7609,6 +8238,12 @@ public:
 	/// climate, insolation and CO2 for this grid cell
 	Climate climate;
 
+	/// gridcell mean elevation
+	double elevation_gc_mean;
+
+	/// local (site) elevation
+	double elevation_local;
+
 	/// soil static parameters for this grid cell
 	Soiltype soiltype;
 
@@ -7617,6 +8252,9 @@ public:
 
 	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
 	ListArray_idin1<Gridcellpft,Pft> pft;
+
+	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
+	ListArray_idin1<Gridcellift, Ift> ift;
 
 	/// list array [0...nst-1] of Gridcellst (initialised in constructor)
 	ListArray_idin1<Gridcellst,StandType> st;
@@ -7644,6 +8282,8 @@ public:
 	double nesterov_monthly_max[12];
 	/// biome classification used in SIMFIRE
 	int simfire_biome;
+	///updated biome classification based on Landcover data
+	int simfire_biome_new;
 	/// Average maximum annual fAPAR (over avg_interv_fpar years)
 	double fapar_annual_max;
 	/// Average maximum annual fAPAR of recent years
@@ -7656,14 +8296,31 @@ public:
 	double burned_area;
 	/// effectively burned area (after randFrac in BLAZE)
 	double effective_burned_area;
+	double dfire_probability;
+	/// Why is/isn't there a fire
+	// 1: die_roll too low
+	// 2: flammable area too low
+	// 3: BA too low
+	// 4: fuel too low
+	// 7: has already burned
+	// 8: !has_fires
+	// 9: Success
+	int dfire_die_roll;
 	/// accumulated burned area from SIMFIRE for tstep < 1a (fract.)
 	double simfire_annual_burned_area;
+	double simfire_factors[4];
 	/// Simple tracker to check whether at least one patch has enough fuel to burn
 	int can_burn;
 	/// annual burned area
 	double annual_burned_area;
 	/// monthly burned area
 	double monthly_burned_area[12];
+	/// prescribed burned area
+	double prescribed_burned_area[365];
+	// fire RNG
+	std::mt19937 rng_fire;  // default-constructed with a fixed default seed
+    std::uniform_real_distribution<double> dist_fire{0.0, 1.0};
+
 
 	// Nitrogen deposition
 	/// annual NH4 deposition (kgN/m2/year)
@@ -7676,6 +8333,37 @@ public:
 	double dNO3dep;
 
 	double distinterval_gc;
+
+	double dist_clearcut_gc;
+	double dist_fire_gc;
+	double dist_wind_gc;
+	double dist_barkbeetle_gc;
+
+	double cflux_harv_cc;
+	double cflux_harv_cc_prescribed;
+	double cflux_harv_wind_prescribed;
+	double cflux_harv_barkbeetle_prescribed;
+	double cflux_harv_thin;
+	
+	double cfluxvol_harv_cc;
+	double cfluxvol_harv_cc_prescribed;
+	double cfluxvol_harv_wind_prescribed;
+	double cfluxvol_harv_barkbeetle_prescribed;
+	double cfluxvol_harv_thin;
+
+	int disturbance_input_firstyear;
+	int disturbance_input_lastyear;
+
+	double storm_prob_gc;
+
+	int year_treeinit;
+
+	// Storm
+	double windload;
+	double wind_speed_limit;
+
+	/// Running mean of yearly C harvest, used for capacity of salvage cutting after storm damage
+	Historic<double, 10> flux_charvest10y;
 
 	// Vector of (calendar) years in which a disturbance should occur.
 	// This only contains data and is only used when disttype = DETERMINISTIC.
@@ -7691,6 +8379,11 @@ public:
 	 *  \see randfrac()
 	 */
 	long seed;
+
+	long harvest_seed;
+
+	// Seed only used in probabilistic wind disturbance
+	long storm_seed;
 
 	// MEMBER FUNCTIONS
 
@@ -7718,7 +8411,7 @@ public:
 	Stand& create_stand(landcovertype lc, int no_patch = 0);
 
 	/// Creates new stand and initiates land cover settings when run_landcover==true
-	Stand& create_stand_lu(StandType& st, double fraction, int no_patch = 0, bool suppress_disturbance = false);
+	Stand& create_stand_lu(StandType& st, double fraction, int no_patch = 0, bool suppress_disturbance = false, bool savetrees_force = false, int current_rot = 0);
 
 	/// Total gridcell carbon biomass and litter
 	double ccont() const;
@@ -7733,6 +8426,11 @@ public:
 	/// Total gridcell water fluxes so far this year
 	double water_flux(Period period) const;
 
+	/// Storm damage parameters
+	double storm_dam_wood; // Applied storm-damaged wood c mass
+	double storm_dam_wood_prev; // Damaged wood c mass previos year, needed when the effect of salvage cutting in Ips is simulated but not implemented
+	bool storm_prob_force;
+
 	/// Deletes the stand which the iterator is pointing at
 	/** Returns an iterator pointing to the object following the erased object.
 	 */
@@ -7740,6 +8438,15 @@ public:
 
 	/// Returns number of stands
 	unsigned int nbr_stands() const;
+
+	//MORT
+	// A 16 by 3 matrix holding the values of land-use change mortality fluxes
+	std::vector< std::vector <double> > luc_mort;
+	std::vector< std::vector <double> > dist_mort;
+
+	// fire RNG
+	void init_fire_rng(uint64_t geohash);
+	double draw_random_fire();
 
 private:
 

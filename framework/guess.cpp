@@ -3366,8 +3366,10 @@ double Individual::ncont(double scale_indiv, bool luc, bool ignore_alive) const 
 			if (ifdailygrass && pft.is_grass()) {
 				ncont += nmass_leafs[0] - nmass_leafs_luc[0] * (1.0 - scale_indiv);
 				ncont += nmass_leafs[1] - nmass_leafs_luc[1] * (1.0 - scale_indiv);
-				ncont += nmass_leafs[2] - nmass_leafs_luc[2] * (1.0 - scale_indiv);
-				ncont += nmass_leafs[3] - nmass_leafs_luc[3] * (1.0 - scale_indiv);
+				if (!ifdavegrowth) {
+					ncont += nmass_leafs[2] - nmass_leafs_luc[2] * (1.0 - scale_indiv);
+					ncont += nmass_leafs[3] - nmass_leafs_luc[3] * (1.0 - scale_indiv);
+				}
 			}
 		}
 		else {
@@ -3780,8 +3782,10 @@ void Individual::save_nmass_luc() {
 	if (ifdailygrass && pft.is_grass()) {
 		nmass_leafs_luc[0] = nmass_leafs[0];
 		nmass_leafs_luc[1] = nmass_leafs[1];
-		nmass_leafs_luc[2] = nmass_leafs[2];
-		nmass_leafs_luc[3] = nmass_leafs[3];
+		if (!ifdavegrowth) {
+			nmass_leafs_luc[2] = nmass_leafs[2];
+			nmass_leafs_luc[3] = nmass_leafs[3];
+		}
 	}
 
 	if (cropindiv) {

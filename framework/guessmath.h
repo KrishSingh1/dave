@@ -755,9 +755,27 @@ public:
 
 	void serialize(ArchiveStream& arch) {
 		arch & capacity
-			& values
 			& current_index
 			& full;
+
+		if (arch.save()) {
+			for (size_t i = 0; i < capacity; i++) {
+				arch & values[i];
+			}
+		} else {
+			if (values) {
+				free(values);
+			}
+			values = (T *)malloc(sizeof(T) * capacity);
+			if (!values) {
+				fail("HistoricDynamic: Failed to allocate memory with capacity %zu: %s",
+					capacity, strerror(errno));
+			}
+
+			for (size_t i = 0; i < capacity; i++) {
+				arch & values[i];
+			}
+		}
 	}
 private:
 	void clear() {

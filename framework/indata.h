@@ -39,10 +39,12 @@ namespace TextInput {
 
 const int MAXLINE = 40000;
 const int MAXNAMESIZE = 50;
-const int MAXRECORDS = 400;
+const int MAXRECORDS = 1500;
 const int MAXLINESPARSE = 30000;
 const int NOTFOUND = -999;
-const double MAX_SEARCHDISTANCE = 1.0;
+const double ROUNDING_ERROR_CORRECTION = 1E-10;
+//const double MAX_SEARCHDISTANCE = 1.0;
+const double MAX_SEARCHDISTANCE = 0.5 + ROUNDING_ERROR_CORRECTION;
 
 /// Formats in text input file
 typedef enum {EMPTY, GLOBAL_STATIC, GLOBAL_YEARLY, LOCAL_STATIC, LOCAL_YEARLY} fileformat;
@@ -80,6 +82,10 @@ class TimeDataD	{
 	bool ifheader;
 	/// String array of data column names
 	char *header_arr[MAXRECORDS];
+
+	bool isstring[MAXRECORDS];
+	char **string_arr;
+
 	/// Coordinates for current gridcell
 	Coord currentStand;
 	/// Pointer to data for one (current) gridcell
@@ -154,7 +160,7 @@ public:
 
 	/// Opens input file, checks format and allocates memory. Returns false if error
 	bool Open(const char* name);
-	/// Opens input file, checks format and allocates memory. Copies all data for the gridlist into memory if map_text_file is true. Returns 0 if error.
+	/// Opens input file, checks format and allocates memory. Copies all data for the gridlist into memory if map_text_file is true. Returns false if error.
 	bool Open(const char* name, ListArray_id<Coord>& gridlist, double gridlist_offset = 0.0);
 	/// Releases dynamically allocated memory.
 	void Close();
@@ -168,12 +174,16 @@ public:
 	bool LoadNext(filepos *pos = NULL);
 	/// Returns a single data value for a certain year and data column
 	double Get(int calender_year, int column) const;
-	/// Returns a single data value for column with header string name. Returns -999 if name not found.
-	double Get(int calender_year, const char* name, bool suppress_warning = false) const;
+	/// Returns a single data value for column with header string name. Returns -999 if name not found or 0 if calender_year < firstyear when suppress_pre_cycling is true.
+	double Get(int calender_year, const char* name, bool suppress_warning = false, bool suppress_cycling = false) const;
 	/// Copies the data for the current gridcell for one year to an array.
 	void Get(int calender_year, double* dataX) const;
 	/// Copies all data for the current gridcell to an array.
 	void Get(double* dataX) const;
+
+	void Get_string(int calender_year, int column, char outstring[MAXNAMESIZE]) const;
+	void Get_string(int calender_year, const char* name, char outstring[MAXNAMESIZE], bool suppress_warning = false) const;
+	void Get_string_data(char** string_arrX) const;
 
 	// Methods to access private data
 
@@ -182,7 +192,7 @@ public:
 	/// Copies the data column names to a string array
 	bool GetHeader(char *cropnames[MAXRECORDS]) const;
 	/// Copies the whole header to a string
-	bool GetHeaderFull(char header_line[MAXLINE]) const;
+	bool GetHeaderFull(char *header_line) const;
 	/// Returns a pointer to a data name string for a column by its index
 	char* GetHeader(int record) const;
 	/// Returns the current coordinates
@@ -239,6 +249,10 @@ class TimeDataDmem {
 	bool ifheader;
 	/// String array of data column names
 	char *header_arr[MAXRECORDS];
+
+	bool isstring[MAXRECORDS];
+	char ***string_arr;
+
 	/// Index of current gridcell in data array
 	int currentCell;
 	/// First year of data
@@ -253,7 +267,7 @@ class TimeDataDmem {
 	/// Sets coord at index position
 	void SetCoord(int index, Coord c);
 	/// Sets data at index position
-	void SetData(int index, double* data);
+	void SetData(int index, double* data, char** string_arr);
 
 public:
 
@@ -265,7 +279,7 @@ public:
 	~TimeDataDmem();
 
 	/// Allocates memory.
-	void Open(int nCells, int nColumns, int nYears);
+	void Open(int nCells, int nColumns, int nYears, bool isstringX[]);
 	/// Releases dynamically allocated memory.
 	void Close();
 	/// Copies all data for gridlist to memory
@@ -276,6 +290,9 @@ public:
 	double Get(int calender_year, int column) const;		// Returns a single value.
 	/// Returns a single data value for column with header string name. Returns -999 if name not found.
 	double Get(int calender_year, const char* name, bool suppress_warning = false) const;
+
+	void Get_string(int calender_year, int column, char outstring[MAXNAMESIZE]) const;
+	void Get_string(int calender_year, const char* name, char outstring[MAXNAMESIZE], bool suppress_warning = false) const;
 
 	/// Returns the first year in the input data
 	int GetFirstyear() {return firstyear;}

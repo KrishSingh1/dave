@@ -2778,6 +2778,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 
 		// Save historical GPP for daily growth of grass
 		indiv.gpp_15.add(assim);
+		indiv.mgpp[date.month] += max(0.0, assim);
 
 		indiv.report_flux(Fluxes::NPP, indiv.dnpp);
 		indiv.report_flux(Fluxes::GPP, assim);
@@ -2962,6 +2963,7 @@ void init_canexch(Patch& patch, Climate& climate, Vegetation& vegetation) {
 				indiv.mgpp_no[m] = 0.0;
 				indiv.mvmaxnlim[m] = 0.0;
 				indiv.mlambda[m] = 0.0;
+				indiv.mgpp[m] = 0.0;
 			}
 
 			vegetation.nextobj();

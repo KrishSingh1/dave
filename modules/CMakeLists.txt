@@ -35,6 +35,7 @@ set(headers
   daveoutputhelpers.h
   hydraulics.h
   davephotosynthesis.h
+  storm.h
   )
 
 set(source  
@@ -72,6 +73,7 @@ set(source
   daveoutputhelpers.cpp
   hydraulics.cpp
   davephotosynthesis.cpp
+  storm.cpp
   )
 
 include(add_guess_sources)

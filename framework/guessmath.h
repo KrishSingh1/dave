@@ -632,7 +632,7 @@ private:
 /// New Historic class with the possibility to define 
 // length as input.
 template<typename T>
-class HistoricDynamic {
+class HistoricDynamic : public Serializable {
 	static_assert(std::is_arithmetic<T>::value, "HistoricDynamic can only be used with arithmetic types.");
 public:
 	HistoricDynamic() {
@@ -753,6 +753,12 @@ public:
 		return full ? capacity : current_index;
 	}
 
+	void serialize(ArchiveStream& arch) {
+		arch & capacity
+			& values
+			& current_index
+			& full;
+	}
 private:
 	void clear() {
 		if (values) {

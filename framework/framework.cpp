@@ -31,7 +31,8 @@
 #include "commonoutput.h"
 #include "soilmethane.h"
 #include "util.h"
-#include "hydraulics.h" 
+#include "hydraulics.h"
+#include "storm.h"
 
 #include <memory>
 
@@ -47,6 +48,21 @@ void print_logfile_heading() {
 	std::string dashed_line(50, '-');
 	dprintf("\n\n%s\n%s\n%s\n",
 	        dashed_line.c_str(), (char*)title, dashed_line.c_str());
+}
+
+void print_settings_to_logfile() {
+	std::string dashed_line(50, '-');
+	
+	dprintf("Active stand-types:\n");
+	for (unsigned int i = 0;i<stlist.nobj;i++) {
+		dprintf("%d %s\n",stlist[i].id,(char*)stlist[i].name);
+	}
+	dprintf("%s\n",dashed_line.c_str());
+	dprintf("Active PFT:s:\n");
+	for (unsigned int i = 0; i < pftlist.nobj;i++) {
+		dprintf("%d %s\n",pftlist[i].id,(char*)pftlist[i].name);
+	}
+	dprintf("%s\n",dashed_line.c_str());
 }
 
 /// Simulate one day for a given Gridcell
@@ -68,6 +84,9 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 	// Read miscellanous dynamic data, e.g. disturbance interval.
 	input_module->getmiscinput_yearly(gridcell);
 
+	// Calculate insect phenology
+	calc_insect_phenology(gridcell);
+
 	// Update crop sowing date calculation framework
 	crop_sowing_gridcell(gridcell);
 
@@ -81,6 +100,9 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 	if (gridcell.landcover.updated) {
 		gridcell.balance.rebase_day(gridcell);
 	}
+
+	// Calculate storm sensitivity and storm damaged fractions of this year
+	storm(gridcell);
 
 	// Perform forest management for all stands this year
 	manage_forests(gridcell);
@@ -185,6 +207,9 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 		++gc_itr;
 	}	// End of loop through stands
+
+	prescribed_disturbance(gridcell);
+	establish_input_gridcell(gridcell);	// Rescale area fractions to next year's values, pool soil.
 }
 
 
@@ -215,6 +240,8 @@ int framework(const CommandLineArguments& args) {
 	output_modules.init();
 
 	print_logfile_heading();
+
+	print_settings_to_logfile();
 
 	// Nitrogen limitation
 	if (ifnlim && !ifcentury) {

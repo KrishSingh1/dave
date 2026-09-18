@@ -13,8 +13,10 @@
 #include <sstream>
 #include "config.h"
 #include "guess.h"
+#include "driver.h"
 #include "growth.h"
 #include "landcover.h"
+#include "guessstring.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES WITH EXTERNAL LINKAGE
@@ -23,13 +25,16 @@
 
 Date date; // object describing timing stage of simulation
 int npft; // number of possible PFTs
+int nift; // number of IFTs
 int nst;  // number of possible stand types
 int nst_lc[NLANDCOVERTYPES];  // number of possible stand types in each land cover type
 int nmt;  // number of possible management types
+int ndiam=16;
 
 ManagementTypelist mtlist;
 StandTypelist stlist;
 Pftlist pftlist;
+Iftlist iftlist;
 
 // emission ratios from fire (NH3, NOx, N2O, N2) Delmas et al. 1995
 
@@ -149,7 +154,8 @@ void Climate::serialize(ArchiveStream& arch) {
 		& days_since_last_rainfall
 		& kbdi
 		& ffdi_monthly
-		& weathergenstate;
+		& weathergenstate
+		& wind_30y;
 }
 
 double Climate::get_tgrowth() const {
@@ -188,6 +194,7 @@ void WeatherGenState::serialize(ArchiveStream& arch) {
 Fluxes::Fluxes(Patch& p)
   : patch(p),
     annual_fluxes_per_pft(npft, std::vector<double>(NPERPFTFLUXTYPES)),
+    annual_fluxes_per_diam(ndiam, std::vector<double>(NPERDIAMFLUXTYPES)),
     daily_fluxes_per_pft(size_t(date.year_length()) * size_t(npft) * size_t(NPERPFTFLUXTYPES), 0.0) {
 
 	reset();
@@ -201,6 +208,10 @@ size_t Fluxes::daily_flux_index(int day, int pft_id, PerPFTFluxType flux_type) c
 void Fluxes::reset() {
 	for (size_t i = 0; i < annual_fluxes_per_pft.size(); ++i) {
 		std::fill_n(annual_fluxes_per_pft[i].begin(), int(NPERPFTFLUXTYPES), 0);
+	}
+
+	for (size_t i = 0; i < annual_fluxes_per_diam.size(); ++i) {
+		std::fill_n(annual_fluxes_per_diam[i].begin(), int(NPERDIAMFLUXTYPES), 0);
 	}
 
 	for (int m = 0; m < 12; ++m) {
@@ -217,6 +228,7 @@ void Fluxes::reset() {
 
 void Fluxes::serialize(ArchiveStream& arch) {
 	arch & annual_fluxes_per_pft
+		& annual_fluxes_per_diam
 		& monthly_fluxes_patch
 		& monthly_fluxes_pft;
 }
@@ -235,6 +247,11 @@ void Fluxes::report_flux(PerPatchFluxType flux_type, double value) {
 
 double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day, int pft_id) const {
 	return daily_fluxes_per_pft[daily_flux_index(day, pft_id, flux_type)];
+}
+
+//MORT
+void Fluxes::report_flux(PerDiamFluxType flux_type, int diam, double value) {
+	annual_fluxes_per_diam[diam][flux_type] += value;
 }
 
 double Fluxes::get_daily_flux(PerPFTFluxType flux_type, int day) const {
@@ -263,6 +280,19 @@ double Fluxes::get_annual_flux(PerPFTFluxType flux_type) const {
 		sum += annual_fluxes_per_pft[i][flux_type];
 	}
 	return sum;
+}
+
+//MORT
+double Fluxes::get_annual_flux(PerDiamFluxType flux_type) const {
+	double sum = 0;
+	for (size_t i = 0; i < annual_fluxes_per_diam.size(); ++i) {
+		sum += annual_fluxes_per_diam[i][flux_type];
+	}
+	return sum;
+}
+
+double Fluxes::get_annual_flux(PerDiamFluxType flux_type, int diam) const {
+	return annual_fluxes_per_diam[diam][flux_type];
 }
 
 double Fluxes::get_annual_flux(PerPatchFluxType flux_type) const {
@@ -422,10 +452,26 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& nmass_litter_repr
 		& cmass_ext_seed
 		& nmass_ext_seed
+		& cmass_mort
+		& cmass_leaf_root_turnover
+		& cmass_repr
+		& cmass_est
+		& cmass_harv_tolitter
+		& cmass_harv_killed
+		& cmass_thin_killed
+		& cmass_harv_killed_plus10cm
+		& cmass_thin_killed_plus10cm
+		& cmass_wood_harv
+		& cmass_wood_thin
+		& cmass_wood_harv_killed
+		& cmass_wood_harv_toprod
+		& cmass_harv_tolitter
+		& cmass_wood_harv_killed_plus10cm
 		& gcbase
 		& gcbase_day
 		& wsupply
 		& wsupply_leafon
+		& fwuptake
 		& wstress
 		& wstress_day
 		& cmass_harvested_products_slow
@@ -439,7 +485,11 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& swindow
 		& wmass_deficit_y
 		& inund_count
-		& inund_stress;
+		& inund_stress
+		& cmass_clearcut_killed
+		& insect_stem_litter
+		& dcmass_mort_kill
+		& acmass_mort_kill;
 	if (pft.landcover==CROPLAND)
 		arch & *cropphen;
 
@@ -483,6 +533,16 @@ void Patchpft::set_wscal(double wstress) {
 	if (date.islastmonth && date.islastday) {
 		wscal_mean /= date.year_length();
 	}
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Patchift member functions
+////////////////////////////////////////////////////////////////////////////////
+
+
+void Patchift::serialize(ArchiveStream& arch) {
+	arch& pop_ind;
+
 }
 
 cropphen_struct* Patchpft::get_cropphen() {
@@ -641,30 +701,64 @@ Patch::Patch(int i,Stand& s,Soiltype& st):
 		pft.createobj(pftlist[p]);
 	}
 
+	for (unsigned int p = 0; p < iftlist.nobj; p++) {
+		ift.createobj(iftlist[p]);
+	}
+
 	age = 0;
 	disturbed = false;
-	managed = false;
+	management_started = false;
 	has_been_cut = false;
 	man_strength = 0.0;
+	thinned = false;
 	harvest_to_litter = false;
 	clearcut_this_year = false;
 	cutinterval_actual = 0;
 	cutinterval_actual_thisyear = 0;
 	managed_this_year = false;
+	managed_previous_year = false;
 	plant_this_year = false;
+	prescribed_disturbed = false;
 	distributed_cutting = false;
 	cut_due = false;
 	dens_start = 0.0;
 	wdemand = 0.0;
 	wdemand_leafon = 0.0;
 	fpar_grass = 0.0;
+	fpar_ff = 0.0;
+	par_grass_mean = 0.0;
+	fpc_total = 0.0;
 	growingseasondays = 0;
+	nday_growingseason = 0;
+	irrigation_d = 0.0;
+	irrigation_y = 0.0;
+
+	wood_to_atm = 0.0;
+	leaf_to_atm = 0.0;
+	leaf_to_lit = 0.0;
+	wood_to_str = 0.0;
+	wood_to_fwd = 0.0;
+	wood_to_cwd = 0.0;
+	litf_to_atm = 0.0;
+	lfwd_to_atm = 0.0;
+	lcwd_to_atm = 0.0;
+
+	harvest_seed = stand.harvest_seed + id * id * id;
+
+	harvest_probability = 0.0;
+	clearcut_probability = 0.0;
+	thinning_intensity_mean = 0.0;
+	thinning_intensity_sd = 0.0;
+	thinning_size_preference = 0;
 
 	transp = 0.0;
 	intercep = 0.0;
 
 	burned = false;
 	fire_line_intensity = 0.0;
+	fire_line_intensity_year_max = 0.0;
+	available_fuel_year_max = 0.0;
+	biomass_weighted_fire_mortality = 0.0;
 	avail_fuel = 0;
 	fireprob = 0.0;
 	ndemand = 0.0;
@@ -684,12 +778,38 @@ Patch::Patch(int i,Stand& s,Soiltype& st):
 		fapar_total_avg[i] = 0.0;
 	}
 
+	wetland_water_added_today = 0.0;
+	awetland_water_added = 0.0;
+
+	intercep = 0.0;
+	apet = 0.0;
+	eet_net_veg = 0.0;
+	wdemand_day = 0.0;
+	fpc_rescale = 0.0;
+
+	height = 0.0;
+	height_ind = 0.0;
+	root_mass = 0.0;
+	root_m_th = 0.0;
+	strength_b = 0.0;
+	root_stab_ind = 0.0;
+	storm_dam_wood = 0.0;
+	storm_dam_wood_pot = 0.0;
+	storm_cmass_wood_save = 0.0;
+	storm_sens_ind = 0.0;
+	insect_dam_wood = 0.0;
+	for (int i = 0; i < 6; i++) {
+		exp_ind[i] = 0.0;
+	}
 }
 
 void Patch::serialize(ArchiveStream& arch) {
 	if (arch.save()) {
 		for (unsigned int i = 0; i < pft.nobj; i++) {
 			arch & pft[i];
+		}
+		for (unsigned int i = 0; i < ift.nobj; i++) {
+			arch& ift[i];
 		}
 	}
 	else {
@@ -699,6 +819,13 @@ void Patch::serialize(ArchiveStream& arch) {
 			pft.createobj(pftlist[i]);
 			arch & pft[i];
 		}
+		ift.killall();
+
+		for (unsigned int i = 0; i < iftlist.nobj; i++) {
+			ift.createobj(iftlist[i]);
+			arch& ift[i];
+		}
+
 	}
 
 	arch & vegetation
@@ -711,11 +838,13 @@ void Patch::serialize(ArchiveStream& arch) {
 		& fpc_total
 		& rpc_total
 		& disturbed
-		& managed
+		& prescribed_disturbed
+		& management_started
 		& has_been_cut
 		& cut_due
 		& dens_start
 		& cutinterval_actual
+		& cutinterval_actual_thisyear
 		& age
 		& fireprob
 		& growingseasondays
@@ -730,7 +859,17 @@ void Patch::serialize(ArchiveStream& arch) {
 		& wdemand_leafon
 		& fpc_rescale
 		& ndemand
+		& exp_ind
+		& managed_this_year
+		& storm_sens_ind
+		& storm_dam_wood_pot
+		& storm_dam_wood
+		& storm_cmass_wood_save
+		& insect_dam_wood
+		& irrigation_y
 		& fire_line_intensity
+		& fire_line_intensity_year_max
+		& available_fuel_year_max
 		& avail_fuel
 		& wood_to_atm
 		& leaf_to_atm
@@ -740,7 +879,8 @@ void Patch::serialize(ArchiveStream& arch) {
 		& wood_to_cwd
 		& litf_to_atm
 		& lfwd_to_atm
-		& lcwd_to_atm;
+		& lcwd_to_atm
+		& biomass_weighted_fire_mortality;
 		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
 			arch & fapar_grass_avg[i];
 		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
@@ -753,6 +893,7 @@ void Patch::serialize(ArchiveStream& arch) {
 			arch & fapar_shrub_avg[i];
 		for (unsigned int i=0; i < N_YEAR_BIOMEAVG; i++)
 			arch & fapar_total_avg[i];
+		arch& harvest_seed;
 }
 
 const Climate& Patch::get_climate() const {
@@ -763,15 +904,21 @@ const Climate& Patch::get_climate() const {
 bool Patch::has_fires() const {
 	// Since the standard fire parameterization was not developed for wetland vegetation and wetland/peatland soils, including 
 	// fires in tropical peatlands, we disallow this for now.
+	ManagementType& mt = stand.get_current_management();
+	int calender_year = date.get_calendar_year();
 	return firemodel != NOFIRE && stand.landcover != CROPLAND && stand.landcover != PEATLAND
-		&& !(managed && (stand.get_current_management().suppress_fire || suppress_disturbance_in_forestry_stands))
+		&& !(management_started && (mt.suppress_fire && calender_year >= mt.suppress_fire_firstyear && calender_year <= mt.suppress_fire_lastyear)
+			|| suppress_disturbance_in_forestry_stands)
 		&& (stand.landcover != PASTURE || disturb_pasture) && stand.landcover != BARREN && stand.landcover != URBAN;
 }
-
+// If suppress_disturbance_firstyear is defined, no disturbance will occur before this year; if not, it will start at firstmanageyear.
 bool Patch::has_disturbances() const {
-	return ifdisturb && stand.landcover != CROPLAND && !(managed && (stand.get_current_management().suppress_disturbance
-		|| suppress_disturbance_in_forestry_stands)) && (stand.landcover != PASTURE || disturb_pasture)
-		&& stand.landcover != BARREN && stand.landcover != URBAN;
+	ManagementType& mt = stand.get_current_management();
+	int calender_year = date.get_calendar_year();
+	return ifdisturb && stand.landcover != CROPLAND 
+		&& !(management_started && (mt.suppress_disturbance && calender_year >= mt.suppress_disturbance_firstyear && calender_year <= mt.suppress_disturbance_lastyear)
+			|| suppress_disturbance_in_forestry_stands) 
+		&& (stand.landcover != PASTURE || disturb_pasture) && stand.landcover != BARREN && stand.landcover != URBAN;
 }
 
 const int DAVE_DIAGNOSTIC_PRECISION = 16;
@@ -989,6 +1136,8 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int np
 			num_patches = ::npatch; // Use the global variable npatch
 		}
 	}
+	// The offset of 0.01 could be changed to a higher value to allow for a larger spread of seed values
+	harvest_seed = get_gridcell().harvest_seed + geohash(gc->get_lat(), gc->get_lon(), 0.01) + 1000 * id;
 
 	for (unsigned int p=0;p<num_patches;p++) {
 		createobj(*this, soiltype);
@@ -1027,9 +1176,12 @@ Stand::Stand(int i, Gridcell* gc, Soiltype& st, landcovertype landcoverX, int np
 	cmass = 0.0;
 	cmass_wood = 0.0;
 	cmass_mort = 0.0;
+	cmass_wood_harv = 0.0;
 	scale_LC_change = 1.0;
 	animal_units = 0.0;
 	days_grazed = 0.0;
+	storm_init_done = false;
+	disturbed = false;
 }
 
 Stand::~Stand() {
@@ -1044,7 +1196,7 @@ double Stand::get_gridcell_fraction() const {
 }
 
 /// Initiation of stand variables when run_landcover==true
-void Stand::init_stand_lu(StandType& st, double fraction, bool suppress_disturbance) {
+void Stand::init_stand_lu(StandType& st, double fraction, bool suppress_disturbance, bool savetrees_force, int current_rotX) {
 
 	landcovertype lc = st.landcover;
 	landcover = lc;
@@ -1058,21 +1210,22 @@ void Stand::init_stand_lu(StandType& st, double fraction, bool suppress_disturba
 
 	ManagementType& mt0 = st.get_management(0);
 
-	if(suppress_disturbance || date.get_calendar_year() >= mt0.firstmanageyear) {
+	if(suppress_disturbance || date.get_calendar_year() >= mt0.firstmanageyear) {	// suppress_disturbance in the function parameter list overrides firstmanageyear !
 		for(unsigned int i=0;i<npatch();i++)
-			(*this)[i].managed = true;
+			(*this)[i].management_started = true;
 	}
 
 	pftid = pftlist.getpftid(mt0.pftname);	// First main crop, will change during crop rotation
 	if(pftid < 0) {
-			// In case rotation starts with fallow
-			if(mt0.fallow && st.rotation.nmanagements > 1) {
-				ManagementType& mt_prev = st.get_management(st.rotation.nmanagements - 1);
-				pftid = pftlist.getpftid(mt_prev.pftname);
+		// In case rotation starts with fallow
+		if(mt0.fallow && st.rotation.nmanagements > 1) {
+			ManagementType& mt_prev = st.get_management(st.rotation.nmanagements - 1);
+			pftid = pftlist.getpftid(mt_prev.pftname);
 		}
 	}
-	current_rot = 0;
-	set_management();
+	if(current_rot == 0)	// current_rot is serialised, so it is already set at cloning
+		current_rot = current_rotX;
+	set_management(savetrees_force);
 
 	if (st.intercrop==NATURALGRASS && ifintercropgrass) {
 		hasgrassintercrop = true;
@@ -1149,7 +1302,7 @@ void Stand::set_selection_params() {
   * If restrictpfts is true, further restriction of pft:s are specified in the management settings.
   * Rules for reestablishment (after sowing or planting) are set by the parameter reestab, "none", "restricted"(only planted pft:s)
   */
-void Stand::set_management() {
+void Stand::set_management(bool savetrees_force) {
 
 	StandType& st = stlist[stid];
 	ManagementType& mt = get_current_management();
@@ -1159,7 +1312,7 @@ void Stand::set_management() {
 		gridcell->st[stid].nfert = mt.nfert;
 	gridcell->st[stid].diam_cut_low = mt.diam_cut_low;
 
-	if(mt.wateruse == IRRIGATED) {
+	if(mt.hydrology == IRRIGATED) {
 		isirrigated = true;					
 	}
 	else {
@@ -1171,7 +1324,7 @@ void Stand::set_management() {
 		Pft& pftx = pftlist.getobj();
 		Standpft& standpft = pft[pftx.id];
 
-		if(mt.wateruse == IRRIGATED) {
+		if(mt.hydrology == IRRIGATED) {
 			standpft.irrigated = true;
 		}
 		else {	
@@ -1199,12 +1352,15 @@ void Stand::set_management() {
 			if(pftx.lifeform == TREE)
 				pft[pftx.id].plant = true;
 			// Test case when PNV planted but not re-established
-			if(st.reestab == "NONE" || st.reestab == "") {
+			if(mt.reestab == "NONE" || mt.reestab == "") {
 				if(pftx.lifeform == TREE)
 					pft[pftx.id].reestab = false;
 			}
 		}
 		else {
+			// Case with pft selection. Standpft::active is set to true below for species within selection and for all tree species if reestab == all, 
+			// or if species are present at the time of management change (rotation) or cloning if cutfirstyear_unsel = false. All crop PFTs are set to active
+			// in CROPLAND stands to facilitate crop rotation.
 			pft[pftx.id].active = false;
 			pft[pftx.id].reestab = false;
 			pft[pftx.id].plant = false;
@@ -1237,7 +1393,7 @@ void Stand::set_management() {
 		pftlist.nextobj();
 	}
 
-	if(mt.cutfirstyear) {
+	if(mt.cutfirstyear && savetrees_force == false) {
 		for(unsigned int p = 0; p < nobj; p++) {
 			Patch& patch = (*this)[p];
 			Vegetation& vegetation = patch.vegetation;
@@ -1248,8 +1404,16 @@ void Stand::set_management() {
 				Individual& indiv = vegetation.getobj();
 				Patchpft& ppft = patch.pft[indiv.pft.id];
 				if(indiv.pft.lifeform == TREE) {
-					ppft.cmass_wood_clearcut += check_harvest_cmass(indiv, true);
 					ppft.cmass_harv_killed += indiv.ccont();
+					ppft.cmass_clearcut_killed += indiv.ccont();
+					ppft.cmass_wood_harv_killed += indiv.cmass_wood();
+					ppft.cmass_wood_clearcut += check_harvest_cmass(indiv, true);
+					if (indiv.diam >= 0.1) {
+						ppft.cmass_harv_killed_plus10cm += indiv.ccont();
+						ppft.cmass_clearcut_killed_plus10cm += indiv.ccont();
+						ppft.cmass_wood_harv_killed_plus10cm += indiv.cmass_wood();
+					}
+					//MORT ADD CLEARCUT
 					harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0.1, clone_year == date.year);
 					// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0.1
 					indiv.vegetation.killobj();
@@ -1320,7 +1484,7 @@ void Stand::set_management() {
 				Standpft& standpft = pft[pftid];
 				Gridcellpft& gridcellpft = gridcell->pft[pftid];
 
-				if(mt.wateruse == IRRIGATED) {
+				if(mt.hydrology == IRRIGATED) {
 					standpft.irrigated = true;
 				}
 				else {	
@@ -1345,7 +1509,7 @@ void Stand::set_management() {
 						pft[pftx.id].plant = false;
 						pft[pftx.id].reestab = false;
 
-						if(st.reestab == "ALL") {
+						if(mt.reestab == "ALL") {
 							// Options here are only relevant when using both FOREST and NATURAL tree pfts and they need to be
 							// distiguished in their abilities to re-establish when outside the monoculture when naturalveg is "ALL" 
 							// (e.g. in the case of planted exotic FOREST pfts).
@@ -1368,7 +1532,16 @@ void Stand::set_management() {
 									Patchpft& ppft = patch.pft[indiv.pft.id];
 									if(indiv.pft.id == pftx.id && pftx.id != id) {
 										// cut at cloning (LUC) or at rotation
+										//ADD MORT HARV
 										ppft.cmass_harv_killed += indiv.ccont();
+										ppft.cmass_thin_killed +=  indiv.ccont();
+										ppft.cmass_wood_harv_killed += indiv.cmass_wood();
+										ppft.cmass_wood_thin += check_harvest_cmass(indiv, true);
+										if (indiv.diam >= 0.1) {
+											ppft.cmass_harv_killed_plus10cm += indiv.ccont();
+											ppft.cmass_thin_killed_plus10cm +=  indiv.ccont();
+											ppft.cmass_wood_harv_killed_plus10cm += indiv.cmass_wood();
+										}
 										harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0, clone_year == date.year);
 										// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
 										indiv.vegetation.killobj();
@@ -1387,7 +1560,7 @@ void Stand::set_management() {
 				pft[id].active = true;
 
 				pft[id].plant = true;
-				if(st.reestab == "RESTRICTED") {
+				if(mt.reestab == "RESTRICTED") {
 					pft[id].reestab = true;
 				}
 
@@ -1416,8 +1589,28 @@ void Stand::set_management() {
 				if(mt.pftinselection((const char*)pftx.name)) {
 					pft[pftx.id].active = true;
 
-					if(st.reestab == "NONE" || st.reestab == "") {
+					if(mt.reestab == "NONE" || mt.reestab == "") {
 						pft[pftx.id].reestab = false;
+
+						bool force_plant_once = true;
+						bool found = false;
+						if(force_plant_once) {
+							for(unsigned int p = 0; p < nobj; p++) {
+								Patch& patch = (*this)[p];
+								Vegetation& vegetation = patch.vegetation;
+								vegetation.firstobj();
+								while (vegetation.isobj) {
+									Individual& indiv = vegetation.getobj();
+									if(indiv.pft.id == pftx.id) {
+										found = true;
+										break;
+									}
+									vegetation.nextobj();
+								}
+								if(!found)
+									patch.plant_this_year = true;
+							}
+						}
 					}
 					else {
 						pft[pftx.id].reestab = true;
@@ -1432,7 +1625,7 @@ void Stand::set_management() {
 					pft[pftx.id].plant = false;
 					pft[pftx.id].reestab = false;
 
-					if(st.reestab == "ALL") {
+					if(mt.reestab == "ALL") {
 						// Options here are only relevant when using both FOREST and NATURAL tree pfts and they need to be
 						// distiguished in their abilities to re-establish when outside the selection when naturalveg is "ALL" 
 						// (e.g. in the case of planted exotic FOREST pfts).
@@ -1456,6 +1649,14 @@ void Stand::set_management() {
 								if(indiv.pft.id == pftx.id) {
 									// Cut at cloning (LUC) or at rotation
 									ppft.cmass_harv_killed += indiv.ccont();
+									ppft.cmass_thin_killed +=  indiv.ccont();
+									ppft.cmass_wood_harv_killed += indiv.cmass_wood();
+									ppft.cmass_wood_thin += check_harvest_cmass(indiv, true);
+									if (indiv.diam >= 0.1) {
+										ppft.cmass_harv_killed_plus10cm += indiv.ccont();
+										ppft.cmass_thin_killed_plus10cm +=  indiv.ccont();
+										ppft.cmass_wood_harv_killed_plus10cm += indiv.cmass_wood();
+									}
 									harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0, clone_year == date.year);
 									// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
 									indiv.vegetation.killobj();
@@ -1507,7 +1708,7 @@ void Stand::set_management() {
 					if(pftx.landcover == landcover || !natural_reestab_not_plant)					
 						pft[pftx.id].plant = true;
 
-					if(!(st.reestab == "NONE" || st.reestab == "")) {
+					if(!(mt.reestab == "NONE" || mt.reestab == "")) {
 						// Options here are only relevant when using both FOREST and NATURAL tree pfts and they need to be
 						// distiguished in their abilities to re-establish within the forest class when naturalveg is "ALL" 
 						// (e.g. in the case of planted exotic FOREST pfts).
@@ -1520,7 +1721,7 @@ void Stand::set_management() {
 				}
 				else {
 					
-					if(st.reestab == "ALL") {
+					if(mt.reestab == "ALL") {
 						// 1. Reestablishment outside the forest class by both forest and natural pfts (no conditional)
 						// 2. Reestablishment outside the forest class only by natural pfts (when naturalveg "ALL") to  
 						// avoid reestablishment of exotic FOREST trees everywhere.
@@ -1541,6 +1742,14 @@ void Stand::set_management() {
 								if(indiv.pft.id == pftx.id) {
 									// cut at cloning (LUC) or at rotation
 									ppft.cmass_harv_killed += indiv.ccont();
+									ppft.cmass_thin_killed +=  indiv.ccont();
+									ppft.cmass_wood_harv_killed += indiv.cmass_wood();
+									ppft.cmass_wood_thin += check_harvest_cmass(indiv, true);
+									if (indiv.diam >= 0.1) {
+										ppft.cmass_harv_killed_plus10cm += indiv.ccont();
+										ppft.cmass_thin_killed_plus10cm +=  indiv.ccont();
+										ppft.cmass_wood_harv_killed_plus10cm += indiv.cmass_wood();
+									}
 									harvest_wood(indiv, 1.0, indiv.pft.harv_eff, indiv.pft.res_outtake, 0, clone_year == date.year);
 									// frac_cut=1, harv_eff=0.9, res_outtake_twig=0.4, res_outtake_coarse_root=0
 									indiv.vegetation.killobj();
@@ -1569,7 +1778,6 @@ void Stand::rotate(int rot) {
 		current_rot = rot;
 	else
 		current_rot = (current_rot + 1) % st.rotation.nmanagements;
-	ManagementType& mt = get_current_management();
 
 	set_management();
 
@@ -1668,7 +1876,7 @@ bool Stand::is_true_wetland_stand() const {
 	return landcover==PEATLAND && lat < PEATLAND_WETLAND_LATITUDE_LIMIT;
 }
 
-Stand& Stand::clone(StandType& st, double fraction, bool suppress_disturbance) {
+Stand& Stand::clone(StandType& st, double fraction, bool suppress_disturbance, bool savetrees_force) {
 
 	// Serialize this stand to an in-memory stream
 	std::stringstream ss;
@@ -1684,18 +1892,18 @@ Stand& Stand::clone(StandType& st, double fraction, bool suppress_disturbance) {
 	ArchiveInStream ais(ss);
 	new_stand.serialize(ais);
 
-	new_stand.clone_year = date.year;
+	new_stand.clone_year = date.year;	// NB first_year is serialised !
 //	new_stand.seed = new_seed;	// ?
 
-	// reset managed before setting in init_stand_lu()
+	// reset management_started before setting in init_stand_lu()
 	for (unsigned int p = 0; p < nobj; p++) {
 //		new_stand[p].age = 0;				// probably not what we want
 		if(st.landcover == NATURAL)
-			new_stand[p].managed = false;
+			new_stand[p].management_started = false;
 	}
 
 	// Set land use settings for new stand
-	new_stand.init_stand_lu(st, fraction, suppress_disturbance);
+	new_stand.init_stand_lu(st, fraction, suppress_disturbance, savetrees_force);
 
 	return new_stand;
 }
@@ -1759,7 +1967,9 @@ void Stand::serialize(ArchiveStream& arch) {
 		& lc_origin
 		& st_origin
 		& landcover
-		& seed;
+		& storm_init_done
+		& seed
+		& harvest_seed;
 }
 
 const Climate& Stand::get_climate() const {
@@ -1996,13 +2206,17 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nmass_leaf        = 0.0;
 	nmass_leaf_luc    = 0.0;
 	nmass_root        = 0.0;
+	nmass_root_luc    = 0.0;
 	nmass_crown       = 0.0;
 	nmass_repr        = 0.0;
 	nmass_sap         = 0.0;
+	nmass_sap_luc     = 0.0;
 	nmass_heart       = 0.0;
+	nmass_heart_luc   = 0.0;
 	cton_leaf_aopt    = 0.0;
 	cton_leaf_aavr    = 0.0;
 	cton_status       = 0.0;
+	cmass_veg         = 0.0;
 	nmass_veg         = 0.0;
 	nmass_tot_luc     = 0.0;
 	ctolitter         = 0.0;
@@ -2017,6 +2231,8 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	dnuptake                    = 0.0;
 	max_n_storage				= 0.0;
 	scale_n_storage				= 0.0;
+	nstore_longterm_luc   = 0.0;
+	nstore_labile_luc   = 0.0;
 
 	leafndemand					= 0.0;
 	rootndemand					= 0.0;
@@ -2033,6 +2249,11 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	leafndemand_store			= 0.0;
 	rootndemand_store			= 0.0;
 	ps_sink_lim                 = 1.0;
+
+	daily_cmass_leafloss = 0.0;
+	daily_nmass_leafloss = 0.0;
+	daily_cmass_rootloss = 0.0;
+	daily_nmass_rootloss = 0.0;
 
 	n_opt_isabovelim  = false;
 	nstress           = false;
@@ -2143,6 +2364,11 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	lai_daily       = 0.0;
 	lai_indiv_daily = 0.0;
 	alive             = false;
+	relative_growth_rate = 0.0;
+	dbh		          = 0.0;
+
+	lai_leafon_layer = 0.0;
+	gpterm = 0.0;
 
 	int m;
 	for (m=0; m<12; m++) {
@@ -2151,6 +2377,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 		mgpp_no[m] = 0.0;
 		mvmaxnlim[m] = 0.0;
 		mlambda[m] = 0.0;
+		mgpp[m] = 0.0;
 	}
 
 	// bvoc
@@ -2198,6 +2425,14 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	man_strength = 0.0;
 	nscal_5.add(1.0);
 	nscal_30.add(1.0);
+
+	allom_ind = 0.0;
+	height_ind = 0.0;
+	dam_frac = 0.0;
+	dam_frac_pot = 0.0;
+	for (int i = 0; i < 6; i++) {
+		sens_ind[i] = 0.0;
+	}
 
 	if (ifdavephotosyn) {
 		ps_inputs_layerwise.resize(date.subdaily);
@@ -2272,10 +2507,12 @@ void Individual::serialize(ArchiveStream& arch) {
 		& ltor
 		& height
 		& diam
+		& dbh
 		& basalarea
 		& crownarea
 		& deltafpc
 		& boleht
+		& relative_growth_rate
 		& lai
 		& lai_layer
 		& lai_indiv
@@ -2323,6 +2560,7 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cton_leaf_aopt
 		& cton_leaf_aavr
 		& cton_status
+		& cmass_veg
 		& nmass_veg
 		& leaf_full_switch_summer
 		& senescence_active
@@ -2338,15 +2576,14 @@ void Individual::serialize(ArchiveStream& arch) {
 		& reprndemand
 		& sapndemand
 		& storendemand
+		& hondemand
 		& leaffndemand
 		& rootfndemand
 		& sapfndemand
 		& storefndemand
 		& leafndemand_store
 		& rootndemand_store
-		& nday_leafon
 		& ps_sink_lim
-
 		& andemand_leaf
 		& andemand_root
 		& andemand_sap
@@ -2356,7 +2593,22 @@ void Individual::serialize(ArchiveStream& arch) {
 		& resp_sap
 		& resp_root
 		& resp_repr
-		& resp_crown;
+		& resp_crown
+		& daily_cmass_leafloss
+		& daily_nmass_leafloss
+		& daily_cmass_rootloss
+		& daily_nmass_rootloss
+		& nday_leafon
+		& root_beta
+		& rootdist
+		& soiltemp_dynamic
+		& wscal_dynamic
+		& growth_stage_days
+		& cmass_repr_10
+		& cmass_crown_flowering
+		& fdev_growth
+		& fdev_senesc
+		& senesc_root;
 
 	if (pft.landcover==CROPLAND)
 		arch & *cropindiv;
@@ -2385,6 +2637,13 @@ cropindiv_struct* Individual::set_cropindiv() {
 void Individual::report_flux(Fluxes::PerPFTFluxType flux_type, double value) {
 	if (alive || istruecrop_or_intercropgrass()) {
 		vegetation.patch.fluxes.report_flux(flux_type, pft.id, value);
+	}
+}
+
+//MORT
+void Individual::report_flux(Fluxes::PerDiamFluxType flux_type, int diam, double value) {
+	if (alive || istruecrop_or_intercropgrass()) {
+		vegetation.patch.fluxes.report_flux(flux_type, diam, value);
 	}
 }
 
@@ -2514,11 +2773,137 @@ void nstore_adjust(double cmass_leaf_litter, double cmass_root_litter, double cm
 		dprintf("Year %d ADJNLIM Diff %g B %g A %g\n", date.year, nbefore - nafter, nbefore, nafter);
 }
 
-void Individual::reduce_biomass(double mortality, double mortality_fire, double &closs, double &nloss) {
+//MORT
+//void Individual::mortflux(double mortCflux, double mortality, int mortmech) {
+void Individual::mortflux(double mortality, int mortmech, double lcfrac, bool landusechange) {
+    // Report the mortality fluxes by diameter class
+    // mortmech:
+    // 0. Other
+    // 1. Growth efficiency
+    // 2. Thinning
+    // 3. Age
+    // 4. Disturbance
+    // 5. Fire
+    // 6. Harvest
+
+
+    double diam = pow(height / pft.k_allom2, 1.0 / pft.k_allom3);
+    int diamind;
+    if (diam<=0.1) {
+        diamind=0;
+    }
+    else if (diam<=0.2) {
+        diamind=1;
+    }
+    else if (diam<=0.3) {
+        diamind=2;
+    }
+    else if (diam<=0.4) {
+        diamind=3;
+    }
+    else if (diam<=0.5) {
+        diamind=4;
+    }
+    else if (diam<=0.6) {
+        diamind=5;
+    }
+    else if (diam<=0.7) {
+        diamind=6;
+    }
+    else if (diam<=0.8) {
+        diamind=7;
+    }
+    else if (diam<=0.9) {
+        diamind=8;
+    }
+    else if (diam<=1.0) {
+        diamind=9;
+    }
+    else if (diam<=1.1) {
+        diamind=10;
+    }
+    else if (diam<=1.2) {
+        diamind=11;
+    }
+    else if (diam<=1.3) {
+        diamind=12;
+    }
+    else if (diam<=1.4) {
+        diamind=13;
+    }
+    else if (diam<=1.5) {
+        diamind=14;
+    }
+    else {
+        diamind=15;
+    }
+
+    if (mortmech==MORT_GREFF) {
+        report_flux(Fluxes::STEMLOSS_GREFF,diamind,densindiv*mortality);
+        report_flux(Fluxes::CROWNLOSS_GREFF,diamind,crownarea*densindiv*mortality);
+        report_flux(Fluxes::CLOSS_GREFF,diamind,cmass_wood()*mortality);
+    }
+    else if (mortmech==MORT_THIN) {
+        report_flux(Fluxes::STEMLOSS_THIN,diamind,densindiv*mortality);
+        report_flux(Fluxes::CROWNLOSS_THIN,diamind,crownarea*densindiv*mortality);
+        report_flux(Fluxes::CLOSS_THIN,diamind,cmass_wood()*mortality);
+    }
+    else if (mortmech==MORT_AGE) {
+        report_flux(Fluxes::STEMLOSS_AGE,diamind,densindiv*mortality);
+        report_flux(Fluxes::CROWNLOSS_AGE,diamind,crownarea*densindiv*mortality);
+        report_flux(Fluxes::CLOSS_AGE,diamind,cmass_wood()*mortality);
+    }
+    else if (mortmech==MORT_DIST) {
+		Gridcell& gridcell = vegetation.patch.stand.get_gridcell();
+		gridcell.dist_mort[diamind][0] += densindiv * mortality * lcfrac;
+		gridcell.dist_mort[diamind][1] += crownarea * densindiv * mortality * lcfrac;
+		gridcell.dist_mort[diamind][2] += cmass_wood() * mortality * lcfrac;
+    }
+    else if (mortmech==MORT_FIRE) {
+        report_flux(Fluxes::STEMLOSS_FIRE,diamind,densindiv*mortality);
+        report_flux(Fluxes::CROWNLOSS_FIRE,diamind,crownarea*densindiv*mortality);
+        report_flux(Fluxes::CLOSS_FIRE,diamind,cmass_wood()*mortality);
+    }
+    else if (mortmech==MORT_HARV_CCUT) {
+        report_flux(Fluxes::STEMLOSS_HARV_CCUT,diamind,densindiv*mortality);
+        report_flux(Fluxes::CROWNLOSS_HARV_CCUT,diamind,crownarea*densindiv*mortality);
+        report_flux(Fluxes::CLOSS_HARV_CCUT,diamind,cmass_wood()*mortality);
+    }
+	else if (mortmech == MORT_HARV_THIN) {
+		report_flux(Fluxes::STEMLOSS_HARV_THIN, diamind, densindiv * mortality);
+		report_flux(Fluxes::CROWNLOSS_HARV_THIN, diamind, crownarea * densindiv * mortality);
+		report_flux(Fluxes::CLOSS_HARV_THIN, diamind, cmass_wood() * mortality);
+	}
+	else if (mortmech == MORT_HARV_LUC) {
+		Gridcell& gridcell = vegetation.patch.stand.get_gridcell();
+		gridcell.luc_mort[diamind][0] += densindiv * mortality * lcfrac;
+		gridcell.luc_mort[diamind][1] += crownarea * densindiv * mortality * lcfrac;
+		gridcell.luc_mort[diamind][2] += cmass_wood() * mortality * lcfrac;
+	}
+	else if (mortmech==MORT_OTHER) {
+        report_flux(Fluxes::STEMLOSS_OTHER,diamind,densindiv*mortality);
+        report_flux(Fluxes::CROWNLOSS_OTHER,diamind,crownarea*densindiv*mortality);
+        report_flux(Fluxes::CLOSS_OTHER,diamind,cmass_wood()*mortality);
+    }
+	if (!landusechange) {
+		report_flux(Fluxes::STEMLOSS, diamind, densindiv * mortality);
+		report_flux(Fluxes::CROWNLOSS, diamind, crownarea * densindiv * mortality);
+		report_flux(Fluxes::CLOSS, diamind, cmass_wood() * mortality);
+	}
+
+
+}
+
+void Individual::reduce_biomass(double mortality, double mortality_fire,
+	double mortality_greff, double mortality_thin, double mortality_age, double mortality_insect, bool prescribed_fire,
+	double &closs, double &nloss) {
 
 	// This function needs to be modified if a new lifeform is added,
 	// specifically to deal with nstore().
 	assert(pft.lifeform == TREE || pft.is_grass() || pft.lifeform == MOSS);
+
+	// For now treat insect mortality the same way as normal mortality
+	mortality = mortality + mortality_insect;
 
 	if (!negligible(mortality)) {
 
@@ -2587,6 +2972,15 @@ void Individual::reduce_biomass(double mortality, double mortality_fire, double 
 		ppft.cmass_litter_sap += cmass_sap_litter;
 		ppft.cmass_litter_heart += cmass_heart_litter;
 
+		// Sum mortality above diameter limit that is not related to fire or insects
+		if (pft.lifeform == TREE && mortality_insect == 0.0) {
+
+			const double insect_diam_lim = 0.15; // 15 cm is concidered as a low limit for Ips Typographus
+			if (diam > insect_diam_lim) {
+				ppft.insect_stem_litter += mortality_non_fire * (cmass_sap + cmass_heart - cmass_debt);
+			}
+		}
+
 		// Nitrogen
 		double nmass_leaf_litter = mortality * get_nmass_leaf();
 		double nmass_root_litter = mortality * nmass_root;
@@ -2650,6 +3044,21 @@ void Individual::reduce_biomass(double mortality, double mortality_fire, double 
 
 		// Reduce this Individual's biomass values
 
+		if(prescribed_fire) {
+			ppft.cmass_dist_fire_killed += mortality_fire * ccont();
+			if(diam >= 0.1)
+				ppft.cmass_dist_fire_killed_plus10cm += mortality_fire * ccont();
+		}
+		else {
+			ppft.cmass_fire_killed += mortality_fire * ccont();
+			if(diam >= 0.1)
+				ppft.cmass_fire_killed_plus10cm += mortality_fire * ccont();
+		}
+		ppft.cmass_mort += mortality_non_fire * ccont();
+		// ppft.cmass_mort_wood += mortality_non_fire * cmass_wood();
+		// if(diam >= 0.1)
+		// 	ppft.cmass_mort_wood_plus10cm += mortality_non_fire * cmass_wood();
+
 		ppft.cmass_fire += mortality_fire * ccont();
 		closs = mortality * ccont();
 		nloss = mortality * ncont();
@@ -2658,6 +3067,13 @@ void Individual::reduce_biomass(double mortality, double mortality_fire, double 
 
 		if (!pft.is_grass() && pft.lifeform != MOSS) {
 			densindiv *= remaining;
+
+			//MORT
+			//Report mortality fluxes
+			mortflux(mortality_greff,MORT_GREFF); // mortmech = Growth Efficiency (1)
+			mortflux(mortality_thin,MORT_THIN); // mortmech = Thinning (2)
+			mortflux(mortality_age,MORT_AGE); // mortmech = Age (3)
+			mortflux(mortality_fire,MORT_FIRE); // mortmech = Fire (5)
 		}
 
 		cmass_leaf      *= remaining;
@@ -3611,9 +4027,11 @@ void partition_wood_biomass(double mass_sap, double mass_heart,
 	litter_heart = heart_left;
 }
 
-void Individual::kill(bool harvest /* = false */) {
+//MORT
+void Individual::kill(int mortmech, bool harvest /* = false */) {
 	flush_unallocated_npp();
 	Patchpft& ppft = patchpft();
+
 	double charvest_flux = 0.0;
 	double charvested_products_slow = 0.0;
 
@@ -3752,7 +4170,10 @@ void Individual::kill(bool harvest /* = false */) {
 
 		// Deal with the wood biomass and carbon debt for trees
 		if (pft.lifeform == TREE) {
-
+			//MORT
+            if(mortmech != MORT_HARV_THIN && mortmech != MORT_HARV_LUC && mortmech != MORT_DIST) {//Don't report fluxes if mortmech==8, as these have already been reported previously
+            	mortflux(1.0,mortmech); //Report mortality fluxes
+			}
 			// debt smaller than existing wood biomass
 			if (cmass_debt <= cmass_sap + cmass_heart) {
 
@@ -4152,7 +4573,735 @@ void Gridcellpft::serialize(ArchiveStream& arch) {
 		& wintertype
 		& swindow
 		& swindow_irr
-		& sowing_restriction;
+		& sowing_restriction
+		& cton_leaf_avr_20
+		& cton_root_avr_20
+		& cton_sap_avr_20
+		& cton_heart_avr_20
+		& latosa_avr_20
+		& qsap_avr_20
+		& treeage_avr_20;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+// Implementation of Gridcellift member functions
+////////////////////////////////////////////////////////////////////////////////
+
+void Gridcellift::reset() {
+
+	flight_season_ended = false;
+
+	spring_swarming_heat_sum_accum = 0.0;
+	swarm_dev_delay_heat_sum_accum = 0.0;
+	for (int i = 0;i < NGENERATIONS_MAX;i++) {
+		for (int j = 0;j < NREEMERGENCES_MAX + 1;j++) {
+			dev_heat_sum_accum[i][j] = 0.0;
+			swarming_start[i][j] = -1;
+			development_start[i][j] = -1;
+			killed[i][j] = false;
+		}
+	}
+	total_heat_sum_accum = 0.0;
+	for (int i = 0;i < date.MAX_YEAR_LENGTH;i++) {
+		daily_heat_sum_accum[i] = 0.0;
+	}
+	oviposition_day = -1;
+	novipositions = 0;
+}
+
+void Gridcellift::calc_insect_phenology(Gridcell& gridcell) {	// Use crop day-increase functions ?
+
+	Climate& climate = gridcell.climate;
+	if (ift.name == "Den_pon")
+		return;
+	// save coldest day for survival of hibernating insects
+	if (climate.tmin < min_temp)
+		min_temp = climate.tmin;
+	if (date.day == climate.testday_temp)
+		min_temp = climate.tmin;
+
+	///		// Calculate selected-for last swarming day with diapause requirement:
+
+		// Autumn limit for flight: after J?nsson et al. 2011, Fig.2b based on optimum hibernation success strategy (14h at 47,5degN to 22h at 67.5degN)
+	//		flight_season_end_daylength = min(22.0, max(14.0, 15 + 0.4 * (climate.lat - 50)));
+	//		flight_season_end_daylength = min(22.0, max(14.0, 17 + 0.4 * (climate.lat - 55)));
+
+		// Using a moving 30-year window of mean or max. daylength for last potentially successful day of swarming:
+
+	double sd_daylength = 0.0;
+	for (unsigned int i = 0;i < last_swarmingday.size();i++) {
+		sd_daylength += pow((last_swarmingday_daylength[i] - last_swarmingday_daylength.mean()), 2);
+	}
+	sd_daylength = sqrt(sd_daylength / (double)(last_swarmingday_daylength.size() - 1));
+
+	double sd_day = 0.0;
+	for (unsigned int i = 0;i < last_swarmingday.size();i++) {
+		sd_day += pow((last_swarmingday[i] - last_swarmingday.mean()), 2);
+	}
+	sd_day = sqrt(sd_day / (double)(last_swarmingday.size() - 1));
+
+
+	// Weak selection
+/*
+	if(last_swarmingday_daylength.size())
+		flight_season_end_daylength = last_swarmingday_daylength.mean();
+	if(last_swarmingday.size())
+		flight_season_end_day = (int)last_swarmingday.mean();
+*/
+/*
+	// Medium-strong selection
+	if(last_swarmingday_daylength.size())
+		flight_season_end_daylength = last_swarmingday_daylength.mean() + sd_daylength;	// Makes no sense !
+	if(last_swarmingday.size())
+		flight_season_end_day = (int)(last_swarmingday.mean() - sd_day);
+*/
+
+// Strong selection
+	if (last_swarmingday_daylength.size())
+		flight_season_end_daylength = last_swarmingday_daylength.max();
+	if (last_swarmingday.size())
+		flight_season_end_day = (int)last_swarmingday.min();
+	////
+
+	const int longest_daylength_day = 172;
+	// A daylength threshold of 14h in S.Europe precludes more than 3 generations if necessary for diapause
+#ifdef USE_DAYLENGTH_LIMIT_DIAPAUSE
+//		if(date.day >= climate.testday_temp && (climate.daylength < flight_season_end_daylength && climate.temp < flight_season_end_temp))
+	if (date.day >= longest_daylength_day && (climate.daylength < flight_season_end_daylength && climate.temp < flight_season_end_temp))
+#else
+	if (date.day >= longest_daylength_day && (date.day > flight_season_end_day && climate.temp < ift.flight_season_end_temp) && !flight_season_ended)
+#endif
+	{
+		last_flightday = date.day;
+		flight_season_ended = true;
+	}
+
+	// Possibility to adapt development stage needed for successful hibernation and spring flight temperature to soil hibernation fraction:
+
+	// Soil hibernation fraction of beetles: 0% at 50degN to 100% at 60degN
+	soil_hibernation_frac = min(1.0, max(0.0, 0.1 * (climate.lat - 50)));
+
+	// Development stage required for sucessful diapause depends on whether beetles hibernate under bark or in soil. Modelled from 60% in central Europe (50degN) to 100% in middle of Sweden (60degN).
+	double dev_diapause_success_limit_frac_low = 0.6;
+	double dev_diapause_success_limit_frac_high = 1.0;
+	// TURNED OFF
+//		dev_diapause_success_limit_frac = dev_diapause_success_limit_frac_low + (dev_diapause_success_limit_frac_high - dev_diapause_success_limit_frac_low) * soil_hibernation_frac;
+//
+
+	// Spring temp limit for flight dependeng on soil hibernation fraction (should be spring_swarming_heat_sum_accum instead ?)
+	double flight_temp_min_low = 16.5;
+	double flight_temp_min_high = 20;
+	spring_flight_temp_min_adj = ift.flight_temp_min;
+	// TURNED OFF
+//		double spring_flight_temp_min_adj = flight_temp_min_low + (flight_temp_min_high - flight_temp_min_low) * soil_hibernation_frac;
+//
+	// Start of spring swarming: heat sum count above base temp, swarming above minimum temperature
+	if (date.day >= ift.season_start_day && climate.temp >= ift.dev_temp_base && swarming_start[0][0] == -1) {
+		spring_swarming_heat_sum_accum += climate.temp - ift.dev_temp_base;
+	}
+
+	// Baier et al. 2007 3.2.1 uses 16.5 deg. (flight_temp_min) here, but A.2 only uses flight_temp_min below for infestation start day; J?nsson et al. 2007 uses flight_temp_min for swarming start day
+//		if(spring_swarming_heat_sum_accum >= spring_swarming_heat_sum_target && climate.tmax >= flight_temp_min) {
+	if (spring_swarming_heat_sum_accum >= ift.spring_swarming_heat_sum_target && climate.tmax >= spring_flight_temp_min_adj) {
+		if (swarming_start[0][0] == -1)
+			swarming_start[0][0] = date.day;
+	}
+	// Delay between swarming and infestation (=start of development of filial generation): minimum temperature, heat sum count above threshold temp. OR delay (days), 
+	// Baier et al. 2007 3.2.1 says 16.8 deg. (spring_infestation_min_temp), but A.2 says 16.5 deg. (flight_temp_min) 
+	if (swarming_start[0][0] != -1 && development_start[0][0] == -1 && (spring_swarming_heat_sum_accum + swarm_dev_delay_heat_sum_accum >= ift.spring_infestation_heat_sum_target && date.day >= (swarming_start[0][0] + ift.egg_dev_start_delay))) {
+		development_start[0][0] = date.day;
+	}
+
+	if (development_start[0][0] != -1 && date.day >= development_start[0][0]) {
+
+		double heat_sum_today = ift.calc_daily_heat_sum(climate);
+		total_heat_sum_accum += heat_sum_today;
+		daily_heat_sum_accum[date.day] = heat_sum_today;
+
+		for (int i = 0;i < NGENERATIONS_MAX;i++) {
+
+			double bark_mean_temp = 0.0;;
+			double bark_max_temp = 0.0;;
+
+			// Code for lethal summer bark temperatures: redo for lethal winter temperatures
+			/*				for(int j=0;j<NREEMERGENCES_MAX+1;j++) {
+							if(bark_max_temp > survive_temp_max && dev_heat_sum_accum[i][j] > 0.0) {
+								killed[i][j] = true;				// Only sun-exposed trees will have lethal temperatures
+			//						dev_heat_sum_accum[i][j] = 0.0;
+							}
+						}
+			*/
+			// First generation
+			if (i == 0) {
+				// Code above used for spring swarming and start of development of first generation
+			}
+			else {
+				// Further generations
+				// Swarming of parental broods (wait for temperature window) and development of filial broods (start after optional delay in days)	;	OR climate.tmax < flight_temp_max
+				for (int j = 0;j < NREEMERGENCES_MAX + 1;j++) {
+					if (dev_heat_sum_accum[i - 1][j] >= ift.dev_heat_sum_target && swarming_start[i][j] == -1 && climate.tmax >= ift.flight_temp_min && climate.tmax < ift.flight_temp_max
+						&& !flight_season_ended) {
+						swarming_start[i][j] = date.day;
+					}
+					if (swarming_start[i][j] != -1 && date.day == (swarming_start[i][j] + ift.egg_dev_start_delay) && development_start[i][j] == -1) {
+						development_start[i][j] = date.day;
+					}
+				}
+			}
+			// Sister broods:
+			// Re-emergence (within temp. window) of females after.50% of main development heat sum. Development of sister broods (start after optional delay in days)	;	OR climate.tmax < flight_temp_max
+			// Only one re-emergence, which can generate new generation
+			if (dev_heat_sum_accum[i][0] >= ift.dev_reemergence_frac * ift.dev_heat_sum_target && swarming_start[i][1] == -1 && climate.tmax >= ift.flight_temp_min && climate.tmax < ift.flight_temp_max
+				&& !flight_season_ended) {
+				swarming_start[i][1] = date.day;
+			}
+			if (swarming_start[i][1] != -1 && date.day == (swarming_start[i][1] + ift.egg_dev_start_delay) && development_start[i][1] == -1) {
+				development_start[i][1] = date.day;
+			}
+
+			for (int j = 0;j < NREEMERGENCES_MAX + 1;j++) {
+
+				if (development_start[i][j] != -1 && date.day >= development_start[i][j] && dev_heat_sum_accum[i][j] < ift.dev_heat_sum_target) {
+					dev_heat_sum_accum[i][j] += heat_sum_today;
+				}
+			}
+		}
+	}
+
+	//		if(date.day >= season_end_day || climate.temp <= flight_season_end_temp) {
+	if (date.islastmonth && date.islastday) {
+
+		int asp; // Length of autumn swarming period
+		if (swarming_start[1][0] == -1)
+			asp = 0;
+		else {
+			if (last_flightday == 100000)
+				asp = max(0, min(90, (int)(-1.39 * swarming_start[1][0] + 295.1)));
+			else
+				asp = min(90, min(300, last_flightday) - swarming_start[1][0]);
+		}
+		asp30.add(asp);
+		const double ASPf = 3.33; // Factor in phenology index equation adjusted to give values between 0 and 2, k6
+		const double ASPadd = 75.0; // Add in the phen index equation, larger value gives less dependency off asp30!!!!, k7
+		phen_ind = asp * ASPf / (asp30.mean() + ASPadd);
+		pop_ind = pop_ind_new;
+		pop_ind_new = 0.0;
+		storm_rand = randfrac(gridcell.seed);
+
+		// Simple insect phenology output of for evaluation
+		//if (date.get_calendar_year() > 1950)
+		//	dprintf("Phen %i %i %i %i %5.1f %4.3f %5.4f\n", date.get_calendar_year(), last_flightday, swarming_start[1][0], asp, asp30.mean(), phen_ind, storm_rand);
+
+		// Calculate last potential swarming day with diapause requirement
+		double heat_sum_backwards_count = 0.0;
+		for (int i = 0;i < date.MAX_YEAR_LENGTH;i++) {
+			int day = date.MAX_YEAR_LENGTH - 1 - i;
+			heat_sum_backwards_count += daily_heat_sum_accum[day];
+			if (heat_sum_backwards_count > ift.dev_diapause_success_limit_frac * ift.dev_heat_sum_target) {
+				last_swarmingday_daylength.add(climate.daylength_save[max(longest_daylength_day, day - ift.egg_dev_start_delay)]);	// Include swarm-dev start delay
+				last_swarmingday.add(day - ift.egg_dev_start_delay);	// Include swarm-dev start delay
+				break;
+			}
+		}
+	}
+}
+
+double phenology_logan1(double t_add, double p_1, double p_2, double p_3, double p_4) {
+
+	double a = exp(p_2 * t_add);
+	double b = exp(p_2 * p_3 - (p_3 - t_add) / p_4);
+	//	return p_1 * (exp(p_2 * t_add) - exp(p_2 * (p_3 - t_add) / p_4));		// Wrong equation in Bentz et al. 1991 !
+	return p_1 * (exp(p_2 * t_add) - exp(p_2 * p_3 - (p_3 - t_add) / p_4));	// Correct equation in Logan and Bentz 1999
+}
+
+double phenology_logan2(double t_add, double p_1, double p_2, double p_3, double p_4, double p_5) {
+
+	return p_1 * (1.0 / (1.0 + p_2 * exp(-p_3 * t_add)) - exp(-((p_4 - t_add) / p_5)));
+}
+
+double phenology_type3(double temp, double p_1, double p_2, double p_3, double p_4, double p_5) {
+
+	if (temp >= p_5)
+		return p_1 * (pow((temp - p_5), 2) / (pow(p_4, 2) + pow((temp - p_5), 2)) - exp(((temp - p_5) - p_2) / p_3));
+	else
+		return 0.0;
+}
+
+double phenology_linear(double temp, double p_1, double p_2) {
+
+	return p_2 * (temp - p_1);
+}
+
+double phenology_stinners(double temp_hour, double p_1, double p_2, double p_3, double p_4) {
+
+	double tau;
+	if (temp_hour <= p_4)
+		tau = temp_hour;
+	else
+		tau = 2.0 * p_4 - temp_hour;
+	return p_1 / (1.0 + exp(p_2 + p_3 * tau));
+}
+
+double phenology_gallery(double t_add, double p_1, double p_2, double p_3, double p_4, double p_5) {
+
+	double inch_to_cm = 2.54;
+	double median_gallery_length = 32.0;	// 32 cm (Logan and Bentz, 1999)
+	double tau = t_add / p_4;
+	return p_1 * (exp(p_2 * pow(t_add, p_3)) - exp(-tau)) * inch_to_cm / median_gallery_length;
+}
+
+double phenology_regniere_a6(double temp_hour, double t_base, double delta_b, double t_max, double delta_m, double omega, double psi) {
+
+	if (temp_hour < t_base || temp_hour > t_max)
+		return 0.0;
+	double t_add = temp_hour - t_base;
+	double p_1 = exp(omega * (temp_hour - t_base));
+	double p_2 = (t_max - temp_hour) / (t_max - t_base) * exp(-omega * (temp_hour - t_base) / delta_b);
+	double p_3 = (temp_hour - t_base) / (t_max - t_base) * exp(omega * (t_max - t_base) - (t_max - temp_hour) / delta_m);
+
+	return psi * (p_1 - p_2 - p_3);
+	//	return psi * (exp(omega * t_add) - (t_max - temp_hour) / (t_max - t_base) * exp(-omega * t_add / delta_b) - t_add / (t_max - t_base) * exp(omega * (t_max - t_base) - (t_max - temp_hour) / delta_m)));
+}
+
+void Gridcellift::calc_insect_phenology_lifestage_regniere(Gridcell& gridcell) {	// Use crop day-increase functions ?
+
+	if (ift.name != "Den_pon")
+		return;
+	Climate& climate = gridcell.climate;
+
+	const bool reset_to_prepupa_each_year = false;
+	const bool reset_10y = true;
+	const bool print_lifestage_at_coldest_day = true;
+	const bool print_oviposition_day = false;
+	const bool print_ndays_season = false;
+	const double add_temp_min = 2.0;
+	const double add_temp_max = 5.0;
+	const bool sawtooth = false;
+
+	const bool print_extra_timings = true;
+	const bool high_autumn_Tb = true;
+
+	//	bool waitforspring = false;
+
+	if (date.day == climate.coldestday)
+		waitforspring = true;
+
+	// save coldest day for survival of hibernating insects
+	if (climate.tmin < min_temp)
+		min_temp = climate.tmin;
+	if (date.day == climate.testday_temp)
+		min_temp = climate.tmin;
+
+	generation_ndays++;
+
+	int reset_year = 21;
+	int force_oviposition_day = 240;
+	if (date.year == reset_year && date.day == force_oviposition_day)
+		reset_lifestage_to_egg();
+
+	for (int h = 0; h < 24; h++) {
+		double temp_hour;
+		if (sawtooth) {
+			// saw-tooth curve
+			temp_hour = climate.tmin + add_temp_min + (climate.tmax + add_temp_max - climate.tmin - add_temp_min) * h / 12;
+			if (h >= 13)
+				temp_hour -= (climate.tmax + add_temp_max - climate.tmin - add_temp_min) * (h - 12) / 6;
+		}
+		else {
+			// sine curve
+			temp_hour = (climate.tmax + add_temp_max + climate.tmin + add_temp_min) / 2.0 + (climate.tmax + add_temp_max - climate.tmin - add_temp_min) / 2.0 * sin(double(h) / 24.0 * 2 * PI - PI / 2.0);
+		}
+
+		/*		if(date.year==0 && date.day==0 && h==0) {
+					dprintf("%d\t%.2f\n", h, climate.temp);
+					dprintf("%d\t%.2f\n", h, climate.tmin);
+					dprintf("%d\t%.2f\n\n", h, climate.tmax);
+				}
+				if(date.year==0 && date.day==0)
+					dprintf("%d\t%.2f\n", h, temp_hour);
+		*/
+		double t_max = 0.0;
+		double t_base = 0.0;
+		double psi = 0.0;
+		double omega = 0.0;
+		double delta_b = 0.0;
+		double delta_m = 0.0;
+
+		for (int i = 0;i < NLIFESTAGES;i++) {
+
+			if (cum_development_lifestage[i] < 1.0 && (i == 0 || cum_development_lifestage[max(0, i - 1)] == 1.0)) {
+
+				if (print_lifestage_at_coldest_day) {
+					if (date.day == climate.coldestday) {
+						if (h == 0)
+							dprintf("Year %d: Coldest day: lifestage %d %.2f\n", date.get_calendar_year(), i, cum_development_lifestage[i]);
+					}
+				}
+
+				switch (i) {
+				case 0:					// Egg
+					t_base = 7.0;
+					delta_b = 0.02;
+					t_max = 30.1;
+					delta_m = 4.4;
+					omega = 0.256;
+					psi = 0.0237;
+					cum_development_lifestage[i] += max(0.0, phenology_regniere_a6(temp_hour, t_base, delta_b, t_max, delta_m, omega, psi)) / 24;
+					break;
+				case 1:					// Larva 1
+					t_base = 3.6;
+					delta_b = 0.1;
+					t_max = 29.3;
+					delta_m = 3.8;
+					omega = 0.24;
+					psi = 0.01082;
+					cum_development_lifestage[i] += max(0.0, phenology_regniere_a6(temp_hour, t_base, delta_b, t_max, delta_m, omega, psi)) / 24;
+					break;
+				case 2:					// Larva 2
+					t_base = 7.0;
+					delta_b = 0.1;
+					t_max = 28.9;
+					delta_m = 3;
+					omega = 0.371;
+					psi = 0.00642;
+					cum_development_lifestage[i] += max(0.0, phenology_regniere_a6(temp_hour, t_base, delta_b, t_max, delta_m, omega, psi)) / 24;
+					break;
+				case 3:					// Larva 3
+					t_base = 6.8;
+					delta_b = 0.1;
+					t_max = 28.7;
+					delta_m = 2.5;
+					omega = 0.44;
+					psi = 0.00389;
+					cum_development_lifestage[i] += max(0.0, phenology_regniere_a6(temp_hour, t_base, delta_b, t_max, delta_m, omega, psi)) / 24;
+					break;
+				case 4:					// Larva 4
+					t_base = 16.2;
+					if (high_autumn_Tb) {
+						if (date.year == reset_year)		// TESTA !
+//							if(date.day > 250)
+t_base = 21;
+					}
+					delta_b = 0.04;
+					t_max = 28;
+					delta_m = 4.6;
+					omega = 0.259;
+					psi = 0.0503;
+
+					if (print_extra_timings) {
+						if (date.year == reset_year + 1 && waitforspring && max(0.0, phenology_regniere_a6(temp_hour, t_base, delta_b, t_max, delta_m, omega, psi))) {
+							dprintf("Stage4 restart Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+							waitforspring = false;
+						};
+						if ((date.year == reset_year || date.year == reset_year + 1) && !cum_development_lifestage[i] && max(0.0, phenology_regniere_a6(temp_hour, t_base, delta_b, t_max, delta_m, omega, psi)))
+							dprintf("Stage4 start Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+					}
+					cum_development_lifestage[i] += max(0.0, phenology_regniere_a6(temp_hour, t_base, delta_b, t_max, delta_m, omega, psi)) / 24;
+					break;
+				case 5:					// Pupa
+					t_base = 5.6;
+					delta_b = 0.11;
+					t_max = 28.5;
+					delta_m = 2.9;
+					omega = 0.153;
+					psi = 0.0205;
+					cum_development_lifestage[i] += max(0.0, phenology_regniere_a6(temp_hour, t_base, delta_b, t_max, delta_m, omega, psi)) / 24;
+					/*						if(climate.tmin < -18) {
+												reset_lifestage_to_prepupal();
+												dprintf("Year %d day %d hour %d: Pupae killed by temperature < -18degC\n", date.get_calendar_year(), date.day, h);
+											}
+					*/						break;
+				case 6:					// Teneral adult
+					t_base = 4.2;
+					delta_b = 0.1;
+					t_max = 35;
+					delta_m = 7.1;
+					omega = 0.146;
+					psi = 0.0117;
+					cum_development_lifestage[i] += max(0.0, phenology_regniere_a6(temp_hour, t_base, delta_b, t_max, delta_m, omega, psi)) / 24;
+					break;
+				case 7:					// Oviposition
+					t_base = 4.6;
+					delta_b = 0.1;
+					t_max = 27.8;
+					delta_m = 3.1;
+					omega = 0.368;
+					psi = 0.0052;
+					cum_development_lifestage[i] += max(0.0, phenology_regniere_a6(temp_hour, t_base, delta_b, t_max, delta_m, omega, psi)) / 24;
+					break;
+				default:
+					break;
+				}
+
+				if (cum_development_lifestage[i] > 1.0) {
+					cum_development_lifestage[i] = 1.0;	// Discard hourly overshoot
+					if (print_extra_timings) {
+						if (i == LARVA2 && date.year == reset_year)
+							dprintf("Stage3 start Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+						if (i == LARVA3 && (date.year == reset_year || date.year == reset_year + 1))
+							dprintf("Stage3 end Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+						if (i == LARVA4 && (date.year == reset_year || date.year == reset_year + 1))
+							dprintf("Stage4 end Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+					}
+					if (i == OVIPOSITION) {
+						for (int r = 0;r < NLIFESTAGES;r++) {
+							cum_development_lifestage[r] = 0.0;
+						}
+						if (print_oviposition_day)
+							dprintf("Oviposition Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+						else if (print_ndays_season)
+							dprintf("Season length year %d %d\n", date.get_calendar_year(), generation_ndays);
+						if (print_extra_timings) {
+							if (date.year == reset_year + 1 || date.year == reset_year + 2)
+								dprintf("Oviposition Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+						}
+						oviposition_day = date.day;
+						generation_ndays_latest = generation_ndays;
+						generation_ndays = 0;
+						novipositions++;
+					}
+					break;
+				}
+			}
+		}
+	}
+	if (reset_to_prepupa_each_year && date.day == climate.coldestday) {
+		if (reset_10y && !(date.year % 10) || !reset_10y)
+			reset_lifestage_to_prepupal();
+	}
+	for (int r = 0;r < NLIFESTAGES;r++) {
+		daily_cum_development_lifestage[date.day][r] = cum_development_lifestage[r];
+	}
+
+	if (date.islastmonth && date.islastday) {
+		if (print_oviposition_day) {
+			//		if(development_start[0][0] == -1)
+			if (oviposition_day == -1)				// TESTA !
+				dprintf("Oviposition Year, day: %d  %d\n", date.get_calendar_year(), -1);
+			else if (novipositions > 1)
+				dprintf("Oviposition Year, day: %d  %d\n", date.get_calendar_year(), -25);
+		}
+		else if (print_ndays_season) {
+			;//			dprintf("Season length year %d %d\n", date.get_calendar_year(), generation_ndays_latest);
+			if (oviposition_day == -1)				// TESTA !
+				dprintf("Season length year %d %d\n", date.get_calendar_year(), -1);
+			else if (novipositions > 1)
+				dprintf("Season length year %d %d\n", date.get_calendar_year(), -25);
+		}
+	}
+}
+
+void Gridcellift::calc_insect_phenology_lifestage_bentz(Gridcell& gridcell) {	// Use crop day-increase functions ?
+
+	if (ift.name != "Den_pon")
+		return;
+	Climate& climate = gridcell.climate;
+
+	const bool reset_to_prepupa_each_year = false;
+	const bool reset_10y = true;
+	const bool print_oviposition_day = true;
+	const bool print_lifestage_at_coldest_day = false;
+	const bool print_ndays_season = false;
+	const double add_temp_min = 0.0;
+	const double add_temp_max = 0.0;
+	const bool sawtooth = false;
+
+	// save coldest day for survival of hibernating insects
+	if (climate.tmin < min_temp)
+		min_temp = climate.tmin;
+	if (date.day == climate.testday_temp)
+		min_temp = climate.tmin;
+
+	generation_ndays++;
+
+	int reset_year = 535;
+	int force_oviposition_day = 225;
+	//	if(date.year == reset_year && date.day == force_oviposition_day)
+	//		reset_lifestage_to_egg();
+
+	for (int h = 0; h < 24; h++) {
+
+		double temp_hour;
+		if (sawtooth) {
+			// saw-tooth curve
+			temp_hour = climate.tmin + add_temp_min + (climate.tmax + add_temp_max - climate.tmin - add_temp_min) * h / 12;
+			if (h >= 13)
+				temp_hour -= (climate.tmax + add_temp_max - climate.tmin - add_temp_min) * (h - 12) / 6;
+		}
+		else {
+			// sine curve
+			temp_hour = (climate.tmax + add_temp_max + climate.tmin + add_temp_min) / 2.0 + (climate.tmax + add_temp_max - climate.tmin - add_temp_min) / 2.0 * sin(double(h) / 24.0 * 2 * PI - PI / 2.0);
+		}
+		double t_add = max(temp_hour - ift.dev_temp_base, 0.0);	// separate base temperatures used below
+
+		double p_1 = 0.0;
+		double p_2 = 0.0;
+		double p_3 = 0.0;
+		double p_4 = 0.0;
+		double p_5 = 0.0;
+		double dev_temp_base = ift.dev_temp_base;
+
+		//			for(int h=0; h<24; h++) {
+		for (int i = 0;i < NLIFESTAGES;i++) {
+
+			if (cum_development_lifestage[i] < 1.0 && (i == 0 || cum_development_lifestage[max(0, i - 1)] == 1.0)) {
+
+				if (print_lifestage_at_coldest_day) {
+					if (date.day == climate.coldestday) {
+						if (h == 0)
+							dprintf("Year %d: Coldest day: lifestage %d\n", date.get_calendar_year(), i);
+					}
+				}
+
+				// Both T and Tmax should be in degrees above T_base in equations from Bentz et al. 1991
+
+				switch (i) {
+				case 0:					// Egg: Logan TM1
+					p_1 = 0.029763;
+					p_2 = 0.141571;	// rho
+					p_3 = 22.51464;	// Tmax
+					p_4 = 3.164244;	// deltaT
+					dev_temp_base = 8;
+					t_add = max(temp_hour - dev_temp_base, 0.0);
+					t_add = temp_hour - dev_temp_base; // allow this to be minus
+//						if(temp_hour >= dev_temp_base)
+					cum_development_lifestage[i] += max(0.0, phenology_logan1(t_add, p_1, p_2, p_3, p_4)) / 24;
+					break;
+				case 1:					// Larva 1: Logan TM2
+					p_1 = 1.018901;
+					p_2 = 72.24579;
+					p_3 = 0.339336;	// rho
+					p_4 = 24.22940;	// Tmax
+					p_5 = 4.307345;	// deltaT
+					dev_temp_base = 5;
+					t_add = max(temp_hour - dev_temp_base, 0.0);
+					t_add = temp_hour - dev_temp_base; // allow this to be minus
+//						if(temp_hour >= dev_temp_base)
+					cum_development_lifestage[i] += max(0.0, phenology_logan2(t_add, p_1, p_2, p_3, p_4, p_5)) / 24;	// "blogan" Logan et al. 1976 (eq.10), Logan and Bentz 1999
+
+					break;
+				case 2:					// Larva 2: Logan TM2
+					p_1 = 1.001610;
+					p_2 = 36.70492;
+					p_3 = 0.377676;	// rho
+					p_4 = 18.33516;	// Tmax
+					p_5 = 3.905421;	// deltaT
+					dev_temp_base = 10;
+					t_add = max(temp_hour - dev_temp_base, 0.0);
+					t_add = temp_hour - dev_temp_base; // allow this to be minus
+//						if(temp_hour >= dev_temp_base)
+					cum_development_lifestage[i] += max(0.0, phenology_logan2(t_add, p_1, p_2, p_3, p_4, p_5)) / 24;	// "blogan" Logan et al. 1976 (eq.10), Logan and Bentz 1999
+//						dprintf("Year, day: %d  %d: d=%.3f\n", date.get_calendar_year(), date.day, max(0.0, phenology_logan2(t_add, p_1, p_2, p_3, p_4, p_5)));
+					break;
+				case 3:					// Larva 3: Logan TM1
+					p_1 = 0.078989;
+					p_2 = 0.085548;	// rho
+					p_3 = 13.04908;	// Tmax
+					p_4 = 1.509073;	// deltaT
+					dev_temp_base = 15;
+					//						dev_temp_base = 8;
+					t_add = max(temp_hour - dev_temp_base, 0.0);
+					t_add = temp_hour - dev_temp_base; // allow this to be minus
+//						if(temp_hour >= dev_temp_base)
+					cum_development_lifestage[i] += max(0.0, phenology_logan1(t_add, p_1, p_2, p_3, p_4)) / 24;
+					//						dprintf("Larva3, Year, day, temp: %d  %d %.1f : d=%.3f\n", date.get_calendar_year(), date.day, temp_hour, max(0.0, phenology_logan1(t_add, p_1, p_2, p_3, p_4)));
+					break;
+				case 4:					// Larva 4: Linear
+					p_1 = 10.93365;	// ((t_base)
+					p_2 = 0.010013;
+					cum_development_lifestage[i] += max(0.0, phenology_linear(temp_hour, p_1, p_2)) / 24;
+					break;
+				case 5:					// Pupa: Linear
+					p_1 = 13.09982;	// ((t_base)
+					p_2 = 0.022251;
+					cum_development_lifestage[i] += max(0.0, phenology_linear(temp_hour, p_1, p_2)) / 24;
+					break;
+				case 6:					// Teneral adult; Stinners
+					p_1 = 0.119118;
+					p_2 = 93.925957;
+					p_3 = -5.277388;
+					p_4 = 24.055651;
+					double tau;
+					if (temp_hour <= p_4)
+						tau = temp_hour;
+					else
+						tau = 2.0 * p_4 - temp_hour;
+					cum_development_lifestage[i] += max(0.0, phenology_stinners(temp_hour, p_1, p_2, p_3, p_4)) / 24;
+					break;
+				case 7:					// Gallery function
+					double inch_to_cm;
+					double median_gallery_length;
+					inch_to_cm = 2.54;
+					median_gallery_length = 32.0;	// 32 cm (Logan and Bentz, 1999)
+					p_1 = 0.169;
+					p_2 = 0.0194;
+					p_3 = 1.54;
+					p_4 = 0.8;
+					p_5 = 2.0;	// ((t_base)d
+					if (temp_hour < 0)
+						t_add = 0.0;
+					else
+						t_add = temp_hour - p_5;
+					if (temp_hour >= p_5)	// Requirement in Jenkins and Powell 2001 and Logan and Bentz 1991
+						cum_development_lifestage[i] += max(0.0, phenology_gallery(t_add, p_1, p_2, p_3, p_4, p_5)) / 24;
+					break;
+				default:
+					break;
+				}
+
+				if (cum_development_lifestage[i] >= 1.0) {
+					cum_development_lifestage[i] = 1.0;	// Discard hourly overshoot
+					if (i == OVIPOSITION) {
+						for (int r = 0;r < NLIFESTAGES;r++) {
+							cum_development_lifestage[r] = 0.0;
+						}
+						if (print_oviposition_day)
+							dprintf("Oviposition Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+						else if (print_ndays_season)
+							dprintf("Season length year %d %d\n", date.get_calendar_year(), generation_ndays);
+						//						if(date.year == reset_year + 1 || date.year == reset_year + 2)
+						//							dprintf("Oviposition Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+						////					development_start[0][0] = date.day;
+						oviposition_day = date.day;
+						generation_ndays_latest = generation_ndays;
+						generation_ndays = 0;
+						novipositions++;
+					}
+					break;
+				}
+			}
+		}
+	}
+
+	if (reset_to_prepupa_each_year && date.day == climate.coldestday) {
+		if (reset_10y && !(date.year % 10) || !reset_10y)
+			reset_lifestage_to_prepupal();
+	}
+
+	for (int r = 0;r < NLIFESTAGES;r++) {
+		daily_cum_development_lifestage[date.day][r] = cum_development_lifestage[r];
+	}
+	if (date.islastmonth && date.islastday) {
+		if (print_oviposition_day) {
+			//			if(development_start[0][0] == -1)
+			if (oviposition_day == -1)				// TESTA !
+				dprintf("Oviposition Year, day: %d  %d\n", date.get_calendar_year(), -1);
+			else if (novipositions > 1)
+				dprintf("Oviposition Year, day: %d  %d\n", date.get_calendar_year(), -25);
+		}
+		else if (print_ndays_season) {
+			;//			dprintf("Season length year %d %d\n", date.get_calendar_year(), generation_ndays_latest);
+			if (oviposition_day == -1)				// TESTA !
+				dprintf("Season length year %d %d\n", date.get_calendar_year(), -1);
+			else if (novipositions > 1)
+				dprintf("Season length year %d %d\n", date.get_calendar_year(), -25);
+		}
+	}
+}
+
+void Gridcellift::serialize(ArchiveStream& arch) {
+	arch& last_swarmingday_daylength
+		& last_swarmingday;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -4202,6 +5351,7 @@ Landcover::Landcover() {
 
 		frac[i] = 0.0;
 		frac_old[i] = 0.0;
+		frac_nextyear[i] = 0.0;
 		frac_change[i] = 0.0;
 		acflux_harvest_slow_lc[i] = 0.0;
 		acflux_wood_harvest_lc[i] = 0.0;
@@ -4238,6 +5388,10 @@ Gridcell::Gridcell():climate(*this) {
 		pft.createobj(pftlist[p]);
 	}
 
+	for (unsigned int i = 0; i < iftlist.nobj; i++) {
+		ift.createobj(iftlist[i]);
+	}
+
 	for (unsigned int s=0; s<stlist.nobj; s++) {
 		st.createobj(stlist[s]);
 	}
@@ -4260,22 +5414,72 @@ Gridcell::Gridcell():climate(*this) {
 	nesterov_cur = 0.;
 
 	// Initialise BLAZE variables
+	seed = 12345678;
+
+	harvest_seed = 12345678;
+	storm_seed = 12345678;
+
+	elevation_gc_mean = 0.0;
+	elevation_local = 0.0;
 
 	distinterval_gc = 1.0e10;
-	for (int m=0;m<12;m++) {
-		monthly_burned_area[m] = 0.0;
-		monthly_fire_risk[m] = 0.0;
+	dist_clearcut_gc = 0.0;
+	dist_fire_gc = 0.0;
+	dist_wind_gc = 0.0;
+	dist_barkbeetle_gc = 0.0;
+	storm_prob_gc = 0.0;
+	windload = 0.0;
+	wind_speed_limit = 0.0;
+	storm_dam_wood_prev = 0.0;
+	year_treeinit = -1;
+
+	cflux_harv_cc = 0.0;
+	cflux_harv_cc_prescribed = 0.0;
+	cflux_harv_wind_prescribed = 0.0;
+	cflux_harv_barkbeetle_prescribed = 0.0;
+	cflux_harv_thin = 0.0;
+	
+	cfluxvol_harv_cc = 0.0;
+	cfluxvol_harv_cc_prescribed = 0.0;
+	cfluxvol_harv_wind_prescribed = 0.0;
+	cfluxvol_harv_barkbeetle_prescribed = 0.0;
+	cfluxvol_harv_thin = 0.0;
+
+	for (int i=0;i<12;i++) {
+		monthly_burned_area[i] = 0.0;
+		monthly_fire_risk[i] = 0.0;
 
 	}
 	burned_area = 0.0;
 	simfire_region = 0;
+	for(int i = 0; i<365; i++) {
+		prescribed_burned_area[i] = 0.0;
+	}
+
+	luc_mort.resize(16, std::vector<double>(3, 0.0));
+	dist_mort.resize(16, std::vector<double>(3, 0.0));
+
+	for (int i=0;i<57;i++) {
+		hyde31_pop_density[i] = 0.0;
+	}
 	simfire_biome = 0;
-	pop_density = 0;
-	simfire_annual_burned_area = 0;
-	nesterov_max = 0;
-	annual_burned_area = 0;
+	pop_density = 0.0;
+	nesterov_max = 0.0;
+	fapar_cur_max = 0.0;
+	effective_burned_area = 0.0;
+	simfire_annual_burned_area = 0.0;
+	annual_burned_area = 0.0;
 	k_tun_litter = 0;
 	seed = 12345678;
+	aNH4dep = 0.0;
+	aNO3dep = 0.0;
+	dNH4dep = 0.0;
+	dNO3dep = 0.0;
+
+	storm_dam_wood = 0.0;
+
+	lon = 0.0;
+	lat = 0.0;
 }
 
 double Gridcell::get_lon() const {
@@ -4285,6 +5489,14 @@ double Gridcell::get_lon() const {
 double Gridcell::get_lat() const {
 	return lat;
 }
+
+double Gridcell::draw_random_fire() {
+        return dist_fire(rng_fire);
+    }
+
+void Gridcell::init_fire_rng(uint64_t geohash) {
+        rng_fire.seed(geohash);  // re-seed in place, no reassignment needed
+    }
 
 void Gridcell::set_coordinates(double longitude, double latitude) {
 	lon = longitude;
@@ -4431,10 +5643,10 @@ void Gridcell::soillayer_thickness(double lyr_thickness[NSOILLAYERS_MAX], int& n
 	}
 }
 
-Stand& Gridcell::create_stand_lu(StandType& st, double fraction, int no_patch, bool suppress_disturbance) {
+Stand& Gridcell::create_stand_lu(StandType& st, double fraction, int no_patch, bool suppress_disturbance, bool savetrees_force, int current_rot) {
 
 	Stand& stand = create_stand(st.landcover, no_patch);
-	stand.init_stand_lu(st, fraction, suppress_disturbance);
+	stand.init_stand_lu(st, fraction, suppress_disturbance, savetrees_force, current_rot);
 
 	return stand;
 }
@@ -4535,11 +5747,16 @@ void Gridcell::serialize(ArchiveStream& arch) {
 		& nesterov_max
 		& nesterov_monthly_max
 		& nesterov_cur
-		& fapar_recent_max;
+		& fapar_recent_max
+		& storm_seed;
 
 	if (arch.save()) {
 		for (unsigned int i = 0; i < pft.nobj; i++) {
 			arch & pft[i];
+		}
+
+		for (unsigned int i = 0; i < ift.nobj; i++) {
+			arch& ift[i];
 		}
 
 		for (unsigned int i = 0; i < st.nobj; i++) {
@@ -4559,6 +5776,13 @@ void Gridcell::serialize(ArchiveStream& arch) {
 		for (unsigned int i = 0; i < pftlist.nobj; i++) {
 			pft.createobj(pftlist[i]);
 			arch & pft[i];
+		}
+
+		ift.killall();
+
+		for (unsigned int i = 0; i < iftlist.nobj; i++) {
+			ift.createobj(iftlist[i]);
+			arch& ift[i];
 		}
 
 		st.killall();
@@ -5119,6 +6343,11 @@ bool ManagementType::pftinselection(const char* name) {
 		return false;
 
 	return issubstring(selection, name);
+}
+
+bool Ift::pftinhosts(const char* name) {
+
+	return issubstring(host_pft, name);
 }
 
 inline double calc_temp_growth(double a, const Pft *pft) {

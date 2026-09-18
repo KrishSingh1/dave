@@ -3574,6 +3574,7 @@ landcover_change_transfer::landcover_change_transfer() {
 	transfer_nmass_litter_root = transfer_nmass_litter_repr = transfer_nmass_harvested_products_slow = NULL;
 	transfer_nmass_litter_NH4 = NULL;
 
+	transfer_depth = transfer_wmass_ssw = transfer_imass_ssw = transfer_temp_ssw = 0.0;
 	transfer_acflux_harvest = transfer_anflux_harvest = transfer_wcont_evap = 0.0;
 	transfer_anfix_calc = 0.0;
 

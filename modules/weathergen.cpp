@@ -2664,7 +2664,7 @@ void weathergen_get_met(Gridcell& gridcell, double* in_mtemp, double* in_mprec, 
 			drhum[day]   = get_arden_rh(tdavg,dtmin[day]);
 		}
 
-		// Redistribute limited parameters like relhum and cloud-fraction
+		// Redistribute limited parameters like relhum and cloud-fraction		
 		double limit[2] = {0.,1.};
         for (int day=0;day<ndaymon;day++) {
             dsol[day] = 0.;

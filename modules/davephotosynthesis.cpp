@@ -1949,6 +1949,7 @@ void npp_dave(Patch& patch) {
 
 		// Save historical GPP for daily growth of grass
 		indiv.gpp_15.add(assim);
+		indiv.mgpp[date.month] += max(0.0, assim);
 
 		indiv.report_flux(Fluxes::NPP, indiv.dnpp);
 		indiv.report_flux(Fluxes::GPP, assim);

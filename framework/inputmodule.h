@@ -78,7 +78,7 @@ public:
 	virtual bool getclimate(Gridcell& gridcell) = 0;
 
 	/// Obtains land transitions for one year
-	virtual void getlandcover(Gridcell& gridcell) = 0;
+	virtual bool getlandcover(Gridcell& gridcell, double* st_frac_transfer) = 0;
 
 	/// Obtains land management data for one day
 	virtual void getmanagement(Gridcell& gridcell) = 0;

@@ -758,7 +758,6 @@ public:
 	size_t size() const {
 		return full ? capacity : current_index;
 	}
-
 private:
 	friend ArchiveStream& operator&<T>(ArchiveStream& stream, HistoricDynamic<T>& data);
 

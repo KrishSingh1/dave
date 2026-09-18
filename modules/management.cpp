@@ -13,6 +13,7 @@
 #include "landcover.h"
 #include "management.h"
 #include "driver.h"
+#include <random>
 
 double total_lai(const Patch &patch) {
 	double lai = 0;
@@ -427,7 +428,7 @@ double check_harvest_cmass(Individual& indiv, bool stem_cmass_only, bool to_prod
 	if(mt.res_outtake_coarse_root_cc != -1.0)
 		res_outtake_coarse_root_wood_harvest = mt.res_outtake_coarse_root_cc;
 
-	// Harvest of transferred areas:
+	// Harvest of transferred areas: (alive check in harvest_wood())
 	harvest_wood(cp, indiv.diam, indiv.pft, indiv.alive, 1.0, harv_eff_wood_harvest, res_outtake_twig_wood_harvest,
 					res_outtake_coarse_root_wood_harvest);
 	if(to_product_pool) {
@@ -487,6 +488,193 @@ double check_harvest_cmass(Stand& stand, bool stem_cmass_only, bool check_select
 	return cmass_harvest;
 }
 
+
+double check_mean_diam(Patch& patch, bool check_selection) {
+
+	double patch_diam = 0.0;
+	double patch_dens = 0.0;
+	ManagementType& mt = patch.stand.get_current_management();
+	StandType& st = stlist[patch.stand.stid];
+	Vegetation& vegetation = patch.vegetation;
+
+	for(unsigned int i=0; i<vegetation.nobj; i++) {
+		Individual& indiv = vegetation[i];
+		Standpft& spft = patch.stand.pft[indiv.pft.id];
+
+		if((!check_selection || spft.plant || mt.planting_system == "") && indiv.alive) {
+			patch_dens += indiv.densindiv;
+			patch_diam += indiv.diam * indiv.densindiv;
+		}
+	}
+	if(patch_dens) {
+		patch_diam /= patch_dens;
+	}
+	return patch_diam;
+}
+
+double check_mean_diam(Stand& stand, bool check_selection) {
+
+	double stand_diam = 0.0;
+
+	for(unsigned int i=0;i<stand.nobj;i++) {
+		Patch& patch = stand[i];
+		stand_diam += check_mean_diam(patch, check_selection) / (double)stand.nobj;
+	}
+	return stand_diam;
+}
+
+double check_mean_diam_rms(Patch& patch, bool check_selection) {
+
+	double patch_diam_rms = 0.0;
+	double patch_dens = 0.0;
+	ManagementType& mt = patch.stand.get_current_management();
+	StandType& st = stlist[patch.stand.stid];
+	Vegetation& vegetation = patch.vegetation;
+
+	for(unsigned int i=0; i<vegetation.nobj; i++) {
+		Individual& indiv = vegetation[i];
+		Standpft& spft = patch.stand.pft[indiv.pft.id];
+
+		if((!check_selection || spft.plant || mt.planting_system == "") && indiv.alive) {
+			patch_dens += indiv.densindiv;
+			patch_diam_rms+= pow(indiv.diam, 2) * indiv.densindiv;
+		}
+	}
+	if(patch_dens) {
+		patch_diam_rms = pow(patch_diam_rms / patch_dens, 0.5);	// Complete Dg calculation for each patch
+	}
+	return patch_diam_rms;
+}
+
+double check_mean_diam_rms(Stand& stand, bool check_selection) {
+
+	double stand_diam_rms = 0.0;
+
+	for(unsigned int i=0;i<stand.nobj;i++) {
+		Patch& patch = stand[i];
+		stand_diam_rms += check_mean_diam_rms(patch, check_selection) / (double)stand.nobj;
+	}
+	return stand_diam_rms;
+}
+
+// Perhaps values are already calculated for patches in blaze() ? YES, skip this function
+double check_fire_sensitivity(Patch& patch, bool check_selection) {
+
+	double patch_fire_sensitivity = 0.0;
+	double patch_dens = 0.0;
+	ManagementType& mt = patch.stand.get_current_management();
+	StandType& st = stlist[patch.stand.stid];
+	Vegetation& vegetation = patch.vegetation;
+
+	for(unsigned int i=0; i<vegetation.nobj; i++) {
+		Individual& indiv = vegetation[i];
+		Standpft& spft = patch.stand.pft[indiv.pft.id];
+
+		if((!check_selection || spft.plant || mt.planting_system == "") && indiv.alive) {
+			patch_dens += indiv.densindiv;
+//			patch_fire_sensitivity += indiv.xxx;
+		}
+	}
+
+	if(patch_dens) {
+		patch_fire_sensitivity /= patch_dens;
+	}
+
+	return patch_fire_sensitivity;
+}
+
+double check_fire_sensitivity(Stand& stand, bool check_selection) {
+
+	double stand_fire_sensitivity = 0.0;
+
+	for(unsigned int i=0;i<stand.nobj;i++) {
+		Patch& patch = stand[i];
+//		stand_fire_sensitivity += check_fire_sensitivity(patch, check_selection) / (double)stand.nobj;
+		stand_fire_sensitivity += patch.biomass_weighted_fire_mortality / (double)stand.nobj;
+	}
+	return stand_fire_sensitivity;
+}
+
+double check_storm_sensitivity(Patch& patch, bool check_selection) {
+
+	double patch_storm_sensitivity = 0.0;
+	double patch_dens = 0.0;
+	ManagementType& mt = patch.stand.get_current_management();
+	StandType& st = stlist[patch.stand.stid];
+	Vegetation& vegetation = patch.vegetation;
+
+	for(unsigned int i=0; i<vegetation.nobj; i++) {
+		Individual& indiv = vegetation[i];
+		Standpft& spft = patch.stand.pft[indiv.pft.id];
+
+		if((!check_selection || spft.plant || mt.planting_system == "") && indiv.alive) {
+			patch_dens += indiv.densindiv;
+			for (int wind_sector = 0;wind_sector<6;wind_sector++) {
+				patch_storm_sensitivity += indiv.sens_ind[wind_sector] * indiv.cmass_wood();	// cohort cmass weight
+			}
+		}
+	}
+
+	if (patch.cmass_wood() > 0.0) {
+		patch_storm_sensitivity /= patch.cmass_wood();
+	}
+
+	return patch_storm_sensitivity;
+}
+
+double check_storm_sensitivity(Stand& stand, bool check_selection) {
+
+	double stand_storm_sensitivity = 0.0;
+
+	for(unsigned int i=0;i<stand.nobj;i++) {
+		Patch& patch = stand[i];
+//		stand_storm_sensitivity += check_storm_sensitivity(patch, check_selection) / (double)stand.nobj;
+		stand_storm_sensitivity += patch.storm_sens_ind / (double)stand.nobj;
+	}
+	return stand_storm_sensitivity;
+}
+
+double check_barkbeetle_sensitivity(Patch& patch, bool check_selection) {
+
+	double patch_barkbeetle_sensitivity = 0.0;
+	double patch_dens = 0.0;
+	ManagementType& mt = patch.stand.get_current_management();
+	StandType& st = stlist[patch.stand.stid];
+	Vegetation& vegetation = patch.vegetation;
+
+	for(unsigned int i=0; i<vegetation.nobj; i++) {
+		Individual& indiv = vegetation[i];
+		Standpft& spft = patch.stand.pft[indiv.pft.id];
+		double weight = 1.0;
+		if(indiv.pft.name == "Pic_abi")
+			weight = 100;
+		else if(indiv.pft.leafphysiognomy == NEEDLELEAF)
+			weight = 10;
+
+		if((!check_selection || spft.plant || mt.planting_system == "") && indiv.alive) {
+			patch_dens += indiv.densindiv;
+			patch_barkbeetle_sensitivity += weight * indiv.diam * indiv.densindiv;
+		}
+	}
+
+	if(patch_dens) {
+		patch_barkbeetle_sensitivity /= patch_dens;
+	}
+
+	return patch_barkbeetle_sensitivity;
+}
+
+double check_barkbeetle_sensitivity(Stand& stand, bool check_selection) {
+
+	double stand_barkbeetle_sensitivity = 0.0;
+
+	for(unsigned int i=0;i<stand.nobj;i++) {
+		Patch& patch = stand[i];
+		stand_barkbeetle_sensitivity += check_barkbeetle_sensitivity(patch, check_selection) / (double)stand.nobj;
+	}
+	return stand_barkbeetle_sensitivity;
+}
+
 /// Harvest function used for managed forest and for clearing natural vegetation during land use change.
 /** This version does not directly change the biomass and litter in an individual and the corresponding patch/patchpft,
  *  but updates values for a Harvest_CN struct copy.
@@ -494,7 +682,7 @@ double check_harvest_cmass(Stand& stand, bool stem_cmass_only, bool check_select
  *  A fraction of stem wood is harvested (pft.harv_eff). A fraction of harvested wood (pft.harvest_slow_frac or 100% of
  *  trees above a diameter limit if harvest_burn_thin_trees == true) is sent to harvested_products_slow and the rest plus
  *  residue outtake is sent to acflux_harvest.The rest, including leaves and roots, is sent to litter.
- *  Called from landcover_dynamics() first day of the year if any natural or forest vegetation is transferred to another,
+ *  Called from landcover_dynamics() first day of the year if any natural or forest vegetation is transferred to another
  *  land use or from harvest_wood(Individual& indiv, ...).
  *
  *  INPUT PARAMETERS
@@ -552,7 +740,7 @@ double check_harvest_cmass(Stand& stand, bool stem_cmass_only, bool check_select
  *   - anflux_harvest   			harvest nitrogen flux out of system (kgN/m2)
  */
 void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_cut, double harv_eff, double res_outtake_twig,
-					double res_outtake_coarse_root) {
+					double res_outtake_coarse_root, bool forest_init) {
 
 	// only harvest trees
 	if (pft.is_grass())
@@ -568,6 +756,10 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 	double coarse_root_frac = 1.0 - pft.ag_woody_frac;
 	// Fraction of leaves adhering to twigs at the time of removal (provisional value, typical for situation for harvested spruce in Sweden)
 	double adhering_leaf_frac = 0.75;
+
+	double res_outtake_fine_root = 0.0;
+	if(forest_init)
+		res_outtake_fine_root = 1.0;
 
 	double harvest_slow_frac = pft.harvest_slow_frac;	// Default 0.33
 
@@ -594,16 +786,40 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 	// all root carbon and nitrogen goes to litter
 	if (alive) {
 
-		i.cmass_litter_root += i.cmass_root * frac_cut;
-		i.acflux_harvest_tolitter += i.cmass_root * frac_cut;
+		i.cmass_litter_root += i.cmass_root * frac_cut * (1.0 - res_outtake_fine_root);
+		i.acflux_harvest_tolitter += i.cmass_root * frac_cut * (1.0 - res_outtake_fine_root);
+		i.acflux_harvest += i.cmass_root * frac_cut * res_outtake_fine_root;
 		i.cmass_root *= (1.0 - frac_cut);
+		i.cmass_storage *= (1.0 - frac_cut);
+		i.cmass_crown *= (1.0 - frac_cut);
+		i.cmass_repr *= (1.0 - frac_cut);
+
+		if (pft.is_grass() && ifdailygrass) {
+			i.cmass_leafs[0] *= (1.0 - frac_cut);
+			i.cmass_leafs[1] *= (1.0 - frac_cut);
+
+			i.nmass_leafs[0] *= (1.0 - frac_cut);
+			i.nmass_leafs[1] *= (1.0 - frac_cut);
+
+			if (!ifdavegrowth) {
+				i.cmass_leafs[2] *= (1.0 - frac_cut);
+				i.cmass_leafs[3] *= (1.0 - frac_cut);
+
+				i.nmass_leafs[2] *= (1.0 - frac_cut);
+				i.nmass_leafs[3] *= (1.0 - frac_cut);
+			}
+		}
 	}
 
-	i.nmass_litter_root += i.nmass_root * frac_cut;
-	i.nmass_litter_root += (i.nstore_labile + i.nstore_longterm) * frac_cut;
+	i.nmass_litter_root += i.nmass_root * frac_cut * (1.0 - res_outtake_fine_root);
+	i.nmass_litter_root += (i.nstore_labile + i.nstore_longterm) * frac_cut * (1.0 - res_outtake_fine_root);
+	i.anflux_harvest += (i.nmass_root + i.nstore_labile + i.nstore_longterm) * frac_cut * res_outtake_fine_root;
 	i.nmass_root *= (1.0 - frac_cut);
 	i.nstore_labile *= (1.0 - frac_cut);
 	i.nstore_longterm *= (1.0 - frac_cut);
+	i.nmass_storage *= (1.0 - frac_cut);
+	i.nmass_crown *= (1.0 - frac_cut);
+	i.nmass_repr *= (1.0 - frac_cut);
 
 	if (alive) {
 
@@ -616,7 +832,7 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 			i.acflux_harvest_wood += stem_harvest;
 
 			// harvested products not consumed (oxidised) this year put into harvested_products_slow
-			if (ifslowharvestpool) {
+			if (ifslowharvestpool && !forest_init) {
 				i.cmass_harvested_products_slow += stem_harvest * harvest_slow_frac;
 				i.acflux_harvest_wood_toprod += stem_harvest * harvest_slow_frac;
 				stem_harvest *= (1.0 - harvest_slow_frac);
@@ -662,7 +878,7 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 		// debt larger than existing wood biomass
 		else {
 			double debt_excess = i.cmass_debt - (i.cmass_sap + i.cmass_heart);
-			dprintf("ATTENTION: cmass_debt > i.cmass_sap + i.cmass_heart; debt_excess=%f\n", debt_excess);
+			dprintf("ATTENTION: For PFT: %s, cmass_debt (%f)> i.cmass_sap (%f) + i.cmass_heart (%f); debt_excess=%f \n", (char*)pft.name, i.cmass_debt, i.cmass_sap, i.cmass_heart, debt_excess);
 		//	i.debt_excess += debt_excess * frac_cut;	// debt_excess currently not dealt with during wood harvest
 		}
 
@@ -680,7 +896,7 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 		stem_harvest += harv_eff * stem_frac * (i.nmass_sap + i.nmass_heart) * frac_cut;
 
 		// harvested products not consumed this year put into harvested_products_slow_nmass
-		if (ifslowharvestpool) {
+		if (ifslowharvestpool && !forest_init) {
 			i.nmass_harvested_products_slow += stem_harvest * harvest_slow_frac;
 			stem_harvest = stem_harvest * (1.0 - harvest_slow_frac);
 		}
@@ -778,15 +994,57 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
  */
 
 void harvest_wood(Individual& indiv, double frac_cut, double harv_eff, double res_outtake_twig, 
-		double res_outtake_coarse_root, bool lc_change) {
+		double res_outtake_coarse_root, bool lc_change, bool forest_init, disturbancetype disttype, bool thin) {
 
 	Harvest_CN indiv_cp;
 
 	indiv_cp.copy_from_indiv(indiv);
 
-	harvest_wood(indiv_cp, indiv.diam, indiv.pft, indiv.alive, frac_cut, harv_eff, res_outtake_twig, res_outtake_coarse_root);
+	harvest_wood(indiv_cp, indiv.diam, indiv.pft, indiv.alive, frac_cut, harv_eff, res_outtake_twig, res_outtake_coarse_root, forest_init);
 
 	indiv_cp.copy_to_indiv(indiv, false, lc_change);
+
+	Stand& stand = indiv.vegetation.patch.stand;
+	Gridcell& gridcell = stand.get_gridcell();
+
+	if(thin) {
+
+		gridcell.cflux_harv_thin += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+		gridcell.cfluxvol_harv_thin += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest_wood / indiv.pft.wooddens / (double)stand.nobj;
+	}
+	else {
+		if(disttype == CLEARCUT) {
+			gridcell.cflux_harv_cc += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+
+			if(indiv.pft.lifeform == TREE) {
+				gridcell.cfluxvol_harv_cc += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest_wood / indiv.pft.wooddens / (double)stand.nobj;
+			}
+
+		}
+		else if(disttype == CLEARCUT_PRESCRIBED) {
+			gridcell.cflux_harv_cc_prescribed += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+
+			if(indiv.pft.lifeform == TREE) {
+				gridcell.cfluxvol_harv_cc_prescribed += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest_wood / indiv.pft.wooddens / (double)stand.nobj;
+			}
+
+		}
+		else if(disttype == WIND) {
+			gridcell.cflux_harv_wind_prescribed += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+
+			if(indiv.pft.lifeform == TREE) {
+				gridcell.cfluxvol_harv_wind_prescribed += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest_wood / indiv.pft.wooddens / (double)stand.nobj;
+			}
+				
+		}
+		else if(disttype == BARKBEETLE) {
+			gridcell.cflux_harv_barkbeetle_prescribed += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest / (double)stand.nobj;
+
+			if(indiv.pft.lifeform == TREE) {
+				gridcell.cfluxvol_harv_barkbeetle_prescribed += stand.get_gridcell_fraction() * indiv_cp.acflux_harvest_wood / indiv.pft.wooddens / (double)stand.nobj;
+			}
+		}
+	}
 
 	if (lc_change) {
 		Stand& stand = indiv.vegetation.patch.stand;
@@ -1021,6 +1279,7 @@ void distribute_cutting(Patch& patch, int select_diam = SELECT_DIAM_NOPREF, int 
 
 			if(select_pft == SELECT_PFT_SHADEINTOL) {
 				// Exclude shrubs and shade-intolerant pfts from selection in this function
+				// Have to be both spft.plant and shade tolerant
 				pft_selection = pft_selection && !indiv.pft.is_shrub() && !indiv.pft.is_shade_intolerant_tree();
 			}
 
@@ -1047,7 +1306,7 @@ void distribute_cutting(Patch& patch, int select_diam = SELECT_DIAM_NOPREF, int 
 				// Determine if diameter rules restricts harvestable amount
 				double max_cut = diameter_rules(indiv);
 
-				// Satisfy cutting demand by cutting down each according to the preferences set by select_diam
+				// Satisfy cutting demand by cutting down each cohort according to the preferences set by select_diam
 				if(select_diam == SELECT_DIAM_LIMIT) {
 					indiv.man_strength = max_cut;
 				}
@@ -1197,7 +1456,7 @@ void set_forest_pft_structure(Gridcell& gridcell) {
 																// (otherwise, all other trees may be cut when one pft dies)
 		bool no_target_cutting_before_man_start = true;			// No target-cutting before management starts
 
-		bool management_started = stand[0].managed;				// patch.managed is the same for all patches in a stand
+		bool management_started = stand[0].management_started;	// patch.management_started is the same for all patches in a stand
 
 		int first_targetyear = 0;	// Simulation year when target cutting starts; default is first simulation year
 									// (unless no_target_cutting_before_man_start is true).
@@ -1623,6 +1882,9 @@ void thin_reineke(Patch& patch) {
 	 * rdi reaches (rdi_target + delta_rdi) to reach (rdi_target - delta_rdi)
 	 */
 
+	if(patch.age <= 10)
+		return;
+
 	ManagementType& mt = patch.stand.get_current_management();
 	StandType& st = stlist[patch.stand.stid];
 
@@ -1650,9 +1912,9 @@ void thin_reineke(Patch& patch) {
 		dens_target = DENSTARGET_BL;
 	}
 
-	if(mt.alpha_st)
+	if(mt.alpha_st != 0.0)
 		alpha_st = mt.alpha_st;
-	if(mt.rdi_target)
+	if(mt.rdi_target != 0.0)
 		rdi_target = mt.rdi_target;
 	if(mt.dens_target_cc)
 		dens_target = mt.dens_target_cc;
@@ -1728,9 +1990,7 @@ void manage_forests(Gridcell& gridcell) {
 			stand.firstobj();
 			while (stand.isobj) {
 				Patch& patch = stand.getobj();
-				if(harvest_secondary_to_new_stand)	{	
-					manage_forest(patch);
-				}
+				manage_forest(patch);
 				stand.nextobj();
 			}
 		}
@@ -1768,11 +2028,75 @@ void manage_forests(Gridcell& gridcell) {
 	}
 }
 
+bool harvest_probability(Patch& patch) {
+
+	Stand& stand = patch.stand;
+	StandType& st = stlist[stand.stid];
+	Gridcellst& gcst = patch.stand.get_gridcell().st[stand.stid];
+
+	if (randfrac(patch.harvest_seed) < patch.harvest_probability)
+//	if (randfrac(patch.stand.get_gridcell().harvest_seed) < patch.harvest_probability)
+		return true;
+	else
+		return false;
+}
+
+bool clearcut_probablity(Patch& patch) {
+
+	if (randfrac(patch.harvest_seed) < patch.clearcut_probability)
+//	if (randfrac(patch.stand.get_gridcell().harvest_seed) < patch.clearcut_probability)
+		return true;
+	else
+		return false;
+}
+
+void thinning_intensity(Patch& patch) {
+
+	long seed = patch.harvest_seed;
+//	long seed = patch.stand.get_gridcell().harvest_seed;
+	std::default_random_engine gen(seed);
+
+//	dprintf("Year %d: Stand %d st %s first_year %d: Patch %d, Mean intensity %f, sd %f, seed=%d\n", date.get_calendar_year(), patch.stand.id, (char*)stlist[patch.stand.stid].name, patch.stand.first_year, patch.id, patch.thinning_intensity_mean, patch.thinning_intensity_sd, seed);
+
+	double sample;
+/*
+	// Test distribution
+	for (int i = 0; i < 10; ++i) {
+		// instance of class std::normal_distribution with specific mean and stddev
+		std::normal_distribution<> d{patch.thinning_intensity_mean, patch.thinning_intensity_sd};
+
+		// get random number with normal distribution using gen as random source
+		sample = d(gen);
+		double max_dev = min(patch.thinning_intensity_mean, (1.0 - patch.thinning_intensity_mean));
+		sample = max(patch.thinning_intensity_mean - max_dev, min(sample, patch.thinning_intensity_mean + max_dev));
+		dprintf("%f\t", sample);
+	}
+*/
+	if (ifthin_prob_distribution && patch.thinning_intensity_sd > 0.0) {
+		// instance of class std::normal_distribution with specific mean and stddev
+		std::normal_distribution<> d{patch.thinning_intensity_mean, patch.thinning_intensity_sd};
+		// get random number with normal distribution using gen as random source
+		sample = d(gen);
+		double max_dev = min(patch.thinning_intensity_mean, (1.0 - patch.thinning_intensity_mean));
+		sample = max(patch.thinning_intensity_mean - max_dev, min(sample, patch.thinning_intensity_mean + max_dev));
+		patch.man_strength = sample;
+
+//		dprintf("Sample value: %f\t", sample);
+//		dprintf("\n");
+	}
+	else {
+		patch.man_strength = patch.thinning_intensity_mean;
+	}
+
+	// Cut all trees equally
+	distribute_cutting(patch, patch.thinning_size_preference, SELECT_AGE_NOPREF, SELECT_PFT_NOPREF);
+}
+
 /// Sets biomass fraction to be cut in clear-cuts and thinnings for all trees in this patch this year.
 /** Sets patch.man_strength (tree biomass to be cut, 0-1) in clearcut- and continuous management schemes (harvest_system "CLEARCUT" and "CONTINUOUS").
  *  Calls distribute_cutting() to set man_strength for individuals in thinnings.
  *  Sets patch.man_strength to 1 in first_manageyear if mt.cutfirstyear == true in stands created at the start of the simulation.
- *  Sets patch.managed in first_manageyear (disables disturbance and fire if suppress_disturbance or suppress_fire == true).
+ *  Sets patch.management_started in first_manageyear (disables disturbance and fire if suppress_disturbance or suppress_fire == true).
  *  INPUT PARAMETERS
  *  \param patch					reference to a Patch containing the following public members:
  *   - age			 				patch age
@@ -1810,7 +2134,7 @@ void manage_forests(Gridcell& gridcell) {
  *  \param patch					reference to a Patch containing the following public members:
  *   - age							patch age; reset at clear-cut
  *   - man_strength					patch-level management strength (cutting intensity)
- *   - managed						whether management has started (including suppression of disturbance and fire)
+ *   - management_started			whether management has started (including suppression of disturbance and fire)
  *   - plant_this_year				whether patch should be planted this year
  *   - clearcut_this_year			whether patch has been clear-cut this year
  *   - has_been_cut					whether patch has ever been cut
@@ -1838,7 +2162,7 @@ void manage_forest(Patch& patch) {
 	if(date.year < first_manageyear || !mt.is_managed())
 		return;
 
-	patch.managed = true;
+	patch.management_started = true;
 
 	if(patch.stand.first_year == date.year) {
 		patch.plant_this_year = true;	// Forces establishment first stand year to behave like after clearcut
@@ -1850,17 +2174,16 @@ void manage_forest(Patch& patch) {
 	int cut_interval = mt.cutinterval;
 	bool clearcut_now = false;
 
-	// clearcut_first_manageyear: clearcut in year==first_manageyear only in stands created at start of simulation (false),
+	// clearcut_first_manageyear: clearcut in year==first_manageyear only in stands created at start of simulation (false = default),
 	//							  clearcut in year==first_manageyear in all stands (true)
-	bool clearcut_first_manageyear = false;
-	if(mt.cutfirstyear && date.year == first_manageyear && (stand.first_year == 0 || clearcut_first_manageyear))
+	if(mt.cutfirstyear && date.year == first_manageyear && (stand.first_year == 0 || mt.clearcut_first_manageyear))
 		clearcut_now = true;
 
 	if(mt.ifthin_reineke)
 		thin_reineke_init(patch);
 
 	int first_cutyear = first_manageyear; // Simulation year when forestry harvesting starts; default is same year as 
-										  // first_manageyear.
+										  // first_manageyear (simulation year)
 	if(mt.firstcutyear < FAR_FUTURE_YEAR) // Initialised to 1000000; other values set in instruction file.
 		first_cutyear = mt.firstcutyear - date.first_calendar_year;
 
@@ -1901,7 +2224,35 @@ void manage_forest(Patch& patch) {
 	if(date.year < first_cutyear && !clearcut_now)
 		return;
 
-	if(mt.harvest_system == "CLEARCUT") {
+	if (mt.harvest_system == "PROBABILITY_INPUT") {
+
+		// Determine if this patch is cut this year
+
+		if(harvest_probability(patch)) {
+
+			// Clearcut
+
+			if (patch.age && !clearcut_now && !in_distribute_patch_ages_period) {
+				if(clearcut_probablity(patch))
+					clearcut_now = true;
+			}
+			if (date.get_calendar_year() < mt.firstclearcutyear) {
+				clearcut_now = false;
+			}
+
+			// Thinnings
+
+			if (!clearcut_now) {
+				thinning_intensity(patch);
+			}
+
+			// Option to turn off clearcuts and bypass thinning when input clearcut probabilities are > 0
+			if(clearcutprob_off || (date.get_calendar_year() < clearcutprob_input_firstyear || date.get_calendar_year() > clearcutprob_input_lastyear)) {
+				clearcut_now = false;
+			}
+		}
+	}
+	else if(mt.harvest_system == "CLEARCUT") {
 
 		if(patch.age && !clearcut_now && !in_distribute_patch_ages_period) {
 
@@ -1926,7 +2277,7 @@ void manage_forest(Patch& patch) {
 						clearcut_now = true;
 				}
 				else if(readcutinterval_st) {
-					if(cutting_reference_age >= cut_interval) {
+					if((cutting_reference_age % cut_interval) >= cut_interval) {	// Fix 251028, not tested !
 						clearcut_now = true;
 					}
 				}
@@ -1950,6 +2301,10 @@ void manage_forest(Patch& patch) {
 				clearcut_now = false;
 			}
 
+			if(readdist_clearcut && date.get_calendar_year() >= disturbance_input_firstyear && date.get_calendar_year() <= disturbance_input_lastyear) {
+				clearcut_now = false;
+			}
+
 			// Thinnings
 
 			if(!clearcut_now)  {
@@ -1969,14 +2324,15 @@ void manage_forest(Patch& patch) {
 					}
 					for(int t=0;t<NTHINNINGS;t++) {
 						if((mt.thinstrength[0][t] || mt.thinstrength_unsel[0][t])
-							&& (age == (int)(floor((cut_interval * mt.thintime[0][t]) + 0.5)))) {
+							&& (age % cut_interval) == (int)(floor((cut_interval * mt.thintime[0][t]) + 0.5))) {
 
 							cut_fraction = mt.thinstrength[0][t];
 							cut_fraction_unsel = mt.thinstrength_unsel[0][t];
 							patch.man_strength = cut_fraction;
 							// Pre-commercial thinning: harvested biomass to litter
-							if(!t)
+							if(!t) {
 								patch.harvest_to_litter = true;
+							}
 							distribute_cutting(patch, mt.thinselectdiam[0][t], mt.thinselectage[0][t], mt.thinselectpft[0][t], cut_fraction_unsel);
 						}
 					}
@@ -2071,13 +2427,13 @@ void manage_forest(Patch& patch) {
  *   - cmass_wood_clearcut			removed wood C biomass of trees harvested during clear-cut (kgC/m2)
  *   - cmass_harv_killed			total C biomass of trees harvested during clear-cut (kgC/m2)
  */
-void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed) {
+void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& killed, lc_change_harvest_params* harv_params, disturbancetype disttype) {
 
 	Patch& patch = indiv.vegetation.patch;
 	Patchpft& ppft = patch.pft[indiv.pft.id];
 
 	double man_strength = patch.man_strength;
-	if(patch.distributed_cutting)
+	if(patch.distributed_cutting && patch.man_strength != 1.0)
 		man_strength = indiv.man_strength;
 	ManagementType& mt = indiv.vegetation.patch.stand.get_current_management();
 
@@ -2094,13 +2450,55 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 		// Use ManagementType values, if defined
 		if (patch.man_strength == 1.00) {
 			// the whole cohort is cut (clear-cut)
-			if(mt.harv_eff_cc != -1.0)
-				harv_eff_wood_harvest = mt.harv_eff_cc;
-			if(mt.res_outtake_twig_cc != -1.0)
-				res_outtake_twig_wood_harvest = mt.res_outtake_twig_cc;
-			if(mt.res_outtake_coarse_root_cc != -1.0)
-				res_outtake_coarse_root_wood_harvest = mt.res_outtake_coarse_root_cc;
-			ppft.cmass_wood_clearcut += man_strength * check_harvest_cmass(indiv, true);
+			if(disttype == CLEARCUT || disttype == CLEARCUT_PRESCRIBED) {
+				if(mt.harv_eff_cc != -1.0)
+					harv_eff_wood_harvest = mt.harv_eff_cc;
+				if(mt.res_outtake_twig_cc != -1.0)
+					res_outtake_twig_wood_harvest = mt.res_outtake_twig_cc;
+				if(mt.res_outtake_coarse_root_cc != -1.0)
+					res_outtake_coarse_root_wood_harvest = mt.res_outtake_coarse_root_cc;
+
+				if(indiv.pft.is_grass()) {
+
+					ppft.cmass_wood_clearcut += man_strength * check_harvest_cmass(indiv, true);
+
+					if(disttype == CLEARCUT_PRESCRIBED) {
+						// Only prescribed disturbance clearcut
+						ppft.cmass_dist_clearcut_killed += indiv.ccont();
+						if(indiv.diam >= 0.1)
+							ppft.cmass_dist_clearcut_killed_plus10cm += indiv.ccont();
+						// MORT
+						indiv.mortflux(man_strength, MORT_HARV_CCUT, patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj, true);
+					}
+					else {
+						// Only standard forest management
+						ppft.cmass_harv_killed += man_strength * indiv.ccont();
+						ppft.cmass_clearcut_killed += man_strength * indiv.ccont();
+						if(indiv.diam >= 0.1) {
+							ppft.cmass_harv_killed_plus10cm += man_strength * indiv.ccont();
+							ppft.cmass_clearcut_killed_plus10cm += man_strength * indiv.ccont();
+						}
+						// MORT
+						indiv.mortflux(man_strength, MORT_HARV_CCUT);
+					}
+				}
+			}
+			else if(disttype == WIND) {
+				if(indiv.pft.is_grass()) {
+					ppft.cmass_dist_wind_killed += indiv.ccont();
+					indiv.mortflux(man_strength, MORT_DIST, patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj, true);
+				}
+				if(indiv.diam >= 0.1)
+					ppft.cmass_dist_wind_killed_plus10cm += indiv.ccont();
+			}
+			else if(disttype == BARKBEETLE) {
+				if (indiv.pft.is_grass()) {
+					ppft.cmass_dist_barkbeetle_killed += indiv.ccont();
+					indiv.mortflux(man_strength, MORT_DIST, patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj, true);
+				}
+				if(indiv.diam >= 0.1)
+					ppft.cmass_dist_barkbeetle_killed_plus10cm += indiv.ccont();
+			}
 		}
 		else {
 			// part of the cohort is cut (thinning)
@@ -2110,6 +2508,16 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 				res_outtake_twig_wood_harvest = mt.res_outtake_twig_thin;
 			if(mt.res_outtake_coarse_root_thin != -1.0)
 				res_outtake_coarse_root_wood_harvest = mt.res_outtake_coarse_root_thin;
+
+			ppft.cmass_harv_killed += man_strength * indiv.ccont();
+			ppft.cmass_thin_killed +=  man_strength * indiv.ccont();
+			ppft.cmass_wood_thin += man_strength * check_harvest_cmass(indiv, true);
+			if(indiv.diam >= 0.1) {
+				ppft.cmass_harv_killed_plus10cm += man_strength * indiv.ccont();
+				ppft.cmass_thin_killed_plus10cm +=  man_strength * indiv.ccont();
+			}
+			// MORT
+			indiv.mortflux(man_strength, MORT_HARV_THIN);
 		}
 
 		// Non-commercial harvest, set to true during first thinning in a clearcut management scheme
@@ -2120,10 +2528,23 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 		}
 		ppft.cmass_harv_killed += man_strength * indiv.ccont();
 
-		harvest_wood(indiv, man_strength, harv_eff_wood_harvest, res_outtake_twig_wood_harvest, res_outtake_coarse_root_wood_harvest);
+		// Both standard forest management and prescribed disturbance clearcut
+		if (pft.lifeform == TREE) {
+			ppft.cmass_wood_harv_killed += man_strength * indiv.cmass_wood();
+		}
+		if (indiv.diam >= 0.1) {
+			ppft.cmass_wood_harv_killed_plus10cm += man_strength * indiv.cmass_wood();
+		}
+
+		if(harv_params) {
+			harvest_wood(indiv, man_strength, harv_params->harv_eff, harv_params->res_outtake_twig, harv_params->res_outtake_coarse_root, false, false, disttype, patch.man_strength < 1.0);
+		}
+		else {
+			harvest_wood(indiv, man_strength, harv_eff_wood_harvest, res_outtake_twig_wood_harvest, res_outtake_coarse_root_wood_harvest, false, false, disttype, patch.man_strength < 1.0);
+		}
 		// Kill grass at clear-cut and send biomass to litter if mt.killgrass_at_cc == true
 		if(pft.is_grass())
-			indiv.kill();
+			indiv.kill(MORT_OTHER);
 
 		indiv.densindiv *= (1.0 - man_strength);
 
@@ -2142,7 +2563,20 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 			killed = true;
 		}
 		else {
-			allometry(indiv);
+			// Update allometry
+			if (!allometry(indiv)) {
+				// Handle allometry related mortality
+				Patchpft& patchpft = patch.pft[indiv.pft.id];
+				patchpft.cmass_mort += indiv.ccont();
+				// patchpft.cmass_mort_wood += indiv.cmass_wood();
+				// if (indiv.diam >= 0.1)
+				// 	patchpft.cmass_mort_wood_plus10cm += indiv.cmass_wood();
+
+				indiv.kill(MORT_OTHER);
+
+				indiv.vegetation.killobj();
+				killed = true;
+			}
 		}
 
 		patch.managed_this_year = true;		
@@ -2679,26 +3113,31 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 			cp.acflux_harvest += cp.cmass_leafs[0] + cp.cmass_leafs[1] + cp.cmass_leafs[2] + cp.cmass_leafs[3];
 			cp.acflux_harvest += cp.cmass_sap;
 			cp.acflux_harvest += cp.cmass_heart - cp.cmass_debt;
+			cp.acflux_harvest += cp.cmass_storage + cp.cmass_crown + cp.cmass_repr;
 		}
 		else {
 			cp.cmass_litter_leaf += cp.cmass_leaf;
 			cp.cmass_litter_leaf += cp.cmass_leafs[0] + cp.cmass_leafs[1] + cp.cmass_leafs[2] + cp.cmass_leafs[3];
 			cp.cmass_litter_sap += cp.cmass_sap;
 			cp.cmass_litter_heart += cp.cmass_heart - cp.cmass_debt;
+			cp.cmass_litter_root += cp.cmass_storage + cp.cmass_crown;
+			cp.cmass_litter_leaf += cp.cmass_repr;
 			cp.acflux_harvest_tolitter += cp.cmass_leaf + cp.cmass_sap + cp.cmass_heart - cp.cmass_debt;
+			cp.acflux_harvest_tolitter += cp.cmass_leafs[0] + cp.cmass_leafs[1] + cp.cmass_leafs[2] + cp.cmass_leafs[3];
+			cp.acflux_harvest_tolitter += cp.cmass_storage + cp.cmass_crown + cp.cmass_repr;
 		}
 	}
 
 	cp.nmass_litter_root += cp.nmass_root;
 	cp.nmass_litter_root += cp.nstore_longterm;
 	cp.nmass_litter_root += cp.nstore_labile;
-	cp.nmass_litter_root += cp.nmass_storage;
 
 	if (burn) {
 		cp.anflux_harvest += cp.nmass_leaf;
 		cp.anflux_harvest += cp.nmass_leafs[0] + cp.nmass_leafs[1] + cp.nmass_leafs[2] + cp.nmass_leafs[3];
 		cp.anflux_harvest += cp.nmass_sap;
 		cp.anflux_harvest += cp.nmass_heart;
+		cp.anflux_harvest += cp.nmass_storage + cp.nmass_crown + cp.nmass_repr;
 	}
 	else {
 		cp.nmass_litter_leaf += cp.nmass_leaf;
@@ -2742,6 +3181,8 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 	cp.cmass_root = 0.0;
 	cp.cmass_sap = 0.0;
 	cp.cmass_heart = 0.0;
+	cp.cmass_repr = 0.0;
+	cp.cmass_crown = 0.0;
 	cp.cmass_debt = 0.0;
 	cp.cmass_ho = 0.0;
 	cp.cmass_agpool = 0.0;
@@ -2758,7 +3199,8 @@ void kill_remaining_vegetation(Harvest_CN& cp, Pft& pft, bool alive, bool istrue
 	cp.nmass_heart = 0.0;
 	cp.nmass_ho = 0.0;
 	cp.nmass_agpool = 0.0;
-
+	cp.nmass_repr = 0.0;
+	cp.nmass_crown = 0.0;
 }
 
 /// Transfers all carbon and nitrogen from living tissue to litter
@@ -3377,8 +3819,9 @@ void crop_rotation(Stand& stand) {
 
 		// Adds sowing and harvest dates for the second crop in a double cropping system
 		if (rotation.multicrop && rotation.nmanagements == 2 && stand.current_rot == 1) {
-			if (stand.pft[stand.pftid].sdate_force < 0)
+			if (stand.pft[stand.pftid].sdate_force < 0) {
 				stand.pft[stand.pftid].sdate_force = stepfromdate(date.day, 10);
+			}
 			if (stand.pft[stand.pftid].hdate_force < 0) {
 				stand.pft[stand.pftid].hdate_force = stepfromdate(stand.pft[old_pftid].sdate_force, -10);
 			}

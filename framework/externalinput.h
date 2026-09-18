@@ -32,14 +32,37 @@ public:
 	/// Constructor
 	MiscInput() {;}
 
+	/// Deconstructor
+	~MiscInput();
+
 	/// Opens land cover input files
 	void init(xtring file_gridlist);
 
-	/// Loads disturbance from input file
+	/// Loads disturbance interval from input file
 	bool loaddisturbance(double lon, double lat);
+
+	/// Loads clearcut disturbance from input file
+	bool loaddist_clearcut(double lon, double lat);
+
+	/// Loads fire disturbance from input file
+	bool loaddist_fire(double lon, double lat);
+
+	/// Loads wind disturbance from input file
+	bool loaddist_wind(double lon, double lat);
+
+	/// Loads barkbeetle disturbance from input file
+	bool loaddist_barkbeetle(double lon, double lat);
+
+	/// Loads wind disturbance probability from input file
+	bool loadstorm_prob(double lon, double lat);
+
+	/// Loads windload input file
+	bool loadwindload(double lon, double lat);
 
 	/// Loads elevation input file
 	bool loadelevation(double lon, double lat);
+
+	bool loadforest_init(double lon, double lat);
 
 	/// Gets all static input data from this class
 	void getmiscinput_static(Gridcell& gridcell);
@@ -52,18 +75,61 @@ private:
 	// Objects handling additional environmental data input
 	TextInput::TimeDataD disturbance;
 	TextInput::TimeDataD disturbance_st;
+	TextInput::TimeDataD windload;
+	TextInput::TimeDataD elevation_gc_mean;
+	TextInput::TimeDataD elevation_local;
 	TextInput::TimeDataD elevation_st;
+
+	TextInput::TimeDataD dist_clearcut;
+	TextInput::TimeDataD dist_fire;
+	TextInput::TimeDataD dist_wind;
+	TextInput::TimeDataD dist_barkbeetle;
+
+	TextInput::TimeDataD storm_prob;
+
+	// st-level input
+	TextInput::TimeDataD* forest_init_st;
 
 	/// Files names for additional environmental input files
 	xtring file_disturbance;
 	xtring file_disturbance_st;
+	xtring file_windload;
+	xtring file_elevation_gc_mean;
+	xtring file_elevation_local;
 	xtring file_elevation_st;
+
+	xtring file_dist_clearcut;
+	xtring file_dist_fire;
+	xtring file_dist_wind;
+	xtring file_dist_barkbeetle;
+
+	xtring file_storm_prob;
 
 	/// Gets disturbance intervals (in years)
 	void getdisturbance(Gridcell& gridcell);
 
+	/// Gets clearcut disturbance biomass fraction
+	void getdist_clearcut(Gridcell& gridcell);
+
+	/// Gets fire disturbance biomass fraction
+	void getdist_fire(Gridcell& gridcell);
+
+	/// Gets wind disturbance biomass fraction
+	void getdist_wind(Gridcell& gridcell);
+
+	/// Gets barkbeetle disturbance biomass fraction
+	void getdist_barkbeetle(Gridcell& gridcell);
+
+	/// Gets wind disturbance probability
+	void getstorm_prob(Gridcell& gridcell);
+
+	/// Gets windload
+	void getwindload(Gridcell& gridcell);
+
 	/// Gets elevation
 	void getelevation(Gridcell& gridcell);
+
+	void getforest_init(Gridcell& gridcell);
 
 	// Read file_disturb to get the static disturbance years.
 	std::set<int> get_static_disturbances() const;
@@ -93,7 +159,7 @@ public:
 	double get_crop_fractions(Gridcell& gridcell, int year, TimeDataD& CFTdata, double sum_tot);
 
 	/// Gets land cover or stand type transitions for a year
-	bool get_land_transitions(Gridcell& gridcell);
+	bool get_land_transitions(Gridcell& gridcell, double* st_frac_transfer);
 
 	/// Gets land cover transitions for a year
 	/** Updates landcover frac_transfer array
@@ -101,6 +167,13 @@ public:
 	 *  rescaled if necessary. 
 	 */ 
 	bool get_lc_transfer(Gridcell& gridcell);
+
+	/// Gets stand type transitions for a year
+	/** Updates st_frac_transferr array
+	 */ 
+	bool get_st_transfer(Gridcell& gridcell,
+					     double lc_frac_transfer[][NLANDCOVERTYPES],
+						 double* st_frac_transfer);
 
 	/// Gets first historic year of net land cover fraction input data
 	int getfirsthistyear();
@@ -112,9 +185,10 @@ private:
 	TextInput::TimeDataD Peatdata;
 	TextInput::TimeDataD grossLUC;
 	TextInput::TimeDataD st_data[NLANDCOVERTYPES];
+	TextInput::TimeDataD grossSTC;
 
 	/// Files names for land cover fraction input files
-	xtring file_lu, file_grossLUC, file_peat;
+	xtring file_lu, file_grossLUC, file_peat, file_grossSTC;
 	xtring file_lu_st[NLANDCOVERTYPES];
 
 	/// Whether pfts not in crop fraction input file are removed from pftlist (0,1)
@@ -157,15 +231,38 @@ private:
 	TextInput::TimeDataD NfertMan;
 	TextInput::TimeDataD woodharv_frac;
 	TextInput::TimeDataD woodharv_cmass;
+
+	TextInput::TimeDataD woodharv_prob_BL;
+	TextInput::TimeDataD woodharv_prob_NL;
+	TextInput::TimeDataD CC_prob_BL;
+	TextInput::TimeDataD CC_prob_NL;
+	TextInput::TimeDataD woodharv_intens_mean_BL;
+	TextInput::TimeDataD woodharv_intens_mean_NL;
+	TextInput::TimeDataD woodharv_intens_sd_BL;
+	TextInput::TimeDataD woodharv_intens_sd_NL;
+	TextInput::TimeDataD woodharv_size_preference_BL;
+	TextInput::TimeDataD woodharv_size_preference_NL;
+
+	TextInput::TimeDataD woodharv_intensity_scalar;
+
 	TextInput::TimeDataD cutinterval_st;
 	TextInput::TimeDataD firstmanageyear_st;
 
 	TextInput::TimeDataD* targetfrac_pft_mt;
 
+	TextInput::TimeDataD presc_burned_area;
+
 	/// Files names for management input file
 	xtring file_sdates, file_hdates, file_Nfert, file_Nfert_st, file_NfertMan, file_woodharv_frac, file_woodharv_cmass,
 		file_cutinterval_st, file_firstmanageyear_st, file_grazing;
 
+	xtring file_woodharv_prob_BL, file_woodharv_prob_NL, file_CC_prob_BL, file_CC_prob_NL,
+		file_woodharv_intens_mean_BL, file_woodharv_intens_mean_NL,
+		file_woodharv_intens_sd_BL, file_woodharv_intens_sd_NL,
+		file_woodharv_size_preference_BL, file_woodharv_size_preference_NL, file_woodharv_intensity_scalar;
+
+	xtring file_burned_area;
+	
 	/// Gets sowing date data for a year
 	void getsowingdates(Gridcell& gridcell);
 	/// Gets harvest date data for a year
@@ -182,6 +279,11 @@ private:
 	void get_grazing(Gridcell &gridcell);
 	/// Gets pft selection target fractions (per st)
 	void gettargetcutting(Gridcell& gridcell);
+
+	void getwoodharvest_probability(Gridcell& gridcell);
+	/// Get prescribed burned area
+	void getburned_area(Gridcell& gridcell);
+
 };
 
 #endif // LPJ_GUESS_EXTERNALINPUT_H

@@ -45,7 +45,7 @@ public:
 	bool getclimate(Gridcell& gridcell);
 
 	/// See base class for documentation about this function's responsibilities
-	void getlandcover(Gridcell& gridcell);
+	bool getlandcover(Gridcell& gridcell, double* st_frac_transfer);
 
 	/// Obtains land management data for one day
 	void getmanagement(Gridcell& gridcell) {

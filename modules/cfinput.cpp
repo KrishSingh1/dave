@@ -1171,10 +1171,16 @@ void CFInput::populate_daily_arrays(Gridcell& gridcell) {
 					dprec,dNH4dep,dNO3dep);
 }
 
-void CFInput::getlandcover(Gridcell& gridcell) {
+bool CFInput::getlandcover(Gridcell& gridcell, double* st_frac_transfer) {
+
+	bool gross_change = false;
 
 	landcover_input.getlandcover(gridcell);
-	landcover_input.get_land_transitions(gridcell);
+	if(st_frac_transfer) {
+		if(landcover_input.get_land_transitions(gridcell, st_frac_transfer))
+			gross_change = true;
+	}
+	return gross_change;
 }
 
 bool CFInput::getclimate(Gridcell& gridcell) {

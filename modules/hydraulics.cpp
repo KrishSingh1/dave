@@ -424,11 +424,11 @@ void hydraulic_mortality(Patch &patch) {
             double densindiv = indiv.densindiv;
             if (indiv.densindiv > KILL_THRESHOLD) {
                 log_info("Indiv %d (%s): biomass loss due to hydraulic failure", indiv.id, (const char *)pft.name);
-                indiv.reduce_biomass(MORT_FRAC, 0, indiv.closs_hydraulic, indiv.nloss_hydraulic);
+                indiv.reduce_biomass(MORT_FRAC, 0, 0, 0, 0, 0, false, indiv.closs_hydraulic, indiv.nloss_hydraulic);
                 indiv.hydraulic_failure = false;
             } else {
                 log_info("Indiv %d (%s): mortality due to hydraulic failure", indiv.id, (const char *)indiv.pft.name);
-                indiv.kill();
+                indiv.kill(MORT_OTHER);
                 vegetation.killobj();
             }
         }

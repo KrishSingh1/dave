@@ -652,6 +652,12 @@ extern bool ifforcedlai;
 /// The fixed LAI value (m2/m2) applied to all cohorts when ifforcedlai is 1.
 extern double fixed_lai;
 
+/// Whether to use storm damage in the model.
+extern bool ifstorm;
+
+/// Whether to use insect damage in the model.
+extern bool ifinsect;
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // Soil, arctic and wetland inputs
 

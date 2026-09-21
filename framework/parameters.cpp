@@ -119,6 +119,8 @@ int nlayer_canopy = 0;
 double layer_thickness_canopy = 0;
 int energy_balance_maxiter;
 double energy_balance_eps;
+bool ifstorm;
+bool ifinsect;
 
 bool storm_mortality = false; // Apply calculated wind damage to mortality
 bool insect_mortality = false; // Apply calculated insect damage to mortality
@@ -427,6 +429,8 @@ void initsettings() {
 	energy_balance_maxiter = 1;
 	energy_balance_eps = 1;
 	depth_soil = SOILDEPTH_UPPER + SOILDEPTH_LOWER;
+	ifstorm = false;
+	ifinsect = false;
 }
 
 void initpft(Pft& pft,xtring& setname) {
@@ -906,6 +910,8 @@ void plib_declarations(int id,xtring setname) {
 		declareitem("fixed_lai", &fixed_lai, 0.01, 7, 1, CB_NONE, "The fixed LAI value (m2/m2) applied to all cohorts when ifforcedlai is 1.");
 		declareitem("nlayer_canopy", &nlayer_canopy, 0, 512, 1, CB_NONE, "Number of vertical layers used for canopy-area integration. Mutually exclusive with layer_thickness_canopy.");
 		declareitem("layer_thickness_canopy", &layer_thickness_canopy, 0, 512, 1, CB_NONE, "Width of vertical layers for canopy-area integration (m) (Default: 2m). Mutually exclusive with nlayer_canopy.");
+		declareitem("ifstorm", &ifstorm, 1, CB_NONE, "Whether to use storm damage model (1) or not (0).");
+		declareitem("ifinsect", &ifinsect, 1, CB_NONE, "Whether to use insect damage model (1) or not (0).");
 
 		for (size_t i = 0; i < xtringParams.size(); ++i) {
 			const xtringParam& p = xtringParams[i];

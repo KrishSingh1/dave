@@ -746,8 +746,10 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		gridcell.landcover.wood_harvest.zero();
 
 		// Reset insect phenology variables
-		for (int i = 0; i < nift; i++) {
-			gridcell.ift[i].reset();
+		if (ifinsect) {
+			for (int i = 0; i < nift; i++) {
+				gridcell.ift[i].reset();
+			}
 		}
 
 		gridcell.landcover.wood_harvest.zero();
@@ -920,42 +922,44 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 
 	// Storm
 
-	if (date.day == 0) {
-
-		// Reset windload
-		gridcell.windload = 0.0;
-	}
-
-	if (!readwindload && (storm_mortality && date.get_calendar_year() >= storm_mortality_firstyear - 30)) {
-
-		// Get limit for accumulation of windload based on last 30 yr daily climate wind data
-		// (limit is the wind speed of the day with the 55th highest wind speed during the 30-year period)
-		// Windload set to zero before freenyears (because wind_speed_limit is set to 100 m/s)
+	if (ifstorm) {
 		if (date.day == 0) {
 
-			int first_wind_mort_year = freenyears;
-
-			if (date.year > first_wind_mort_year && date.get_calendar_year() >= storm_mortality_firstyear) {
-
-				const double wind_perc = 0.995;
-				double buffer[WIND_30Y_NDAYS];
-				climate.wind_30y.to_array(buffer);
-				std::sort(std::begin(buffer), std::end(buffer));
-				int perc_num = int(wind_perc * (double)(WIND_30Y_NDAYS));
-				gridcell.wind_speed_limit = buffer[perc_num];
-			}
-			else {
-				gridcell.wind_speed_limit = 100.0;
-			}
+			// Reset windload
+			gridcell.windload = 0.0;
 		}
 
-		// Update record of daily wind last 30 years
-		climate.wind_30y.add(climate.u10);
+		if (!readwindload && (storm_mortality && date.get_calendar_year() >= storm_mortality_firstyear - 30)) {
 
-		// Accumumlate windload
-		if (climate.u10 > gridcell.wind_speed_limit) {
-			if (gridcell.wind_speed_limit != 0.0)
-				gridcell.windload += max(0.0, pow(climate.u10 / gridcell.wind_speed_limit - 1.0, 3));
+			// Get limit for accumulation of windload based on last 30 yr daily climate wind data
+			// (limit is the wind speed of the day with the 55th highest wind speed during the 30-year period)
+			// Windload set to zero before freenyears (because wind_speed_limit is set to 100 m/s)
+			if (date.day == 0) {
+
+				int first_wind_mort_year = freenyears;
+
+				if (date.year > first_wind_mort_year && date.get_calendar_year() >= storm_mortality_firstyear) {
+
+					const double wind_perc = 0.995;
+					double buffer[WIND_30Y_NDAYS];
+					climate.wind_30y.to_array(buffer);
+					std::sort(std::begin(buffer), std::end(buffer));
+					int perc_num = int(wind_perc * (double)(WIND_30Y_NDAYS));
+					gridcell.wind_speed_limit = buffer[perc_num];
+				}
+				else {
+					gridcell.wind_speed_limit = 100.0;
+				}
+			}
+
+			// Update record of daily wind last 30 years
+			climate.wind_30y.add(climate.u10);
+
+			// Accumumlate windload
+			if (climate.u10 > gridcell.wind_speed_limit) {
+				if (gridcell.wind_speed_limit != 0.0)
+					gridcell.windload += max(0.0, pow(climate.u10 / gridcell.wind_speed_limit - 1.0, 3));
+			}
 		}
 	}
 
@@ -1818,6 +1822,9 @@ double get_local_temp(double gridcell_temp, double gridcell_elevation, double lo
 }
 
 void calc_insect_phenology(Gridcell& gridcell) {
+	if (!ifinsect) {
+		return;
+	}
 
 	for (int i = 0; i < nift; i++) {
 		if (date.islastday && date.islastmonth) {

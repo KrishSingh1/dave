@@ -2724,7 +2724,7 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 				indiv.crownarea = indiv.pft.k_allom1 * pow(indiv.diam, indiv.pft.k_rp);
 				indiv.lai = indiv.cmass_leaf * indiv.pft.sla;
 				indiv.lai_indiv = indiv.cmass_leaf / indiv.densindiv * indiv.pft.sla / indiv.crownarea;
-				indiv.boleht = indiv.height * indiv.pft.bole_ratio;
+				indiv.boleht = indiv.height * indiv.pft.boleht_frac;
 				indiv.fpc = indiv.crownarea * indiv.densindiv *	(1.0 - exp(-0.5 * indiv.lai_indiv));
 				indiv.age = (double)age;
 

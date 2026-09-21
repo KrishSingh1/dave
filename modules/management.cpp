@@ -2445,6 +2445,10 @@ void harvest_forest(Individual& indiv, Pft& pft, bool alive, double anpp, bool& 
 	ManagementType& mt = indiv.vegetation.patch.stand.get_current_management();
 
 	// Whether to kill grass at clear-cut.
+	// Prescribed non-fire disturbance reaches this function with
+	// man_strength = 1.0. That removes tree cohorts, but grasses are only
+	// removed when killgrass_at_cc is enabled, so this is not always the
+	// same as generic patch-destroying disturbance().
 	bool killgrass = mt.killgrass_at_cc && patch.man_strength == 1.00;
 
 	if (man_strength > 0.00 && pft.lifeform == TREE || killgrass && pft.is_grass()) {

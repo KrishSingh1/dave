@@ -5,6 +5,7 @@ nav:
       - Overview: science/index.md
       - Establishment: science/establishment.md
       - Mortality: science/mortality.md
+      - Disturbance: science/disturbance.md
       - Daily Tree Growth: science/daily-growth-tree.md
       - Daily Grass Growth: science/daily-growth-grass.md
   - How-to:

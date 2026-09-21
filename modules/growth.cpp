@@ -5284,11 +5284,6 @@ void carbon_allocation_tree_grote(Individual &indiv) {
 	const double MAX_HEIGHT = 150;
 	const double MIN_HEIGHT = 0.05;
 
-	// minimum age for reproduction in years.
-	// TODO: fix to be a function of tree size and not age, and a PFT parameter.
-	// also, check that age is counted in years and not days.
-	const double MIN_AGE_FOR_REPR = indiv.pft.reprage;
-
 	// minimum storage fraction for reproduction
 	const double MIN_STORFRAC_FOR_REPR = 0.5;
 
@@ -5324,7 +5319,7 @@ void carbon_allocation_tree_grote(Individual &indiv) {
 	// - age > MIN_AGE_FOR_REPR
 	// - storage_fraction > MIN_STORFRAC_FOR_REPR
 	double storage_fraction = indiv.cmass_storage / indiv.cstorage_max;
-	if (indiv.age > MIN_AGE_FOR_REPR && storage_fraction > MIN_STORFRAC_FOR_REPR) {
+	if (indiv.age > pft.reprage && storage_fraction > MIN_STORFRAC_FOR_REPR) {
 		indiv.cgrow_repr = indiv.pft.reprfrac * indiv.cgrow;
 	}
 

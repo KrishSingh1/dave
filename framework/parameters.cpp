@@ -2977,7 +2977,9 @@ void plib_callback(int callback) {
 				if (!itemparsed("k_allom3")) badins("k_allom3");
 				if (!itemparsed("k_rp")) badins("k_rp");
 				if (!itemparsed("k_latosa")) badins("k_latosa");
-				if (!itemparsed("storm_sensiv")) badins("storm_sensiv");
+				if (ifstorm) {
+					if (!itemparsed("storm_sensiv")) badins("storm_sensiv");
+				}
 				if (!itemparsed("eff_h")) badins("eff_h");
 				if (vegmode==COHORT || vegmode==INDIVIDUAL) {
 					if (!itemparsed("kest_repr")) badins("kest_repr");

@@ -53,16 +53,16 @@ void print_logfile_heading() {
 void print_settings_to_logfile() {
 	std::string dashed_line(50, '-');
 	
-	dprintf("Active stand-types:\n");
+	log_info("Active stand-types:\n");
 	for (unsigned int i = 0;i<stlist.nobj;i++) {
-		dprintf("%d %s\n",stlist[i].id,(char*)stlist[i].name);
+		log_info("%d %s\n",stlist[i].id,(char*)stlist[i].name);
 	}
-	dprintf("%s\n",dashed_line.c_str());
-	dprintf("Active PFT:s:\n");
+	log_info("%s\n",dashed_line.c_str());
+	log_info("Active PFT:s:\n");
 	for (unsigned int i = 0; i < pftlist.nobj;i++) {
-		dprintf("%d %s\n",pftlist[i].id,(char*)pftlist[i].name);
+		log_info("%d %s\n",pftlist[i].id,(char*)pftlist[i].name);
 	}
-	dprintf("%s\n",dashed_line.c_str());
+	log_info("%s\n",dashed_line.c_str());
 }
 
 /// Simulate one day for a given Gridcell

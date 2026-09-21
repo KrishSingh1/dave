@@ -7,13 +7,17 @@
 /// $Date:  $
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#include "parameters.h"
 #include "landcover.h"
 #include "storm.h"
 #include "driver.h"
 
 void storm(Gridcell& gridcell) {
 
-	//if (date.day) {
+	if (!ifstorm) {
+		return;
+	}
+
 	if (!(date.islastday && date.islastmonth)) {
 		return;
 	}

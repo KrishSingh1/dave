@@ -1847,8 +1847,11 @@ void mortality_daily(Patch& patch){
 }
 
 void insect_mortality_guess(Stand& stand, Patch& patch) {
+	if (!ifinsect) {
+		return;
+	}
 
-		// Fraction of cohort (or individual) surviving
+	// Fraction of cohort (or individual) surviving
 	double frac_survive;
 	bool killed;
 	Vegetation& vegetation=patch.vegetation;
@@ -2096,6 +2099,9 @@ void insect_mortality_guess(Stand& stand, Patch& patch) {
 }
 
 void storm_mortality_guess(Stand& stand, Patch& patch) {
+	if (!ifstorm) {
+		return;
+	}
 
 	// Fraction of cohort (or individual) surviving
 	double frac_survive;
@@ -2207,6 +2213,10 @@ void storm_mortality_guess(Stand& stand, Patch& patch) {
 // Internal function (do not call directly from framework)
 
 void insectupdate(Stand& stand, Patch& patch) {
+	if (!ifinsect) {
+		return;
+	}
+
 	for (int iftid = 0;iftid < nift;iftid++) {
 		Ift& ift = iftlist[iftid];
 		Gridcellift& gcift = stand.get_gridcell().ift[iftid];

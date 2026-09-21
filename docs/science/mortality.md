@@ -18,7 +18,8 @@ the yearly workflow.
 
 At year end, the main order is:
 
-1. disturbance check (`disturbance()` in `vegetation_dynamics()`)
+1. generic patch-destroying disturbance check (`disturbance()` in
+   `vegetation_dynamics()`; see [Disturbance](disturbance.md))
 2. demographic mortality (`mortality_guess()`)
 3. establishment (`establishment_guess()`)
 

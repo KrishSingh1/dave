@@ -238,6 +238,16 @@ ifbvoc 0                         ! Whether to include BVOC calculations (1) or n
 !///////////////////////////////////////////////////////////////////////////////
 ! Disturbance
 !///////////////////////////////////////////////////////////////////////////////
+!
+! Generic/Dave disturbance is patch-destroying: when a patch is disturbed,
+! all vegetation objects in that patch are killed and patch age is reset to 0.
+! "DETERMINISTIC" uses file_disturb to choose fixed disturbance years.
+!
+! Prescribed disturbance inputs (file_dist_clearcut/fire/wind/barkbeetle)
+! use a different European-applications pathway. They allocate externally
+! supplied disturbed area to stands and apply harvest/fire handling, not the
+! generic disturbance() function. During active prescribed-disturbance input
+! years, the generic/Dave patch-destroying disturbance path is suppressed.
 ifdisturb    1          ! Whether generic patch-destroying disturbances enabled
 disttype     "DETERMINISTIC"     ! Disturbance regime ("NONE", "STOCHASTIC" (requires distinterval), "DETERMINISTIC" (requires file_disturb))
 

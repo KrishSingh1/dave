@@ -1377,13 +1377,20 @@ void photosynthesis_gs(Patch& patch) {
 					clim, outputs, diagnostics, pft.pathway,
 					energy_balance_maxiter, energy_balance_eps);
 
-				if (balance.get_converged()) {
-					log_debug("Energy balance solver converged for individual %d (%s) in layer %d at day period %d in %d iterations.",
-								   indiv.id, (const char *)pft.name, j, day.period, balance.get_niter());
-				} else {
-					log_diagnostic("Energy balance solver did not converge for individual %d (%s) in layer %d at day period %d after %d iterations (tleaf_diff = %g).",
-								indiv.id, (const char *)pft.name, j, day.period,
-								balance.get_niter(), balance.get_delta_tleaf());
+				// If the user requested 1 iteration max, they're obviously not
+				// interested in whether the energy balance converged, so we can
+				// refrain from spamming them with log messages. In this case,
+				// it doesn't really matter whether it converged anyway - tleaf
+				// is effectively only an output.
+				if (energy_balance_maxiter > 1) {
+					if (balance.get_converged()) {
+						log_debug("Energy balance solver converged for individual %d (%s) in layer %d at day period %d in %d iterations.",
+									indiv.id, (const char *)pft.name, j, day.period, balance.get_niter());
+					} else {
+						log_diagnostic("Energy balance solver did not converge for individual %d (%s) in layer %d at day period %d after %d iterations (tleaf_diff = %g).",
+									indiv.id, (const char *)pft.name, j, day.period,
+									balance.get_niter(), balance.get_delta_tleaf());
+					}
 				}
 
 				indiv.ps_inputs_layerwise[day.period][j] = inputs;

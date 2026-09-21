@@ -3046,12 +3046,6 @@ bool allometry(Individual& indiv) {
 			}
 			return false;
 		}
-		//TreeMort
-		double relative_growth_rate = 0.0;
-		if (!negligible(indiv.dbh) && !negligible(indiv.diam)) {
-			relative_growth_rate = log(indiv.diam) - log(indiv.dbh);
-			indiv.relative_growth_rate = relative_growth_rate;
-		}
 		//MORT
 		indiv.dbh = indiv.diam;
 		// Crown area (Eqn 6)

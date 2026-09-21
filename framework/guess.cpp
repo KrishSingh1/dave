@@ -828,6 +828,7 @@ double Patch::ncont(double scale_indiv, bool luc) const {
 		ncont += ppft.nmass_litter_heart;
 		ncont += ppft.nmass_harvested_products_slow;
 		ncont += ppft.nmass_litter_NH4;
+		ncont += ppft.nmass_litter_repr;
 	}
 
 	for (unsigned int i = 0; i<vegetation.nobj; i++) {

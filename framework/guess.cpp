@@ -2395,7 +2395,6 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	lai_daily       = 0.0;
 	lai_indiv_daily = 0.0;
 	alive             = false;
-	relative_growth_rate = 0.0;
 	dbh		          = 0.0;
 
 	lai_leafon_layer = 0.0;
@@ -2578,7 +2577,6 @@ void Individual::serialize(ArchiveStream& arch) {
 		& crownarea
 		& deltafpc
 		& boleht
-		& relative_growth_rate
 		& lai
 		& lai_layer
 		& lai_indiv

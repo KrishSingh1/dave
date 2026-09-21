@@ -4715,8 +4715,6 @@ public:
 	/// bole height, i.e. height above ground of bottom of crown cylinder (m)
 	/** (individual and cohort modes only) */
 	double boleht;
-	/// Relative growth rates: log(diam) - log(dbh)
-	double relative_growth_rate;
 	/// Diameter at breast height (m)
 	double dbh;
 	/// patch-level lai for this individual or cohort (function fpar)

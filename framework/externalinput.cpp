@@ -95,29 +95,34 @@ void MiscInput::init(xtring file_gridlist) {
 		}
 	}
 
-	file_elevation_gc_mean = param["file_elevation_gc_mean"].str;
-	if (file_elevation_gc_mean != "")	{
-		if(!elevation_gc_mean.Open(file_elevation_gc_mean, gridlist))
-			fail("initio: could not open %s for input",(char*)file_elevation_gc_mean);
-		readelevation_gc_mean = true;
+	if (param.isparam("file_elevation_gc_mean")) {
+		file_elevation_gc_mean = param["file_elevation_gc_mean"].str;
+		if (file_elevation_gc_mean != "")	{
+			if(!elevation_gc_mean.Open(file_elevation_gc_mean, gridlist))
+				fail("initio: could not open %s for input",(char*)file_elevation_gc_mean);
+			readelevation_gc_mean = true;
+		}
 	}
 
-	file_elevation_local = param["file_elevation_local"].str;
-	if (file_elevation_local != "")	{
-		if(!readelevation_gc_mean)
-			fail("initio: Local elevation input not allowed without mean gridcell input in this branch!\n\n");
-		if(!elevation_local.Open(file_elevation_local, gridlist))
-			fail("initio: could not open %s for input",(char*)file_elevation_local);
-		readelevation_local = true;
+	if (param.isparam("file_elevation_local")) {
+		file_elevation_local = param["file_elevation_local"].str;
+		if (file_elevation_local != "")	{
+			if(!readelevation_gc_mean)
+				fail("initio: Local elevation input not allowed without mean gridcell input in this branch!\n\n");
+			if(!elevation_local.Open(file_elevation_local, gridlist))
+				fail("initio: could not open %s for input",(char*)file_elevation_local);
+			readelevation_local = true;
+		}
 	}
 
-	file_elevation_st = param["file_elevation_st"].str;
-	if(file_elevation_st != "")	{
-		if(!elevation_st.Open(file_elevation_st, gridlist))
-			fail("initio: could not open %s for input",(char*)file_elevation_st);
-		readelevation_st = true;
+	if (param.isparam("file_elevation_st")) {
+		file_elevation_st = param["file_elevation_st"].str;
+		if(file_elevation_st != "")	{
+			if(!elevation_st.Open(file_elevation_st, gridlist))
+				fail("initio: could not open %s for input",(char*)file_elevation_st);
+			readelevation_st = true;
+		}
 	}
-
 	// Functionality not tested with run_landcover == false
 	if(run_landcover) {
 		file_dist_clearcut = param["file_dist_clearcut"].str;

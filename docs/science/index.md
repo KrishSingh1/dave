@@ -6,6 +6,7 @@ This section documents scientific concepts, process representations, and model-b
 
 - [Establishment (GUESS)](establishment.md)
 - [Mortality (GUESS)](mortality.md)
+- [Disturbance](disturbance.md)
 - [Daily Tree Growth](daily-growth-tree.md)
 - [Daily Grass Growth](daily-growth-grass.md)
 

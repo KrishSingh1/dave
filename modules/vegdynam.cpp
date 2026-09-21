@@ -2460,6 +2460,11 @@ void disturbance(Patch& patch, double disturb_prob) {
 	// Destroys all biomass in a patch with a certain stochastic probability.
 	// Biomass enters the litter, which is not affected by the disturbance.
 	// NB: cohort and individual mode only
+	// This is the generic patch-destroying disturbance pathway used by
+	// stochastic disturbance and by Dave deterministic disturbance. Do not
+	// confuse this with prescribed_disturbance(), which allocates prescribed
+	// disturbed area across stands and usually routes non-fire disturbance
+	// through harvest_forest().
 
 	// INPUT PARAMETER
 	// disturb_prob = the probability of a disturbance this year
@@ -3125,10 +3130,15 @@ void force_prescribed_disturbance(Gridcell& gridcell, Rank_stands& stand_class, 
 					// blaze function at patch level
 					if(disttype == FIRE) {
 						if(firemodel != BLAZE)
-							fail("fire disturbance input only implemented for BLAZE fore model\n");					
+							fail("fire disturbance input only implemented for BLAZE fore model\n");
 						blaze(patch, gridcell.climate, true);
 					}
 
+					// Non-fire prescribed disturbance is implemented as a
+					// full-strength harvest/disturbance treatment, not by
+					// calling the generic patch-destroying disturbance().
+					// Trees are removed by harvest_forest(); grasses are
+					// only removed when the management type requests this.
 					Vegetation& vegetation = patch.vegetation;
 					vegetation.firstobj();
 					while (vegetation.isobj) {
@@ -3199,6 +3209,11 @@ void force_prescribed_disturbance(Gridcell& gridcell, Rank_stands& stand_class, 
 						blaze(patch, gridcell.climate, true);	// What happens to grass ?
 					}
 					else {
+						// This cloned stand represents the disturbed
+						// fraction of the original stand. As above,
+						// non-fire prescribed disturbance is a
+						// full-strength harvest/disturbance treatment
+						// rather than generic patch destruction.
 						Vegetation& vegetation = patch.vegetation;
 						vegetation.firstobj();
 						while (vegetation.isobj) {
@@ -3275,6 +3290,12 @@ void force_prescribed_disturbance(Gridcell& gridcell, Rank_stands& stand_class, 
 
 void prescribed_disturbance(Gridcell& gridcell) {
 
+	// Prescribed disturbance input allocates externally supplied disturbed
+	// area fractions to ranked stands, then applies disturbance-specific
+	// harvest or fire handling. This is not the same as the generic
+	// patch-destroying disturbance() pathway: non-fire prescribed
+	// disturbances remove trees via harvest_forest(), may leave grass, and
+	// set patch.age to 1.
 	if (!(date.islastday && date.islastmonth)
 		|| !(readdist_clearcut || readdist_fire || readdist_wind || readdist_barkbeetle) 
 		|| (date.get_calendar_year() < disturbance_input_firstyear || date.get_calendar_year() > disturbance_input_lastyear))
@@ -3339,10 +3360,16 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 			}
 		}
 
-		// Normal disturbance with probability interval of distinterval
-
-		// Disturbance already taken care of this year by prescribed_disturbance()
-		bool disturbance_model = !(readdist_clearcut || readdist_fire || readdist_wind || readdist_barkbeetle) 
+		// Generic patch-destroying disturbance. This includes the Dave
+		// deterministic mode, which is a fixed-year wrapper around
+		// disturbance(patch, 1.0).
+		//
+		// During active prescribed-disturbance input years, this pathway is
+		// suppressed because prescribed_disturbance() has already allocated
+		// the externally supplied disturbed area for the gridcell. Keeping
+		// the two pathways mutually exclusive avoids disturbing the same
+		// patch through two different disturbance concepts in one year.
+		bool disturbance_model = !(readdist_clearcut || readdist_fire || readdist_wind || readdist_barkbeetle)
 			|| (date.get_calendar_year() < disturbance_input_firstyear || date.get_calendar_year() > disturbance_input_lastyear);
 
 		if (patch.has_disturbances() && disturbance_model) {
@@ -3353,7 +3380,10 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 										   date.year <= patch.soil.solvesomcent_endyr;
 			if (!during_century_solvesom && patch.age) {
 				if (disttype == DETERMINISTIC) {
-					// Deterministic disturbances in predefined years.
+					// Dave deterministic disturbance is a debugging and
+					// reproducibility mode: predefined years force the
+					// generic patch-destroying disturbance with
+					// probability 1.0.
 					const Gridcell &gridcell = stand.get_gridcell();
 					const std::set<int> &years = gridcell.static_disturbances;
 					if (years.find(date.get_calendar_year()) != years.end()) {

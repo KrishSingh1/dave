@@ -2856,8 +2856,7 @@ double calc_bole_height(const Individual &indiv) {
 	if (indiv.pft.dave_allocation()) {
 		return indiv.pft.boleht_frac * indiv.height;
 	}
-	// fixme - reconcile with boleht_frac
-	return indiv.height * indiv.pft.bole_ratio;
+	return indiv.height;
 }
 
 double calc_rpc_tree(Individual &indiv) {

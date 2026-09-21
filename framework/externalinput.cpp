@@ -86,11 +86,13 @@ void MiscInput::init(xtring file_gridlist) {
 		readdisturbance_st = true;
 	}
 
-	file_windload = param["file_windload"].str;
-	if (file_windload != "") {
-		if (!windload.Open(file_windload, gridlist))
-			fail("initio: could not open %s for input", (char*)file_windload);
-		readwindload = true;
+	if (ifstorm) {
+		file_windload = param["file_windload"].str;
+		if (file_windload != "") {
+			if (!windload.Open(file_windload, gridlist))
+				fail("initio: could not open %s for input", (char*)file_windload);
+			readwindload = true;
+		}
 	}
 
 	file_elevation_gc_mean = param["file_elevation_gc_mean"].str;
@@ -438,6 +440,9 @@ void MiscInput::getdist_barkbeetle(Gridcell& gridcell) {
 
 /// Read patch-destroying wind disturbance probability from file
 void MiscInput::getstorm_prob(Gridcell& gridcell) {
+	if (!ifstorm) {
+		return;
+	}
 
 	int year = date.get_calendar_year();
 

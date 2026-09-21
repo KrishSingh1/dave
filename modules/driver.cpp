@@ -1401,17 +1401,19 @@ void dailyaccounting_patch(Patch& patch) {
 	}
 
 	// Storm
-	// Frozen soil index according to Eq. 11 of Lagergren et al
-	// In the original version soil frost days was only accumulated for Jan-Mar
-	double soiltemp25 = soil.temp_at_depth(25.0 / CM_PER_MM);
-	// if (soil.temp < 0.0 && date.month<3)
-	//	if (soil.temp < 0.0)
-	if (soiltemp25 < 0.0)	// wetlands update (not in forexclim_europe branch)
-		++soil.soilfrostdays;
-	const double c_fsi = 0.7; // Sensitivity of frozen soil relative to unfrozen
-	const double acc_days = 182.0; // 182 is maximum number of days Oct-Mar, 90 is max Jan-Mar
-	soil.frozen_soil_ind = (1 - c_fsi)*max(0.0, acc_days - soil.soilfrostdays) / acc_days + c_fsi; //Note that this
-	// equation is wrong in Lagergren et al, the term "+ c" should be outside the fractional
+	if (ifstorm) {
+		// Frozen soil index according to Eq. 11 of Lagergren et al
+		// In the original version soil frost days was only accumulated for Jan-Mar
+		double soiltemp25 = soil.temp_at_depth(25.0 / CM_PER_MM);
+		// if (soil.temp < 0.0 && date.month<3)
+		//	if (soil.temp < 0.0)
+		if (soiltemp25 < 0.0)	// wetlands update (not in forexclim_europe branch)
+			++soil.soilfrostdays;
+		const double c_fsi = 0.7; // Sensitivity of frozen soil relative to unfrozen
+		const double acc_days = 182.0; // 182 is maximum number of days Oct-Mar, 90 is max Jan-Mar
+		soil.frozen_soil_ind = (1 - c_fsi)*max(0.0, acc_days - soil.soilfrostdays) / acc_days + c_fsi; //Note that this
+		// equation is wrong in Lagergren et al, the term "+ c" should be outside the fractional
+	}
 
 	for (size_t i = 0; i < patch.pft.nobj; i++) {
 		Patchpft &patchpft = patch.pft[i];

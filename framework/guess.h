@@ -3017,8 +3017,6 @@ public:
 	double k_allom2;
 	/// constant in allometry equations
 	double k_allom3;
-	/// bole to height ratio
-	double bole_ratio;
 	/// constant in allometry equations
 	double k_rp;
 	/// tree leaf to sapwood area ratio

@@ -540,9 +540,14 @@ void Patchpft::set_wscal(double wstress) {
 	wscal_5.add(wstress);
 	wscal_10.add(wstress);
 	wscal_30.add(wstress);
+	wscal_mean_month[date.month] += wstress;
 
 	// This is reset to 0 in Patchpft::annual_accounting().
 	wscal_mean += wstress;
+
+	if (date.islastday) {
+		wscal_mean_month[date.month] /= date.ndaymonth[date.month];
+	}
 	if (date.islastmonth && date.islastday) {
 		wscal_mean /= date.year_length();
 	}
@@ -623,6 +628,11 @@ void Patchpft::annual_accounting(const Patch &patch) {
 	acmass_mort_kill = 0.0;
 	amort_cstarve = 0.0;
 	amort_cstarve_ntree = 0.0;
+
+	for (size_t i = 0; i < 12; i++) {
+		wscal_mean_month_prev[i] = wscal_mean_month[i];
+		wscal_mean_month[i] = 0;
+	}
 }
 
 double Patchpft::total_litter() const {

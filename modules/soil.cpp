@@ -2660,8 +2660,6 @@ void Soil::initdrivers() {
 	solvesomcent_beginyr = static_cast<int>(std::round(0.5*freenyears));
 	solvesomcent_endyr = get_solvesomcent_endyr();
 	savesomcent = false;
-	NO3_mass = 0;
-	NH4_mass = 0;
 }
 
 /// Create soil layers

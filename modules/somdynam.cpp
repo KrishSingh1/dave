@@ -2548,29 +2548,27 @@ void som_dynamics_century(Patch& patch, Climate& climate, double tillage_fact) {
 
 	// Transfer litter to SOM pools
 	transfer_litter(patch);
-	assert(patch.soil.NH4_mass > -EPS);
-	assert(patch.soil.NO3_mass > -EPS);
+	assert(patch.soil.ncont() >= -EPS);
 
 	// Daily mineral and organic nitrogen leaching
 	leaching(patch);
+	assert(patch.soil.ncont() >= -EPS);
 
 	// Daily nitrogen addition to the soil
 	soilnadd(patch);
-	assert(patch.soil.NH4_mass > -EPS);
-	assert(patch.soil.NO3_mass > -EPS);
+	assert(patch.soil.ncont() >= -EPS);
 
 	// Daily or monthly decomposition and fluxes between SOM pools
 	somfluxes(patch, false, tillage_fact);
-	assert(patch.soil.NH4_mass > -EPS);
-	assert(patch.soil.NO3_mass > -EPS);
+	assert(patch.soil.ncont() >= -EPS);
 
 	// Nitrogen transformation in soil
 	ntransform(patch, climate);
-	assert(patch.soil.NH4_mass > -EPS);
-	assert(patch.soil.NO3_mass > -EPS);
+	assert(patch.soil.ncont() >= -EPS);
 
 	// Solve SOM pool sizes at end of year given by soil.solvesomcent_endyr
 	equilsom(patch);
+	assert(patch.soil.ncont() >= -EPS);
 }
 
 /// Choose between CENTURY or standard LPJ SOM dynamics

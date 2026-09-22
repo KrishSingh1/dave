@@ -440,7 +440,7 @@ double get_nmass_patch(const Patch &patch) {
 }
 
 double get_avail_n(const Patch &patch) {
-	return patch.soil.NH4_mass + patch.soil.NO3_mass + patch.soil.snow.NH4_mass + patch.soil.snow.NO3_mass;
+	return sum_layers(patch.soil, [](const Soillayer &l) { return l.NH4_mass + l.NO3_mass; });
 }
 
 double get_centuryn(const Patch &patch) {
@@ -1057,7 +1057,7 @@ std::vector<ColumnDefinition<Patch>> soil_nmass_columns() {
 	columns.push_back(ColumnDefinition<Patch>("surfsoillittern", get_soiln_surfsoillittern));
 	columns.push_back(ColumnDefinition<Patch>("cwdn", get_soiln_cwdn));
 	columns.push_back(ColumnDefinition<Patch>("centuryn", get_soiln_centuryn));
-	columns.push_back(ColumnDefinition<Patch>("mineraln", [](const Patch &p) { return p.soil.NH4_mass + p.soil.NO3_mass; }));
+	columns.push_back(ColumnDefinition<Patch>("mineraln", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &l) { return l.NH4_mass + l.NO3_mass; }); }));
 
 	return columns;
 }

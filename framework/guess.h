@@ -5973,10 +5973,6 @@ public:
 	double dperc;
 	/// fraction of decayed organic nitrogen leached each day;
 	double orgleachfrac;
-	/// soil NH4 mass in pool (kgN/m2)
-	double NH4_mass;
-	/// soil NO3 mass in pool (kgN/m2)
-	double NO3_mass;
 	/// soil NH4 mass input (kgN/m2)
 	double NH4_input;
 	/// soil NO3 mass input (kgN/m2)

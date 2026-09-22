@@ -143,8 +143,8 @@ DaveOutput::DaveOutput() {
 	add_patch_output("file_dave_daylength"                      , DAILY, "daylength", [](const Patch &p) { return p.get_climate().daylength; }, "Daily patch-level day-length (h)");
 	add_patch_output("file_dave_cpool"                          , DAILY, cpool_columns, "Daily C pools (kgC/m2)", true);
 	add_patch_output("file_dave_soil_nmass_avail"               , DAILY, "nmass", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &layer) { return layer.NO3_mass + layer.NH4_mass; }); }, "Available Soil N for plant uptake");
-	add_patch_output("file_dave_soil_nh4_mass"                  , DAILY, "nh4_mass", [](const Patch &p) { return p.soil.NH4_mass; }, "NH4 mass in soil (kgN/m2)");
-	add_patch_output("file_dave_soil_no3_mass"                  , DAILY, "no3_mass", [](const Patch &p) { return p.soil.NO3_mass; }, "NO3 mass in soil (kgN/m2)");
+	add_patch_output("file_dave_soil_nh4_mass"                  , DAILY, "nh4_mass", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &layer) { return layer.NH4_mass; }); }, "NH4 mass in soil (kgN/m2)");
+	add_patch_output("file_dave_soil_no3_mass"                  , DAILY, "no3_mass", [](const Patch &p) { return sum_layers(p.soil, [](const Soillayer &layer) { return layer.NO3_mass; }); }, "NO3 mass in soil (kgN/m2)");
 	add_patch_output("file_dave_dsimfire"                       , DAILY, simfire_columns, "Daily simfire analysis");
 	add_patch_output("file_dave_dfuel"                          , DAILY, fuel_columns, "Daily blaze fuel availability (kgC/m2)");
 	add_patch_output("file_dave_dcoarse_woody_debris"           , DAILY, coarse_woody_debris_columns, "Daily coarse woody debris (gC/m2)");

@@ -1136,9 +1136,15 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						}
 
 						// Calculate storage pool size
-						indiv.max_n_storage = max(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr,
-							indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root * indiv.pft.turnover_root / indiv.pft.cton_root_avr);
-						indiv.scale_n_storage = indiv.max_n_storage / bminit;
+						// These are not used by dave cohorts, and some of the
+						// parameters used to calculate them are unavailable.
+						// Therefore it's best to not even attempt to calculate
+						// them for dave cohorts.
+						if (!pft.dave_allocation()) {
+							indiv.max_n_storage = max(indiv.cmass_sap * indiv.pft.fnstorage / indiv.pft.cton_leaf_avr,
+								indiv.cmass_leaf * indiv.pft.turnover_leaf / indiv.pft.cton_leaf_avr + indiv.cmass_root * indiv.pft.turnover_root / indiv.pft.cton_root_avr);
+							indiv.scale_n_storage = indiv.max_n_storage / bminit;
+						}
 
 						// Establishment flux is not debited for 'new' Individual
 						// objects - their carbon is debited in function growth()

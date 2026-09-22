@@ -1760,8 +1760,11 @@ void npp_dave(Patch& patch) {
 		CtonRatios cton = cton_effective(indiv);
 
 		// Calculate respiration scalar due to dormancy
-		double fphen_resp = indiv.fphen_activity + (1.0 - indiv.fphen_activity) *
+		double fphen_resp = 1;
+		if (pft.is_grass()) {
+			fphen_resp = indiv.fphen_activity + (1.0 - indiv.fphen_activity) *
 		                    max(0.0,(indiv.get_wscal_moving_average() - indiv.pft.wscal_min_dormant) / (1.0 - indiv.pft.wscal_min_dormant));
+		}
 
 
 		// Set leaf respiration.

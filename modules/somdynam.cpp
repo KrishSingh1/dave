@@ -1448,11 +1448,6 @@ void transfer_litter(Patch& patch) {
 			// as a fraction every day and for raingreens on the drierst month from last year. 
 			// For stands with daily growth, harvest and/or turnover, do this when patch.is_litter_day is true.
 
-			double cmass_litter_leaf, nmass_litter_leaf;
-			double cmass_litter_root, nmass_litter_root;
-			double cmass_litter_sap, nmass_litter_sap;
-			double cmass_litter_heart, nmass_litter_heart;
-
 			// Fraction of leaf and fine roots dropped today
 			double frac_lr = 0.0;
 
@@ -1471,10 +1466,10 @@ void transfer_litter(Patch& patch) {
 			}
 
 			// Todays leaf and fine root litter
-			cmass_litter_leaf = ppft.cmass_litter_leaf * frac_lr;
-			nmass_litter_leaf = ppft.nmass_litter_leaf * frac_lr;
-			cmass_litter_root = ppft.cmass_litter_root * frac_lr;
-			nmass_litter_root = ppft.nmass_litter_root * frac_lr;
+			double cmass_litter_leaf = ppft.cmass_litter_leaf * frac_lr;
+			double nmass_litter_leaf = ppft.nmass_litter_leaf * frac_lr;
+			double cmass_litter_root = ppft.cmass_litter_root * frac_lr;
+			double nmass_litter_root = ppft.nmass_litter_root * frac_lr;
 
 			ppft.cmass_litter_leaf -= cmass_litter_leaf;
 			ppft.nmass_litter_leaf -= nmass_litter_leaf;
@@ -1488,6 +1483,11 @@ void transfer_litter(Patch& patch) {
 				soil.soillayers[0].NH4_mass += nmass_NH4;
 				ppft.nmass_litter_NH4 -= nmass_NH4;
 			}
+
+			double cmass_litter_sap = 0.0;
+			double nmass_litter_sap = 0.0;
+			double cmass_litter_heart = 0.0;
+			double nmass_litter_heart = 0.0;
 
 			// If tree indivdiual
 			if (pft.lifeform == TREE) {
@@ -1503,12 +1503,6 @@ void transfer_litter(Patch& patch) {
 				ppft.nmass_litter_sap -= nmass_litter_sap;
 				ppft.cmass_litter_heart -= cmass_litter_heart;
 				ppft.nmass_litter_heart -= nmass_litter_heart;
-			}
-			else {
-				cmass_litter_sap = 0.0;
-				nmass_litter_sap = 0.0;
-				cmass_litter_heart = 0.0;
-				nmass_litter_heart = 0.0;
 			}
 
 			// Only perform calculations if any litter is dropped

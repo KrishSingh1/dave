@@ -671,7 +671,11 @@ void leaf_phenology_pft(Pft& pft, Climate& climate, double wscal, double aphen,
 	bool summergreen = pft.phenology == SUMMERGREEN || pft.phenology == ANY;
 
 	phen = 1.0;
-	
+
+	if (pft.is_grass() && pft.dave_allocation()) {
+		return;
+	}
+
 	// TODO: Cuurently copied as-is from the Grote model. Consider changing 
 	// evergreen phenology altogether.
 	if (pft.phenology == EVERGREEN) {

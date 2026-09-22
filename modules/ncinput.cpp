@@ -434,6 +434,15 @@ bool NCInput::read_day(int year, int day, Climate &climate) {
 	climate.gridcell.dNO3dep = no3_dep[day];
 	climate.pressure = pressure;
 
+    // Calculate mean daily relative humidity from subdaily RH values.
+    std::vector<double> rhs;
+    rhs.reserve(vpds.size());
+    for (size_t i = 0; i < vpds.size(); i++) {
+        double rh = vpd_to_rh(vpds[i], temps[i], options.esat_method);
+        rhs.push_back(rh);
+    }
+    climate.relhum = mean(rhs);
+
 	if (plan.dtr_mode == DtrMode::FromSubdailyTemp) {
 		climate.dtr = maxt - mint;
 		climate.tmax = maxt;

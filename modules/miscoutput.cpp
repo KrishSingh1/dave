@@ -2241,7 +2241,14 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 			n_min_leach_lc[stand.landcover] += patch.soil.aminleach * to_gridcell_average;
 			n_org_leach_lc[stand.landcover] += patch.soil.aorgNleach * to_gridcell_average;
 			c_org_leach_lc[stand.landcover] += patch.soil.aorgCleach * to_gridcell_average;
-			availn_lc[stand.landcover] += (patch.soil.NH4_mass + patch.soil.NO3_mass + patch.soil.snow.NH4_mass 
+			double nh4_mass = 0;
+			double no3_mass = 0;
+			for (size_t i = 0; i < patch.soil.nsoillayers; i++) {
+				const Soillayer &lyr = patch.soil.soillayers[i];
+				nh4_mass += lyr.sompool[SURFMETA].nmass + lyr.sompool[SURFSTRUCT].nmass + lyr.sompool[SOILMETA].nmass + lyr.sompool[SOILSTRUCT].nmass;
+				no3_mass += lyr.sompool[SURFMETA].nmass + lyr.sompool[SURFSTRUCT].nmass + lyr.sompool[SOILMETA].nmass + lyr.sompool[SOILSTRUCT].nmass;
+			}
+			availn_lc[stand.landcover] += (nh4_mass + no3_mass + patch.soil.snow.NH4_mass 
 				+ patch.soil.snow.NO3_mass) * to_gridcell_average;
 
 			//N-transform

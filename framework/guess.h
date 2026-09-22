@@ -1765,6 +1765,9 @@ public:
 		agdd0 = 0.0;
 
 		chilldays = 0;
+		daylength = 0;
+		daylength_max = -9999;
+		daylength_min = 9999;
 	};
 
 	/// Initialises certain member variables

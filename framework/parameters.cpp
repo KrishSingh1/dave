@@ -2493,7 +2493,10 @@ void plib_callback(int callback) {
 				if (!itemparsed("turnover_repr_litter")) badins("turnover_repr");
 
 				// Calculate a_growth if it's not provided by the user.
-				if (!itemparsed("A_growth")) {
+				if (ppft->is_grass() && !itemparsed("A_growth")) {
+					if (!itemparsed("Ha_growth")) badins("Ha_growth");
+					if (!itemparsed("T0_growth")) badins("T0_growth");
+					if (!itemparsed("temp_dormancy")) badins("temp_dormancy");
 					ppft->A_growth = calc_a_growth(ppft);
 				}
 

@@ -3250,7 +3250,9 @@ public:
 		senesc_scal_repr = 0;
 		qdev_senesc = 0;
 		qwater_senesc = 0;
-
+		Ha_growth = 0.0;
+		T0_growth = 0.0;
+		temp_dormancy = 0.0;
 		extkn = 0;
 		racclim = 0;
 		for (int i=0; i<3; i++)

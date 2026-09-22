@@ -3259,6 +3259,9 @@ public:
 		temp_dormancy = 0.0;
 		extkn = 0;
 		racclim = 0;
+		wscal_min_dormant = 0;
+		fnstorage = 0;
+
 		for (int i=0; i<3; i++)
 			photo[i]=0.0;
 

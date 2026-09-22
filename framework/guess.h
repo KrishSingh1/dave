@@ -3203,6 +3203,9 @@ public:
 		fertdates[0] = 0;
 		fertdates[1] = 30;
 
+		// Trunk behaviour.
+		ag_woody_frac = 1;
+
 		fert_stages[0] = 0.5;
 		fert_stages[1] = 0.9;
 

@@ -1757,6 +1757,7 @@ public:
 		temp_seasonality_lastyear=COLD;
 		biseasonal=false;
 		mean_elevation = 0;
+		u10 = 0;
 
 		eet=0.0;
 		par = 0.0;

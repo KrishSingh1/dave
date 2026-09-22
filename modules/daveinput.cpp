@@ -189,7 +189,7 @@ void DaveInput::init(void) {
 		options.cache_strategy = (CacheStrategy)cache_strategy;
 		options.nc_check_inputs = nc_check_inputs;
 		options.dtr_required = firemodel == BLAZE;
-		options.wind_required = (firemodel == BLAZE || ifdavephotosyn) && wind_speed == 0;
+		options.wind_required = (firemodel == BLAZE || ifdavephotosyn || hydrology == RICHARDS) && wind_speed == 0;
 		options.allow_fixed_pressure = fixed_pressure > 0;
 		options.allow_netcdf_co2 = file_co2 == "";
 		options.allow_netcdf_ndep = !use_lamarque;

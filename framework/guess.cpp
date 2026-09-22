@@ -2050,6 +2050,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	mort_dcstarve = 0.0;
 	wscal = 0.0;
 	wscal_mean_year = 0.0;
+	lai_trend_max = 0;
 
 	for (int sl = 0; sl<NSOILLAYERS_MAX; sl++) {
 		Rs_r[sl] = 0.0;

@@ -3389,6 +3389,7 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 					if (years.find(date.get_calendar_year()) != years.end()) {
 						// Deterministic disturbance occurs in this year.
 						disturbance(patch, 1.0);
+						return;
 					}
 					else {
 						patch.disturbed = false;
@@ -3397,13 +3398,12 @@ void vegetation_dynamics(Stand& stand,Patch& patch) {
 					// Stochastic disturbances.
 					double distinterval_ = stand.get_distinterval();	
 					disturbance(patch,1.0 / distinterval_);
+					if (patch.disturbed) {
+						insectupdate(stand, patch); // Simplified updatde of insect dynamics normally done in mortality_guess
+						return; // no mortality or establishment this year
+					}
 				}
 			}
-		}
-
-		if (patch.disturbed) {
-			insectupdate(stand, patch); // Simplified updatde of insect dynamics normally done in mortality_guess
-			return; // no mortality or establishment this year
 		}
 
 		// Mortality

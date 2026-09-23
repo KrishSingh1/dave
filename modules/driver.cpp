@@ -836,7 +836,9 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 				if (!patch.prescribed_disturbed)
 					patch.plant_this_year = false;
 				patch.prescribed_disturbed = false;
-				patch.disturbed = false;	// For disturbance input period; disturbance() not called during this time. Not sure this is needed.
+				// TODO: reconcile with european_applications. This seems
+				// questionable and changes establishment behaviour.
+				// patch.disturbed = false;	// For disturbance input period; disturbance() not called during this time. Not sure this is needed.
 				patch.distributed_cutting = false;
 				patch.cutinterval_actual_thisyear = 0;
 				patch.fire_line_intensity_year_max = 0.0;

@@ -639,6 +639,7 @@ public:
 	void check_period(Gridcell& gridcell);
 
 	void check_day(Gridcell&);
+	void rebase_day(Gridcell &);
 
 	void serialize(ArchiveStream& arch);
 

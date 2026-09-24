@@ -78,6 +78,10 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 	// period and create/kill stands.
 	landcover_dynamics(gridcell, input_module);
 
+	if (gridcell.landcover.updated) {
+		gridcell.balance.rebase_day(gridcell);
+	}
+
 	// Perform forest management for all stands this year
 	manage_forests(gridcell);
 

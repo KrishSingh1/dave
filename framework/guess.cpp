@@ -4855,6 +4855,12 @@ void MassBalance::check_year_N(Gridcell& gridcell) {
 	ncont = ncont_year;
 }
 
+void MassBalance::rebase_day(Gridcell &gridcell) {
+	ccont_yesterday = gridcell.ccont();
+	ncont_yesterday = gridcell.ncont();
+	water_cont_yesterday = gridcell.water_content();
+}
+
 void MassBalance::check_day(Gridcell &gridcell) {
 
 	if (ifdavegrowth) {

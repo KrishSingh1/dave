@@ -4626,11 +4626,8 @@ void MassBalance::serialize(ArchiveStream& arch) {
 		& nflux
 		& water_flux
 		& ccont_yesterday
-		& cflux_yesterday
 		& ncont_yesterday
-		& nflux_yesterday
-		& water_cont_yesterday
-		& water_flux_yesterday;
+		& water_cont_yesterday;
 }
 
 /// Should be used together with check_indiv()
@@ -4898,10 +4895,6 @@ void MassBalance::check_day_c(Gridcell &gridcell) {
 	double ccont = gridcell.ccont();
 	double cflux = gridcell.cflux(Period::DAY);
 
-	if (date.day == 0) {
-		cflux_yesterday = 0;
-	}
-
 	if (check_mass_balance_today(gridcell)) {
 		// double cflux_today = cflux_yesterday - cflux;
 		double expected_ccont = ccont_yesterday - cflux;
@@ -4919,16 +4912,11 @@ void MassBalance::check_day_c(Gridcell &gridcell) {
 	}
 
 	ccont_yesterday = ccont;
-	cflux_yesterday = cflux;
 }
 
 void MassBalance::check_day_n(Gridcell &gridcell) {
 	double ncont = gridcell.ncont();
 	double nflux = gridcell.nflux(Period::DAY); // NO_SOIL, N2O_SOIL, gridcell.aNH4dep, gridcell.aNO3dep
-
-	if (date.day == 0) {
-		nflux_yesterday = 0;
-	}
 
 	if (check_mass_balance_today(gridcell)) {
 		// double nflux_today = nflux_yesterday - nflux;
@@ -4947,16 +4935,11 @@ void MassBalance::check_day_n(Gridcell &gridcell) {
 	}
 
 	ncont_yesterday = ncont;
-	nflux_yesterday = nflux;
 }
 
 void MassBalance::check_day_water(Gridcell &gridcell) {
 	double wcont = gridcell.water_content();
 	double wflux = gridcell.water_flux(Period::DAY);
-
-	if (date.day == 0) {
-		water_flux_yesterday = 0;
-	}
 
 	if (check_mass_balance_today(gridcell)) {
 		// double wflux_today = water_flux_yesterday - wflux;
@@ -4974,7 +4957,6 @@ void MassBalance::check_day_water(Gridcell &gridcell) {
 	}
 
 	water_cont_yesterday = wcont;
-	water_flux_yesterday = wflux;
 }
 
 void MassBalance::check_year_C(Gridcell& gridcell) {

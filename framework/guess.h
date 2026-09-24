@@ -554,7 +554,6 @@ class MassBalance : public Serializable  {
 
 	double cflux;
 	double cflux_zero;
-	double cflux_yesterday;
 
 	double ncont;
 	double ncont_zero;
@@ -563,7 +562,6 @@ class MassBalance : public Serializable  {
 
 	double nflux;
 	double nflux_zero;
-	double nflux_yesterday;
 
 	double water_cont;
 	double water_cont_zero;
@@ -572,7 +570,6 @@ class MassBalance : public Serializable  {
 
 	double water_flux;
 	double water_flux_zero;
-	double water_flux_yesterday;
 
 public:
 	MassBalance() {
@@ -594,11 +591,8 @@ public:
 		water_flux = 0.0;
 		water_flux_zero = 0.0;
 		ccont_yesterday = 0.0;
-		cflux_yesterday = 0.0;
 		ncont_yesterday = 0.0;
-		nflux_yesterday = 0.0;
 		water_cont_yesterday = 0.0;
-		water_flux_yesterday = 0.0;
 	}
 
 	MassBalance(int start_yearX) {
@@ -620,11 +614,8 @@ public:
 		water_flux = 0.0;
 		water_flux_zero = 0.0;
 		ccont_yesterday = 0.0;
-		cflux_yesterday = 0.0;
 		ncont_yesterday = 0.0;
-		nflux_yesterday = 0.0;
 		water_cont_yesterday = 0.0;
-		water_flux_yesterday = 0.0;
 	}
 
 	void init(Gridcell& gridcell);

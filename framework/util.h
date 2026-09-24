@@ -1,6 +1,8 @@
 #ifndef _UTIL_H_
 #define _UTIL_H_
 
+#include <set>
+
 #include "gutil.h"
 #include <exception>
 #include <stdexcept>
@@ -54,5 +56,11 @@ xtring get_nested_error_msg(const std::exception& e);
 Return current time (in μs since unix epoch).
 */
 double get_wall_time();
+
+/**
+ * \return a string containing the concatenation of all items in the set,
+ * separated by commas.
+ */
+xtring join_items(const std::set<xtring> &items);
 
 #endif // _UTIL_H_

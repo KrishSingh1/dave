@@ -2567,7 +2567,106 @@ void Soillayer::serialize(ArchiveStream& arch) {
 		& mminleach_mean
 		& decomp_litter_mean
 		& k_soilfast_mean
-		& k_soilslow_mean;	
+		& k_soilslow_mean
+        & wmass_sc
+        & mwcontabove
+        & awcont
+        & wsats
+		& awc
+		& wp
+        & perc_mass
+        & runoff_drain
+        & runoff_baseflow
+        & root_volume
+        & mineral_volume
+        & coarse_volume
+        & organic_volume
+        & effective_volume
+        & peat_frac
+        & tiller_area
+        & Kh
+		& Ch
+        & gtemp
+        & alag
+		& exp_alag
+        & CO2
+        & CH4_ebull_ind
+        & CH4_gas
+        & CH4_diss
+        & respsum
+		& arespsum
+        & acmassfinput
+		& acmasscinput
+        & atemp_mod
+		& amoist_mod
+		& atot_mod
+        & aminleach
+		& aorgNleach
+		& aorgCleach
+        & labile_carbon
+        & socage
+        & anmin
+		& animmob
+        & litterSolveSOM
+        & k_actual
+        & nvol
+		& anvol
+		& nloss_gas
+		& anloss_gas;
+
+	for (size_t i = 0; i < 2; i++) {
+        arch& acdec[i]
+            & acinc[i];
+	}
+
+	for (size_t i = 0; i < 12; i++) {
+		arch& mwmass[i]
+            & mwcont[i]
+            & mimass[i]
+            & mdrain[i]
+            & mtemp[i]
+            & mnetmin[i];
+	}
+
+	arch& sand_frac
+	    & clay_frac
+	    & silt_frac
+	    & coarse_frac
+	    & pH
+	    & Psi
+	    & dPsidw
+	    & Psi_max
+	    & Kw
+	    & dKwdw
+	    & Kw_max
+	    & b
+	    & perc_exp
+	    & perc_base
+	    & perc_base_min
+	    & perc_base_org
+	    & awc_min
+	    & wp_min
+	    & wsats_min
+	    & b_min
+	    & Kw_max_min
+	    & Psi_max_min
+	    & awc_rock
+	    & wp_rock
+	    & wsats_rock
+	    & b_rock
+	    & Kw_max_rock
+	    & Psi_max_rock
+	    & ssa
+	    & bulk_density
+	    & thermdiff_0
+        & thermdiff_15
+        & thermdiff_100
+        & thermdiff_0_min
+        & thermdiff_15_min
+        & thermdiff_100_min
+        & thermdiff_0_org
+        & thermdiff_15_org
+        & thermdiff_100_org;
 }
 
 void Soillayer::daily_accounting() {
@@ -8557,14 +8656,96 @@ void Soil::serialize(ArchiveStream& arch) {
 		& ssw
 		& pad
 		& maxthaw_10
+		& thaw
 		& slope_grade_tan
-		& slope_grade_cos;
+		& slope_grade_cos
+        & asurfflitterinput
+        & asurfclitterinput
+        & asurflitterresp
+        & awcont_upper
+        & wcont_evap
+        & rain_melt
+        & rain_melt_temp
+        & max_rain_melt
+        & wmass_wetland_added
+        & percolate
+        & maxthaw
+        & acro_co2
+        & dmoss_wtp_limit
+        & dgraminoid_wtp_limit
+        & wtp
+		& awtp
+		& wtd
+        & k_O2
+		& k_CO2
+		& k_CH4
+        & Ceq_O2
+		& Ceq_CO2
+		& Ceq_CH4
+        & soilfrostdays
+        & frozen_soil_ind
+        & firstTempCalc
+        & dperc
+        & orgleachfrac
+        & NH4_input
+		& NO3_input
+        & nmin_gross
+		& nimmob
+        & anmin
+		& animmob
+		& aminleach
+		& aorgNleach
+		& aorgCleach
+        & anfix
+		& anfix_mean
+		& anfix_calc
+        & net_mineralisation
+        & dminleach
+        & dorgNleach
+        & anloss_gas
+		& nloss_gas
+        & solvesom_end
+		& solvesom_begin
+        & solvesomcent_beginyr
+		& solvesomcent_endyr
+        & savesomcent
+        & soil_psi;
 
-	for (int i = 0; i < NSOILLAYERS_MAX; i++) {
+	for (size_t i = 0; i < NSOMPOOL; i++) {
+		arch& csom_litter_input[i]
+            & nimmob_pool[i]
+            & nmin_gross_pool[i]
+            & decay_reduction[i];
+	}
+
+	for (size_t i = 0; i < NSOILLAYERS_MAX; i++) {
 		arch& soillayerthicks[i];
 	}
 
-	for (int i = 0; i < nsoillayers; i++) {
+	for (size_t i = 0; i < NSOILLAYERS_MAX + 1; i++) {
+		arch& wfluxes[i];
+	}
+
+	for (size_t i = 0; i < 12; i++) {
+		arch& mthaw[i]
+            & mald_mean[i]
+		    & mwtp[i]
+			& fNH4uptake_mean[i]
+			& fNO3uptake_mean[i];
+	}
+
+	if (nsoillayers < 1 || nsoillayers > NSOILLAYERS_MAX) {
+		fail("ERROR: Soil::serialize() nsoillayers %d out of range [1, %d]\n", nsoillayers, NSOILLAYERS_MAX);
+	}
+
+	if (!arch.save()) {
+		soillayers.resize(nsoillayers);
+	}
+
+	for (size_t i = 0; i < nsoillayers; i++) {
+		if (!arch.save()) {
+			soillayers[i].soil = this;
+		}
 		arch & soillayers[i];
 	}
 }

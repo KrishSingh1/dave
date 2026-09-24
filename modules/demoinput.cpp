@@ -259,12 +259,7 @@ bool DemoInput::getgridcell(Gridcell& gridcell) {
 			// Retrieve coordinate of next grid cell from linked list
 			Coord& c = gridlist.getobj();
 
-			if(readdisturbance || readdisturbance_st || readwindload || readelevation_st || readelevation_local) {
-				// Not all gridcells have to be included in input file
-				misc_input.loaddisturbance(gridlist.getobj().lon, gridlist.getobj().lat);
-				misc_input.loadwindload(gridlist.getobj().lon, gridlist.getobj().lat);
-				misc_input.loadelevation(gridlist.getobj().lon, gridlist.getobj().lat);
-			}
+			misc_input.load(c.lon, c.lat);
 
 			// Load environmental data for this grid cell from files
 			if(run_landcover) {

@@ -125,3 +125,14 @@ double get_wall_time() {
     return (double)time.tv_sec + (double)time.tv_usec * .000001;
 #endif
 }
+
+xtring join_items(const std::set<xtring> &items) {
+	xtring result;
+	for (std::set<xtring>::const_iterator it = items.begin(); it != items.end(); it++) {
+		if (it != items.begin()) {
+			result += ", ";
+		}
+		result += *it;
+	}
+	return result;
+}

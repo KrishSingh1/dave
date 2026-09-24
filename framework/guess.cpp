@@ -3979,6 +3979,12 @@ void Individual::annual_accounting() {
 	acloss_temp = 0;
 	anloss_temp = 0;
 	aloss_temp = 0;
+
+	const Gridcell &gridcell = vegetation.patch.stand.get_gridcell();
+	if (gridcell.landcover.updated && pft.dave_allocation()) {
+		// Rescale indiv following landcover change.
+		scale_indiv(*this, false);
+	}
 }
 
 size_t Individual::get_wscal_dynamic_capacity() const {

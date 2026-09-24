@@ -6716,9 +6716,6 @@ void annual_accounting_dave(Vegetation& vegetation) {
 			indiv.nmass_leaf_ymax = 0.0;
 			indiv.cmass_root_ymax = 0.0;
 			indiv.nmass_root_ymax = 0.0;
-
-			// scale indiv for landcover change
-			// scale_indiv(indiv, false);  // TODO: Is this needed?
 		}
 
 		// Determine the yearly maximum values which is reported

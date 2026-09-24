@@ -8682,8 +8682,6 @@ void Soil::serialize(ArchiveStream& arch) {
         & Ceq_O2
 		& Ceq_CO2
 		& Ceq_CH4
-        & soilfrostdays
-        & frozen_soil_ind
         & firstTempCalc
         & dperc
         & orgleachfrac

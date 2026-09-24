@@ -173,6 +173,25 @@ void MiscInput::init(xtring file_gridlist) {
 	}
 }
 
+void MiscInput::load(double lon, double lat) {
+	bool error = false;
+
+	error |= loaddisturbance(lon, lat);
+	error |= loaddist_clearcut(lon, lat);
+	error |= loaddist_fire(lon, lat);
+	error |= loaddist_wind(lon, lat);
+	error |= loaddist_barkbeetle(lon, lat);
+	error |= loadstorm_prob(lon, lat);
+	error |= loadwindload(lon, lat);
+	error |= loadelevation(lon, lat);
+	error |= loadforest_init(lon, lat);
+
+	if (error) {
+		fail("loadmiscinput: error loading external input data for gridcell (lon, lat) = (%.6f, %.6f)",
+			 lon, lat);
+	}
+}
+
 bool MiscInput::loaddisturbance(double lon, double lat) {
 
 	Coord c;

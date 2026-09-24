@@ -2561,6 +2561,12 @@ public:
 		file_treeinit_st = "";
 	}
 
+	bool has_management(int rot) const {
+		return rot >= 0 &&
+			   rot < rotation.nmanagements &&
+			   mtnames[rot] != "" &&
+			   mtlist.getmtid(mtnames[rot]) >= 0;
+	}
 	ManagementType& get_management(int rot = 0) {
 
 		int mtid = mtlist.getmtid(mtnames[rot]);

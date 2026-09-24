@@ -2172,6 +2172,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	csenesc                     = 0.0;
 	g1 = pft.g1;
 	dnpp_allocated = true;
+	cmass_wood_inc_5.add(0);
 
 	anc_frac                    = 0.0;
 	anj_frac                    = 0.0;

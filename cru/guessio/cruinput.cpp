@@ -218,19 +218,8 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 					if(readdisturbance || readdisturbance_st || readwindload || readelevation_st || readelevation_local
 					|| readdist_clearcut || readdist_fire || readdist_wind || readdist_barkbeetle || readstorm_prob) {
 						// Not all gridcells have to be included in input file
-						misc_input.loaddisturbance(gridlist.getobj().lon, gridlist.getobj().lat);
-						misc_input.loadwindload(gridlist.getobj().lon, gridlist.getobj().lat);
-						misc_input.loadelevation(gridlist.getobj().lon, gridlist.getobj().lat);
-						misc_input.loaddist_clearcut(gridlist.getobj().lon, gridlist.getobj().lat);
-						misc_input.loaddist_fire(gridlist.getobj().lon, gridlist.getobj().lat);
-						misc_input.loaddist_wind(gridlist.getobj().lon, gridlist.getobj().lat);
-						misc_input.loaddist_barkbeetle(gridlist.getobj().lon, gridlist.getobj().lat);
-						misc_input.loadstorm_prob(gridlist.getobj().lon, gridlist.getobj().lat);
-					}
-					if(readforest_init) {
-						LUerror = misc_input.loadforest_init(gridlist.getobj().lon, gridlist.getobj().lat);	// Moved here 240704.
-						if(LUerror)
-							dprintf("\nError: could not find stand at (%g,%g) in forest_init data files\n\n", gridlist.getobj().lon,gridlist.getobj().lat);
+						Coord &coord = gridlist.getobj();
+						misc_input.load(coord.lon, coord.lat);
 					}
 				}
 

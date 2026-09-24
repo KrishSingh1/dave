@@ -565,11 +565,7 @@ bool CFInput::getgridcell(Gridcell& gridcell) {
 	cru_lon = floor(lon * 2.0) / 2.0 + 0.25;
 	cru_lat = floor(lat * 2.0) / 2.0 + 0.25;
 
-	if(readdisturbance || readdisturbance_st || readelevation_st) {
-		// Not all gridcells have to be included in input file
-		misc_input.loaddisturbance(lon, lat);
-		misc_input.loadelevation(lon, lat);
-	}
+	misc_input.load(lon, lat);
 
 //	gridcell.climate.mean_elevation = elevation;		// Get elevation from cru_ncep
 //	if(readelevation_st)

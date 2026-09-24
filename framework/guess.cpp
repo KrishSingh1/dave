@@ -4479,10 +4479,12 @@ double Gridcell::cflux(Period period) const {
 		cflux += stand.cflux(period) * stand.get_gridcell_fraction();
 	}
 
-	cflux += landcover.acflux_landuse_change;
-	cflux += landcover.acflux_harvest_slow;
-	cflux += landcover.acflux_wood_harvest;
-	cflux += landcover.acflux_clearing;
+	if (period == Period::YEAR) {
+		cflux += landcover.acflux_landuse_change;
+		cflux += landcover.acflux_harvest_slow;
+		cflux += landcover.acflux_wood_harvest;
+		cflux += landcover.acflux_clearing;
+	}
 
 	return cflux;
 }
@@ -4496,13 +4498,14 @@ double Gridcell::nflux(Period period) const {
 		nflux += stand.nflux(period) * stand.get_gridcell_fraction();
 	}
 
-	// TODO DH: these won't be accounted for via the period argument. We need
-	// to create per-stand and per-gridcell flux objects to track these kinds
-	// of fluxes. Everything should be a flux!
-	nflux += landcover.anflux_landuse_change;
-	nflux += landcover.anflux_harvest_slow;
-	nflux += landcover.anflux_wood_harvest;
-	nflux += landcover.anflux_clearing;
+	// TODO DH: We need to create per-stand and per-gridcell flux objects to
+	// track these kinds of fluxes. Everything should be a flux!
+	if (period == Period::YEAR) {
+		nflux += landcover.anflux_landuse_change;
+		nflux += landcover.anflux_harvest_slow;
+		nflux += landcover.anflux_wood_harvest;
+		nflux += landcover.anflux_clearing;
+	}
 
 	return nflux;
 }

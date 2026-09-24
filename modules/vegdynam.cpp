@@ -3011,6 +3011,10 @@ void establish_input_gridcell(Gridcell& gridcell) {
 		Gridcellst& gcst = gridcell.st[st.id];
 
 		if(gcst.prescribed_establishment) {
+			if (!st.has_management(1)) {
+				fail("Prescribed forest initialisation for stand type %s requires a valid management2 entry.\n",
+					(char*)st.name);
+			}
 
 			ManagementType& mt = st.get_management(1);
 //			ManagementType& mt = st.get_management();		// if(!use_rotation) : set manually

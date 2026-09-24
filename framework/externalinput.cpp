@@ -544,7 +544,6 @@ void MiscInput::getforest_init(Gridcell& gridcell) {
 	int establishment_year_test = 2000;
 	double dens_test = 0.01;
 	bool test_run = false;
-	bool print_init_info = true;
 
 	for (int s=0; s<nst;s++) {
 		StandType& st = stlist[s];
@@ -565,8 +564,7 @@ void MiscInput::getforest_init(Gridcell& gridcell) {
 			else
 				gcst.establishment_list.establishment_year = establishment_year_test;
 
-			if(print_init_info)
-				log_info("Tree cohorts initialised for stand type %s from input file year %d", (char*)st.name, gcst.establishment_list.establishment_year);
+			log_info("Tree cohorts initialised for stand type %s from input file year %d", (char*)st.name, gcst.establishment_list.establishment_year);
 
 			for (int i = 0;i < ntrees_max; i++) {	// read values for all trees (for now: Year column 0, 1, ...)
 				for (int p = 0;p < npft;p++) {
@@ -593,10 +591,8 @@ void MiscInput::getforest_init(Gridcell& gridcell) {
 							/// Age set in establish_input() if column not found in input file or if value is <= 0
 						}
 
-						if(print_init_info) {
-							log_info("Tree no.%d\t", i);
-							log_info("%s: dbh = %.1f cm, dens = %.1f/ha, age = %d", pftname, dbh, dens, age);
-						}
+						log_info("Tree no.%d\t", i);
+						log_info("%s: dbh = %.1f cm, dens = %.1f/ha, age = %d", pftname, dbh, dens, age);
 						strcpy(gcst.establishment_list.est_array[i].pft_name, pftname);
 						gcst.establishment_list.est_array[i].biomass = biomass;
 						gcst.establishment_list.est_array[i].diam = dbh;

@@ -4859,9 +4859,11 @@ void MassBalance::check_year_N(Gridcell& gridcell) {
 }
 
 void MassBalance::rebase_day(Gridcell &gridcell) {
-	ccont_yesterday = gridcell.ccont();
-	ncont_yesterday = gridcell.ncont();
-	water_cont_yesterday = gridcell.water_content();
+	if (gridcell.landcover.updated && date.day == 0) {
+		ccont_yesterday = gridcell.ccont();
+		ncont_yesterday = gridcell.ncont();
+		water_cont_yesterday = gridcell.water_content();
+	}
 }
 
 void MassBalance::check_day(Gridcell &gridcell) {

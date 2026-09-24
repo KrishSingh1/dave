@@ -1951,6 +1951,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	nday_leafon					= 0.0;
 	csenesc                     = 0.0;
 	g1 = pft.g1;
+	dnpp_allocated = true;
 
 	anc_frac                    = 0.0;
 	anj_frac                    = 0.0;
@@ -3607,7 +3608,7 @@ void partition_wood_biomass(double mass_sap, double mass_heart,
 }
 
 void Individual::kill(bool harvest /* = false */) {
-
+	flush_unallocated_npp();
 	Patchpft& ppft = patchpft();
 	double charvest_flux = 0.0;
 	double charvested_products_slow = 0.0;
@@ -3951,6 +3952,7 @@ void Individual::daily_accounting() {
 	closs_shade = 0;
 	nloss_shade = 0;
 	closs_drawdown = 0;
+	dnpp_allocated = true;
 	canopy.clear();
 
 	if (ifdavephotosyn) {
@@ -4032,6 +4034,21 @@ bool Individual::use_indiv_wscal() const {
 	// allocation), individual-level water stress will not be set, and we must
 	// therefore fall back to using the ppft-level water stress.
 	return ifzhou || pft.dave_allocation();
+}
+
+void Individual::flush_unallocated_npp() {
+	if (dnpp_allocated) {
+		return;
+	}
+	if (!pft.dave_allocation()) {
+		return;
+	}
+	if (dnpp <= 0.0) {
+		return;
+	}
+
+	cmass_storage += dnpp;
+	dnpp_allocated = true;
 }
 
 double Individual::get_wscal() const {

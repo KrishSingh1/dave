@@ -4604,6 +4604,8 @@ public:
 	double agpp_no;
 	/// Annual GPP with only N stress
 	double agpp_ns;
+	/// Whether today's NPP has been allocated to a tracked carbon pool.
+	bool dnpp_allocated;
 
 	Historic<double, 15> gpp_15;
 	Historic<double, 15> gpptrend_15;
@@ -4936,6 +4938,8 @@ private:
 	// of the year.
 	void annual_accounting();
 	bool use_indiv_wscal() const;
+	/// Flush any unallocated NPP to a pool.
+	void flush_unallocated_npp();
 };
 
 

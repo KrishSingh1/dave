@@ -3633,6 +3633,7 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 			// Not enough C in storage to fulfill respiration demands --> kill individual
 			double cmass_deficit = -(indiv.cmass_storage + indiv.dnpp);
 			indiv.cmass_storage = 0.0;
+			indiv.dnpp_allocated = true;
 
 			// The respiration and NPP fluxes reported in canexch are
 			// now incorrect, so we need to fix them. Note that the RA
@@ -3660,6 +3661,7 @@ void storage_growth_partitioning_grass(Individual &indiv) {
 
 	// update cmass_storage
 	indiv.cmass_storage += cstore;
+	indiv.dnpp_allocated = true;
 }
 
 // returns how much available storage there is (kgC/m2)
@@ -3965,6 +3967,7 @@ void storage_growth_partitioning_tree(Individual &indiv) {
 	double cmass_storage_before = indiv.cmass_storage;
 	// first add NPP to storage.
 	indiv.cmass_storage += indiv.dnpp;
+	indiv.dnpp_allocated = true;
 
 	if (indiv.dnpp < 0) {
 		indiv.closs_drawdown = -indiv.dnpp;
@@ -4015,10 +4018,12 @@ void storage_growth_partitioning_tree_grote(Individual &indiv) {
 			indiv.cmass_storage += indiv.dnpp; // it's a + becuase npp is negative
 			// so that growth will be entirely from storage (see below).
 			indiv.dnpp = 0;
+			indiv.dnpp_allocated = true;
 		} else {
 			// Not enough C in storage to fulfill respiration demands --> kill individual
 			double cmass_deficit = -(indiv.cmass_storage + indiv.dnpp);
 			indiv.cmass_storage = 0.0;
+			indiv.dnpp_allocated = true;
 
 			// The respiration and NPP fluxes reported in canexch are
 			// now incorrect, so we need to fix them. Note that the RA
@@ -4152,8 +4157,6 @@ void storage_growth_partitioning_dave(Vegetation& vegetation) {
 		} else {
 			if (ifgrote) {
 				storage_growth_partitioning_grote(indiv); 
-				// TRY TO RUN THE NEW CGROW CALCULATION WITH NO PHENOLOGY (ONLY FSTORAGE)
-				// storage_growth_partitioning_tree(indiv);
 			} else {
 				storage_growth_partitioning_tree(indiv);
 			}
@@ -5428,6 +5431,8 @@ void update_pools_dave(Vegetation& vegetation) {
 		if (!negligible(indiv.nmass_repr)) {
 			assert(less_than_or_equal(indiv.cmass_repr / indiv.nmass_repr, indiv.pft.cton_repr_max * 1.001));
 		}
+
+		indiv.dnpp_allocated = true;
 	}
 }
 

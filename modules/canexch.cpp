@@ -2692,6 +2692,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		// Don't do calculations for crops outside their growingseason
 		if (!indiv.growingseason()) {
 			indiv.dnpp = 0.0;
+			indiv.dnpp_allocated = true;
 			indiv.lambda = 0.0;
 			vegetation.nextobj();
 			continue;
@@ -2771,6 +2772,7 @@ void npp(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& day)
 		indiv.dgpp = assim;
 		indiv.dnpp = assim - resp;
 		indiv.anpp += indiv.dnpp;
+		indiv.dnpp_allocated = !pft.dave_allocation();
 		indiv.agpp	+= assim;
 		indiv.aresp	+= resp;
 

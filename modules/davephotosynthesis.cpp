@@ -1736,6 +1736,7 @@ void npp_dave(Patch& patch) {
 		// Don't do calculations for crops outside their growing season.
 		if (!indiv.growingseason()) {
 			indiv.dnpp=0.0;
+			indiv.dnpp_allocated = true;
 			indiv.lambda = 0;
 			continue;
 		}
@@ -1797,6 +1798,7 @@ void npp_dave(Patch& patch) {
 		indiv.dgpp = assim;
 		indiv.dnpp = assim - resp;
 		indiv.anpp += indiv.dnpp;
+		indiv.dnpp_allocated = !pft.dave_allocation();
 		indiv.agpp	+= assim;
 		indiv.aresp	+= resp;
 

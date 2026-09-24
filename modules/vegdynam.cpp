@@ -2590,7 +2590,7 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 			if (pftname == "")
 				break;
 			
-			if (pft.name == pftname && pft.is_grass()) {
+			if (pft.name == pftname && !pft.is_grass()) {
 
 				if(print_init_info)
 					dprintf("\n%s individual no. %d created in st %s\n", (char*)pftname, i, (char*)stlist[stand.stid].name);

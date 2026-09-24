@@ -160,14 +160,15 @@ void DaveInput::init(void) {
 		// Open soil data file.
 		soil_input.init(file_soildata);
 
-		// Open misc input file.
-		misc_input.init(file_gridlist);
+		// Open landcover input file. Important to do this before misc input,
+		// because good software design is overrated.
+		landcover_input.init(file_gridlist);
 
 		// Open management input files.
 		management_input.init(file_gridlist);
 
-		// Open landcover input file.
-		landcover_input.init(file_gridlist);
+		// Open misc input file.
+		misc_input.init(file_gridlist);
 
 		if (file_thome != "" && ifvcmaxtempacclimation) {
 			thome_input.init(file_thome);
@@ -266,11 +267,9 @@ bool DaveInput::getgridcell(Gridcell& gridcell) {
 			, Lamarque::parse_timeseries((const char *)ndep_scenario));
 		}
 
-		if(readdisturbance || readdisturbance_st || readelevation_st) {
-			// Not all gridcells have to be included in input file.
-			misc_input.loaddisturbance(lon, lat);
-			misc_input.loadelevation(lon, lat);
-		}
+		landcover_input.loadlandcover(lon, lat);
+		misc_input.load(lon, lat);
+		management_input.loadmanagement(lon, lat);
 
 		if (ifvcmaxtempacclimation && file_thome != "") {
 			// Temperature acclimation is enabled - read thome value for this

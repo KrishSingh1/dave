@@ -38,6 +38,8 @@ public:
 	/// Opens land cover input files
 	void init(xtring file_gridlist);
 
+	void load(double lon, double lat);
+private:
 	/// Loads disturbance interval from input file
 	bool loaddisturbance(double lon, double lat);
 
@@ -63,7 +65,7 @@ public:
 	bool loadelevation(double lon, double lat);
 
 	bool loadforest_init(double lon, double lat);
-
+public:
 	/// Gets all static input data from this class
 	void getmiscinput_static(Gridcell& gridcell);
 

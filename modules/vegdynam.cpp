@@ -2556,7 +2556,6 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 	if (!gcst.prescribed_establishment || gcst.establishment_list.establishment_year != date.get_calendar_year())
 		return;
 
-	bool print_init_info = false;
 	double cmass_veg_tree_tot_old = check_harvest_cmass(patch);
 
 	if(!pool_soil) {
@@ -2592,8 +2591,10 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 			
 			if (pft.name == pftname && !pft.is_grass()) {
 
-				if(print_init_info)
-					dprintf("\n%s individual no. %d created in st %s\n", (char*)pftname, i, (char*)stlist[stand.stid].name);
+				log_info("Prescribed establishment: %s individual no. %d "
+					     "created in %s stand %d, patch %d",
+					     (char*)pftname, i, (char*)stlist[stand.stid].name,
+						 stand.id, patch.id);
 
 				const bool use_latosa_20y_mean = true;
 				const bool use_qsap_20y_mean = true;
@@ -2622,8 +2623,7 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 				double f_sap = 0.6625 - 0.4372 * diam;
 				double q_sap = ( 2.0 * f_sap - (f_sap * f_sap)) / 4.0;
 
-				if(print_init_info)
-					dprintf("initial q_sap calculated (diam=%.2f): %f\n", diam, q_sap);
+				log_diagnostic("indiv %d: initial q_sap calculated (diam=%.2f): %f", i, diam, q_sap);
 
 				if (use_qsap_20y_mean) {
 					int diam_bin = -1;
@@ -2653,13 +2653,11 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 								q_sap -= (diam_bin_mean - (diam * 100)) / (diam_bin_mean - diam_bin_mean_next) * (q_sap - q_sap_next);
 							}
 						}
-						if(print_init_info)
-							dprintf("q_sap used from diam bin %d: %f\n", diam_bin, q_sap);
+						log_diagnostic("indiv %d: q_sap used from diam bin %d: %f", i, diam_bin, q_sap);
 					}
 					else if(diam_bin_reserve > -1) {
 						q_sap = gcpft.qsap_avr_20[diam_bin_reserve].mean();
-						if(print_init_info)
-							dprintf("q_sap used from diam bin %d: %f\n", diam_bin_reserve, q_sap);
+						log_diagnostic("indiv %d: q_sap used from diam bin %d: %f", i, diam_bin_reserve, q_sap);
 					}
 				}	// else use the value calculated above
 
@@ -2685,28 +2683,26 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 						if (diam_bin > -1) {
 							age = (int)gcpft.treeage_avr_20[diam_bin].mean();
 
-						double diam_bin_mean = ((double)diam_bin + 0.5) * DIAM_CLASS_SIZE_SAMP;
-						if((diam * 100) < diam_bin_mean) {
-							if(gcpft.treeage_avr_20[diam_bin - 1].size() && (diam_bin - 1) >= 0) {
-								double diam_bin_mean_prev = ((double)(diam_bin - 1) + 0.5) * DIAM_CLASS_SIZE_SAMP;
-								double age_prev = gcpft.treeage_avr_20[diam_bin - 1].mean();
-								age -= (int)((diam_bin_mean - (diam * 100)) / (diam_bin_mean - diam_bin_mean_prev) * (age - age_prev));
+							double diam_bin_mean = ((double)diam_bin + 0.5) * DIAM_CLASS_SIZE_SAMP;
+							if((diam * 100) < diam_bin_mean) {
+								if(gcpft.treeage_avr_20[diam_bin - 1].size() && (diam_bin - 1) >= 0) {
+									double diam_bin_mean_prev = ((double)(diam_bin - 1) + 0.5) * DIAM_CLASS_SIZE_SAMP;
+									double age_prev = gcpft.treeage_avr_20[diam_bin - 1].mean();
+									age -= (int)((diam_bin_mean - (diam * 100)) / (diam_bin_mean - diam_bin_mean_prev) * (age - age_prev));
+								}
 							}
-						}
-						else {
-							if(gcpft.treeage_avr_20[diam_bin + 1].size() && (diam_bin + 1) < N_DIAM_CLASSES_SAMP) {
-								double diam_bin_mean_next = ((double)(diam_bin + 1) + 0.5) * DIAM_CLASS_SIZE_SAMP;
-								double age_next = gcpft.treeage_avr_20[diam_bin + 1].mean();
-								age -= (int)((diam_bin_mean - (diam * 100)) / (diam_bin_mean - diam_bin_mean_next) * (age - age_next));
+							else {
+								if(gcpft.treeage_avr_20[diam_bin + 1].size() && (diam_bin + 1) < N_DIAM_CLASSES_SAMP) {
+									double diam_bin_mean_next = ((double)(diam_bin + 1) + 0.5) * DIAM_CLASS_SIZE_SAMP;
+									double age_next = gcpft.treeage_avr_20[diam_bin + 1].mean();
+									age -= (int)((diam_bin_mean - (diam * 100)) / (diam_bin_mean - diam_bin_mean_next) * (age - age_next));
+								}
 							}
-						}
-							if(print_init_info)
-								dprintf("age used from diam bin %d: %d\n", diam_bin, age);
+							log_diagnostic("age used from diam bin %d: %d", diam_bin, age);
 						}
 						else if (diam_bin_reserve > -1) {
 							age = (int)gcpft.treeage_avr_20[diam_bin_reserve].mean();
-							if(print_init_info)
-								dprintf("age used from diam bin %d: %d\n", diam_bin_reserve, age);
+							log_diagnostic("age used from diam bin %d: %d", diam_bin_reserve, age);
 						}
 					}
 				}
@@ -2717,13 +2713,18 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 				if(use_latosa_20y_mean && gcpft.latosa_avr_20.sum() != 0)	// else use the value calculated above
 					latosa = gcpft.latosa_avr_20.mean();
 
-				if(print_init_info) {
-					dprintf("latosa_avr_20.size for %s: %d \n", (char*)pft.name, gcpft.latosa_avr_20.size());
-					dprintf("latosa_avr_20[] for %s: \n", (char*)pft.name);
-					for(unsigned int x=0;x<gcpft.cton_sap_avr_20.size();x++) {
-						dprintf("%.3f ", gcpft.latosa_avr_20[x]);
+				log_diagnostic("latosa_avr_20.size for %s: %d", (char*)pft.name, gcpft.latosa_avr_20.size());
+				log_diagnostic("latosa_avr_20[] for %s:", (char*)pft.name);
+				xtring msg2;
+				for(unsigned int x=0;x<gcpft.latosa_avr_20.size();x++) {
+					if (x > 0) {
+						msg2 += ", ";
 					}
+					xtring tmp;
+					tmp.printf("%.3f", gcpft.latosa_avr_20[x]);
+					msg2 += tmp;
 				}
+				log_diagnostic("%s", (const char *)msg2);
 
 				double cmass_leaf_ind = cmass_sap_ind * latosa / (height * indiv.pft.sla * indiv.pft.wooddens);
 				double ltor = pft.ltor_max;
@@ -2752,40 +2753,38 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 				double cton_sap = indiv.pft.cton_sap_avr;
 				double cton_heart = indiv.pft.cton_sap_max;
 
-				if(print_init_info) {	
-					dprintf("cton_sap_avr_20.size for %s: %d \n", (char*)pft.name, gcpft.cton_sap_avr_20.size());
-					dprintf("cton_sap_avr_20[] for %s: \n", (char*)pft.name);
-					for(unsigned int x=0;x<gcpft.cton_sap_avr_20.size();x++) {
-						dprintf("%.3f ", gcpft.cton_sap_avr_20[x]);
+				log_diagnostic("cton_sap_avr_20.size for %s: %d", (char*)pft.name, gcpft.cton_sap_avr_20.size());
+				log_diagnostic("cton_sap_avr_20[] for %s:", (char*)pft.name);
+				xtring msg;
+				for(unsigned int x=0;x<gcpft.cton_sap_avr_20.size();x++) {
+					if (x > 0) {
+						msg += ", ";
 					}
+					xtring tmp;
+					tmp.printf("%.3f", gcpft.cton_sap_avr_20[x]);
+					msg += tmp;
 				}
+				log_diagnostic("%s", (const char*)msg);
 
 				if (use_cton_20y_mean && gcpft.cton_sap_avr_20.sum() != 0) {
-					if(print_init_info) {
-						dprintf("\nUsing cton_leaf_avr_20 for %s: \n", (char*)pft.name);
-						for(unsigned int x=0;x<gcpft.cton_leaf_avr_20.size();x++) {
-							dprintf("%.3f ", gcpft.cton_leaf_avr_20[x]);
-						}
-						dprintf("\n");
-						dprintf("Using cton_sap_avr_20 for %s: \n", (char*)pft.name);
-						for(unsigned int x=0;x<gcpft.cton_sap_avr_20.size();x++) {
-							dprintf("%.3f ", gcpft.cton_sap_avr_20[x]);
-						}
-						dprintf("\n");
+					log_diagnostic("Using cton_leaf_avr_20 for %s:", (char*)pft.name);
+					for(unsigned int x=0;x<gcpft.cton_leaf_avr_20.size();x++) {
+						log_diagnostic("%.3f ", gcpft.cton_leaf_avr_20[x]);
+					}
+					log_diagnostic("Using cton_sap_avr_20 for %s:", (char*)pft.name);
+					for(unsigned int x=0;x<gcpft.cton_sap_avr_20.size();x++) {
+						log_diagnostic("%.3f ", gcpft.cton_sap_avr_20[x]);
 					}
 					cton_leaf = gcpft.cton_leaf_avr_20.mean();
 					cton_root = cton_leaf;
 					cton_sap = gcpft.cton_sap_avr_20.mean();
 					cton_heart = cton_sap;
 				}
-				if(print_init_info) {
-					dprintf("Values used for for %s: \n", (char*)pft.name);
-					dprintf("cton_leaf=%.3f\n", cton_leaf);
-					dprintf("cton_root=%.3f\n", cton_root);
-					dprintf("cton_sap=%.3f\n", cton_sap);
-					dprintf("cton_heart=%.3f\n", cton_heart);
-					dprintf("\n");
-				}
+				log_diagnostic("Values used for for %s:", (char*)pft.name);
+				log_diagnostic("cton_leaf=%.3f", cton_leaf);
+				log_diagnostic("cton_root=%.3f", cton_root);
+				log_diagnostic("cton_sap=%.3f", cton_sap);
+				log_diagnostic("cton_heart=%.3f", cton_heart);
 
 				if(cton_leaf)
 					indiv.nmass_leaf = indiv.cmass_leaf / cton_leaf;
@@ -2799,13 +2798,11 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 				// Bypass alive conditional in indiv:report:flux (?)
 				patch.fluxes.report_flux(Fluxes::SEEDN, -(indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart));
 
-				if(print_init_info) {
-					dprintf("Creating %s individual id %d\n", (char*)pftname, indiv.id);
-					dprintf("latosa=%f cmass=%f f_sap=%f q_sap=%f cton_leaf=%f cton_sap=%f\n", latosa, cmass_sap_ind + cmass_heart_ind + cmass_leaf_ind + cmass_root_ind, f_sap, q_sap, cton_leaf, cton_sap);
-					dprintf("cmass_leaf=%f cmass_root=%f cmass_sap=%f cmass_heart=%f\n", cmass_leaf_ind, cmass_root_ind, cmass_sap_ind, cmass_heart_ind);
-					dprintf("nmass_leaf=%f nmass_root=%f nmass_sap=%f nmass_heart=%f\n", indiv.nmass_leaf / indiv.densindiv, indiv.nmass_root / indiv.densindiv, indiv.nmass_sap / indiv.densindiv, indiv.nmass_heart / indiv.densindiv);
-					dprintf("age=%d diam=%f height=%f densindiv=%f crownarea=%f lai_indiv=%f lai=%f\n\n", age, diam, height, indiv.densindiv, indiv.crownarea, indiv.lai_indiv, indiv.lai);
-				}
+				log_diagnostic("Creating %s individual id %d", (char*)pftname, indiv.id);
+				log_diagnostic("latosa=%f cmass=%f f_sap=%f q_sap=%f cton_leaf=%f cton_sap=%f", latosa, cmass_sap_ind + cmass_heart_ind + cmass_leaf_ind + cmass_root_ind, f_sap, q_sap, cton_leaf, cton_sap);
+				log_diagnostic("cmass_leaf=%f cmass_root=%f cmass_sap=%f cmass_heart=%f", cmass_leaf_ind, cmass_root_ind, cmass_sap_ind, cmass_heart_ind);
+				log_diagnostic("nmass_leaf=%f nmass_root=%f nmass_sap=%f nmass_heart=%f", indiv.nmass_leaf / indiv.densindiv, indiv.nmass_root / indiv.densindiv, indiv.nmass_sap / indiv.densindiv, indiv.nmass_heart / indiv.densindiv);
+				log_diagnostic("age=%d diam=%f height=%f densindiv=%f crownarea=%f lai_indiv=%f lai=%f", age, diam, height, indiv.densindiv, indiv.crownarea, indiv.lai_indiv, indiv.lai);
 
 				// Calculate storage pool size
 				indiv.max_n_storage = indiv.cmass_sap * indiv.pft.fnstorage / cton_leaf;
@@ -2915,7 +2912,7 @@ void establish_input_setup_stands(Gridcell& gridcell) {
 			if(init_frac_nextyear)
 				st_new_fraction *= (init_frac / init_frac_nextyear);
 			else
-				fail("In establish_input_setup_stands(): st input file not consistent with forest_init_poolsoil=true. st sum of initiaised stands %d can not have zero area year %d.\n\n", 
+				fail("In establish_input_setup_stands(): st input file not consistent with forest_init_poolsoil=true. st sum of initiaised stands %d can not have zero area year %d.",
 					(int)st.landcover, date.get_calendar_year() + 1);
 			gcst.frac_old = gcst.frac;
 			gcst.frac = st_new_fraction;
@@ -2945,7 +2942,7 @@ void establish_input_setup_stands(Gridcell& gridcell) {
 			Stand& stand_kill = *gc_itr;
 
 			if(stand_kill.stid == st.id) {
-				dprintf("Killed st %s stand %d\n", (char*)st.name, stand_kill.id);	
+				log_info("Killed st %s stand %d", (char*)st.name, stand_kill.id);	
 				gc_itr = gridcell.delete_stand(gc_itr);
 			}
 			else {
@@ -2955,7 +2952,7 @@ void establish_input_setup_stands(Gridcell& gridcell) {
 		if(gcst.frac) {
 			Stand& new_stand = gridcell.create_stand_lu(st, gcst.frac, npatch_treeinit, false);
 			receiving_stand_change(gridcell, transfer, true, -1, -1, 1.0, new_stand.id);
-			dprintf("%s stand no.%d created\n", (char*)st.name, new_stand.id);
+			log_info("%s stand no.%d created", (char*)st.name, new_stand.id);
 		}
 	}
 
@@ -2978,7 +2975,7 @@ void establish_input_gridcell(Gridcell& gridcell) {
 		int establishment_year_temp = gcst.establishment_list.establishment_year;
 		if(gcst.prescribed_establishment && establishment_year_temp != -1) {
 			if(forest_init_poolsoil && establishment_year != -1 && establishment_year != establishment_year_temp)
-				fail("With option forest_init_poolsoil, all stand types must have the same establishement year !\n\n");
+				fail("With option forest_init_poolsoil, all stand types must have the same establishement year !");
 			establishment_year = establishment_year_temp;
 			if(establishment_year == date.get_calendar_year())
 				establish_thisyear = true;
@@ -3012,7 +3009,7 @@ void establish_input_gridcell(Gridcell& gridcell) {
 
 		if(gcst.prescribed_establishment) {
 			if (!st.has_management(1)) {
-				fail("Prescribed forest initialisation for stand type %s requires a valid management2 entry.\n",
+				fail("Prescribed forest initialisation for stand type %s requires a valid management2 entry.",
 					(char*)st.name);
 			}
 
@@ -3134,7 +3131,7 @@ void force_prescribed_disturbance(Gridcell& gridcell, Rank_stands& stand_class, 
 					// blaze function at patch level
 					if(disttype == FIRE) {
 						if(firemodel != BLAZE)
-							fail("fire disturbance input only implemented for BLAZE fore model\n");
+							fail("fire disturbance input only implemented for BLAZE fore model");
 						blaze(patch, gridcell.climate, true);
 					}
 
@@ -3209,7 +3206,7 @@ void force_prescribed_disturbance(Gridcell& gridcell, Rank_stands& stand_class, 
 
 					if(disttype == FIRE) {		// blaze function at patch level
 						if(firemodel != BLAZE)
-							fail("fire disturbance input only implemented for BLAZE fore model\n");
+							fail("fire disturbance input only implemented for BLAZE fore model");
 						blaze(patch, gridcell.climate, true);	// What happens to grass ?
 					}
 					else {
@@ -3236,7 +3233,7 @@ void force_prescribed_disturbance(Gridcell& gridcell, Rank_stands& stand_class, 
 								}
 							}
 							else {
-								dprintf("Add code for new disturbance type in disturb_force()\n");
+								log_warning("Add code for new disturbance type in disturb_force()");
 								vegetation.nextobj();
 							}
 						}
@@ -3252,14 +3249,14 @@ void force_prescribed_disturbance(Gridcell& gridcell, Rank_stands& stand_class, 
 				if(mt.killgrass_at_cc && stand.nobj > 1) {
 
 					landcover_change_transfer transfer;
-					dprintf("Converting stand to single-patch stand\n");
+					log_diagnostic("Converting stand to single-patch stand");
 
 					// 1. Copy soil biomass and water from a stand with several patches to a new stand with a single patch after killing remaining grass:
 					new_stand.transfer_area_st[new_stand.stid] += disturbance_fraction_remain;
 					donor_stand_change(gridcell, disturbance_fraction_remain, transfer, -1,-1, new_stand.stid, -1, new_stand.id, &harvest_params);
 					Stand& new_stand2 = gridcell.create_stand_lu(stlist[new_stand.stid], disturbance_fraction_remain, npatch_disturbedstand, false, false, stand.current_rot);
 					receiving_stand_change(gridcell, transfer, true, -1, -1, 1.0, new_stand2.id);
-					dprintf("Single-patch stand created\n");
+					log_diagnostic("Single-patch stand created");
 
 					while(new_stand2.isobj) {
 
@@ -3283,7 +3280,7 @@ void force_prescribed_disturbance(Gridcell& gridcell, Rank_stands& stand_class, 
 							++gc_itr;
 						}
 					}
-					dprintf("Killed temporary stand %d\n\n", killed_stand_id);
+					log_diagnostic("Killed temporary stand %d", killed_stand_id);
 				}
 				stand.gross_frac_decrease -= disturbance_fraction_remain;
 				disturbance_fraction_remain = 0.0;

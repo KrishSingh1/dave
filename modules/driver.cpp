@@ -718,6 +718,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		gridcell.landcover.cmass_stem_toprod = 0.0;
 		gridcell.landcover.cmass_harv_killed = 0.0;
 		gridcell.landcover.cmass_harv_tolitter = 0.0;
+		gridcell.nonconservative_som_adjustment_today = false;
 
 		for (int i = 0; i < NLANDCOVERTYPES; i++) {
 			gridcell.landcover.acflux_landuse_change_lc[i] = 0.0;

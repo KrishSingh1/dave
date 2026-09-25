@@ -1,0 +1,3 @@
+       Lon        Lat Tree_no init_year str_pft biomass  dbh dens tree_age
+150.723611 -33.615278       0      2015     MRS   0.180 18.0  450       20
+150.723611 -33.615278       1      2015     MRS   0.025  8.0  900        8

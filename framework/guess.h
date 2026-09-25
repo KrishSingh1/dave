@@ -8416,6 +8416,9 @@ public:
 	// Seed only used in probabilistic wind disturbance
 	long storm_seed;
 
+	// Did we have a non-mass-conserving SOM adjustment today? (See equilsom())
+	bool nonconservative_som_adjustment_today;
+
 	// MEMBER FUNCTIONS
 
 	/// Constructs a Gridcell object

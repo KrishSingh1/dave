@@ -1996,7 +1996,7 @@ void equilsom(Patch& patch) {
 
 	// Main equilsom that happens once
 	if (date.year == patch.soil.solvesomcent_endyr) {
-
+		patch.stand.get_gridcell().nonconservative_som_adjustment_today = true;
 		double save_NH4_avail[NSOILLAYERS_MAX];
 		double save_NO3_avail[NSOILLAYERS_MAX];
 
@@ -2423,6 +2423,7 @@ void equilsom(Patch& patch) {
 	}
 	// Trend based equilsom (not if peat age is defined)
 	else if (!(peat_age && patch.stand.landcover == PEATLAND)) {
+		patch.stand.get_gridcell().nonconservative_som_adjustment_today = true;
 
 		// Maximum number of iterations the trend needs to be the same for the multiplier to increase
 		const int SAME_TREND_MAX = 3;

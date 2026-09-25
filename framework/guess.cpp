@@ -5485,6 +5485,7 @@ Gridcell::Gridcell():climate(*this) {
 	dNO3dep = 0.0;
 
 	storm_dam_wood = 0.0;
+	nonconservative_som_adjustment_today = false;
 
 	lon = 0.0;
 	lat = 0.0;
@@ -6134,9 +6135,7 @@ bool is_first_day() {
 }
 
 bool check_mass_balance_today(const Gridcell &gridcell) {
-	int solvesomcent_endyr   = get_solvesomcent_endyr();
-	bool solve_somcent_today = date.islastday && date.islastmonth && date.year == solvesomcent_endyr;
-	return ifdavephotosyn && !solve_somcent_today && !is_first_day();
+	return ifdavephotosyn && !gridcell.nonconservative_som_adjustment_today && !is_first_day();
 }
 
 void MassBalance::check_day_c(Gridcell &gridcell) {

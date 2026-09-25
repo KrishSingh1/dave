@@ -8,3 +8,5 @@ callgrind.*
 ._*
 .idea
 tests/test_outputs/*.out
+*.map.bin
+

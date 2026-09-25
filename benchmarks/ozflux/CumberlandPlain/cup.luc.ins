@@ -1,0 +1,86 @@
+outputdirectory "./out.luc/"
+
+param "file_lu"                          (str "cup.luc.txt")
+param "file_grossSTC"                    (str "cup.gross_stc.txt")
+param "file_grossLUC"                    (str "")
+
+param "file_dist_clearcut"               (str "")
+param "file_dist_fire"                   (str "")
+param "file_dist_wind"                   (str "")
+param "file_dist_barkbeetle"             (str "")
+param "file_storm_prob"                  (str "")
+
+param "file_woodharv_prob_BL"            (str "")
+param "file_woodharv_prob_NL"            (str "")
+param "file_CC_prob_BL"                  (str "")
+param "file_CC_prob_NL"                  (str "")
+param "file_woodharv_intens_mean_BL"     (str "")
+param "file_woodharv_intens_mean_NL"     (str "")
+param "file_woodharv_intens_sd_BL"       (str "")
+param "file_woodharv_intens_sd_NL"       (str "")
+param "file_woodharv_size_preference_BL" (str "")
+param "file_woodharv_size_preference_NL" (str "")
+param "file_woodharv_intensity_scalar"   (str "")
+
+param "file_presc_burned_area"           (str "")
+
+run_landcover 1
+run_natural 1
+run_forest 1
+run_crop 0
+run_pasture 0
+run_urban 0
+run_peatland 0
+run_barren 0
+
+transfer_level 2
+iftransfer_to_new_stand 1
+harvest_natural_to_forest 1
+
+printseparatestands 1
+printstandtypes 1
+
+file_forest_cflux_veg "forest_cflux_veg.out"
+file_forest_vegc "forest_vegc.out"
+file_forest_harvest "forest_harvest.out"
+file_harvest_flux_luc "harvest_flux_luc.out"
+
+file_cflux_natural "cflux_natural.out"
+file_cflux_forest "cflux_forest.out"
+file_cpool_natural "cpool_natural.out"
+file_cpool_forest "cpool_forest.out"
+
+file_cmass_sts "cmass_sts.out"
+file_cmass_wood_sts "cmass_wood_sts.out"
+file_clitter_sts "clitter_sts.out"
+file_csoil_sts "csoil_sts.out"
+file_luc_cflux_sts "luc_cflux_sts.out"
+file_frac_sts "frac_sts.out"
+file_nstand_sts "nstand_sts.out"
+
+mt "Forest_init" (
+    harvest_system "continuous"
+    suppress_fire 1
+    suppress_disturbance 1
+    cutfirstyear 0
+    ! planting_system "selection"
+)
+
+mt "Forest_postinit" (
+    harvest_system "continuous"
+    suppress_fire 1
+    suppress_disturbance 1
+    cutfirstyear 0
+)
+
+st "Forest" (
+    common_stand
+    stinclude 1
+    landcover "forest"
+    naturalveg "all"
+
+    management1 "Forest_init"
+    management2 "Forest_postinit"
+
+    file_treeinit_st "cup.treeinit.txt"
+)

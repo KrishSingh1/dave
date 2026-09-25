@@ -6136,10 +6136,24 @@ bool is_first_day() {
 
 bool check_mass_balance_today(const Gridcell &gridcell) {
 	if (gridcell.nonconservative_som_adjustment_today) {
-		log_diagnostic("Skipping mass balance check for gridcell (%.2f, %.2f) on year %d day %d due to non-conservative SOM adjustment.",
-			gridcell.get_lon(), gridcell.get_lat(), date.year, date.day);
+		log_diagnostic("Skipping mass balance check for gridcell (%.2f, %.2f) due to non-conservative SOM adjustment.",
+			gridcell.get_lon(), gridcell.get_lat());
+		return false;
 	}
-	return ifdavephotosyn && !gridcell.nonconservative_som_adjustment_today && !is_first_day();
+
+	if (!ifdavephotosyn) {
+		log_diagnostic("Skipping mass balance check for gridcell (%.2f, %.2f) because DAVE photosynthesis is disabled.",
+			gridcell.get_lon(), gridcell.get_lat());
+		return false;
+	}
+
+	if (is_first_day()) {
+		log_diagnostic("Skipping mass balance check for gridcell (%.2f, %.2f) because it is the first day of the simulation.",
+			gridcell.get_lon(), gridcell.get_lat());
+		return false;
+	}
+
+	return true;
 }
 
 void MassBalance::check_day_c(Gridcell &gridcell) {

@@ -6202,6 +6202,10 @@ bool is_first_day() {
 }
 
 bool check_mass_balance_today(const Gridcell &gridcell) {
+	if (gridcell.nonconservative_som_adjustment_today) {
+		log_diagnostic("Skipping mass balance check for gridcell (%.2f, %.2f) on year %d day %d due to non-conservative SOM adjustment.",
+			gridcell.get_lon(), gridcell.get_lat(), date.year, date.day);
+	}
 	return ifdavephotosyn && !gridcell.nonconservative_som_adjustment_today && !is_first_day();
 }
 

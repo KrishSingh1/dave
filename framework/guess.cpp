@@ -782,7 +782,7 @@ const int DAVE_DIAGNOSTIC_PRECISION = 16;
  *  \param scale_indiv  		scaling factor for living C
  *  \param luc 					down-scales living C (used in C balance tests)
  */
-double Patch::ccont(double scale_indiv, bool luc) {
+double Patch::ccont(double scale_indiv, bool luc) const {
 
 	double ccont = soil.ccont();
 

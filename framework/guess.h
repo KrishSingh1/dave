@@ -6918,7 +6918,7 @@ public:
 	/// Returns whether we should model disturbances in this patch
 	bool has_disturbances() const;
 	/// Total patch carbon biomass and litter
-	double ccont(double scale_indiv = 1.0, bool luc = false);
+	double ccont(double scale_indiv = 1.0, bool luc = false) const;
 	/// Total patch nitrogen biomass and litter
 	double ncont(double scale_indiv = 1.0, bool luc = false) const;
 	/// Total patch water and ice mass

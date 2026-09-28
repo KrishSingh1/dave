@@ -2040,7 +2040,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 
 	weighted_psi = 0;
 	predawn_lwp = 0.0;
-	lwp_previous = 0.0;
+	lwp_previous = -0.1;
 	lwp.resize(date.subdaily);
 	k_loss.resize(date.subdaily);
 	transpiration.resize(date.subdaily);
@@ -3133,6 +3133,7 @@ void Pft::setup_transpiration(double resolution) {
 	// Re-initialise psi_from_transpiration.
     psi_from_transpiration.init(y, x);
     psi_from_transpiration.set_extrapolate(false);
+
 }
 
 

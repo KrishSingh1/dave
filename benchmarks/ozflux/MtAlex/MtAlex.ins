@@ -6,8 +6,8 @@
 
 title "LPJ-Guess crujra-2022 gridcell: MtAlex"
 
-file_met_forcing        "../forcing/met/MtAlexandra_silo.nc"
-file_met_spinup         "../forcing/met/MtAlexandra_silo.nc"
+file_met_forcing        "../forcing/silo/MtAlexandra1.nc"
+file_met_spinup         "../forcing/silo/MtAlexandra1.nc"
 
 ! Gridlist
 file_gridlist    	    "gridlist.txt"
@@ -17,14 +17,3 @@ import                  "../outputs.ins"
 import                  "../settings.ins"
 import                  "../soiln.ins"
 !import                  "../cru.ins"
-
-! Names of variables in met input file.
-variable_lon                 "lon"   ! Longitude
-variable_lat                 "lat"   ! Latitude
-variable_time                "time"  ! Time
-variable_temp                "tas"   ! Air Temperature (°C)
-variable_insol               "rsds"    ! Shortwave Radiation (W m^-2)
-variable_precip              "pr"    ! Precipitation (mm)
-variable_vpd                 "vpd"   ! Vapour Pressure Deficit (kPa)
-variable_ps                  "ps"    ! Atmospheric Pressure (Pa)
-variable_wind                ""      ! Wind speed (m/2) (optional if not using blaze)

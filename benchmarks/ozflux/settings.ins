@@ -60,7 +60,7 @@ slope -1
 ! Soil depth can be read in or set from the .ins file. Depth affects how much
 ! water the soil can hold, how organic matter and roots are distributed, and
 ! many other things.
-param "file_soildepth"        (str "../forcing/soil/Soildepth_log_mean.txt")
+param "file_soildepth"        (str "../forcing/soil/soildepth.ozflux.txt")
 
 ! Soil depth (mm) (0 = use soil depth input data, >0 fixed soil depth according
 ! to depth_soil).
@@ -130,7 +130,7 @@ file_co2                      "../forcing/global_co2_ann_1700_2040.txt" ! note e
 !file_co2                     "../forcing/co2_rcp85_1765_2500.dat"
 
 ! Maximum number of cohorts allowed to coexist per pft (0 = unlimited)
-nindiv_max               0
+nindiv_max               1
 
 ! Set to 1 to force all individuals to use constant/fixed LAI.
 ! The monthly LAI values are defined at the bottom of canexch.h.
@@ -158,10 +158,10 @@ precip_scalar                1
 wind_speed                   0
 
 ! Interval in seconds between progress reports; 0 for yearly or -1 for daily.
-progress_interval            0
+progress_interval            20
 
 ! Force the use of newline characters to terminate progress messages. Useful for MPI runs.
-progress_newline             0
+progress_newline             1
 
 ! If enabled, invalid mathematical operations (such as division by 0) will result in a fatal error.
 strict_math                  1
@@ -188,7 +188,7 @@ patch_output_stats           0
 verbosity                    3
 
 ! Maximum number of iterations to use in DAVE energy balance.
-energy_balance_maxiter       1
+energy_balance_maxiter       20
 
 ! Convergence criterion for DAVE energy balance (K). Iteration for tleaf will
 ! cease when the change in tleaf between iterations is less than this value.
@@ -236,7 +236,7 @@ ifbvoc 0                         ! Whether to include BVOC calculations (1) or n
 !///////////////////////////////////////////////////////////////////////////////
 ! Disturbance
 !///////////////////////////////////////////////////////////////////////////////
-ifdisturb    1          ! Whether generic patch-destroying disturbances enabled
+ifdisturb    0          ! Whether generic patch-destroying disturbances enabled
 disttype     "DETERMINISTIC"     ! Disturbance regime ("NONE", "STOCHASTIC" (requires distinterval), "DETERMINISTIC" (requires file_disturb))
 
 distinterval 30        ! Average return time for generic patch-destroying disturbances
@@ -321,7 +321,7 @@ ifsupercooled 1
 homrootdistfrac 0.0
 
 ! Fraction of deep soil, beyond 1500 mm, that roots have access to.
-rootfrac_of_deep_soil 1.0
+rootfrac_of_deep_soil 0.5
 
 ! This is a calibration parameter for vertical movement of organic and mineral
 ! matter when root or organic matter content changes. No need to change it. I'll
@@ -407,7 +407,8 @@ import "landcover.ins"
 !import "warra_pfts.ins"
 ! also, comment out pft_commons.ins
 
-import "pft_dave.ins"
+import "pft_clare.ins"
+import "outputs_clare.ins"
 
 ! Uncomment this (and comment out all other pft .ins files) to use the standard
 ! (global) pfts. This should always be done when using trunk allocation.

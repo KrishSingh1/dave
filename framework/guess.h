@@ -822,8 +822,9 @@ public:
 	// Whether stomata are open (at all). If FALSE, stomata are fully closed.
 	bool stomata_open;
 
-	// Predawn leaf water potential (MPa)
-	double predawn_lwp;
+	// Leaf water potential (MPa). Previous timestep for cohorts, soil water
+	// potential for forest floor.
+	double lwp;
 
 	// Sensitivity parameter indicating steepness of decline in Vcmax with water stress (Zhou 2014)
 	double s_f;
@@ -831,6 +832,15 @@ public:
 	// Reference value at which Vcmax or Jmax is half it's non-water-stresed value (Zhou 2014)
 	double psi_f;
 
+	// Predawn leaf water potential (MPa)
+	double predawn_lwp;
+
+	// Leaf water potential at stomatal closure (MPa)
+	double stom_clos;
+
+	// Turgor loss point (MPa)
+	double tlp;
+	
 	/// Tgrowth, mean air temperature of preceding 30 d.
 	double tgrowth;
 
@@ -2596,7 +2606,7 @@ public:
 	double emax;
 	/// maintenance respiration coefficient (0-1)
 	double respcoeff;
-	/// water potential at 12% loss of hydraulic conductance
+	/// Leaf water potential at stomatal closure (MPa)
 	double stom_clos;
 	/// water potential at 50% loss of hydraulic conductance
 	double p50;
@@ -4660,11 +4670,11 @@ public:
 	/// hydraulic resistance between soil and roots (mmol/m/s/MPa)
 	double Rs_r[NSOILLAYERS_MAX];
 
-	// predawn leaf water potential calculated using hydraulics module
+	// predawn leaf water potential (same as weighted soil water potential, MPa)
 	double predawn_lwp;
 	// leaf water potential at subdaily timescale (MPa)
 	std::vector<double> lwp;
-	// leaf water potential (MPa) from previous timestep (for plant water storage)
+	// leaf water potential (MPa) from previous timestep (saved for use in canexch)
 	double lwp_previous;
 	// loss of hydraulic conductance at subdaily timescale (mol/m2/s/MPa)
 	std::vector<double> k_loss;

@@ -1424,7 +1424,7 @@ void Soillayer::set_properties() {
 
 		// Volumetric soil moisture concentration at wilting point
 		// Wilting point typically occurs at a suction of 15000 cm
-		double Theta_wilt = Theta_s * pow(-15000.0 / Psi_s, -1.0 / b_min);
+		double Theta_wilt = Theta_s * pow(-150000.0 / Psi_s, -1.0 / b_min); // CS changed, reduced by factor of 10
 
 		// Water holding capacities
 		wsats_min = Theta_s;
@@ -2407,7 +2407,12 @@ double hydro_pow(double theta, double k) {
 void Soillayer::update_matric_potential() {
 	double theta = min(1.0, max(0.001, wmass) / wsats);
 
-	Psi = max(-1.0e8, Psi_max * hydro_pow(theta, -b));
+	// Floor matric potential at the wilting point (-15 MPa), converted to mm
+	// head (psi_mpa() = Psi * 9.81e-6, so -15 MPa = -15/9.81e-6 mm). The
+	// previous floor of -1.0e8 mm (~-981 MPa) had no physical basis and let
+	// psi blow up far past wilting point as theta approached its own floor.
+	const double PSI_WILT_MM = -15.0 / 9.81e-6;
+	Psi = max(PSI_WILT_MM, Psi_max * hydro_pow(theta, -b));
 
 	// Derivative in matric potential
 	dPsidw = -b * Psi / theta;
@@ -4157,8 +4162,8 @@ void Soil::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_melt, 
 			if (ifdavehydrology) {
 				// Only multiply by wcont once: can't find justification for
 				// squared term. This first appears in Rost 2008, Eq A5, but no
-				// squared term in Gerten 2004.
-				wflux_soil_evap = get_climate().eet * PRIESTLEY_TAYLOR * wcont_evap * fevap *
+				// squared term in Gerten 2004. // note currently testing with the squared term back
+				wflux_soil_evap = get_climate().eet * PRIESTLEY_TAYLOR * wcont_evap * wcont_evap * fevap *
 					(1.0 - ssw.wmass_frac) / SECS_PER_DAY;
 			} else {
 				wflux_soil_evap = get_climate().eet * PRIESTLEY_TAYLOR * wcont_evap * wcont_evap * fevap *
@@ -4286,14 +4291,18 @@ void Soil::update_hydraulic_properties(int nsoillayers_sim) {
 	for (int lyr = nsoillayers_sim - 1; lyr >= 0; lyr--) {
 
 		// Layer below
-		int nlyr = lyr + 1 < nsoillayers_sim - 1 ? lyr + 1 : lyr;
+		// BUGFIX (see conversation): was "lyr + 1 < nsoillayers_sim - 1",
+		// which off-by-one excludes the true last layer index as a valid
+		// target, so the second-to-last layer always paired with itself
+		// instead of the actual bottom layer. Only the last layer itself
+		// (lyr == nsoillayers_sim - 1) should fall back to self-reference,
+		// since it has no layer below it.
+		int nlyr = lyr + 1 < nsoillayers_sim ? lyr + 1 : lyr;
 
 		Soillayer& soillayer = soillayers[lyr];
 		Soillayer& soillayer_below = soillayers[nlyr];
 
 		// Water and ice theta for the intersect
-		double theta_w = max(0.001, min(1.0, 0.5 * (soillayer.wmass / soillayer.wsats +
-			soillayer_below.wmass / soillayer_below.wsats)));
 		double theta_i = max(0.0, min(1.0, 0.5 * (soillayer.imass / soillayer.wsats +
 			soillayer_below.imass / soillayer_below.wsats)));
 
@@ -4303,23 +4312,63 @@ void Soil::update_hydraulic_properties(int nsoillayers_sim) {
 			imp_ice = ice_imp(theta_i);
 		}
 
-		// Hydraulic conductivity (Campbell 1974; mm s-1)
-		if (theta_w >= 1.0) {
-			soillayer.Kw = soillayer.Kw_max;
-		}
-		else if (theta_w < 0.01) {
-			soillayer.Kw = 0.0;
-		}
-		else {
-			soillayer.Kw = imp_ice * soillayer.Kw_max * hydro_pow(theta_w, 2.0 * soillayer.b + 3.0);
-		}
+		// EXPERIMENT (see conversation, not yet agreed with team): upstream
+		// weighting. Use whichever layer's OWN (unblended) conductivity
+		// corresponds to the current flow direction, rather than blending
+		// the two layers' state or conductivity at all. Original approach
+		// (commented below) averaged theta first and applied the power law
+		// to that blended value. To revert: delete this block down to
+		// Kw_upper/Kw_lower/total_head_diff, and restore the commented-out
+		// theta_w/hydro_pow block. Same caveat as prior experiments: dKwdw
+		// below is a rough stand-in, not an exact derivative of this Kw
+		// formula (which is now also non-smooth at the flow-reversal point -
+		// see conversation on why CLM avoids this), so the implicit solver's
+		// Jacobian is an approximation here.
+
+		// double theta_w = max(0.001, min(1.0, 0.5 * (soillayer.wmass / soillayer.wsats +
+		// 	soillayer_below.wmass / soillayer_below.wsats)));
+		// if (theta_w >= 1.0) {
+		// 	soillayer.Kw = soillayer.Kw_max;
+		// }
+		// else if (theta_w < 0.01) {
+		// 	soillayer.Kw = 0.0;
+		// }
+		// else {
+		// 	soillayer.Kw = imp_ice * soillayer.Kw_max * hydro_pow(theta_w, 2.0 * soillayer.b + 3.0);
+		// }
+
+		double theta_upper = max(0.0, min(1.0, soillayer.wmass / soillayer.wsats));
+		double theta_lower = max(0.0, min(1.0, soillayer_below.wmass / soillayer_below.wsats));
+
+		double Kw_upper = theta_upper >= 1.0 ? soillayer.Kw_max :
+			theta_upper < 0.01 ? 0.0 :
+			soillayer.Kw_max * hydro_pow(theta_upper, 2.0 * soillayer.b + 3.0);
+		double Kw_lower = theta_lower >= 1.0 ? soillayer_below.Kw_max :
+			theta_lower < 0.01 ? 0.0 :
+			soillayer_below.Kw_max * hydro_pow(theta_lower, 2.0 * soillayer_below.b + 3.0);
+
+		// Flow direction from total hydraulic head (matric + gravitational),
+		// matching the sign convention of qout in
+		// compute_moisture_fluxes_and_derivs: positive means downward flow
+		// (from this layer into the one below).
+		double total_head_diff = soillayer.Psi - soillayer_below.Psi + soillayer.thickness;
+		bool flow_downward = total_head_diff > 0.0;
+
+		double Kw_upstream = flow_downward ? Kw_upper : Kw_lower;
+
+		soillayer.Kw = imp_ice * Kw_upstream;
 
 		if (soillayer.Kw < 1.0e-20) {
 			soillayer.Kw = 0.0;
 		}
 
 		// Derivative in hydraulic conductivity w.r.t relative saturation
-		soillayer.dKwdw = imp_ice * (2.0 * soillayer.b + 3.0) * soillayer.Kw / theta_w;
+		// (approximate stand-in, see note above; uses the upstream layer's
+		// own theta/b rather than a blended value, but doesn't capture the
+		// discontinuity at the flow-reversal point)
+		double b_upstream = flow_downward ? soillayer.b : soillayer_below.b;
+		double theta_w = flow_downward ? max(0.001, theta_upper) : max(0.001, theta_lower);
+		soillayer.dKwdw = imp_ice * (2.0 * b_upstream + 3.0) * soillayer.Kw / theta_w;
 	}
 }
 
@@ -6544,9 +6593,21 @@ void Soil::hydrology_richards(const Climate& climate, double fevap) {
 			//double fwu = patch.pft[indiv.pft.id].fwuptake[lyr]; // DW_COMMENT not needed but crashed otherwise on Simba???????
 			aet = indiv.get_fwuptake(lyr) * indiv.aet;
 			aet_layer[lyr] += aet;
-			aet_total += aet;
 		}
 		vegetation.nextobj();
+	}
+
+	// Cap the sink term fed into the Richards solver at 99% of each layer's
+	// current water mass. water_uptake_dave() no longer rescales total
+	// demand down to whatever one depleted layer can supply (that suppressed
+	// uptake from every other layer too), so combined demand assigned here
+	// can legitimately exceed a single layer's content. Capping at 99% (not
+	// 100%) keeps the layer just above the numerically-degenerate zero state
+	// that produced NaNs downstream (e.g. in water-potential lookup tables),
+	// while still leaving it almost fully depleted for this timestep.
+	for (int lyr = 0; lyr < nsoillayers; lyr++) {
+		aet_layer[lyr] = min(aet_layer[lyr], 0.99 * soillayers[lyr].wmass);
+		aet_total += aet_layer[lyr];
 	}
 
 	// Mixed-form of the Richards equation hydrology

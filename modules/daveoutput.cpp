@@ -256,7 +256,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_frepr_cstorage"      , DAILY, [](const Individual &i) { return i.frepr_cstorage; }, "Ratio of reproductive biomass to storage capacity", mean, false, true);
 	add_aggregated_indiv_output("file_dave_growth_demand"       , DAILY, [](const Individual &i) { return i.growth_demand; }, "Growth Demand (0-1)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_cmass_germ"          , DAILY, [](const Individual &i) { return i.cmass_germ; }, "Germinated C Mass (kgC/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_transpiration"       , DAILY, [](const Individual &i) { return i.aet; }, "Daily individual-level transpiration (mm/day)", sum, true, true);
+	add_aggregated_indiv_output("file_dave_transpiration"       , DAILY, [](const Individual &i) { return sum(i.transpiration); }, "Daily individual-level transpiration (mm/day)", sum, true, true);
 	add_aggregated_indiv_output("file_dave_nscal"               , DAILY, [](const Individual &i) { return i.nscal_5.lastadd(); }, "N stress scalar (0-1)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_nscal_mean"          , DAILY, [](const Individual &i) { return i.nscal_5.mean(); }, "N stress scalar 5 day running mean (0-1)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_ltor"            	, DAILY, [](const Individual &i) { return i.ltor; }, "Daily leaf to root ratio (unitless)", mean, true);

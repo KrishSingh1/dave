@@ -267,7 +267,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         // will change sapwood, not k parameter, if using daily allocation)
         indiv.k_loss[day.period] = 1 - exp(-pow(psi2 / pft.s1, pft.s2));
 
-        indiv.lwp[day.period] = -psi2;
+        indiv.lwp[day.period] = -psi2; // - 0.01 * indiv.height; // height adjustment is to account for gravitational head
 
         if (indiv.lwp[day.period] <= pft.stom_clos) {
             indiv.stomata_open = false;
@@ -319,7 +319,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 
         indiv.k_loss[day.period] = 1 - exp(-pow(psi2 / pft.s1, pft.s2));
 
-        indiv.lwp[day.period] = -psi2;
+        indiv.lwp[day.period] = -psi2; // - 0.01 * indiv.height; // height adjustment is to account for gravitational head
    
         if (indiv.lwp[day.period] < pft.p88) {
             log_info("Hydraulic failure for indiv %d (%s)", indiv.id, (const char *)pft.name);
@@ -352,7 +352,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
                 indiv.lwp[day.period] = pft.stom_clos; 
             } else {
                 e_met &= indiv.pft.get_psi_from_transpiration(after_rain, psi2);
-                indiv.lwp[day.period] = -psi2;
+                indiv.lwp[day.period] = -psi2; // - 0.01 * indiv.height; // height adjustment is to account for gravitational head
             }
 
             // Stomata reopen if volume refills to the point that lwp is equal
@@ -395,12 +395,12 @@ void hydraulic_mortality(Patch &patch) {
         if (indiv.hydraulic_failure) {
             double densindiv = indiv.densindiv;
             if (indiv.densindiv > KILL_THRESHOLD) {
-                log_info("Indiv %d (%s): biomass loss due to hydraulic failure", indiv.id, (const char *)pft.name);
+                printf("Indiv %d (%s): biomass loss due to hydraulic failure", indiv.id, (const char *)pft.name);
                 indiv.closs_hydraulics = indiv.get_cmass_leaf() * MORT_FRAC;
                 indiv.reduce_biomass(MORT_FRAC, 0);
                 indiv.hydraulic_failure = false;
             } else {
-                log_info("Indiv %d (%s): mortality due to hydraulic failure", indiv.id, (const char *)indiv.pft.name);
+                printf("Indiv %d (%s): mortality due to hydraulic failure", indiv.id, (const char *)indiv.pft.name);
                 indiv.kill();
                 vegetation.killobj();
             }

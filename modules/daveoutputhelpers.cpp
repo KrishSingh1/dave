@@ -268,6 +268,14 @@ double sum(const double *array, size_t n) {
 	return total;
 }
 
+double sum(const std::vector<double> &array) {
+	double total = 0;
+	for (const double &x : array) {
+		total += x;
+	}
+	return total;
+}
+
 double mean(const double *array, size_t n) {
 	return n ? sum(array, n) / n : 0;
 }

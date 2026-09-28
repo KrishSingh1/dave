@@ -96,6 +96,9 @@ Calculate the sum of an array.
 */
 double sum(const double *array, size_t n);
 
+/* calculate sum of vector data*/
+double sum(const std::vector<double> &array);
+
 /*
 Calculate a mean.
 

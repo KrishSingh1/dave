@@ -1573,6 +1573,33 @@ double calc_water_uptake_dave(Individual &indiv) {
 				        soil.nsoillayers);
 }
 
+double calc_transp_old(const Individual &indiv) {
+	const Climate &climate = indiv.vegetation.patch.get_climate();
+	double transp = 0;
+
+	// Loop over time steps per day
+	for (Day day; day.period != date.subdaily; day.next()) {	
+
+		// T = Gc / (pressure/VPD)
+		// Gc in mol m-2 s-1
+		// VPD and pressure in Pa
+		double patmos = climate.pressure[day.period];
+		double vpd = climate.vpds[day.period];
+		double gsw = indiv.ps_subdaily.gsw[day.period];
+		if (vpd > 0 && patmos > 0) {
+			transp += gsw / (patmos / (vpd * 1000.0));
+		}
+
+	} // end sub-daily loop
+	
+	// daily transpiration rate in mol m-2 s-1
+	transp /= date.subdaily;
+
+	// daily transpiration rate in mm d-1
+	// Limiting transpiration to the actual supply is handled later.
+	return transp * MOL2G_H2O * KG_PER_G * SECS_PER_DAY;
+}
+
 /*
 Aggregate transpiration across canopy layers and timesteps to get a total daily
 transpiration in mm day-1 for this cohort.
@@ -1605,138 +1632,8 @@ double transpiration_dave(const Individual &indiv) {
 }
 
 /*
-Function to redistribute extra AET if any one layer's water content is 
-exceeded
+Function to redistribute extra AET if any one layer's water content is exceeded.
 */
-void prevent_wuptake_oversubscription(Patch &patch) {
-	Vegetation &vegetation = patch.vegetation;
-	Soil &soil = patch.soil;
-
-	// Allocate uptake explicitly so that demand in a dry layer can be moved to
-	// other layers without reducing transpiration from the whole soil profile.
-
-	// Amount of water taken up from each layer by each individual (mm).
-	std::vector<std::vector<double> > uptake(vegetation.nobj, std::vector<double>(soil.nsoillayers, 0.0));
-
-	std::vector<std::vector<double> > uptake_weights(vegetation.nobj, std::vector<double>(soil.nsoillayers, 0.0));
-	std::vector<double> original_aet(vegetation.nobj, 0.0);
-	std::vector<double> supply(soil.nsoillayers, 0.0);
-	std::vector<bool> depleted(soil.nsoillayers, false);
-	double total_demand = 0.0;
-	double total_supply = 0.0;
-
-	for (int i = 0; i < soil.nsoillayers; i++) {
-		Soillayer &layer = soil.soillayers[i];
-
-		supply[i] = max(0.0, layer.wmass - layer.wp);
-		depleted[i] = negligible(supply[i]);
-		total_supply += supply[i];
-	}
-
-	for (int j = 0; j < vegetation.nobj; j++) {
-		const Individual &indiv = vegetation[j];
-		original_aet[j] = indiv.aet;
-		double indiv_uptake = 0.0;
-		for (int i = 0; i < soil.nsoillayers; i++) {
-			uptake_weights[j][i] = indiv.fwuptake[i];
-			uptake[j][i] = indiv.aet * indiv.fwuptake[i];
-			indiv_uptake += uptake[j][i];
-		}
-
-		// A hydraulically isolated individual deliberately has no soil uptake.
-		assert(negligible(indiv_uptake) || equal(indiv_uptake, original_aet[j]));
-		total_demand += indiv_uptake;
-	}
-
-	if (total_demand > total_supply) {
-		fail("water_uptake_dave(): transpiration demand exceeds the water "
-			"available in the soil profile");
-	}
-
-	bool oversubscribed;
-	int redistribution_count = 0;
-	do {
-		oversubscribed = false;
-
-		// The amount of water which couldn't be taken up by each individual due
-		// to oversubscription of a layer.
-		std::vector<double> rejected(vegetation.nobj, 0.0);
-
-		// Cap oversubscribed layers. Individuals share the available water in
-		// proportion to their uptake requested from that layer.
-		for (int i = 0; i < soil.nsoillayers; i++) {
-			double layer_uptake = 0.0;
-			for (int j = 0; j < vegetation.nobj; j++)
-				layer_uptake += uptake[j][i];
-
-			if (layer_uptake > supply[i]) {
-				oversubscribed = true;
-				depleted[i] = true;
-				double available_fraction = supply[i] / layer_uptake;
-				for (int j = 0; j < vegetation.nobj; j++) {
-					double accepted = uptake[j][i] * available_fraction;
-					rejected[j] += uptake[j][i] - accepted;
-					uptake[j][i] = accepted;
-				}
-			}
-		}
-
-		// Redistribute each individual's rejected uptake according to its
-		// original preferences among layers which have not been depleted.
-		if (oversubscribed) {
-			for (int j = 0; j < vegetation.nobj; j++) {
-				if (negligible(rejected[j]))
-					continue;
-
-				double weight_sum = 0.0;
-				for (int i = 0; i < soil.nsoillayers; i++) {
-					if (!depleted[i])
-						weight_sum += uptake_weights[j][i];
-				}
-
-				if (negligible(weight_sum)) {
-					fail("water_uptake_dave(): unable to redistribute water uptake "
-						"to a non-depleted layer");
-				}
-
-				for (int i = 0; i < soil.nsoillayers; i++) {
-					if (!depleted[i])
-						uptake[j][i] += rejected[j] *
-							uptake_weights[j][i] / weight_sum;
-				}
-			}
-		}
-
-		redistribution_count++;
-		if (redistribution_count > soil.nsoillayers) {
-			fail("water_uptake_dave(): water uptake redistribution did not converge");
-		}
-	} while (oversubscribed);
-
-	for (int i = 0; i < soil.nsoillayers; i++) {
-		double layer_uptake = 0.0;
-		for (int j = 0; j < vegetation.nobj; j++)
-			layer_uptake += uptake[j][i];
-		assert(layer_uptake < supply[i] || equal(layer_uptake, supply[i]));
-	}
-
-	// Convert the allocation back to the representation used by the soil code.
-	// Redistribution must conserve each active individual's original AET.
-	for (int j = 0; j < vegetation.nobj; j++) {
-		Individual &indiv = vegetation[j];
-		double indiv_uptake = 0.0;
-		for (int i = 0; i < soil.nsoillayers; i++)
-			indiv_uptake += uptake[j][i];
-
-		assert(negligible(indiv_uptake) || equal(indiv_uptake, original_aet[j]));
-		indiv.aet = indiv_uptake;
-		for (int i = 0; i < soil.nsoillayers; i++) {
-			indiv.fwuptake[i] = negligible(indiv.aet) ?
-				0.0 : uptake[j][i] / indiv.aet;
-		}
-	}
-}
-
 void prevent_wuptake_oversubscription(Patch &patch) {
 	Vegetation &vegetation = patch.vegetation;
 	Soil &soil = patch.soil;

@@ -116,11 +116,8 @@ bool GetclimInput::getgridcell(Gridcell& gridcell) {
 
 	if (grid_count++ > 0) return false;
 			
-	if(readdisturbance || readdisturbance_st || readelevation_st) {
-		// Not all gridcells have to be included in input file
-		misc_input.loaddisturbance(lon, lat);
-		misc_input.loadelevation(lon, lat);
-	}
+	// Not all gridcells have to be included in input file
+	misc_input.load(lon, lat);
 
 	if(run_landcover) {
 		LUerror = landcover_input.loadlandcover(lon, lat);
@@ -149,10 +146,10 @@ bool GetclimInput::getgridcell(Gridcell& gridcell) {
 }
 
 
-void GetclimInput::getlandcover(Gridcell& gridcell) {
+bool GetclimInput::getlandcover(Gridcell& gridcell, double *st_frac_transfer) {
 
 	landcover_input.getlandcover(gridcell);
-	landcover_input.get_land_transitions(gridcell);
+	return landcover_input.get_land_transitions(gridcell, st_frac_transfer);
 }
 
 bool GetclimInput::getclimate(Gridcell& gridcell) {

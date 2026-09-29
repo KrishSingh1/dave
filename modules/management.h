@@ -458,6 +458,9 @@ struct Harvest_CN {
 			cmass_sap = indiv.cmass_sap;
 			cmass_heart = indiv.cmass_heart;
 			cmass_debt = indiv.cmass_debt;
+			assert(cmass_sap  >= 0);
+			assert(cmass_leaf >= 0);
+			assert(cmass_root >= 0);
 
 			if(indiv.pft.landcover == CROPLAND) {
 				cmass_ho = indiv.cropindiv->cmass_ho;

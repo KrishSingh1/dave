@@ -2613,6 +2613,12 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 				double cmass_wood_ind = vol * indiv.pft.wooddens;
 
 				if(forest_init_from_biomass) {
+					if (stand.get_gridcell().st[stand.stid].establishment_list.est_array[i].biomass == NOTFOUND) {
+						fail("establish_input: biomass value for %s individual no. %d not found in %s stand %d, patch %d. You should either disable forest_init_from_biomass or provide biomass values in the input file.",
+							(char*)pftname, i, (char*)stlist[stand.stid].name,
+							stand.id, patch.id);
+					}
+
 					cmass_wood_ind = stand.get_gridcell().st[stand.stid].establishment_list.est_array[i].biomass / C_TO_TOTAL_BIOMASS / TOTAL_TO_AG_BIOMASS * TON_TO_KG;	// Total cmass_wood from AG biomass)
 					diam = pow((4.0 * cmass_wood_ind /(PI * pft.k_allom2 * indiv.pft.wooddens)), (1.0 / (2.0 + pft.k_allom3)));
 					vol = cmass_wood_ind / indiv.pft.wooddens;

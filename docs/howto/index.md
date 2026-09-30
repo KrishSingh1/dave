@@ -33,6 +33,9 @@ How to configure and run simulations:
 
 - [OzFlux Site Simulations](ozflux-simulations.md)
 - [Climate Input](climate-input.md)
+- [Using Land-Cover Change](land-cover.md)
+- [Management Types](management.md)
+- [Prescribed Tree Establishment](prescribed-tree-establishment.md)
 - [Running and Debugging via VSCode](debugging-vscode.md)
 - [Running Serially (CLI)](run-serial.md)
 - [Running in Parallel (MPI)](run-parallel.md)

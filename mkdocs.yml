@@ -6,6 +6,8 @@ nav:
       - Establishment: science/establishment.md
       - Mortality: science/mortality.md
       - Disturbance: science/disturbance.md
+      - Land Cover and Land-Use Change: science/land-use-change.md
+      - Harvesting and Vegetation Removal: science/harvesting.md
       - Daily Tree Growth: science/daily-growth-tree.md
       - Daily Grass Growth: science/daily-growth-grass.md
   - How-to:
@@ -25,6 +27,9 @@ nav:
       - Running:
           - OzFlux Site Simulations: howto/ozflux-simulations.md
           - Climate Input: howto/climate-input.md
+          - Land-Cover Change: howto/land-cover.md
+          - Management Types: howto/management.md
+          - Prescribed Tree Establishment: howto/prescribed-tree-establishment.md
           - Running and Debugging via VSCode: howto/debugging-vscode.md
           - Running Serially (CLI): howto/run-serial.md
           - Running in Parallel (MPI): howto/run-parallel.md

@@ -1295,7 +1295,8 @@ void photosynthesis_gs(Patch& patch) {
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
-		if (is_zero(indiv.get_nmass_leaf()) || is_zero(indiv.get_wscal())) {
+		if ((indiv.pft.ifcalcvcmax && is_zero(indiv.get_nmass_leaf())) ||
+		    is_zero(indiv.get_wscal())) {
 			continue;
 		}
 

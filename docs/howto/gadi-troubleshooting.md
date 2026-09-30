@@ -4,13 +4,21 @@ This page explains how to check a completed LPJ-GUESS DAVE job on Gadi and
 diagnose common failures. For building and submitting a job, see
 [Running on Gadi](run-gadi.md).
 
-## Start with the Top-level Job Log
+## Start with the Job and Worker Logs
 
 The main job writes `<job name>.log` in the run directory. The bottom of this
 file contains the PBS resource summary, including the resources requested and
 used and the total job cost in service units (SU). Check this summary after
 each run, especially if the job took substantially more or less time than
 expected.
+
+For a model error or an unexpected scientific result, open the affected
+worker's `runs/runX/guess.log` first. The top-level job log is especially
+useful for PBS startup, resource, and walltime problems. The instruction
+file's `verbosity` controls each worker's model log: use at least `3` for
+informational messages, or `4`/`5` for more detail, and rerun if needed. See
+[Start with `guess.log`](common-failures.md#start-with-guesslog) for a search
+strategy.
 
 As a rough guide, LPJ-GUESS jobs should cost approximately **0.005–0.01 SU per
 patch**, where:
@@ -175,4 +183,3 @@ PBS kills jobs that exceed their walltime request. Gadi also has a maximum
 sooner, increase `WALLTIME` if it was set too low, or split the simulation into
 smaller jobs. See
 [Choosing CPU Count and Walltime](gadi-resources.md#choosing-cpu-count-and-walltime).
-

@@ -7,6 +7,8 @@ This section documents scientific concepts, process representations, and model-b
 - [Establishment (GUESS)](establishment.md)
 - [Mortality (GUESS)](mortality.md)
 - [Disturbance](disturbance.md)
+- [Land cover and land-use change](land-use-change.md)
+- [Harvesting and vegetation removal](harvesting.md)
 - [Daily Tree Growth](daily-growth-tree.md)
 - [Daily Grass Growth](daily-growth-grass.md)
 

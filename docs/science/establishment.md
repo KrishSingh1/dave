@@ -22,6 +22,12 @@ Representation difference:
 
 The annual establishment logic runs once per simulation year (after mortality).
 
+For prescribed initialisation of trees from an input file in a particular
+calendar year, see [Prescribed tree establishment](../howto/prescribed-tree-establishment.md).
+That pathway replaces existing vegetation in the affected stand type and
+supplies tree size, density, and age directly; it is separate from the annual
+recruitment process described below.
+
 If DAVE daily grass growth (`ifdailygrass` and `ifdavegrowth`) is enabled, those
 grasses are handled by the daily process, not by the annual process described on
 this page.

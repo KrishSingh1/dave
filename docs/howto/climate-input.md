@@ -37,6 +37,12 @@ mpirun -np 8 ./build/guess -parallel -input nc <insfile>
 `nc` is the current CLI key for DAVE climate input. A future breaking release
 may introduce `dave` as the module key.
 
+If an input file fails to load or the climate values look unexpected, start
+with `guess.log` in the working directory. Parallel runs have a separate
+`runN/guess.log` for each worker. Set `verbosity 3` in the `.ins` file for
+informational input messages, or `4`/`5` for more detail. See
+[Start with `guess.log`](common-failures.md#start-with-guesslog).
+
 ## Instruction File Parameters
 
 All parameters are declared in `modules/daveinput.cpp`. Parameters with no

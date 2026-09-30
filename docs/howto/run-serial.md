@@ -25,6 +25,13 @@ instruction files, one tends to think in terms of the instruction file itself.
 Therefore, it's easiest to just run from the same directory as the instruction
 file.
 
+After every run, especially if it fails or produces unexpected output, check
+`guess.log` in the directory where you started the model (for the example,
+`benchmarks/ozflux/CumberlandPlain/guess.log`). The `.ins` parameter
+`verbosity` controls its detail: use at least `verbosity 3` for investigation,
+or `4`/`5` for more detail. See [Start with `guess.log`](common-failures.md#start-with-guesslog)
+for what to look for.
+
 ## OzFlux Sites
 
 Each OzFlux site has its own instruction file at

@@ -42,6 +42,7 @@ void turnover(double turnover_leaf, double turnover_root, double turnover_sap,
 // Minimum growth demand after reproductive phase
 const double fdev_growth_min = 0.002;
 void allometry_dave_tree(Individual& indiv);
+double cstorage_capacity(const Individual& indiv);
 double temp_growth(double temp, double Ha_growth, double T0_growth, double A_growth, double T_dormancy);
 double wscal_growth(double wscal, double wscal0, double b);
 double get_cmass_init_min(Patchpft& ppft);

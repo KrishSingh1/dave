@@ -2752,7 +2752,6 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 
 				// NB. If setting to alive, we need to report fluxes here. Put into seed fluxes
 				indiv.alive = true;
-				patch.fluxes.report_flux(Fluxes::SEEDC, -(indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap + indiv.cmass_heart));
 
 				double cton_leaf = indiv.pft.cton_leaf_avr;
 				double cton_root = indiv.pft.cton_root_avr;
@@ -2801,8 +2800,20 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 				if(cton_heart)
 					indiv.nmass_heart = indiv.cmass_heart / cton_heart;
 
+				if (pft.dave_allocation()) {
+					// Dave trees draw negative daily NPP from non-structural C storage.
+					// Set sapwood depth before calculating its storage capacity, and
+					// initialise reserves as for other newly established Dave trees.
+					allometry_dave_tree(indiv);
+					indiv.cstorage_max = cstorage_capacity(indiv);
+					indiv.cmass_storage = indiv.cstorage_max;
+					indiv.nstorage_max = indiv.cstorage_max / pft.cton_root_min;
+					indiv.nmass_storage = indiv.nstorage_max;
+				}
+
+				patch.fluxes.report_flux(Fluxes::SEEDC, -(indiv.cmass_leaf + indiv.cmass_root + indiv.cmass_sap + indiv.cmass_heart + indiv.cmass_storage));
 				// Bypass alive conditional in indiv:report:flux (?)
-				patch.fluxes.report_flux(Fluxes::SEEDN, -(indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart));
+				patch.fluxes.report_flux(Fluxes::SEEDN, -(indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart + indiv.nmass_storage));
 
 				log_diagnostic("Creating %s individual id %d", (char*)pftname, indiv.id);
 				log_diagnostic("latosa=%f cmass=%f f_sap=%f q_sap=%f cton_leaf=%f cton_sap=%f", latosa, cmass_sap_ind + cmass_heart_ind + cmass_leaf_ind + cmass_root_ind, f_sap, q_sap, cton_leaf, cton_sap);

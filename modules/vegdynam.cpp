@@ -2780,10 +2780,16 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 					for(unsigned int x=0;x<gcpft.cton_sap_avr_20.size();x++) {
 						log_diagnostic("%.3f ", gcpft.cton_sap_avr_20[x]);
 					}
-					cton_leaf = gcpft.cton_leaf_avr_20.mean();
-					cton_root = cton_leaf;
-					cton_sap = gcpft.cton_sap_avr_20.mean();
-					cton_heart = cton_sap;
+					double cton_leaf_hist = gcpft.cton_leaf_avr_20.mean();
+					if (cton_leaf_hist > 0) {
+						cton_leaf = cton_leaf_hist;
+						cton_root = cton_leaf;
+					}
+					double cton_sap_hist = gcpft.cton_sap_avr_20.mean();
+					if (cton_sap_hist > 0) {
+						cton_sap = cton_sap_hist;
+						cton_heart = cton_sap;
+					}
 				}
 				log_diagnostic("Values used for for %s:", (char*)pft.name);
 				log_diagnostic("cton_leaf=%.3f", cton_leaf);

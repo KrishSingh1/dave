@@ -314,6 +314,9 @@ const double EPS_WATER = 1e-6;
 const int NGENERATIONS_MAX = 10;
 const int NREEMERGENCES_MAX = 1;
 typedef enum { EGG, LARVA1, LARVA2, LARVA3, LARVA4, PUPA, TENERAL_ADULT, OVIPOSITION, NLIFESTAGES } insect_life_stages;
+
+extern const char *LC_NAMES[NLANDCOVERTYPES];
+
 //#define USE_DAYLENGTH_LIMIT_DIAPAUSE
 // STORM number of days in 30 years, used for limit in windload calculation
 #define WIND_30Y_NDAYS 10950

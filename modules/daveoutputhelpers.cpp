@@ -1613,4 +1613,40 @@ std::vector<ArrayColumnDefinition<Patch>> soil_properties_cols() {
 	return columns;
 }
 
+size_t longest_st_name_length() {
+	size_t max_length = 0;
+	for (size_t i = 0; i < stlist.nobj; i++) {
+		const StandType &st = stlist[i];
+		size_t length = strlen((const char *)st.name);
+		if (length > max_length) {
+			max_length = length;
+		}
+	}
+	return max_length;
+}
+
+size_t longest_lc_name_length() {
+	size_t max_length = 0;
+	for (size_t i = 0; i < NLANDCOVERTYPES; i++) {
+		size_t length = strlen(LC_NAMES[i]);
+		if (length > max_length) {
+			max_length = length;
+		}
+	}
+	return max_length;
+}
+
+std::vector<ColumnDefinition<Stand>> get_stand_type_cols() {
+	std::vector<ColumnDefinition<Stand>> columns;
+	columns.push_back(ColumnDefinition<Stand>::text("stand_type",
+		[](const Stand &s) { return std::string((const char *)stlist[s.stid].name); },
+	    longest_st_name_length));
+	columns.push_back(ColumnDefinition<Stand>::text("landcover",
+		[](const Stand &s) { return LC_NAMES[s.landcover]; },
+		longest_lc_name_length));
+	columns.push_back(ColumnDefinition<Stand>("fraction", [](const Stand &s) { return s.get_gridcell_fraction(); }));
+
+	return columns;
+}
+
 } // namespace GuessOutput

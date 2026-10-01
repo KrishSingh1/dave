@@ -45,6 +45,16 @@ const double Fluxes::N2_FIRERATIO  = 0.722;
 
 double SOILDEPTH_EVAP = SOILDEPTH_EVAP_TRUNK;
 
+
+const char* LC_NAMES[NLANDCOVERTYPES]= {
+	"URBAN",
+	"CROPLAND",
+	"PASTURE",
+	"FOREST",
+	"NATURAL",
+	"PEATLAND",
+	"BARREN"};
+
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of PhotosynthesisResult member functions
 ////////////////////////////////////////////////////////////////////////////////

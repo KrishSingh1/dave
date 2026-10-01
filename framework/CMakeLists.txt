@@ -30,6 +30,7 @@ set(headers
   ncfile.h
   kdtree.h
   equationsolvers.h
+  log_scope.h
 )
 
 set(source
@@ -61,6 +62,7 @@ set(source
   guessmath.cpp
   ncfile.cpp
   equationsolvers.cpp
+  log_scope.cpp
 )
 
 include(add_guess_sources)

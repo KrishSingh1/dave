@@ -13,6 +13,7 @@
 #include "landcover.h"
 #include "management.h"
 #include "driver.h"
+#include "log_scope.h"
 #include <random>
 
 double total_lai(const Patch &patch) {
@@ -2018,6 +2019,7 @@ void manage_forests(Gridcell& gridcell) {
 		stand.firstobj();
 		while (stand.isobj && (stand.landcover == FOREST || stand.landcover == NATURAL)) {
 			Patch& patch = stand.getobj();
+			LogScope log_scope(patch);
 			const bool thinning_attempt = patch.distributed_cutting && patch.man_strength >= 0.0 && patch.man_strength < 1.0;
 			double harvestable_stem_c = 0.0;
 			double thinned_c_before = 0.0;

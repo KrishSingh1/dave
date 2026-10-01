@@ -35,6 +35,7 @@
 #include "growth.h"
 #include "driver.h"
 #include "logging.h"
+#include "log_scope.h"
 #include "landcover.h"
 #include "management.h"
 #include "blaze.h"
@@ -1512,6 +1513,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 			vegetation.firstobj();
 			while (vegetation.isobj) {
 				Individual& indiv=vegetation.getobj();
+				LogScope log_scope(indiv);
 
 				// For this individual ...
 
@@ -1592,6 +1594,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
+		LogScope log_scope(indiv);
 		Patchpft& ppft = patch.pft[indiv.pft.id];
 
 		// For this individual ...
@@ -2549,6 +2552,7 @@ void planting(Patch& patch) {
 }
 
 void establish_input(Patch& patch, bool pool_soil = false) {
+	LogScope patch_log_scope(patch);
 
 	Stand& stand = patch.stand;
 	Gridcellst& gcst = stand.get_gridcell().st[stand.stid];
@@ -2591,17 +2595,18 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 			
 			if (pft.name == pftname && !pft.is_grass()) {
 
-				log_info("Prescribed establishment: %s individual no. %d "
-					     "created in %s stand %d, patch %d",
-					     (char*)pftname, i, (char*)stlist[stand.stid].name,
-						 stand.id, patch.id);
-
 				const bool use_latosa_20y_mean = true;
 				const bool use_qsap_20y_mean = true;
 				const bool use_age_20y_mean = false;
 				const bool use_cton_20y_mean = true;
 
 				Individual& indiv = patch.vegetation.createobj(pft, patch.vegetation);
+				LogScope individual_log_scope(indiv);
+
+				log_info("Prescribed establishment: %s individual no. %d "
+					     "(id: %d) created in %s stand %d, patch %d",
+					     (char*)pftname, i, indiv.id, (char*)stlist[stand.stid].name,
+						 stand.id, patch.id);
 
 				const double M_TO_CM = 100.0;
 				const double C_TO_TOTAL_BIOMASS = 2.0;
@@ -2965,7 +2970,10 @@ void establish_input_setup_stands(Gridcell& gridcell) {
 			Stand& stand_kill = *gc_itr;
 
 			if(stand_kill.stid == st.id) {
-				log_info("Killed st %s stand %d", (char*)st.name, stand_kill.id);	
+				{
+					LogScope log_scope(stand_kill);
+					log_info("Killed st %s stand %d", (char*)st.name, stand_kill.id);
+				}
 				gc_itr = gridcell.delete_stand(gc_itr);
 			}
 			else {
@@ -2975,6 +2983,7 @@ void establish_input_setup_stands(Gridcell& gridcell) {
 		if(gcst.frac) {
 			Stand& new_stand = gridcell.create_stand_lu(st, gcst.frac, npatch_treeinit, false);
 			receiving_stand_change(gridcell, transfer, true, -1, -1, 1.0, new_stand.id);
+			LogScope log_scope(new_stand);
 			log_info("%s stand no.%d created", (char*)st.name, new_stand.id);
 		}
 	}
@@ -3272,14 +3281,20 @@ void force_prescribed_disturbance(Gridcell& gridcell, Rank_stands& stand_class, 
 				if(mt.killgrass_at_cc && stand.nobj > 1) {
 
 					landcover_change_transfer transfer;
-					log_diagnostic("Converting stand to single-patch stand");
+					{
+						LogScope log_scope(new_stand);
+						log_diagnostic("Converting stand to single-patch stand");
+					}
 
 					// 1. Copy soil biomass and water from a stand with several patches to a new stand with a single patch after killing remaining grass:
 					new_stand.transfer_area_st[new_stand.stid] += disturbance_fraction_remain;
 					donor_stand_change(gridcell, disturbance_fraction_remain, transfer, -1,-1, new_stand.stid, -1, new_stand.id, &harvest_params);
 					Stand& new_stand2 = gridcell.create_stand_lu(stlist[new_stand.stid], disturbance_fraction_remain, npatch_disturbedstand, false, false, stand.current_rot);
 					receiving_stand_change(gridcell, transfer, true, -1, -1, 1.0, new_stand2.id);
-					log_diagnostic("Single-patch stand created");
+					{
+						LogScope created_stand_log_scope(new_stand2);
+						log_diagnostic("Single-patch stand created");
+					}
 
 					while(new_stand2.isobj) {
 

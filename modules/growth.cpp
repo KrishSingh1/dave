@@ -47,6 +47,7 @@
 #include "somdynam.h"
 #include "driver.h"
 #include "logging.h"
+#include "log_scope.h"
 #include <math.h>
 
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -4879,6 +4880,7 @@ void storage_growth_partitioning_dave(Vegetation& vegetation) {
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
+		LogScope scope(indiv);
 
 		if (!indiv.pft.dave_allocation()) {
 			// This pft is not using dave allocation. This could happen, for

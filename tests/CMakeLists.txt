@@ -16,6 +16,7 @@ set(source
   demo_integration_test.cpp
   demo_state_test.cpp
   fluxes_test.cpp
+  outputchannel_test.cpp
   )
 
 include(add_test_sources)

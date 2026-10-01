@@ -1449,6 +1449,32 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_
 	};
 }
 
+std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> hydraulic_curve_cols() {
+	return {
+		{ "s1_mpa", [](const Individual &i, int, int) { return i.pft.s1; } },
+		{ "s2", [](const Individual &i, int, int) { return i.pft.s2; } },
+		{ "p88_mpa", [](const Individual &i, int, int) { return i.pft.p88; } },
+		{ "stom_clos_mpa", [](const Individual &i, int, int) { return i.pft.stom_clos; } },
+		{ "resolution", [](const Individual &, int, int) { return epsiresolution; } },
+		{ "psi_max_mpa", [](const Individual &i, int, int) { return i.pft.hydraulic_curve_max_psi(); } },
+		{ "area_max_mpa", [](const Individual &i, int, int) { return i.pft.hydraulic_curve_max_area(); } },
+		{ "open_start", [](const Individual &i, int t, int) { return (double)i.hydraulic_diagnostics[t].stomata_open_start; } },
+		{ "weighted_soil_psi_mpa", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].weighted_soil_psi; } },
+		{ "psi_start_mpa", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].psi_start; } },
+		{ "start_lookup_ok", [](const Individual &i, int t, int) { return (double)i.hydraulic_diagnostics[t].start_lookup_ok; } },
+		{ "area_start_mpa", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].area_start; } },
+		{ "e_mmol_m2_s", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].transpiration; } },
+		{ "kmax_mol_m2_s_mpa", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].kmax; } },
+		{ "conducting_area", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].conducting_area; } },
+		{ "area_request_mpa", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].area_requested; } },
+		{ "transpiration_full_mpa", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].area_full; } },
+		{ "end_lookup_ok", [](const Individual &i, int t, int) { return (double)i.hydraulic_diagnostics[t].end_lookup_ok; } },
+		{ "psi_end_lookup_mpa", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].psi_end_lookup; } },
+		{ "lwp_end_mpa", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].lwp_end; } },
+		{ "open_end", [](const Individual &i, int t, int) { return (double)i.hydraulic_diagnostics[t].stomata_open_end; } }
+	};
+}
+
 std::vector<ArrayColumnDefinition<Patch>> soil_state_cols() {
 	std::vector<ArrayColumnDefinition<Patch>> columns;
 	columns.push_back(ArrayColumnDefinition<Patch>("wmass", [](const Patch &p, int i) { return p.soil.soillayers[i].wmass; }));

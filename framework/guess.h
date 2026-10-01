@@ -3705,9 +3705,13 @@ public:
 
 	bool get_psi_from_transpiration(double transpiration, double &psi) const;
 	bool get_transpiration_lower_bound(double psi, double &transpiration) const;
+	double hydraulic_curve_max_psi() const { return transpiration_max_psi; }
+	double hydraulic_curve_max_area() const { return transpiration_max_area; }
 private:
 	Interpolator psi_from_transpiration;
 	Interpolator transpiration_from_psi;
+	double transpiration_max_psi = 0.0;
+	double transpiration_max_area = 0.0;
 	double proportion_of_conductivity(double psi) const;
 };
 
@@ -3988,6 +3992,24 @@ struct cropindiv_struct : public Serializable {
 	void serialize(ArchiveStream& arch);
 };
 
+
+struct HydraulicDiagnostic {
+	bool valid = false;
+	bool stomata_open_start = false;
+	bool stomata_open_end = false;
+	bool start_lookup_ok = false;
+	bool end_lookup_ok = false;
+	double psi_start = 0.0;
+	double weighted_soil_psi = 0.0;
+	double area_start = 0.0;
+	double transpiration = 0.0;
+	double kmax = 0.0;
+	double conducting_area = 0.0;
+	double area_requested = 0.0;
+	double area_full = 0.0;
+	double psi_end_lookup = 0.0;
+	double lwp_end = 0.0;
+};
 
 /// A vegetation individual.
 /** In population mode this is the average individual of a PFT population;
@@ -4684,6 +4706,7 @@ public:
 
 	// individual-level transpiration, mm (includes cuticular conductance when roots are disconnected)
 	std::vector<double> transpiration;
+	std::vector<HydraulicDiagnostic> hydraulic_diagnostics;
 
 	private:
 	/// Adaptive N-day moving avegage of wscal.

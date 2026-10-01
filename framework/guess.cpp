@@ -2044,6 +2044,7 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	lwp.resize(date.subdaily);
 	k_loss.resize(date.subdaily);
 	transpiration.resize(date.subdaily);
+	hydraulic_diagnostics.resize(date.subdaily);
 	hydraulic_failure = false;
 	mort_age = 0;
 	mort_greff = 0;
@@ -3098,6 +3099,8 @@ void Pft::setup_transpiration(double resolution) {
         y_cumulative_transpiration.push_back(e_psi);
 		ymax = max(ymax, e_psi);
     }
+	transpiration_max_psi = x_psi.back();
+	transpiration_max_area = y_cumulative_transpiration.back();
 
     // Setup the interpolator.
     // We could do a reverse lookup if need, but it's not required.
@@ -3929,6 +3932,7 @@ void Individual::flush_repr_litter_DAVE(double flush_fraction) {
 }
 
 void Individual::daily_accounting() {
+	for (HydraulicDiagnostic &diag : hydraulic_diagnostics) diag.valid = false;
 	if (date.day == 0) {
 		annual_accounting();
 	}

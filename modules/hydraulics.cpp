@@ -218,6 +218,13 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
     double nx = 1 - (pft.wooddens * 2) / 1000;
 
     double Vmax = 0.0; // CALC BASED ON AREA UNDER CURVE BETWEEN STOM_CLOS AND P88
+	HydraulicDiagnostic &diag = indiv.hydraulic_diagnostics[day.period];
+	diag = HydraulicDiagnostic{};
+	diag.valid = true;
+	diag.stomata_open_start = indiv.stomata_open;
+	diag.weighted_soil_psi = indiv.weighted_psi;
+	diag.transpiration = transpiration;
+	diag.conducting_area = Ax;
 
     if (indiv.stomata_open) {
         // Stomata are not fully closed.
@@ -233,6 +240,9 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         // actual area under the curve would be transpiration_psi_soil x kmax
         double transpiration_psi_soil = 0;
         bool e_met = indiv.pft.get_transpiration_lower_bound(psi1, transpiration_psi_soil);
+		diag.psi_start = psi1;
+		diag.area_start = transpiration_psi_soil;
+		diag.start_lookup_ok = e_met;
 
         double kmax_param;
 
@@ -248,17 +258,23 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 
         // Convert kmax from mol to mmol.
         double transpiration_full = transpiration_psi_soil + transpiration / (kmax_param * 1000 * Ax);
-        e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
+		diag.kmax = kmax_param;
+		diag.area_requested = transpiration_full - transpiration_psi_soil;
+		diag.area_full = transpiration_full;
+		diag.end_lookup_ok = indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
+		diag.psi_end_lookup = psi2;
+		e_met &= diag.end_lookup_ok;
 
         if (!e_met) {
             // If hydraulic vulnerability curve doesn't allow E to be met, parameters aren't
             // coordinating properly. Either a higher kmax or lower g1 may be required.
             double transpiration_check = 0.0;
 	        indiv.pft.get_transpiration_lower_bound(-indiv.pft.p88,transpiration_check);
-	        printf("total area under curve = %f/n",transpiration_check * (kmax_param * 1000 * Ax));
-            printf("transpiration = %f/n",transpiration);
+	        log_diagnostic("total area under curve = %f/n",transpiration_check * (kmax_param * 1000 * Ax));
+            log_diagnostic("transpiration = %f/n",transpiration);
 
-            log_error("hydraulic vulnerability curve doesn't allow E to be met");
+            log_error("indiv %i (%s): Hydraulic vulnerability curve doesn't "
+                      "allow E to be met", indiv.id, (const char *)indiv.pft.name);
             
         }
 
@@ -271,7 +287,7 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 
         if (indiv.lwp[day.period] <= pft.stom_clos) {
             indiv.stomata_open = false;
-            // printf("stomata have closed\n");
+            // log_diagnostic("stomata have closed\n");
         }
 
     } else {
@@ -295,6 +311,9 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         // between last timestep and this one.
         double transpiration_psi_prev = 0;
         bool e_met = indiv.pft.get_transpiration_lower_bound(psi1, transpiration_psi_prev);
+		diag.psi_start = psi1;
+		diag.area_start = transpiration_psi_prev;
+		diag.start_lookup_ok = e_met;
 
         double kmax_param;
 
@@ -310,11 +329,18 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 
         // Convert from mol to mmol.
         double transpiration_full = transpiration_psi_prev + transpiration / (kmax_param * 1000 * Ax);
-        e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
+		diag.kmax = kmax_param;
+		diag.area_requested = transpiration_full - transpiration_psi_prev;
+		diag.area_full = transpiration_full;
+		diag.end_lookup_ok = indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
+		diag.psi_end_lookup = psi2;
+		e_met &= diag.end_lookup_ok;
 
         if (!e_met) {
             psi2 = -pft.p88;
-            log_warning("hydraulic vulnerability curve doesn't allow E to be met in water stressed module");
+            log_warning("indiv %i (%s): Hydraulic vulnerability curve doesn't "
+                        "allow E to be met in water stressed module", indiv.id,
+                        (const char *)indiv.pft.name);
         }
 
         indiv.k_loss[day.period] = 1 - exp(-pow(psi2 / pft.s1, pft.s2));
@@ -367,6 +393,8 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
 
     }
 
+	diag.lwp_end = indiv.lwp[day.period];
+	diag.stomata_open_end = indiv.stomata_open;
     indiv.lwp_previous = indiv.lwp[day.period];
 
     // Calculate total transpiration in mm/timestep.
@@ -399,7 +427,7 @@ void hydraulic_mortality(Patch &patch) {
                 indiv.reduce_biomass(MORT_FRAC, 0, indiv.closs_hydraulic, indiv.nloss_hydraulic);
                 indiv.hydraulic_failure = false;
             } else {
-                printf("Indiv %d (%s): mortality due to hydraulic failure", indiv.id, (const char *)indiv.pft.name);
+                log_info("Indiv %d (%s): mortality due to hydraulic failure", indiv.id, (const char *)indiv.pft.name);
                 indiv.kill();
                 vegetation.killobj();
             }
@@ -574,11 +602,26 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
 
     double transpiration_psi_soil = 0;
     bool e_met = indiv.pft.get_transpiration_lower_bound(psi1, transpiration_psi_soil);
+	HydraulicDiagnostic &diag = indiv.hydraulic_diagnostics[day.period];
+	diag = HydraulicDiagnostic{};
+	diag.valid = true;
+	diag.stomata_open_start = indiv.stomata_open;
+	diag.weighted_soil_psi = indiv.weighted_psi;
+	diag.psi_start = psi1;
+	diag.area_start = transpiration_psi_soil;
+	diag.start_lookup_ok = e_met;
+	diag.transpiration = transpiration;
+	diag.kmax = pft.kmax;
+	diag.conducting_area = indiv.lai;
 
     // Normalise kmax to xylem/leaf area?? because it reduces based on xlyem
     // loss, not leaf loss.
     double transpiration_full = transpiration_psi_soil + transpiration / (pft.kmax * 1000 * indiv.lai);
-    e_met &= indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
+	diag.area_requested = transpiration_full - transpiration_psi_soil;
+	diag.area_full = transpiration_full;
+	diag.end_lookup_ok = indiv.pft.get_psi_from_transpiration(transpiration_full, psi2);
+	diag.psi_end_lookup = psi2;
+	e_met &= diag.end_lookup_ok;
 
     if (!e_met) {
         // If hydraulic vulnerability curve doesn't allow E to be met, we
@@ -586,10 +629,13 @@ void grass_hydraulics(const Day &day, Individual &indiv) {
 
         // Set water potential to stom_clos to close stomata.
         psi2 = -pft.stom_clos;
-        log_error("Hydraulic vulnerability curve doesn't allow E to be met");
+        log_error("indiv %i (%s): Hydraulic vulnerability curve doesn't allow E"
+                  " to be met", indiv.id, (const char *)indiv.pft.name);
     }
 
     indiv.lwp[day.period] = -psi2;
+	diag.lwp_end = indiv.lwp[day.period];
+	diag.stomata_open_end = indiv.stomata_open;
 
     double min_lwp_day = 0.0;
 

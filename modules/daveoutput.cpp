@@ -437,6 +437,8 @@ DaveOutput::DaveOutput() {
 
 	add_indiv_layer_timestep_output("file_dave_ps_diagnostics", ps_diagnostics_cols(), "Subdaily layered cohort-level photosynthesis diagnostics");
 
+	add_indiv_layer_timestep_output("file_dave_hydraulic_curve", hydraulic_curve_cols(), "Cohort-timestep hydraulic curve and solver diagnostics; psi and integrated areas in MPa, E in mmol/m2 ground/s; kmax is per xylem area for trees or leaf area for grasses, conducting_area is Ax or LAI");
+
 	// Daily patch-level array outputs.
 	// One row per array element per patch per timestep, multiple data columns (tall/long table).
 	add_tall_patch_array_output("file_dave_soil_state"               , DAILY, "layer", [](const Patch &p) { return (size_t)p.soil.nsoillayers; }, soil_state_cols(), "Soil water content as fraction of available water holding capacity");
@@ -1426,8 +1428,9 @@ ColumnDescriptors DaveOutput::IndividualOutput::get_cols() {
 DaveOutput::IndivLayerTimestepOutput::IndivLayerTimestepOutput(
 		std::string param_name,
 		std::vector<Column> columns,
-		std::string description)
-	: OutputFile(param_name, description), columns(columns) { }
+		std::string description,
+		bool per_layer)
+	: OutputFile(param_name, description), columns(columns), per_layer(per_layer) { }
 
 void DaveOutput::IndivLayerTimestepOutput::write_rows(OutputChannel *channel, Gridcell &gridcell) {
 	double lon = gridcell.get_lon();
@@ -1447,16 +1450,18 @@ void DaveOutput::IndivLayerTimestepOutput::write_rows(OutputChannel *channel, Gr
 			for (size_t i = 0; i < vegetation.nobj; i++) {
 				const Individual &indiv = vegetation[i];
 
-				int ntimesteps = (int)indiv.ps_inputs_layerwise.size();
+				int ntimesteps = per_layer ? (int)indiv.ps_inputs_layerwise.size() :
+				                 (int)indiv.hydraulic_diagnostics.size();
 				for (int t = 0; t < ntimesteps; t++) {
-					int nlayers = (int)indiv.ps_inputs_layerwise[t].size();
+					if (!per_layer && !indiv.hydraulic_diagnostics[t].valid) continue;
+					int nlayers = per_layer ? (int)indiv.ps_inputs_layerwise[t].size() : 1;
 					for (int l = 0; l < nlayers; l++) {
 						write_output(channel, stand.id);
 						write_output(channel, patch.id);
 						write_output(channel, indiv.id);
 						write_output(channel, indiv.pft.name);
 						write_output(channel, t);
-						write_output(channel, l);
+						if (per_layer) write_output(channel, l);
 
 						for (const Column &col : columns) {
 							write_output(channel, col.read(indiv, t, l));
@@ -1481,7 +1486,7 @@ ColumnDescriptors DaveOutput::IndivLayerTimestepOutput::get_cols() {
 	descriptors += ColumnDescriptor(COLNAME_INDIV_ID, COLUMN_WIDTH,     0);
 	descriptors += ColumnDescriptor(COLNAME_PFT,      COLUMN_WIDTH + 2, 0, TEXT);
 	descriptors += ColumnDescriptor(COLNAME_TIMESTEP, COLUMN_WIDTH,     0);
-	descriptors += ColumnDescriptor(COLNAME_LAYER,    COLUMN_WIDTH,     0);
+	if (per_layer) descriptors += ColumnDescriptor(COLNAME_LAYER, COLUMN_WIDTH, 0);
 
 	for (const Column &col : columns) {
 		int width = max((size_t)COLUMN_WIDTH, col.name.length() + 1);

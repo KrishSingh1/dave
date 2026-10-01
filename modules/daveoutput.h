@@ -761,10 +761,9 @@ class GridcellLevelOutput : public OutputFile {
 	};
 
 	/*
-	This class writes one row of output per (individual, subdaily timestep, canopy
-	layer) for each day. Columns are: stand, patch, indiv_id, pft, timestep, layer,
-	then one column per user-defined data field. Designed for the DAVE per-layer,
-	per-timestep photosynthesis inputs and outputs.
+	This class writes one row per individual, timestep, and optionally canopy layer.
+	Columns are stand, patch, indiv_id, pft, timestep, optional layer, and the
+	user-defined data fields.
 	*/
 	class IndivLayerTimestepOutput : public OutputFile {
 		public:
@@ -783,11 +782,13 @@ class GridcellLevelOutput : public OutputFile {
 			@param param_name:   Name of the parameter in the instruction file.
 			@param columns:      Column definitions (name + reader function).
 			@param description:  Description of the output (including units!).
+			@param per_layer:    Whether to write one row per canopy layer.
 			*/
 			IndivLayerTimestepOutput(
 				std::string param_name,
 				std::vector<Column> columns,
-				std::string description);
+				std::string description,
+				bool per_layer = true);
 
 			/*
 			Write one row per (individual, timestep, layer) for the current day.
@@ -802,6 +803,7 @@ class GridcellLevelOutput : public OutputFile {
 
 		private:
 			std::vector<Column> columns;
+			bool per_layer;
 
 			const char *COLNAME_INDIV_ID = "indiv";
 			const char *COLNAME_PFT      = "pft";

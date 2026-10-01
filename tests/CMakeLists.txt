@@ -29,6 +29,7 @@ set(source
   fluxes_test.cpp
   temporary_directory.cpp
   simulation_helper.cpp
+  outputchannel_test.cpp
   )
 
 include(add_test_sources)

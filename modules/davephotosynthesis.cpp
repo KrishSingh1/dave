@@ -4,6 +4,7 @@
 #include "ncutil.h"
 #include "canexch.h" // Many constants defined here
 #include "logging.h"
+#include "log_scope.h"
 #include "guessmath.h"
 #include "driver.h"
 #include "somdynam.h"
@@ -1324,6 +1325,7 @@ void photosynthesis_gs(Patch& patch) {
 		    is_zero(indiv.get_wscal())) {
 			continue;
 		}
+		LogScope log_scope(indiv);
 
 		// TODO: find another home for this check. It doesn't belong here.
 		double lai_layer_sum = 0;
@@ -2331,6 +2333,7 @@ void leaf_damage_dave(Patch &patch) {
 		if (is_zero(indiv.lai_today())) {
 			continue;
 		}
+		LogScope log_scope(indiv);
 
 		double lai_loss = 0;
 		for (size_t j = 0; j < indiv.energy_balance_layerwise.size(); j++) {

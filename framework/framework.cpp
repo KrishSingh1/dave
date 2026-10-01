@@ -35,6 +35,7 @@
 #include "util.h"
 #include "hydraulics.h"
 #include "storm.h"
+#include "log_scope.h"
 
 #include <memory>
 
@@ -114,6 +115,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 	
 		// START OF LOOP THROUGH STANDS
 		Stand& stand = *gc_itr;
+		LogScope log_scope(stand);
 
 		dailyaccounting_stand(stand);
 
@@ -124,6 +126,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 			// Get reference to this patch
 			Patch& patch = stand.getobj();
+			LogScope log_scope(patch);
 
 			// Update daily soil drivers including soil temperature
 			dailyaccounting_patch(patch);
@@ -200,6 +203,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 
 				// For each patch ...
 				Patch& patch = stand.getobj();
+				LogScope log_scope(patch);
 
 				// Establishment, mortality and disturbance by fire
 				vegetation_dynamics(stand, patch);
@@ -284,6 +288,7 @@ int framework(const CommandLineArguments& args) {
 		if (!input_module->getgridcell(gridcell)) {
 			break;
 		}
+		LogScope gridcell_log_scope(gridcell);
 
 		// Initialise certain climate and soil drivers
 		gridcell.climate.initdrivers(gridcell.get_lat());

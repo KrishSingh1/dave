@@ -18,6 +18,8 @@
 
 namespace GuessParallel {
 
+extern bool parallel;
+
 /// Initializes the module
 /** For instance by initializing underlying communications library.
  *

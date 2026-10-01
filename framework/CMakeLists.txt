@@ -28,6 +28,7 @@ set(headers
   variableresolver.h
   logging.h
   ncfile.h
+  kdtree.h
 )
 
 set(source

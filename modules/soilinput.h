@@ -134,11 +134,9 @@ private:
 	};
 
 	std::map<coord, int> lpj_map;
-	std::map<coord, double> depth_map;
-	std::map<coord, double> slope_map;
 	std::map<coord, SoilDataMineral> mineral_map;
-	std::unique_ptr<kdtree<double, 2>> depth_kdtree;
-	std::unique_ptr<kdtree<double, 2>> slope_kdtree;
+	std::unique_ptr<KDTree<double>> depth_index;
+	std::unique_ptr<KDTree<double>> slope_index;
 	double get_soil_depth(const coord &c);
 	double get_soil_slope(const coord &c);
 

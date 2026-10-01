@@ -7,6 +7,7 @@ set(source
   date_test.cpp
   climate_test.cpp
   math_test.cpp
+  kdtree_test.cpp
   ncompete_test.cpp
   cftime_test.cpp
   string_test.cpp

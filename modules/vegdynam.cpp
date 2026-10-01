@@ -35,9 +35,11 @@
 #include "growth.h"
 #include "driver.h"
 #include "logging.h"
+#include "log_scope.h"
 #include "landcover.h"
 #include "management.h"
 #include "blaze.h"
+#include "guess.h"
 
 // Alternatives for forestry:
 
@@ -856,6 +858,7 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						// ... if not, add it
 						log_info("Establishing %s...", (const char *)pft.name);
 						Individual& indiv=vegetation.createobj(pft,vegetation);
+						LogScope scope(indiv);
 						indiv.height=0.0;
 						indiv.crownarea=1.0; // (value not used)
 						indiv.densindiv=1.0;
@@ -1035,10 +1038,6 @@ void establishment_guess(Stand& stand,Patch& patch) {
 
 					// Now create 'newindiv' new Individual objects
 
-					if (newindiv > 0) {
-						log_info("Establishing new %s cohort with %.0f tree%s...", (const char *)pft.name, nsapling, nsapling > 1 ? "s" : "");
-					}
-
 					// Initial biomass proportional to potential forest floor net
 					// assimilation for this PFT in this patch
 
@@ -1070,12 +1069,17 @@ void establishment_guess(Stand& stand,Patch& patch) {
 						continue;
 					}
 
+					if (newindiv > 0) {
+						log_info("Establishing new %s cohort with %.0f tree%s...", (const char *)pft.name, nsapling, nsapling > 1 ? "s" : "");
+					}
+
 					for (i=0;i<newindiv;i++) {
 
 						// Create average individual for a new cohort (cohort mode)
 						// or an actual individual (individual mode)
 
 						Individual& indiv=vegetation.createobj(pft,vegetation);
+						LogScope scope(indiv);
 
 						if (vegmode==COHORT)
 							indiv.densindiv=nsapling/patcharea;
@@ -1249,6 +1253,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
+		LogScope scope(indiv);
 
 		// For this individual ...
 
@@ -1280,6 +1285,7 @@ void mortality_lpj(Stand& stand, Patch& patch, const Climate& climate, double fi
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
+		LogScope scope(indiv);
 
 		// For this individual ...
 
@@ -1512,6 +1518,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 			vegetation.firstobj();
 			while (vegetation.isobj) {
 				Individual& indiv=vegetation.getobj();
+				LogScope log_scope(indiv);
 
 				// For this individual ...
 
@@ -1592,6 +1599,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv=vegetation.getobj();
+		LogScope log_scope(indiv);
 		Patchpft& ppft = patch.pft[indiv.pft.id];
 
 		// For this individual ...
@@ -1980,7 +1988,9 @@ void insect_mortality_guess(Stand& stand, Patch& patch) {
 		vegetation.firstobj();
 		while (vegetation.isobj) {
 			Individual& indiv = vegetation.getobj();
+			LogScope scope(indiv);
 			Patchpft& patchpft = patch.pft[indiv.pft.id];
+
 			// For this individual ...
 			if (ift.pftinhosts(indiv.pft.name)) {
 
@@ -2037,6 +2047,7 @@ void insect_mortality_guess(Stand& stand, Patch& patch) {
 				vegetation.firstobj();
 				while (vegetation.isobj) {
 					Individual& indiv = vegetation.getobj();
+					LogScope scope(indiv);
 					Patchpft& patchpft = patch.pft[indiv.pft.id];
 
 					// For this individual ...
@@ -2122,6 +2133,7 @@ void storm_mortality_guess(Stand& stand, Patch& patch) {
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
+		LogScope scope(indiv);
 		Patchpft& patchpft = patch.pft[indiv.pft.id];
 
 		// For this individual ...
@@ -2476,6 +2488,7 @@ void disturbance(Patch& patch, double disturb_prob) {
 		vegetation.firstobj();
 		while (vegetation.isobj) {
 			Individual& indiv = vegetation.getobj();
+			LogScope scope(indiv);
 			Patchpft& ppft = patch.pft[indiv.pft.id];
 
 			if(indiv.alive)
@@ -2564,6 +2577,7 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 		vegetation.firstobj();
 		while (vegetation.isobj) {
 			Individual& indiv = vegetation.getobj();
+			LogScope scope(indiv);
 			Patchpft& patchpft = patch.pft[indiv.pft.id];
 
 			// Output of killed tree cmass in connection with tree initialisation turned off for now, probably not needed.
@@ -2591,17 +2605,16 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 			
 			if (pft.name == pftname && !pft.is_grass()) {
 
-				log_info("Prescribed establishment: %s individual no. %d "
-					     "created in %s stand %d, patch %d",
-					     (char*)pftname, i, (char*)stlist[stand.stid].name,
-						 stand.id, patch.id);
-
 				const bool use_latosa_20y_mean = true;
 				const bool use_qsap_20y_mean = true;
 				const bool use_age_20y_mean = false;
 				const bool use_cton_20y_mean = true;
 
 				Individual& indiv = patch.vegetation.createobj(pft, patch.vegetation);
+				LogScope individual_log_scope(indiv);
+
+				log_info("Prescribed establishment: created %s from input record %d",
+					     (char*)pftname, i);
 
 				const double M_TO_CM = 100.0;
 				const double C_TO_TOTAL_BIOMASS = 2.0;
@@ -2629,7 +2642,7 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 				double f_sap = 0.6625 - 0.4372 * diam;
 				double q_sap = ( 2.0 * f_sap - (f_sap * f_sap)) / 4.0;
 
-				log_diagnostic("indiv %d: initial q_sap calculated (diam=%.2f): %f", i, diam, q_sap);
+				log_diagnostic("Input record %d: initial q_sap calculated (diam=%.2f): %f", i, diam, q_sap);
 
 				if (use_qsap_20y_mean) {
 					int diam_bin = -1;
@@ -2659,11 +2672,11 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 								q_sap -= (diam_bin_mean - (diam * 100)) / (diam_bin_mean - diam_bin_mean_next) * (q_sap - q_sap_next);
 							}
 						}
-						log_diagnostic("indiv %d: q_sap used from diam bin %d: %f", i, diam_bin, q_sap);
+						log_diagnostic("Input record %d: q_sap used from diam bin %d: %f", i, diam_bin, q_sap);
 					}
 					else if(diam_bin_reserve > -1) {
 						q_sap = gcpft.qsap_avr_20[diam_bin_reserve].mean();
-						log_diagnostic("indiv %d: q_sap used from diam bin %d: %f", i, diam_bin_reserve, q_sap);
+						log_diagnostic("Input record %d: q_sap used from diam bin %d: %f", i, diam_bin_reserve, q_sap);
 					}
 				}	// else use the value calculated above
 
@@ -2719,7 +2732,7 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 				if(use_latosa_20y_mean && gcpft.latosa_avr_20.sum() != 0)	// else use the value calculated above
 					latosa = gcpft.latosa_avr_20.mean();
 
-				log_diagnostic("latosa_avr_20.size for %s: %d", (char*)pft.name, gcpft.latosa_avr_20.size());
+				log_diagnostic("latosa_avr_20.size for %s: %zu", (char*)pft.name, gcpft.latosa_avr_20.size());
 				log_diagnostic("latosa_avr_20[] for %s:", (char*)pft.name);
 				xtring msg2;
 				for(unsigned int x=0;x<gcpft.latosa_avr_20.size();x++) {
@@ -2758,7 +2771,7 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 				double cton_sap = indiv.pft.cton_sap_avr;
 				double cton_heart = indiv.pft.cton_sap_max;
 
-				log_diagnostic("cton_sap_avr_20.size for %s: %d", (char*)pft.name, gcpft.cton_sap_avr_20.size());
+				log_diagnostic("cton_sap_avr_20.size for %s: %zu", (char*)pft.name, gcpft.cton_sap_avr_20.size());
 				log_diagnostic("cton_sap_avr_20[] for %s:", (char*)pft.name);
 				xtring msg;
 				for(unsigned int x=0;x<gcpft.cton_sap_avr_20.size();x++) {
@@ -2821,7 +2834,7 @@ void establish_input(Patch& patch, bool pool_soil = false) {
 				// Bypass alive conditional in indiv:report:flux (?)
 				patch.fluxes.report_flux(Fluxes::SEEDN, -(indiv.nmass_leaf + indiv.nmass_root + indiv.nmass_sap + indiv.nmass_heart + indiv.nmass_storage));
 
-				log_diagnostic("Creating %s individual id %d", (char*)pftname, indiv.id);
+				log_diagnostic("Creating %s individual", (char*)pftname);
 				log_diagnostic("latosa=%f cmass=%f f_sap=%f q_sap=%f cton_leaf=%f cton_sap=%f", latosa, cmass_sap_ind + cmass_heart_ind + cmass_leaf_ind + cmass_root_ind, f_sap, q_sap, cton_leaf, cton_sap);
 				log_diagnostic("cmass_leaf=%f cmass_root=%f cmass_sap=%f cmass_heart=%f", cmass_leaf_ind, cmass_root_ind, cmass_sap_ind, cmass_heart_ind);
 				log_diagnostic("nmass_leaf=%f nmass_root=%f nmass_sap=%f nmass_heart=%f", indiv.nmass_leaf / indiv.densindiv, indiv.nmass_root / indiv.densindiv, indiv.nmass_sap / indiv.densindiv, indiv.nmass_heart / indiv.densindiv);
@@ -2963,9 +2976,10 @@ void establish_input_setup_stands(Gridcell& gridcell) {
 		Gridcell::iterator gc_itr = gridcell.begin();
 		while (gc_itr != gridcell.end()) {
 			Stand& stand_kill = *gc_itr;
+			LogScope log_scope(stand_kill);
 
 			if(stand_kill.stid == st.id) {
-				log_info("Killed st %s stand %d", (char*)st.name, stand_kill.id);	
+				log_info("Killed stand of type %s", (char*)st.name);
 				gc_itr = gridcell.delete_stand(gc_itr);
 			}
 			else {
@@ -2974,8 +2988,9 @@ void establish_input_setup_stands(Gridcell& gridcell) {
 		}
 		if(gcst.frac) {
 			Stand& new_stand = gridcell.create_stand_lu(st, gcst.frac, npatch_treeinit, false);
+			LogScope log_scope(new_stand);
 			receiving_stand_change(gridcell, transfer, true, -1, -1, 1.0, new_stand.id);
-			log_info("%s stand no.%d created", (char*)st.name, new_stand.id);
+			log_info("Stand of type %s created", (char*)st.name);
 		}
 	}
 
@@ -3018,6 +3033,7 @@ void establish_input_gridcell(Gridcell& gridcell) {
 		stand.firstobj();
 		while (stand.isobj) {
 			Patch& patch = stand.getobj();
+			LogScope patch_log_scope(patch);
 			establish_input(patch, forest_init_poolsoil);
 			stand.nextobj();
 		}
@@ -3064,6 +3080,7 @@ void establish_input_gridcell(Gridcell& gridcell) {
 	// Redo management setup for stands after updating parameters
 	for(unsigned int s=0;s<gridcell.nbr_stands();s++) {
 		Stand& stand = gridcell[s];
+		LogScope scope(stand);
 		Gridcellst& gcst = stand.get_gridcell().st[stand.stid];
 		if(gcst.prescribed_establishment) {
 			if(!use_rotation)
@@ -3116,8 +3133,9 @@ void force_prescribed_disturbance(Gridcell& gridcell, Rank_stands& stand_class, 
 
 	if(!disturbance_fraction)
 		return;
-//	else
-//		dprintf("\nYear %d: Disturbance type %d gridcell fraction = %f\n\n", date.get_calendar_year(), (int)disttype, disturbance_fraction);
+
+	log_diagnostic("Disturbance type %d gridcell fraction = %f", (int)disttype,
+			 disturbance_fraction);
 
 	// With the assumption that NATURAL is forest, might be a problem with a natural grassland
 	double disturbance_fraction_remain = disturbance_fraction * (gridcell.landcover.frac[FOREST] + gridcell.landcover.frac[NATURAL]);
@@ -3126,29 +3144,37 @@ void force_prescribed_disturbance(Gridcell& gridcell, Rank_stands& stand_class, 
 
 		int stand_index = stand_class.get_index(stand_class.nstands_initial -1 - i);
 		Stand& stand = gridcell[stand_index];
+		LogScope scope(stand);
 		int stand_age = (date.year - max(stand.first_year, stand.clone_year));
 
 		// Avoid disturbing the the same stand twice
 		if(!stand.disturbed && (stand.landcover == FOREST || stand.landcover == NATURAL)) {
 
-//			dprintf("Area fraction of stand %d = %f, vegetation C = %f, age = %d\n\n", stand.id, stand.get_gridcell_fraction(), (stand.ccont() - stand.ccont(0.0)), stand_age);
+			log_diagnostic("Area fraction of stand=%f, vegetation C = %f, age = %d",
+				           stand.get_gridcell_fraction(),
+						   (stand.ccont() - stand.ccont(0.0)), stand_age);
+
 			ManagementType& mt = stand.get_current_management();
 
 			// Kill vegetation for the whole stand
 			if(disturbance_fraction_remain >= stand.get_gridcell_fraction()) {
 
-//				dprintf("Year %d: Disturbance type %d: st %s, Stand %d (area fraction %f) harvested/disturbed\n", date.get_calendar_year(), (int)disttype, (char*)stlist[stand.stid].name, stand.id, stand.get_gridcell_fraction());
+				log_diagnostic("Disturbance type %d: st %s (area fraction %f) harvested/disturbed",
+							   (int)disttype, (char*)stlist[stand.stid].name,
+							   stand.get_gridcell_fraction());
 
 				stand.firstobj();
 
 				while (stand.isobj) {
 
 					Patch& patch = stand.getobj();
+					LogScope scope(patch);
 
 					if(!patch.age) {
 						stand.nextobj();
 						continue;
 					}
+
 					patch.man_strength = 1.0;
 
 					// blaze function at patch level
@@ -3167,12 +3193,13 @@ void force_prescribed_disturbance(Gridcell& gridcell, Rank_stands& stand_class, 
 					vegetation.firstobj();
 					while (vegetation.isobj) {
 						Individual& indiv = vegetation.getobj();
+						LogScope scope(indiv);
 
 						if(disttype != FIRE) {
 							bool killed = false;
 							harvest_forest(indiv, indiv.pft, indiv.alive, 0.0, killed, &harvest_params, disttype);
 							if(killed) {
-//								dprintf("Year %d: ST %d, Stand %d, Patch %d; Individual %d killed in disturbance no. %d\n", date.get_calendar_year(), stand.stid, stand.id, patch, indiv.id, disttype);
+								log_info("Individual killed by %s disturbance", DIST_TYPE_NAMES[disttype]);
 							}
 							else {
 								vegetation.nextobj();	// Grass not killed if mt.killgrass_at_cc is false!
@@ -3215,13 +3242,17 @@ void force_prescribed_disturbance(Gridcell& gridcell, Rank_stands& stand_class, 
 
 				stand.frac_temp -= disturbance_fraction_remain;
 
-//				dprintf("Year %d: Disturbance type %d: st %s, stand %d, Fraction of %f put into new stand no.%d\n", date.get_calendar_year(), (int)disttype, (char*)stlist[stand.stid].name, stand.id, disturbance_fraction_remain, new_stand.id);
+				log_diagnostic("Disturbance type %s: st %s, Fraction of %f put into new stand no. %d",
+					    DIST_TYPE_NAMES[disttype],
+						(char*)stlist[stand.stid].name,
+						disturbance_fraction_remain, new_stand.id);
 
 				new_stand.firstobj();
 
 				while (new_stand.isobj) {
 
 					Patch& patch = new_stand.getobj();
+					LogScope scope(patch);
 
 					patch.man_strength = 1.0;
 					patch.plant_this_year = true;
@@ -3242,6 +3273,7 @@ void force_prescribed_disturbance(Gridcell& gridcell, Rank_stands& stand_class, 
 						vegetation.firstobj();
 						while (vegetation.isobj) {
 							Individual& indiv = vegetation.getobj();
+							LogScope scope(indiv);
 							Patchpft& ppft = patch.pft[indiv.pft.id];
 
 							if(disttype != FIRE) {
@@ -3249,7 +3281,8 @@ void force_prescribed_disturbance(Gridcell& gridcell, Rank_stands& stand_class, 
 								bool killed = false;
 								harvest_forest(indiv, indiv.pft, indiv.alive, 0.0, killed, &harvest_params, disttype);	// use anpp ?
 								if(killed) {
-//									dprintf("Year %d: ST %d, Stand %d, Individual %d killed in disturbance no. %d\n", date.get_calendar_year(), stand.stid, stand.id, indiv.id, disttype);
+									log_info("Individual killed by %s disturbance",
+										     DIST_TYPE_NAMES[disttype]);
 								}
 								else {
 									vegetation.nextobj();	// Grass not killed if mt.killgrass_at_cc is false!
@@ -3272,22 +3305,29 @@ void force_prescribed_disturbance(Gridcell& gridcell, Rank_stands& stand_class, 
 				if(mt.killgrass_at_cc && stand.nobj > 1) {
 
 					landcover_change_transfer transfer;
-					log_diagnostic("Converting stand to single-patch stand");
+					{
+						LogScope log_scope(new_stand);
+						log_diagnostic("Converting stand to single-patch stand");
+					}
 
 					// 1. Copy soil biomass and water from a stand with several patches to a new stand with a single patch after killing remaining grass:
 					new_stand.transfer_area_st[new_stand.stid] += disturbance_fraction_remain;
 					donor_stand_change(gridcell, disturbance_fraction_remain, transfer, -1,-1, new_stand.stid, -1, new_stand.id, &harvest_params);
-					Stand& new_stand2 = gridcell.create_stand_lu(stlist[new_stand.stid], disturbance_fraction_remain, npatch_disturbedstand, false, false, stand.current_rot);
-					receiving_stand_change(gridcell, transfer, true, -1, -1, 1.0, new_stand2.id);
-					log_diagnostic("Single-patch stand created");
+					{
+						Stand& new_stand2 = gridcell.create_stand_lu(stlist[new_stand.stid], disturbance_fraction_remain, npatch_disturbedstand, false, false, stand.current_rot);
+						LogScope created_stand_log_scope(new_stand2);
+						receiving_stand_change(gridcell, transfer, true, -1, -1, 1.0, new_stand2.id);
+						log_diagnostic("Single-patch stand created");
 
-					while(new_stand2.isobj) {
+						while(new_stand2.isobj) {
 
-						Patch& patch = new_stand2.getobj();
-						patch.disturbed = true;
-						patch.plant_this_year = true;
-						patch.prescribed_disturbed = true;	// Will delay resetting of plant_this_year
-						new_stand2.nextobj();
+							Patch& patch = new_stand2.getobj();
+							LogScope scope(patch);
+							patch.disturbed = true;
+							patch.plant_this_year = true;
+							patch.prescribed_disturbed = true;	// Will delay resetting of plant_this_year
+							new_stand2.nextobj();
+						}
 					}
 
 					// 2. Remove new stand with many patches

@@ -4,6 +4,7 @@
 #include "ncutil.h"
 #include "canexch.h" // Many constants defined here
 #include "logging.h"
+#include "log_scope.h"
 #include "guessmath.h"
 #include "driver.h"
 #include "somdynam.h"
@@ -61,11 +62,12 @@ Describes the state of a cohort relevant for photosynthesis calculations.
 */
 class CohortState {
 public:
-	CohortState(double lai, double wscal, double lwp,
-				double fipar, bool stomata_open, double fphen_activity,
-				double ps_sink_lim, double vcmax25, double jmax25,
-				double vpmax25) :
-		lai(lai), wscal(wscal), lwp(lwp), fipar(fipar),
+	CohortState(double lai, double wscal, double lwp, double predawn_lwp,
+				double stom_clos, double fipar, bool stomata_open,
+				double fphen_activity, double ps_sink_lim, double vcmax25,
+				double jmax25, double vpmax25) :
+		lai(lai), wscal(wscal), lwp(lwp), predawn_lwp(predawn_lwp),
+		stom_clos(stom_clos),fipar(fipar),
 		stomata_open(stomata_open), fphen_activity(fphen_activity),
 		ps_sink_lim(ps_sink_lim), vcmax25(vcmax25), jmax25(jmax25),
 		vpmax25(vpmax25) {
@@ -74,7 +76,9 @@ public:
 	CohortState(const Individual &indiv, size_t layer) : CohortState(
 		indiv.canopy[layer].lai,
 		indiv.get_wscal(),
-		ifdavehydraulics ? indiv.predawn_lwp : indiv.weighted_psi,
+		ifdavehydraulics ? indiv.lwp_previous : indiv.weighted_psi,
+		indiv.predawn_lwp,
+		indiv.pft.stom_clos,
 		indiv.canopy[layer].fipar,
 		indiv.stomata_open,
 		indiv.fphen_activity,
@@ -86,6 +90,8 @@ public:
 	double get_lai() const { return lai; }
 	double get_wscal() const { return wscal; }
 	double get_lwp() const { return lwp; }
+	double get_predawn_lwp() const { return predawn_lwp; }
+	double get_stom_clos() const { return stom_clos; }
 	double get_fipar() const { return fipar; }
 	bool get_stomata_open() const { return stomata_open; }
 	double get_fphen_activity() const { return fphen_activity; }
@@ -100,6 +106,10 @@ private:
 	double wscal;
 	// Leaf water potential (MPa).
 	double lwp;
+	// Predawn leaf water potential (MPa).
+	double predawn_lwp;
+	// Leaf water potential (MPa) at stomatal closure.
+	double stom_clos;
 	// Fraction of PAR incident to the leaf area (0-1).
 	double fipar;
 	// Are the stomata open?
@@ -275,6 +285,13 @@ double calc_water_stress_dave(const Soil &soil, const double weight[NSOILLAYERS_
 		total_weight += weight[i];
 
 		depth_cum += soil.soillayers[i].thickness;
+	}
+
+	// If none of the weighted layers have any weight (e.g. all are dry/
+	// rootless), there's no water available to this individual from any of
+	// them - maximally stressed.
+	if (is_zero(total_weight)) {
+		return 0.0;
 	}
 
 	// Normalise by sum of weights.
@@ -586,10 +603,17 @@ void photosynthesis_dave_c3(const PhotosynthesisInputs &inputs, PhotosynthesisOu
 	// apply water stress scaling to vcmax / jmax
 	if (ifzhou) {
 	// function to scale vcmax and jmax by pre-dawn water potential, see Zhou (2014)
-		double wp_vmax_scale = pslim_lwp_scalar(inputs.s_f, inputs.psi_f, inputs.predawn_lwp);
-		pslim = pslim * wp_vmax_scale;
+	//	double wp_vmax_scale = pslim_lwp_scalar(inputs.s_f, inputs.psi_f, inputs.predawn_lwp);
+	// alternative formula from Xu et al. (2016), New Phyt, https://doi.org/10.1111/nph.14009
+	// note we considered a stronger effect (using pg50 rather than tlp as in the paper), but review
+	// of literature indicated that about 50% loss of vcmax at stomatal closure was about right.
+		double a1 = 8.0;
+		//double pg50 = inputs.stom_clos * pow(9.0, -1.0 / a1);
+		double wp_vcmax_scale = 1.0 / (1.0 + pow(inputs.lwp / inputs.stom_clos, a1));
+		pslim = pslim * wp_vcmax_scale;
 	} else {
-		pslim = pslim * pow(inputs.wscal, qb);
+		pslim = pslim 
+		* pow(inputs.wscal, qb);
 	}
 
 	double vcmax = pslim * Arrhenius_temp_response(vcmax25_mol, inputs.tleaf, inputs.ha_v, HD, inputs.ds_v);
@@ -920,8 +944,12 @@ C4Biochemistry c4_biochemistry(const PhotosynthesisInputs &inputs) {
 	// apply water stress scaling to vcmax / jmax
 	if (ifzhou) {
 		// function to scale vcmax and jmax by pre-dawn water potential, see Zhou (2014)
-		double wp_vmax_scale = pslim_lwp_scalar(inputs.s_f, inputs.psi_f, inputs.predawn_lwp);
-		pslim = pslim * wp_vmax_scale;
+		//	double wp_vmax_scale = pslim_lwp_scalar(inputs.s_f, inputs.psi_f, inputs.predawn_lwp);
+	// alternative formula from Xu et al. (2016), New Phyt, https://doi.org/10.1111/nph.14009
+		double a1 = 10.0;
+		// double pg50 = inputs.stom_clos * pow(9.0, -1.0 / a1);
+		double wp_vcmax_scale = 1.0 / (1.0 + pow(inputs.lwp / inputs.stom_clos, a1));
+		pslim = pslim * wp_vcmax_scale;
 	} else {
 		pslim = pslim * pow(inputs.wscal, qb);
 	}
@@ -1014,10 +1042,12 @@ PhotosynthesisDiagnostics get_photosynthesis_inputs(const CohortState &cohort,
 
 	inputs.stomata_open = cohort.get_stomata_open();
 
-	// Predawn LWP will hold yesterday's value for the first few time
-	// steps, until we hit the dawn-transition timestep. Therefore it's
-	// important to set this inside the subdaily loop.
-	inputs.predawn_lwp = cohort.get_lwp();
+	// lwp for Xu (2016) adjustment to vcmax, predawn_lwp for Zhou (2014) stomatal closure model
+	inputs.lwp = cohort.get_lwp();
+	inputs.predawn_lwp = cohort.get_predawn_lwp();
+
+	inputs.stom_clos = cohort.get_stom_clos();
+	inputs.tlp = pft.tlp;
 
 	// CS, Testing adjustment to gcutic with temperature - based on
 	// Cochard 2021 Eq 13 & 14,
@@ -1042,11 +1072,12 @@ PhotosynthesisDiagnostics get_photosynthesis_inputs(const CohortState &cohort,
 	diagnostics.g1 = pft.g1;
 
 	if (ifzhou) {
-		// Stomatal term (Medlyn et al. 2011), with g1 defined by
-		// pre-dawn soil water potential (Zhou et al. 2014).
+		// Stomatal term (Medlyn et al. 2011), with g1 as a declining
+		// exponential function of leaf water potential (Zhou et al. 2014,
+		// eqn 3: g1 = a*exp(b*psi)).
 
-		// We set parameter b1z to the value that results in 90% reduction in g1
-		// at stom_clos (for compatibility with hydraulic module).
+		// We set parameter b1z to the value that results in 90% reduction in
+		// g1 at stom_clos
 		double b1z = log(0.1) / (pft.stom_clos + 0.3);
 
 		// for water
@@ -1292,6 +1323,7 @@ void photosynthesis_gs(Patch& patch) {
 
 		// Retrieve information about cohort
 		Individual& indiv = vegetation[i];
+		LogScope log_scope(indiv);
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
@@ -1299,15 +1331,14 @@ void photosynthesis_gs(Patch& patch) {
 		    is_zero(indiv.get_wscal())) {
 			continue;
 		}
-
 		// TODO: find another home for this check. It doesn't belong here.
 		double lai_layer_sum = 0;
 		for (size_t j = 0; j < indiv.canopy.size(); j++) {
 			lai_layer_sum += indiv.canopy[j].lai;
 		}
 		if (!equal(lai_layer_sum, indiv.lai_today())) {
-			log_warning("Individual %d (%s): layerwise LAI sum (%g) does not equal total LAI (%g) (phen=%g)",
-						i, (const char *)pft.name, lai_layer_sum,
+			log_warning("%s: layerwise LAI sum (%g) does not equal total LAI (%g) (phen=%g)",
+						(const char *)pft.name, lai_layer_sum,
 						indiv.lai_today(), indiv.phen);
 		}
 
@@ -1385,11 +1416,11 @@ void photosynthesis_gs(Patch& patch) {
 				// is effectively only an output.
 				if (energy_balance_maxiter > 1) {
 					if (balance.get_converged()) {
-						log_debug("Energy balance solver converged for individual %d (%s) in layer %d at day period %d in %d iterations.",
-									indiv.id, (const char *)pft.name, j, day.period, balance.get_niter());
+						log_debug("Energy balance solver converged for %s in layer %zu at day period %d in %d iterations.",
+									(const char *)pft.name, j, day.period, balance.get_niter());
 					} else {
-						log_diagnostic("Energy balance solver did not converge for individual %d (%s) in layer %d at day period %d after %d iterations (tleaf_diff = %g).",
-									indiv.id, (const char *)pft.name, j, day.period,
+						log_diagnostic("Energy balance solver did not converge for %s in layer %zu at day period %d after %d iterations (tleaf_diff = %g).",
+									(const char *)pft.name, j, day.period,
 									balance.get_niter(), balance.get_delta_tleaf());
 					}
 				}
@@ -1447,8 +1478,8 @@ void photosynthesis_gs(Patch& patch) {
 
 			// Calculate mean for some variables.
 			if (lai_layer_sum == 0) {
-				log_warning("Individual %d (%s): Total layerwise LAI is zero (%g) (indiv.lai = %g)",
-					        indiv.id, (const char *)pft.name, lai_layer_sum,
+				log_warning("%s: Total layerwise LAI is zero (%g) (indiv.lai = %g)",
+					        (const char *)pft.name, lai_layer_sum,
 							indiv.lai_today());
 			} else {
 				ci_canopy /= lai_layer_sum;
@@ -1544,6 +1575,33 @@ double calc_water_uptake_dave(Individual &indiv) {
 				        soil.nsoillayers);
 }
 
+double calc_transp_old(const Individual &indiv) {
+	const Climate &climate = indiv.vegetation.patch.get_climate();
+	double transp = 0;
+
+	// Loop over time steps per day
+	for (Day day; day.period != date.subdaily; day.next()) {	
+
+		// T = Gc / (pressure/VPD)
+		// Gc in mol m-2 s-1
+		// VPD and pressure in Pa
+		double patmos = climate.pressure[day.period];
+		double vpd = climate.vpds[day.period];
+		double gsw = indiv.ps_subdaily.gsw[day.period];
+		if (vpd > 0 && patmos > 0) {
+			transp += gsw / (patmos / (vpd * 1000.0));
+		}
+
+	} // end sub-daily loop
+	
+	// daily transpiration rate in mol m-2 s-1
+	transp /= date.subdaily;
+
+	// daily transpiration rate in mm d-1
+	// Limiting transpiration to the actual supply is handled later.
+	return transp * MOL2G_H2O * KG_PER_G * SECS_PER_DAY;
+}
+
 /*
 Aggregate transpiration across canopy layers and timesteps to get a total daily
 transpiration in mm day-1 for this cohort.
@@ -1575,33 +1633,9 @@ double transpiration_dave(const Individual &indiv) {
 	return max(0.0, transp);
 }
 
-double calc_transp_old(const Individual &indiv) {
-	const Climate &climate = indiv.vegetation.patch.get_climate();
-	double transp = 0;
-
-	// Loop over time steps per day
-	for (Day day; day.period != date.subdaily; day.next()) {	
-
-		// T = Gc / (pressure/VPD)
-		// Gc in mol m-2 s-1
-		// VPD and pressure in Pa
-		double patmos = climate.pressure[day.period];
-		double vpd = climate.vpds[day.period];
-		double gsw = indiv.ps_subdaily.gsw[day.period];
-		if (vpd > 0 && patmos > 0) {
-			transp += gsw / (patmos / (vpd * 1000.0));
-		}
-
-	} // end sub-daily loop
-	
-	// daily transpiration rate in mol m-2 s-1
-	transp /= date.subdaily;
-
-	// daily transpiration rate in mm d-1
-	// Limiting transpiration to the actual supply is handled later.
-	return transp * MOL2G_H2O * KG_PER_G * SECS_PER_DAY;
-}
-
+/*
+Function to redistribute extra AET if any one layer's water content is exceeded.
+*/
 void prevent_wuptake_oversubscription(Patch &patch) {
 	Vegetation &vegetation = patch.vegetation;
 	Soil &soil = patch.soil;
@@ -1965,7 +1999,7 @@ void forest_floor_dave(Patch &patch) {
 				continue;
 			}
 
-			CohortState cohort(LAI_HYPOTHETICAL, ppft.wscal, lwp, patch.fpar_ff,
+			CohortState cohort(LAI_HYPOTHETICAL, ppft.wscal, lwp, lwp, pft.stom_clos, patch.fpar_ff,
 							   true, 1.0, 1.0, pft.vcmax_25, pft.jmax_25,
 							   pft.vpmax_25);
 			PhotosynthesisInputs inputs;
@@ -2263,7 +2297,9 @@ void partition_canopy_dave(Patch &patch) {
 
 	// Verify canopy vs canopy2.
 	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
-		patch.vegetation[i].validate_canopy();
+		const Individual &indiv = patch.vegetation[i];
+		LogScope log_scope(indiv);
+		indiv.validate_canopy();
 	}
 }
 
@@ -2298,12 +2334,12 @@ void leaf_damage_dave(Patch &patch) {
 
 	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
 		Individual &indiv = patch.vegetation[i];
+		LogScope log_scope(indiv);
 		const Pft &pft = indiv.pft;
 
 		if (is_zero(indiv.lai_today())) {
 			continue;
 		}
-
 		double lai_loss = 0;
 		for (size_t j = 0; j < indiv.energy_balance_layerwise.size(); j++) {
 			for (size_t k = 0; k < indiv.energy_balance_layerwise[j].size(); k++) {
@@ -2324,8 +2360,8 @@ void leaf_damage_dave(Patch &patch) {
 		// indiv.lai_today(), but over the course of the day it could in theory,
 		// so we need to guard against that.
 		if (frac_loss >= 1.0) {
-			log_warning("Individual %d (%s): LAI loss (%g) exceeds total LAI (%g), setting LAI loss to total LAI. This isn't mathematically impossible, and probably indicates sustained high temperatures over the course of the day.",
-						indiv.id, (const char *)pft.name, lai_loss, indiv.lai_today());
+			log_warning("%s: LAI loss (%g) exceeds total LAI (%g), setting LAI loss to total LAI. This isn't mathematically impossible, and probably indicates sustained high temperatures over the course of the day.",
+						(const char *)pft.name, lai_loss, indiv.lai_today());
 			frac_loss = 1.0;
 		}
 

@@ -76,6 +76,12 @@ The `-parallel` flag is required to activate the MPI code paths. Omitting it
 while using `mpirun` will cause each rank to run the full simulation
 independently rather than cooperating.
 
+When checking a run, start with each worker's `runN/guess.log` (for example,
+`run1/guess.log`) under the directory where `mpirun` was started. Look for
+warnings, errors, missing grid cells, or a worker doing unexpected work. Set
+`verbosity 3` in the `.ins` file for informational messages, or `4`/`5` for
+more detail, then rerun if needed. See [Start with `guess.log`](common-failures.md#start-with-guesslog).
+
 ## Collating Outputs
 
 Each rank writes output files (tab-separated values, `.out`) into its `runN/`

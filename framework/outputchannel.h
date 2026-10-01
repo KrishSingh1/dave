@@ -144,7 +144,7 @@ private:
 		virtual void add_value(const Table& table, double d);
 
 		/// Adds a text value to the next row of the output for a given table.
-		virtual void add_value(const Table &table, const char *text);
+		virtual void add_value(const Table &table, const std::string &text);
 
 		/// Finalizes the output of one row, annual output
 		virtual void finish_row(const Table& table, double lon, double lat,
@@ -164,7 +164,7 @@ private:
 		const std::vector<double> get_current_row(const Table& table) const;
 
 		/// Get the added text values for the current row.
-		const std::vector<const char *> get_current_row_text(const Table &table) const;
+		const std::vector<std::string>& get_current_row_text(const Table &table) const;
 
 		/// Should be called at the end of finish_row
 		/** Removes all values stores in memory for the current row */
@@ -173,7 +173,7 @@ private:
 	private:
 		std::vector<TableDescriptor> table_descriptors;
 		std::vector<std::vector<double> > values;
-		std::vector<std::vector<const char *> > text_values;
+		std::vector<std::vector<std::string> > text_values;
 	};
 
 	/// An output channel for regular text files with fixed width columns
@@ -293,7 +293,7 @@ public:
 
 	/// Adds a value to one of the tables
 	/** \see OutputChannel::add_value */
-	void add_value(const Table &table, const char *t);
+	void add_value(const Table &table, const std::string &t);
 private:
 	 OutputChannel* out;
 	 double lon;

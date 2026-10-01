@@ -3,6 +3,32 @@
 This page lists common failures, and what to do about them. For the local
 VSCode workflow, see [Running and Debugging via VSCode](debugging-vscode.md).
 
+## Start with `guess.log`
+
+When a run fails **or produces an unexpected result**, open `guess.log` first.
+For an OzFlux site run, it is in the working directory beside the site
+instruction file, for example
+`benchmarks/ozflux/CumberlandPlain/guess.log`, **not** in `out/`. Search it for
+`FATAL`, `ERROR`, `WARN`, the grid-cell coordinates, the affected stand or PFT,
+and the year when the problem appeared. Read the surrounding messages before
+changing inputs. The terminal may show a short error, but the log usually has
+more context.
+
+Set `verbosity` in the `.ins` file to control how much the log records:
+
+```ins
+verbosity 3
+```
+
+Use **at least `3`** when investigating a run: this includes informational
+messages such as treeinit cohorts and land-cover input decisions. Set `4` for
+diagnostic messages or `5` for more detailed debug messages, then rerun and
+recheck the log. Higher levels can make large logs. The shared OzFlux
+`settings.ins` already sets `verbosity 3`; a site-specific setting can override
+it when imported afterward. For parallel runs, each worker writes its own
+`runN/guess.log`; see [Running in Parallel](run-parallel.md). On Gadi, see the
+[job and worker log guide](gadi-troubleshooting.md).
+
 ## First: Did the Run Complete?
 
 When the model finishes normally, the terminal ends with text like:
@@ -26,12 +52,12 @@ FATAL ERROR:
 Simulation terminated.
 ```
 
-the run failed. Read the first line after `FATAL ERROR:`; it is usually the
-useful part. In VSCode on Windows or Linux, open the **Terminal** panel at the
-bottom of the window and scroll up if needed. On macOS, open **Debug Console**
-from the panel dropdown instead.
+the run failed. Note the first line after `FATAL ERROR:`, then open
+`guess.log` for the surrounding messages. In VSCode on Windows or Linux, open
+the **Terminal** panel at the bottom of the window and scroll up if needed. On
+macOS, open **Debug Console** from the panel dropdown instead.
 
-Whether the run completed or failed, the full log is in the site's directory.
+Whether the run completed or failed, check the log in the site's directory.
 For Cumberland Plain it is:
 
 ```text
@@ -39,13 +65,15 @@ benchmarks/ozflux/CumberlandPlain/guess.log
 ```
 
 Open this file in VSCode, then use `Ctrl+F` (Windows/Linux) or `Cmd+F` (macOS)
-to search for `FATAL`, `ERROR`, or a distinctive word from the terminal
+to search for `FATAL`, `ERROR`, `WARN`, or a distinctive word from the terminal
 message. See [Running and Debugging via VSCode](debugging-vscode.md) for where
 outputs and logs are created. Where supported by the build platform, the log also includes a
 stack trace after a fatal error; this is mainly useful when reporting the
 problem to a developer.
 
-## `Couldn't find input module nc`
+## Specific Common Problems
+
+### `Couldn't find input module nc`
 
 Typical terminal text:
 

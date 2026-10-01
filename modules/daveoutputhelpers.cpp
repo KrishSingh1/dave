@@ -285,6 +285,14 @@ double sum(const double *array, size_t n) {
 	return total;
 }
 
+double sum(const std::vector<double> &array) {
+	double total = 0;
+	for (const double &x : array) {
+		total += x;
+	}
+	return total;
+}
+
 double mean(const double *array, size_t n) {
 	return n ? sum(array, n) / n : 0;
 }
@@ -1441,6 +1449,32 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_
 	};
 }
 
+std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> hydraulic_curve_cols() {
+	return {
+		{ "s1_mpa", [](const Individual &i, int, int) { return i.pft.s1; } },
+		{ "s2", [](const Individual &i, int, int) { return i.pft.s2; } },
+		{ "p88_mpa", [](const Individual &i, int, int) { return i.pft.p88; } },
+		{ "stom_clos_mpa", [](const Individual &i, int, int) { return i.pft.stom_clos; } },
+		{ "resolution", [](const Individual &, int, int) { return epsiresolution; } },
+		{ "psi_max_mpa", [](const Individual &i, int, int) { return i.pft.hydraulic_curve_max_psi(); } },
+		{ "area_max_mpa", [](const Individual &i, int, int) { return i.pft.hydraulic_curve_max_area(); } },
+		{ "open_start", [](const Individual &i, int t, int) { return (double)i.hydraulic_diagnostics[t].stomata_open_start; } },
+		{ "weighted_soil_psi_mpa", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].weighted_soil_psi; } },
+		{ "psi_start_mpa", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].psi_start; } },
+		{ "start_lookup_ok", [](const Individual &i, int t, int) { return (double)i.hydraulic_diagnostics[t].start_lookup_ok; } },
+		{ "area_start_mpa", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].area_start; } },
+		{ "e_mmol_m2_s", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].transpiration; } },
+		{ "kmax_mol_m2_s_mpa", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].kmax; } },
+		{ "conducting_area", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].conducting_area; } },
+		{ "area_request_mpa", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].area_requested; } },
+		{ "transpiration_full_mpa", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].area_full; } },
+		{ "end_lookup_ok", [](const Individual &i, int t, int) { return (double)i.hydraulic_diagnostics[t].end_lookup_ok; } },
+		{ "psi_end_lookup_mpa", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].psi_end_lookup; } },
+		{ "lwp_end_mpa", [](const Individual &i, int t, int) { return i.hydraulic_diagnostics[t].lwp_end; } },
+		{ "open_end", [](const Individual &i, int t, int) { return (double)i.hydraulic_diagnostics[t].stomata_open_end; } }
+	};
+}
+
 std::vector<ArrayColumnDefinition<Patch>> soil_state_cols() {
 	std::vector<ArrayColumnDefinition<Patch>> columns;
 	columns.push_back(ArrayColumnDefinition<Patch>("wmass", [](const Patch &p, int i) { return p.soil.soillayers[i].wmass; }));
@@ -1575,6 +1609,42 @@ std::vector<ArrayColumnDefinition<Patch>> soil_properties_cols() {
 
 	columns.push_back(ArrayColumnDefinition<Patch>("depth_mod", [](const Patch &p, int i) { return p.soil.soillayers[i].depth_mod; }));
 	columns.push_back(ArrayColumnDefinition<Patch>("a", [](const Patch &p, int i) { return p.soil.soillayers[i].a; }));
+
+	return columns;
+}
+
+size_t longest_st_name_length() {
+	size_t max_length = 0;
+	for (size_t i = 0; i < stlist.nobj; i++) {
+		const StandType &st = stlist[i];
+		size_t length = strlen((const char *)st.name);
+		if (length > max_length) {
+			max_length = length;
+		}
+	}
+	return max_length;
+}
+
+size_t longest_lc_name_length() {
+	size_t max_length = 0;
+	for (size_t i = 0; i < NLANDCOVERTYPES; i++) {
+		size_t length = strlen(LC_NAMES[i]);
+		if (length > max_length) {
+			max_length = length;
+		}
+	}
+	return max_length;
+}
+
+std::vector<ColumnDefinition<Stand>> get_stand_type_cols() {
+	std::vector<ColumnDefinition<Stand>> columns;
+	columns.push_back(ColumnDefinition<Stand>::text("stand_type",
+		[](const Stand &s) { return std::string((const char *)stlist[s.stid].name); },
+	    longest_st_name_length));
+	columns.push_back(ColumnDefinition<Stand>::text("landcover",
+		[](const Stand &s) { return LC_NAMES[s.landcover]; },
+		longest_lc_name_length));
+	columns.push_back(ColumnDefinition<Stand>("fraction", [](const Stand &s) { return s.get_gridcell_fraction(); }));
 
 	return columns;
 }

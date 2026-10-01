@@ -51,3 +51,8 @@ where outputs are written, and what to check after the run. To run from the
 command line, see [Running Serially](run-serial.md).
 
 Outputs are written to `benchmarks/ozflux/<SiteName>/out/` by default.
+The model log is `benchmarks/ozflux/<SiteName>/guess.log`. Check it first if
+the run fails or an output looks wrong. `verbosity` in the site `.ins` file
+controls its detail; the shared `settings.ins` sets it to `3`. See
+[Start with `guess.log`](common-failures.md#start-with-guesslog) for the
+recommended diagnostic steps.

@@ -117,5 +117,4 @@ across workers.
 
 After a job finishes, compare this estimate with the actual cost recorded in
 the top-level job log. See
-[Checking and Troubleshooting Gadi Runs](gadi-troubleshooting.md#start-with-the-top-level-job-log).
-
+[Checking and Troubleshooting Gadi Runs](gadi-troubleshooting.md#start-with-the-job-and-worker-logs).

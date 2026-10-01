@@ -7,6 +7,7 @@ set(source
   date_test.cpp
   climate_test.cpp
   math_test.cpp
+  kdtree_test.cpp
   ncompete_test.cpp
   cftime_test.cpp
   string_test.cpp
@@ -15,6 +16,7 @@ set(source
   demo_integration_test.cpp
   demo_state_test.cpp
   fluxes_test.cpp
+  outputchannel_test.cpp
   )
 
 include(add_test_sources)

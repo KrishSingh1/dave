@@ -69,7 +69,11 @@ The full log is:
 benchmarks/ozflux/CumberlandPlain/guess.log
 ```
 
-Open the log if the run failed or reported errors. The exact output files depend
+Open the log first if the run failed, reported warnings or errors, **or simply
+gave an unexpected result**. Search for the relevant year, PFT, stand, and
+warning or error. `verbosity` in the `.ins` file controls the detail: use at
+least `3`, or `4`/`5` for more detail. See
+[Start with `guess.log`](common-failures.md#start-with-guesslog). The exact output files depend
 on the shared `benchmarks/ozflux/outputs.ins` configuration; see [OzFlux Site
 Simulations](ozflux-simulations.md) before changing it. Do not commit files in
 `out/` unless a maintainer has asked for them.

@@ -96,6 +96,9 @@ Calculate the sum of an array.
 */
 double sum(const double *array, size_t n);
 
+/* calculate sum of vector data*/
+double sum(const std::vector<double> &array);
+
 /*
 Calculate a mean.
 
@@ -474,6 +477,11 @@ Get the columns used in the mortality output file.
 std::vector<ColumnDefinition<Individual>> mortality_cols();
 
 /*
+Get the columns used for the stand type output file.
+*/
+std::vector<ColumnDefinition<Stand>> get_stand_type_cols();
+
+/*
 Get the columns used in the high-fidelity photosynthesis inputs file.
 */
 std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_input_cols();
@@ -492,6 +500,11 @@ std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ene
 Get the columns used in the high-fidelity photosynthesis diagnostics output file.
 */
 std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> ps_diagnostics_cols();
+
+/*
+Get the columns used in the high-fidelity hydraulic curve output file.
+*/
+std::vector<std::pair<std::string, double (*)(const Individual&, int, int)>> hydraulic_curve_cols();
 
 } // namespace GuessOutput
 

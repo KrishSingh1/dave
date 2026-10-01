@@ -1044,7 +1044,7 @@ void plib_declarations(int id,xtring setname) {
 			"Stomatal sensitivty to water stress (0-1)");
 		// Hydraulic parameters
 		declareitem("stom_clos",&ppft->stom_clos,-1000.0,0.0,1,CB_NONE, 
-			"Water potential at which stomatal close and roots disconnect from soil (MPa)");
+			"Water potential at which stomata close and roots disconnect from soil (MPa)");
 		declareitem("tlp",&ppft->tlp,-1000.0,0.0,1,CB_NONE, 
 			"Turgor loss point (MPa) - used for grasses only, where this often comes long before stomatal closure, controls sensescence");
 		declareitem("p50",&ppft->p50,-1000.0,0.0,1,CB_NONE, 
@@ -2167,97 +2167,97 @@ void plib_callback(int callback) {
 
 		if (hydrology == GERTEN) {
 			if (ifbedrock) {
-				dprintf("Bedrock: Can't account for bedrock with GERTEN hydrology! ifbedrock set to false\n");
+				log_warning("Bedrock: Can't account for bedrock with GERTEN hydrology! ifbedrock set to false");
 				ifbedrock = false;
 			}
 			if (ifmultilayersnow) {
-				dprintf("Multilayer snow scheme: Can't have multilayer snow scheme together with GERTEN hydrology! ifmultilayersnow set to false\n");
+				log_warning("Multilayer snow scheme: Can't have multilayer snow scheme together with GERTEN hydrology! ifmultilayersnow set to false");
 				ifmultilayersnow = false;
 			}
 			if (ifinundationstress) {
-				dprintf("Inundation stress: Can't have inundation stress together with GERTEN hydrology! ifinundationstress set to false\n");
+				log_warning("Inundation stress: Can't have inundation stress together with GERTEN hydrology! ifinundationstress set to false");
 				ifinundationstress = false;
 			}
 			if (wetland_runon != 0.0) {
-				dprintf("Wetland runon: Can't have wetland runon together with GERTEN hydrology! wetland_runon set to zero\n");
+				log_warning("Wetland runon: Can't have wetland runon together with GERTEN hydrology! wetland_runon set to zero");
 				wetland_runon = 0.0;
 			}
 			if (ifmethane) {
-				dprintf("Methane: Can't have methane together with GERTEN hydrology! ifmethane set to false\n");
+				log_warning("Methane: Can't have methane together with GERTEN hydrology! ifmethane set to false");
 				ifmethane = false;
 			}
 			if (ifsaturatewetlands) {
-				dprintf("Saturated Wetland: Can't have saturated wetland together with GERTEN hydrology! ifsaturatewetlands set to false\n");
+				log_warning("Saturated Wetland: Can't have saturated wetland together with GERTEN hydrology! ifsaturatewetlands set to false");
 				ifsaturatewetlands = false;
 			}
 			if (ifcarbonfreeze) {
-				dprintf("Carbon freeze: Can't have carbon freeze together with GERTEN hydrology! ifcarbonfreeze set to false\n");
+				log_warning("Carbon freeze: Can't have carbon freeze together with GERTEN hydrology! ifcarbonfreeze set to false");
 				ifcarbonfreeze = false;
 			}
 			if (ifsupercooled) {
-				dprintf("Supercooled water: Can't have supercooled water together with GERTEN hydrology! ifsupercooled set to false\n");
+				log_warning("Supercooled water: Can't have supercooled water together with GERTEN hydrology! ifsupercooled set to false");
 				ifsupercooled = false;
 			}
 			if (ifsoaksnow) {
-				dprintf("Soak snow: Can't have soak snow together with GERTEN hydrology! ifsoaksnow set to false\n");
+				log_warning("Soak snow: Can't have soak snow together with GERTEN hydrology! ifsoaksnow set to false");
 				ifsoaksnow = false;
 			}
 			if (iforganicsoilproperties) {
-				dprintf("Organic soil properties: Can't have organic soil properties together with GERTEN hydrology! iforganicsoilproperties set to false\n");
+				log_warning("Organic soil properties: Can't have organic soil properties together with GERTEN hydrology! iforganicsoilproperties set to false");
 				iforganicsoilproperties = false;
 			}
 			if (ifeffvolume) {
-				dprintf("Effective volume: Can't have effective volume together with GERTEN hydrology! ifeffvolume set to false\n");
+				log_warning("Effective volume: Can't have effective volume together with GERTEN hydrology! ifeffvolume set to false");
 				ifeffvolume = false;
 			}
 			if (ifdepthdecaymod) {
-				dprintf("Depth decay mod: Can't have depth decay mod together with GERTEN hydrology! ifdepthdecaymod set to false\n");
+				log_warning("Depth decay mod: Can't have depth decay mod together with GERTEN hydrology! ifdepthdecaymod set to false");
 				ifdepthdecaymod = false;
 			}
 			if (ifthawaffectrootdist) {
-				dprintf("Thaw affect root distribution: Can't have that thaw affect root distribution together with GERTEN hydrology! ifthawaffectrootdist set to false\n");
+				log_warning("Thaw affect root distribution: Can't have that thaw affect root distribution together with GERTEN hydrology! ifthawaffectrootdist set to false");
 				ifthawaffectrootdist = false;
 			}
 			if (rootfrac_of_deep_soil) {
-				dprintf("Roots in deep soil: Can't have deep roots together with GERTEN hydrology! rootfrac_of_deep_soil set to 0\n");
+				log_warning("Roots in deep soil: Can't have deep roots together with GERTEN hydrology! rootfrac_of_deep_soil set to 0");
 				rootfrac_of_deep_soil = 0.0;
 			}
 			if (moistdecay == YAN) {
-				dprintf("Moistdecay: GERTEN hydrology uses the standard moisture SOM decay function! Moistdecay set to FRIEND\n");
+				log_warning("Moistdecay: GERTEN hydrology uses the standard moisture SOM decay function! Moistdecay set to FRIEND");
 				moistdecay = FRIEND;
 			}
 		}
 
 		if (hydrology == MILLER) {
 			if (ifbedrock == 1) {
-				dprintf("Bedrock: Can't account for bedrock with MILLER hydrology! ifbedrock set to false\n");
+				log_warning("Bedrock: Can't account for bedrock with MILLER hydrology! ifbedrock set to false");
 				ifbedrock = false;
 			}
 			if (iforganicsoilproperties) {
-				dprintf("Organic soil properties: Can't have organic soil properties together with MILLER hydrology! iforganicsoilproperties set to false\n");
+				log_warning("Organic soil properties: Can't have organic soil properties together with MILLER hydrology! iforganicsoilproperties set to false");
 				iforganicsoilproperties = false;
 			}
 			if (ifeffvolume) {
-				dprintf("Effective volume: Can't have effective volume together with MILLER hydrology! ifeffvolume set to false\n");
+				log_warning("Effective volume: Can't have effective volume together with MILLER hydrology! ifeffvolume set to false");
 				ifeffvolume = false;
 			}
 			if (ifdepthdecaymod) {
-				dprintf("Depth decay mod: Can't have depth decay mod together with MILLER hydrology! ifdepthdecaymod set to false\n");
+				log_warning("Depth decay mod: Can't have depth decay mod together with MILLER hydrology! ifdepthdecaymod set to false");
 				ifdepthdecaymod = false;
 			}
 			if (rootfrac_of_deep_soil) {
-				dprintf("Roots in deep soil: Can't have deep roots together with MILLER hydrology! rootfrac_of_deep_soil set to 0\n");
+				log_warning("Roots in deep soil: Can't have deep roots together with MILLER hydrology! rootfrac_of_deep_soil set to 0");
 				rootfrac_of_deep_soil = 0.0;
 			}
 			if (moistdecay == YAN) {
-				dprintf("Moistdecay: MILLER hydrology uses the standard moisture SOM decay function! Moistdecay set to FRIEND\n");
+				log_warning("Moistdecay: MILLER hydrology uses the standard moisture SOM decay function! Moistdecay set to FRIEND");
 				moistdecay = FRIEND;
 			}
 		}
 
 		if (hydrology == RICHARDS) {
 			if (!ifmultilayersnow) {
-				dprintf("Multilayer snow scheme: Can't have simple snow scheme together with RICHARDS hydrology! ifmultilayersnow set to true\n");
+				log_warning("Multilayer snow scheme: Can't have simple snow scheme together with RICHARDS hydrology! ifmultilayersnow set to true");
 				ifmultilayersnow = true;
 			}
 		}
@@ -2559,12 +2559,12 @@ void plib_callback(int callback) {
 
 				if(st.mtnames[i] != "" && mtlist.getmtid(st.mtnames[i]) < 0) {
 					include = false;
-					dprintf("Stand type %s not used; mt %s not in mtlist !\n", (char*)st.name, (char*)st.mtnames[i]);
+					log_warning("Stand type %s not used; mt %s not in mtlist !", (char*)st.name, (char*)st.mtnames[i]);
 				}
 				xtring pftname = st.rotation.nmanagements > 1 ? st.get_management(i).pftname : st.management.pftname;
 				if(pftname != "" && pftlist.getpftid(pftname) < 0) {
 					include = false;
-					dprintf("Stand type %s not used; pft %s not in pftlist !\n", (char*)st.name, (char*) pftname);
+					log_warning("Stand type %s not used; pft %s not in pftlist !", (char*)st.name, (char*) pftname);
 				}
 			}
 
@@ -2641,7 +2641,7 @@ void plib_callback(int callback) {
 
 			int pftid = pftlist.getpftid(st.get_management(0).pftname);
 			if(st.intercrop == NATURALGRASS && pftid >= 0 && pftlist[pftid].phenology != CROPGREEN)
-				log_warning("covercrop grass should not be activated in stand types without true crops\n");
+				log_warning("covercrop grass should not be activated in stand types without true crops");
 			stlist.nextobj();
 		}
 

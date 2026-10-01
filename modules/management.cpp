@@ -13,6 +13,7 @@
 #include "landcover.h"
 #include "management.h"
 #include "driver.h"
+#include "log_scope.h"
 #include <random>
 
 double total_lai(const Patch &patch) {
@@ -1989,6 +1990,7 @@ void manage_forests(Gridcell& gridcell) {
 	Gridcell::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
 		Stand& stand = *gc_itr;
+		LogScope scope(stand);
 
 		// Avoid calling manage_forest() when converting harvest biomass input to man_strength
 		// (harvest_secondary_to_new_stand = false, not currently implemented).
@@ -2018,16 +2020,53 @@ void manage_forests(Gridcell& gridcell) {
 		stand.firstobj();
 		while (stand.isobj && (stand.landcover == FOREST || stand.landcover == NATURAL)) {
 			Patch& patch = stand.getobj();
+			LogScope log_scope(patch);
+			const bool thinning_attempt = patch.distributed_cutting && patch.man_strength >= 0.0 && patch.man_strength < 1.0;
+			double harvestable_stem_c = 0.0;
+			double thinned_c_before = 0.0;
+			int selected_trees = 0;
+			if(thinning_attempt) {
+				harvestable_stem_c = check_harvest_cmass(patch, true);
+				for(unsigned int i = 0; i < patch.pft.nobj; i++)
+					thinned_c_before += patch.pft[i].cmass_thin_killed;
+				for(unsigned int i = 0; i < patch.vegetation.nobj; i++) {
+					const Individual& indiv = patch.vegetation[i];
+					if(indiv.pft.lifeform == TREE && indiv.man_strength > 0.0)
+						selected_trees++;
+				}
+			}
 			Vegetation& vegetation = patch.vegetation;
 			vegetation.firstobj();
 			while (vegetation.isobj) {
 				Individual& indiv = vegetation.getobj();
+				LogScope scope(indiv);
 
 				bool killed = false;
 				harvest_forest(indiv, indiv.pft, indiv.alive, 0.0, killed);
 
 				if(!killed)
 					vegetation.nextobj();
+			}
+			if(thinning_attempt) {
+				double thinned_c = -thinned_c_before;
+				for(unsigned int i = 0; i < patch.pft.nobj; i++)
+					thinned_c += patch.pft[i].cmass_thin_killed;
+				if(thinned_c > 0.0) {
+					log_info("Thinning in year %d, stand type %s: removed %.6f kgC/m2 from %d selected tree cohorts.",
+						date.get_calendar_year(), (char*)stlist[stand.stid].name, thinned_c, selected_trees);
+				}
+				else if(harvestable_stem_c <= 0.0) {
+					log_warning("Thinning skipped in year %d, stand type %s: no harvestable stem carbon; check tree PFT harv_eff, stem_frac and twig_frac.",
+						date.get_calendar_year(), (char*)stlist[stand.stid].name);
+				}
+				else if(!selected_trees) {
+					log_warning("Thinning skipped in year %d, stand type %s: no tree cohorts selected for cutting.",
+						date.get_calendar_year(), (char*)stlist[stand.stid].name);
+				}
+				else {
+					log_warning("Thinning skipped in year %d, stand type %s: %d tree cohorts selected but no biomass removed.",
+						date.get_calendar_year(), (char*)stlist[stand.stid].name, selected_trees);
+				}
 			}
 			stand.nextobj();
 		}

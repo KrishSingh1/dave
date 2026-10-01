@@ -131,10 +131,10 @@ ColumnDescriptors::ColumnDescriptors(const std::vector<std::string>& titles,
 	}
 
 	 values[table.id()].push_back(d);
-	 text_values[table.id()].push_back(NULL);
+	 text_values[table.id()].emplace_back();
 }
 
-void OutputChannel::add_value(const Table &table, const char *text) {
+void OutputChannel::add_value(const Table &table, const std::string &text) {
 	// Do nothing for unused tables.
 	if (table.invalid()) {
 		return;
@@ -147,14 +147,12 @@ void OutputChannel::add_value(const Table &table, const char *text) {
 			descriptor.name().c_str());
 	}
 
-	ColumnDescriptor column = descriptor.columns()[values[table.id()].size()];
+	const ColumnDescriptor &column = descriptor.columns()[values[table.id()].size()];
 	if (column.get_type() != TEXT) {
 		fail("Attempted to output a text value in a non-text column");
 	}
 
 	values[table.id()].push_back(-1);
-	// fixme: this relies on the pointer still being valid at write time.
-	// We should maybe do a memcpy or similar here.
 	text_values[table.id()].push_back(text);
 }
 
@@ -168,7 +166,7 @@ void OutputChannel::add_value(const Table &table, const char *text) {
 		return values[table.id()];
 	}
 
-const std::vector<const char *>
+const std::vector<std::string>&
 OutputChannel::get_current_row_text(const Table& table) const {
 	 return text_values[table.id()];
 }
@@ -182,7 +180,7 @@ void OutputChannel::clear_current_row(const Table& table) {
 	 values[table.id()].clear();
 	 // std::vector<double>().swap(values[table.id()]); // clear array memory
 	 text_values[table.id()].clear();
-	 // std::vector<const char *>().swap(text_values[table.id()]); // clear array memory
+	 // std::vector<std::string>().swap(text_values[table.id()]); // clear array memory
 }
 
 	FileOutputChannel::FileOutputChannel(const char* out_dir,
@@ -279,7 +277,7 @@ void OutputChannel::clear_current_row(const Table& table) {
 
 		// make sure all columns have been added
 		const std::vector<double>& row = get_current_row(table);
-	 	const std::vector<const char *> &row_text = get_current_row_text(table);
+		const std::vector<std::string> &row_text = get_current_row_text(table);
 		const TableDescriptor& td = get_table_descriptor(table);
     	const ColumnDescriptors &columns = td.columns();
 
@@ -335,7 +333,7 @@ void OutputChannel::clear_current_row(const Table& table) {
 			} else if (type == TEXT) {
 				char fmt[16];
 				sprintf(fmt, " %%%ds", column.width());
-				fprintf(file, fmt, row_text[i]);
+				fprintf(file, fmt, row_text[i].c_str());
 			} else {
 				fail("Unknown column type: %d", type);
 			}
@@ -520,7 +518,7 @@ OutputRows::~OutputRows() {
 	 out->add_value(table, d);
 }
 
-void OutputRows::add_value(const Table &table, const char *t) {
+void OutputRows::add_value(const Table &table, const std::string &t) {
 	// Do nothing for unused tables.
 	if (table.invalid()) {
 		return;
@@ -543,8 +541,8 @@ GZFileOutputChannel::~GZFileOutputChannel() {
         } else {
             if (!printed_header[i]) {
                 const TableDescriptor& descriptor = get_table_descriptor(i);
-                dprintf("warning! no output created for table %s\n"
-                    , descriptor.name().c_str());
+                log_warning("No output created for table %s",
+					        descriptor.name().c_str());
             }
         }
     }
@@ -579,7 +577,8 @@ void GZFileOutputChannel::close_table(Table& table) {
     else {
         if (!printed_header[table.id()]) {
             const TableDescriptor& descriptor = get_table_descriptor(table);
-            dprintf("warning! no output created for table %s\n", descriptor.name().c_str());
+            log_warning("No output created for table %s",
+				        descriptor.name().c_str());
         }
     }
 }
@@ -614,7 +613,7 @@ void GZFileOutputChannel::finish_row(const Table& table,
 
     // make sure all columns have been added
     const std::vector<double>& row = get_current_row(table);
-    const std::vector<const char *> &row_text = get_current_row_text(table);
+    const std::vector<std::string> &row_text = get_current_row_text(table);
     const TableDescriptor& td = get_table_descriptor(table);
     const ColumnDescriptors &columns = td.columns();
 
@@ -703,7 +702,7 @@ void GZFileOutputChannel::finish_row(const Table& table,
         } else if (type == TEXT) {
             char fmt[16];
             sprintf(fmt, " %%%ds", column.width());
-            gzprintf(gzfile, fmt, row_text[i]);
+            gzprintf(gzfile, fmt, row_text[i].c_str());
         } else {
             fail("Unknown column type: %d", type);
         }

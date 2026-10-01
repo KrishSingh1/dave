@@ -1,0 +1,22 @@
+!///////////////////////////////////////////////////////////////////////
+!
+! EdenNSFI master instruction file
+!
+!///////////////////////////////////////////////////////////////////////
+
+title "LPJ-Guess EdenNSFI"
+
+file_met_forcing        "../forcing/krish/barra2/EdenNSFI/*.nc"
+file_met_spinup         "../forcing/krish/barra2/EdenNSFI/*.nc"
+
+! Gridlist
+file_gridlist    	    "gridlist.txt"
+
+! Instruction files
+import                  "../outputs.ins"
+import                  "../settings.ins"
+import                  "../soiln.ins"
+import                  "EdenNSFI.luc.ins"
+
+param "file_soildepth"  (str "../forcing/soil/soildepth.ozflux.txt")
+!fixed_lai 1.5

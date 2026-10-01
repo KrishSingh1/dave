@@ -422,6 +422,82 @@
             },
             "preLaunchTask": "build"
         },
+         {
+            "name": "Cumberland Plain",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "CumberlandPlain.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/CumberlandPlain",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "EdenNSFI",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/guess",
+            "args": [
+                "-input",
+                "nc",
+                "EdenNSFI.ins"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceRoot}/benchmarks/ozflux/EdenNSFI",
+            "environment": [],
+            "externalConsole": false,
+            "osx": {
+                "MIMode": "lldb"
+            },
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description":  "Set Disassembly Flavor to Intel",
+                        "text": "-gdb-set disassembly-flavor intel",
+                        "ignoreFailures": true
+                    }
+                ],
+            },
+            "windows": {
+                "program": "${workspaceFolder}/build/guesscmd.exe",
+                "MIMode": "gdb"
+            },
+            "preLaunchTask": "build"
+        },
         {
             "name": "Daly Uncleared",
             "type": "cppdbg",

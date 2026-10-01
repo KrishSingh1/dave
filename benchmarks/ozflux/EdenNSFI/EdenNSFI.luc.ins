@@ -1,0 +1,252 @@
+! Cumberland Plain landcover / stand-initialisation test configuration.
+!
+! This file is imported by EdenNSFI.ins after the shared ozflux
+! settings and landcover defaults.
+
+!///////////////////////////////////////////////////////////////////////////////
+! Input files
+!///////////////////////////////////////////////////////////////////////////////
+
+! Annual landcover fractions by broad landcover type. Columns are landcover
+! names such as NATURAL and FOREST; values should normally sum to one.
+! These fractions define the target area of each landcover class each year.
+
+param "file_lu"                          (str "EdenNSFI.luc.txt")
+
+! Gross stand-type transitions. Columns are named FROM_TO, for example
+! Natural_Forest or Forest_Natural. This tells the model which stand type
+! loses area and which stand type gains it when fractions change.
+! Use this for explicit test cases; it is less ambiguous than grossLUC.
+param "file_grossSTC"                    (str "EdenNSFI.gross_stc.txt")
+
+! Alternative gross landcover transition input. Leave empty when using
+! file_grossSTC. grossLUC works at landcover level rather than stand-type
+! level and is mostly useful for LUH-style landcover transition inputs.
+!param "file_grossLUC"                    (str "")
+
+! Prescribed disturbance inputs.
+param "file_dist_clearcut"               (str "")
+param "file_dist_fire"                   (str "")
+param "file_dist_wind"                   (str "")
+param "file_dist_barkbeetle"             (str "")
+param "file_storm_prob"                  (str "")
+
+! Managed-forest harvest probability/intensity inputs. Empty means no external
+! probabilistic harvest regime. The local Forest management types below also
+! suppress disturbance/fire to keep this test focused on LUC and init.
+param "file_woodharv_prob_BL"            (str "")
+param "file_woodharv_prob_NL"            (str "")
+param "file_CC_prob_BL"                  (str "")
+param "file_CC_prob_NL"                  (str "")
+param "file_woodharv_intens_mean_BL"     (str "")
+param "file_woodharv_intens_mean_NL"     (str "")
+param "file_woodharv_intens_sd_BL"       (str "")
+param "file_woodharv_intens_sd_NL"       (str "")
+param "file_woodharv_size_preference_BL" (str "")
+param "file_woodharv_size_preference_NL" (str "")
+param "file_woodharv_intensity_scalar"   (str "")
+
+param "file_presc_burned_area"           (str "")
+
+!param "file_Nfert_st"            (str "")
+!param "file_cutinterval_st"      (str "")
+!param "file_firstmanageyear_st"  (str "")
+
+!///////////////////////////////////////////////////////////////////////////////////////
+! Landcover switches
+!///////////////////////////////////////////////////////////////////////////////////////
+
+! Enable dynamic landcover fractions and stand-type transitions.
+run_landcover 1
+
+! Active landcover classes in this test. Natural and managed forest are enabled;
+! crops, pasture, urban, peatland, and barren are left out to keep the test small.
+run_natural 1
+run_forest 1
+run_crop 0
+run_pasture 0
+run_urban 0
+run_peatland 0
+run_barren 0
+
+!///////////////////////////////////////////////////////////////////////////////////////
+! Landcover transfer / stand creation
+!///////////////////////////////////////////////////////////////////////////////////////
+
+! Secondary/new stands use npatch_secondarystand from landcover.ins.
+! Uncomment locally if you want to override the shared value.
+! npatch_secondarystand 1
+
+! Controls which existing stands lose area when a stand type contracts.
+! reduce_all_stands 0 keeps the default age/priority logic; age_limit_reduce
+! protects very young stands from being reduced unless the algorithm must use
+! them.
+!reduce_all_stands 0
+!age_limit_reduce 15
+
+! Pooling level for transitions:
+!   0 = one pooled transfer bucket
+!   1 = landcover-level transfer buckets
+!   2 = stand-type-level transfer buckets
+! Stand-type level is useful here because grossSTC says exactly which stand
+! type donates/receives area.
+transfer_level 2
+
+! Create new runtime stands during transfers according to copy_stand_type().
+iftransfer_to_new_stand 1
+
+! Treat natural-to-forest conversion as harvested when appropriate, rather than
+! silently moving biomass. Useful for testing biomass transfer/accounting.
+harvest_natural_to_forest 1
+
+!///////////////////////////////////////////////////////////////////////////////////////
+! Output files
+!///////////////////////////////////////////////////////////////////////////////////////
+
+! Change this to redirect outputs if you want to avoid polluting the default
+! output directory.
+outputdirectory "./out/"
+
+printseparatestands 1
+printstandtypes 1
+
+file_forest_cflux_veg "forest_cflux_veg.out"
+file_forest_vegc "forest_vegc.out"
+file_forest_harvest "forest_harvest.out"
+file_harvest_flux_luc "harvest_flux_luc.out"
+
+file_cflux_natural "cflux_natural.out"
+file_cflux_forest "cflux_forest.out"
+file_cpool_natural "cpool_natural.out"
+file_cpool_forest "cpool_forest.out"
+
+file_cmass_sts "cmass_sts.out"
+file_cmass_wood_sts "cmass_wood_sts.out"
+file_clitter_sts "clitter_sts.out"
+file_csoil_sts "csoil_sts.out"
+!file_luc_cflux_sts "luc_cflux_sts.out"
+!file_frac_sts "frac_sts.out"
+file_nstand_sts "nstand_sts.out"
+
+file_cmass_harv_killed_sts  "cmass_harv_killed_sts.out"
+file_cmass_thin_killed_sts  "cmass_thin_killed_sts.out"
+file_cmass_dist_default_sts "cmass_dist_default_sts.out"
+file_cmass_harv_killed_sts  "cmass_harv_killed_sts.out"
+file_cmass_tree_mort_sts    "cmass_tree_mort_sts.out"
+file_cmass_clearcut_killed_sts "cmass_clearcut_killed_sts.out"
+
+!///////////////////////////////////////////////////////////////////////////////////////
+! Groups
+!///////////////////////////////////////////////////////////////////////////////////////
+
+group "EdenClearCutOnly" (
+    harvest_system "clearcut"
+	cutinterval 30
+	suppress_fire 1
+	suppress_disturbance 1
+)
+
+group "EdenFrequentThin" (
+	harvest_system "clearcut"
+	cutinterval 30
+	thintime 0.2 0.4 0.6 0.8 1.0 
+	thinstrength 0.5 0.5 0.5 0.5 0.5
+	thinselectdiam 1 1 1 1 1  ! The last 1 doesn't do anything because the last one will be a clearcut anyways 
+	suppress_fire 1
+	suppress_disturbance 1
+)
+
+group "EdenManagement" (
+	harvest_system "clearcut"
+	cutinterval 30
+	thintime 0.5 0.0 0.0 0.0 0.0 
+	thinstrength 0.5 0.0 0.0 0.0 0.0
+	thinselectdiam 1 0 0 0 0  ! The last 1 doesn't do anything because the last one will be a clearcut anyways 
+	suppress_fire 1
+	suppress_disturbance 1
+)
+!///////////////////////////////////////////////////////////////////////////////////////
+! Management Types (initialisation)
+!///////////////////////////////////////////////////////////////////////////////////////
+
+mt "Forest_init" (
+    firstmanageyear 1985
+	cutfirstyear 1
+    EdenClearCutOnly
+)
+
+mt "MT01" (
+	firstmanageyear 1985
+	cutfirstyear 1
+	EdenFrequentThin
+)
+
+mt "Eden01" (
+	firstmanageyear 1985
+	cutfirstyear 1
+	EdenManagement
+)
+
+!///////////////////////////////////////////////////////////////////////////////////////
+! Management Type (Post initalisation)
+!///////////////////////////////////////////////////////////////////////////////////////
+! Notes: here, if you don't want your initialised stands to be cut, set cutfirstyear 0
+
+mt "Forest_postinit" (
+    cutfirstyear 0
+	firstmanageyear 1985
+    planting_system "selection"
+    EdenClearCutOnly
+)
+
+mt "MTinit" (
+    cutfirstyear 0
+	firstmanageyear 1985
+    planting_system "selection"
+	EdenFrequentThin
+)
+
+mt "Eden01_init" (
+    cutfirstyear 0
+	firstmanageyear 1985
+    planting_system "selection"
+	EdenManagement
+)
+
+!///////////////////////////////////////////////////////////////////////////////////////
+! Stand Types
+!///////////////////////////////////////////////////////////////////////////////////////
+
+st "EdenFrequentThinnings" (  
+    stinclude 1        ! Include this stand type in the simulation.
+    common_stand       ! Common defaults from landcover.ins.
+    landcover "forest" ! Landcover type for this stand type.
+    naturalveg "all"   ! Allow natural PFTs as well as forest PFTs. This is useful in here
+
+    management1 "MT01"
+    management2 "MTinit"
+    file_treeinit_st "EdenNSFI.treeinit.txt"
+)
+
+st "EdenClearCutNoThin" (
+    stinclude 1        ! Include this stand type in the simulation.
+    common_stand       ! Common defaults from landcover.ins.
+    landcover "forest" ! Landcover type for this stand type.
+    naturalveg "all"   ! Allow natural PFTs as well as forest PFTs. This is useful in here
+
+    
+    management1 "Forest_init"
+    management2 "Forest_postinit"
+    file_treeinit_st "EdenNSFI.treeinit.txt"
+)
+
+st "EdenManage" (
+    stinclude 1        ! Include this stand type in the simulation.
+    common_stand       ! Common defaults from landcover.ins.
+    landcover "forest" ! Landcover type for this stand type.
+    naturalveg "all"   ! Allow natural PFTs as well as forest PFTs. This is useful in here
+
+    management1 "Eden01"
+    management2 "Eden01_init"
+    file_treeinit_st "EdenNSFI.treeinit.txt"
+)

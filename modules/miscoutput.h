@@ -99,7 +99,7 @@ private:
 
 	xtring file_cmass_active_plus10cm, file_forest_cmass_harv_killed_active_plus10cm, file_dens_plus10cm, file_speciesheights_plus10cm, file_speciesdiam_plus10cm;
 
-	// Stand type output
+	// Stand type output file_cmass_harv_killed_sts, file_cmass_thin_killed_sts, file_cmass_dist_default_sts, file_cmass_tree_mort_sts
 	xtring file_anpp_sts, file_agpp_sts, file_lai_sts, file_cmass_sts, file_cmass_harv_killed_sts, file_cmass_thin_killed_sts;
 	xtring file_anpp_tree_sts, file_agpp_tree_sts, file_aautresp_tree_sts, file_aautresp_root_tree_sts, file_aautresp_sap_tree_sts, file_aautresp_leaf_tree_sts, file_aautresp_growth_tree_sts;
 

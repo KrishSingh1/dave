@@ -17,6 +17,7 @@
 #include "growth.h"
 #include "landcover.h"
 #include "guessstring.h"
+#include "log_scope.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL VARIABLES WITH EXTERNAL LINKAGE
@@ -4595,6 +4596,7 @@ const Historic<double,30> &Individual::get_wscal_30() const {
 }
 
 void Individual::validate_canopy() const {
+	LogScope log_scope(*this);
 	double lai_sum = 0;
 	for (size_t j = 0; j < canopy.size(); j++) {
 		lai_sum += canopy[j].lai;

@@ -15,6 +15,7 @@
 #include "config.h"
 #include "landcover.h"
 #include "guessmath.h"
+#include "log_scope.h"
 
 enum {SECONDARY_MATURE, SECONDARY_YOUNG, PRIMARY, NFORESTCLASSES};
 
@@ -325,9 +326,11 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 
 						if(gcst.gross_frac_decrease > stand_frac) {
 
-							if((gcst.gross_frac_decrease - stand_frac > INPUT_RESOLUTION))
+							if((gcst.gross_frac_decrease - stand_frac > INPUT_RESOLUTION)) {
+								LogScope log_scope(stand);
 								log_warning("No more stand area left of stand type %d ! Residual reduction demand %.15f ignored.",
 									stand.stid, gcst.gross_frac_decrease - stand_frac);
+							}
 							gcst.gross_frac_decrease = stand_frac;
 						}
 						stand.frac_change = -gcst.gross_frac_decrease;
@@ -359,6 +362,7 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 
 		if(!gcst.frac && stand.get_gridcell_fraction() < INPUT_RESOLUTION * 100.0) {
 			if(stand.get_gridcell_fraction() > INPUT_RESOLUTION * 10.0) {
+				LogScope log_scope(stand);
 				log_info("Remaining stand when stand type %d fraction is 0. Residual fraction %.15f ignored. Stand killed.",
 					st.id, stand_frac);
 			}
@@ -575,6 +579,7 @@ bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest
 
 		if(!gcst.frac && stand_frac < INPUT_RESOLUTION * 100.0) {
 			if(stand_frac > INPUT_RESOLUTION * 10.0) {
+				LogScope log_scope(stand);
 				log_warning("Remaining stand when stand type %d fraction is 0. Residual fraction %.15f ignored. Stand killed.",
 					        st.id, stand_frac);
 			}
@@ -2306,8 +2311,10 @@ double transfer_to_new_stand_from_stand(Gridcell& gridcell, double* st_frac_tran
 
 					Stand& new_stand = stand.clone(stlist[stid_receptor], transfer_area, suppress_disturbance);
 
-					if(stand.landcover == NATURAL && (stlist[stid_receptor].naturalveg == ""))
+					if(stand.landcover == NATURAL && (stlist[stid_receptor].naturalveg == "")) {
+						LogScope log_scope(new_stand);
 						log_warning("Cloning natural stand without allowing natural pfts to grow in the new stand. Was this intended?");
+					}
 
 					new_stand.cloned = true;
 					new_stand.gross_frac_increase = 0.0;
@@ -2837,6 +2844,7 @@ bool check_fractions2(Gridcell& gridcell, double* st_change_array) {
 		Stand& stand = gridcell[i];
 
 		if(stand.frac_change - (stand.gross_frac_increase - stand.gross_frac_decrease) > INPUT_RESOLUTION * 10.0) {
+			LogScope log_scope(stand);
 			log_error("Check 10: Year %d: frac_change is not equal to gross_frac_increase + gross_frac_decrease for stand %d",
 				date.year, stand.id);
 			log_error("dif=%.15f", fabs(stand.frac_change - (stand.gross_frac_increase - stand.gross_frac_decrease)));

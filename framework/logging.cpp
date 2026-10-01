@@ -3,6 +3,8 @@
 #include <stdint.h>
 
 #include "logging.h"
+#include "parallel.h"
+#include "log_scope.h"
 #include "shell.h"
 #include "guess.h"
 #include "util.h"
@@ -91,8 +93,14 @@ bool should_log(LogLevel level) {
     return (int)level <= verbosity;
 }
 
+void write_pfx(LogLevel level);
+void write_log_scope();
+
 [[ noreturn ]]
 void vlog_fatal(const char *fmt, va_list args) {
+    write_pfx(LogLevel::Fatal);
+    write_log_scope();
+
     xtring format = fmt;
     xtring message;
     va_list args_copy;
@@ -100,6 +108,48 @@ void vlog_fatal(const char *fmt, va_list args) {
     formatf(message, format, args_copy);
     va_end(args_copy);
     fail("%s", (const char *)message);
+}
+
+void write_log_scope() {
+    if (log_context.depth == ContextDepth::None ||
+        (log_context.depth == ContextDepth::Gridcell && !GuessParallel::parallel)) {
+        return;
+    }
+
+    lprintf("[");
+
+    // We could always include gridcell coordinates in the log message, but in
+    // practice it adds a lot of unnecessary noise. This is mainly useful in MPI
+    // runs, in order to disambiguate output from different nodes.
+    bool wrote_gridcell = false;
+    if (GuessParallel::parallel && log_context.depth >= ContextDepth::Gridcell) {
+        wrote_gridcell = true;
+        lprintf("lon=%.4f, lat=%.4f", log_context.lon, log_context.lat);
+    }
+
+    if (log_context.depth >= ContextDepth::Stand) {
+        lprintf("%ss%d", wrote_gridcell ? " " : "", log_context.stand_id);
+    }
+
+    if (log_context.depth >= ContextDepth::Patch) {
+        lprintf(" p%d", log_context.patch_id);
+    }
+
+    if (log_context.depth >= ContextDepth::Individual) {
+        lprintf(" i%d", log_context.individual_id);
+    }
+
+    lprintf("] ");
+}
+
+void write_pfx(LogLevel level) {
+    const char *pfx;
+    get_pfx(level, &pfx);
+    lprintf("[");
+    if (date.is_initialised()) {
+        lprintf("%04d-%02d-%02d ", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1);
+    }
+    lprintf("%s] ", pfx);
 }
 
 void vlog(LogLevel level, const char *fmt, va_list args) {
@@ -113,13 +163,8 @@ void vlog(LogLevel level, const char *fmt, va_list args) {
         warning_count++;
     }
 
-    const char *pfx;
-    get_pfx(level, &pfx);
-    lprintf("[");
-    if (date.is_initialised()) {
-        lprintf("%04d-%02d-%02d ", date.get_calendar_year(), date.month + 1, date.dayofmonth + 1);
-    }
-    lprintf("%s] ", pfx);
+    write_pfx(level);
+    write_log_scope();
 
     vlprintf(fmt, args);
     lprintf("\n");

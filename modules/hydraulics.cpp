@@ -36,6 +36,7 @@
 
 #include "guess.h"
 #include "hydraulics.h"
+#include "log_scope.h"
 #include "canexch.h"
 #include "somdynam.h"
 #include "logging.h"
@@ -419,6 +420,7 @@ void hydraulic_mortality(Patch &patch) {
             vegetation.nextobj();
             continue;
         }
+		LogScope log_scope(indiv);
 
         if (indiv.hydraulic_failure) {
             double densindiv = indiv.densindiv;

@@ -38,9 +38,16 @@ class ColumnDefinition {
 		@param get_output: Pointer to a function which returns the value to
 							be written to the rows of this column.
 		*/
-		ColumnDefinition(std::string name, std::function<double(const T&)> get_output) {
-			this->name = name;
-			read_output = get_output;
+		ColumnDefinition(std::string name, std::function<double(const T&)> get_output)
+			: name(name), type(NUMERIC), read_output(get_output) {}
+
+		/// Define a text column. The returned string is owned by the output channel.
+		static ColumnDefinition text(std::string name, std::function<std::string(const T&)> get_output) {
+			return text(name, get_output, nullptr);
+		}
+
+		static ColumnDefinition text(std::string name, std::function<std::string(const T&)> get_output, std::function<size_t()> get_min_width) {
+			return ColumnDefinition(name, get_output, TEXT, get_min_width);
 		}
 
 		/*
@@ -50,6 +57,20 @@ class ColumnDefinition {
 			return name;
 		}
 
+		column_type_t get_type() const {
+			return type;
+		}
+
+		/*
+		Get the minimum width of the column, or 0 if none is specified.
+		*/
+		size_t get_min_width() const {
+			if (_get_min_width) {
+				return _get_min_width();
+			}
+			return 0;
+		}
+
 		/*
 		Read the current value of the column.
 		*/
@@ -57,8 +78,19 @@ class ColumnDefinition {
 			return read_output(t);
 		}
 
+		std::string read_text_value(const T &t) const {
+			return read_text_output(t);
+		}
+
 	private:
+		ColumnDefinition(std::string name, std::function<std::string(const T&)> get_output, column_type_t type)
+			: name(name), type(type), read_text_output(get_output), _get_min_width(nullptr) {}
+
+		ColumnDefinition(std::string name, std::function<std::string(const T&)> get_output, column_type_t type, std::function<size_t()> get_min_width)
+			: name(name), type(type), read_text_output(get_output), _get_min_width(get_min_width) {}
+
 		std::string name;
+		column_type_t type;
 
 		/*
 		Pointer to a function which reads an output from a pointer to an
@@ -68,6 +100,8 @@ class ColumnDefinition {
 		@return: The value which appears in each column of the output table.
 		*/
 		std::function<double(const T&)> read_output;
+		std::function<std::string(const T&)> read_text_output;
+		std::function<size_t()> _get_min_width;
 };
 
 class AggregatedStandGridcellColumnDefinition : public ColumnDefinition<Gridcell> {
@@ -303,6 +337,7 @@ private:
 			@param channel: Pointer to an output channel.
 			@param value: The value to be written.
 			*/
+			void write_output(OutputChannel *channel, const std::string &value);
 			void write_output(OutputChannel *channel, const char *value);
 
 			/*
@@ -490,19 +525,16 @@ class GridcellLevelOutput : public OutputFile {
 		private:
 
 			/*
-			Write all required row for the specified patch.
-
-			@param stand: The stand for which outputs should be written.
+			Whether this output writes one row per stand. Text columns always
+			use per-stand rows, even when numeric statistics are enabled.
 			*/
-			std::vector<double> write_stand(const Stand &stand);
+			bool write_stand_rows() const;
 
 			/*
 			Pointer to a function which generates column definitions to be used
 			for this output file.
 
-			@param patch: The patch.
-			@param pft: The PFT.
-			@return: The value which appears in each column of the output table.
+			@return: The column definitions for this output file.
 			*/
 			std::vector<ColumnDefinition<Stand>> (*get_column_definitions)();
 
@@ -1286,6 +1318,9 @@ class GridcellLevelOutput : public OutputFile {
 	@param mean: Iff true, a mean column will be written after all other columns.
 	*/
 	void add_stand_output(std::string name, timestep_t timestep, std::vector<ColumnDefinition<Stand>> (*get_columns)(), std::string description, bool sum = false, bool mean = false);
+
+	/// Add a stand-level output with numeric and/or text columns.
+	void add_stand_output(std::string name, timestep_t timestep, std::vector<ColumnDefinition<Stand>> columns, std::string description, bool sum = false, bool mean = false);
 
 	/*
 	Add a gridcell-level output.

@@ -1096,7 +1096,6 @@ bool LandcoverInput::loadlandcover(double lon, double lat) {
 
 void LandcoverInput::getlandcover(Gridcell& gridcell) {
 
-	const char* lcnames[]={"URBAN", "CROPLAND", "PASTURE", "FOREST", "NATURAL", "PEATLAND", "BARREN"};
 	double sum_tot=0.0, sum_active=0.0;
 	double sum_tot_nextyear=0.0, sum_active_nextyear=0.0;
 	Landcover& lc = gridcell.landcover;
@@ -1238,13 +1237,13 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 						else if(lcfrac_nextyear < 0.0 ) {	// discard unreasonable values
 							if(printyear)
 								log_info("WARNING ! %d landcover %d %s fraction size %f out of limits, set to 0.0", 
-									date.get_calendar_year(), i, lcnames[i], lcfrac);
+									date.get_calendar_year(), i, LC_NAMES[i], lcfrac);
 							lcfrac_nextyear = 0.0;
 						} 
 						else if(lcfrac_nextyear > 1.01) {	// discard unreasonable values
 							if(printyear)
 								log_info("WARNING ! %d landcover %d %s fraction size %f out of limits, set to 1.0", 
-									date.get_calendar_year(), i, lcnames[i], lcfrac);
+									date.get_calendar_year(), i, LC_NAMES[i], lcfrac);
 							lcfrac_nextyear = 1.0;
 						}
 						lc.frac_nextyear[i] = lcfrac_nextyear;
@@ -1513,7 +1512,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 			else {
 
 				if(year == st_data[lc].GetFirstyear() + st_data[lc].GetnYears())
-					log_info("Last year of %s st fraction data used from year %d and onwards", lcnames[lc], year);
+					log_info("Last year of %s st fraction data used from year %d and onwards", LC_NAMES[lc], year);
 
 				for(int i=0; i<nst; i++) {
 					if(stlist[i].landcover == lc)	{
@@ -1525,12 +1524,12 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 						}
 						else if(frac < 0.0)	{	// correct unreasonable values
 							if(printyear && gridcell.landcover.frac[lc])
-								log_info("WARNING ! %s fraction size out of limits, set to 0.0", lcnames[lc]);
+								log_info("WARNING ! %s fraction size out of limits, set to 0.0", LC_NAMES[lc]);
 							frac = 0.0;
 						}
 						else if(frac > 1.01) {	// correct unreasonable values
 							if(printyear)
-								log_info("WARNING ! %s fraction size out of limits, set to 1.0", lcnames[lc]);
+								log_info("WARNING ! %s fraction size out of limits, set to 1.0", LC_NAMES[lc]);
 							frac = 1.0;
 						}
 						if(!st_data[lc].NormalisedData())
@@ -1545,12 +1544,12 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 						}
 						else if(frac_nextyear < 0.0)	{	// correct unreasonable values
 							if(printyear && gridcell.landcover.frac[lc])
-								log_info("WARNING ! %s fraction size out of limits, set to 0.0", lcnames[lc]);
+								log_info("WARNING ! %s fraction size out of limits, set to 0.0", LC_NAMES[lc]);
 							frac_nextyear = 0.0;
 						}
 						else if(frac_nextyear > 1.01) {	// correct unreasonable values
 							if(printyear)
-								log_info("WARNING ! %s fraction size out of limits, set to 1.0", lcnames[lc]);
+								log_info("WARNING ! %s fraction size out of limits, set to 1.0", LC_NAMES[lc]);
 							frac_nextyear = 1.0;
 						}
 						if(!st_data[lc].NormalisedData())
@@ -1561,7 +1560,7 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 				}
 
 				if(sum == 0.0) {
-					fail("%s st fraction sum is zero. Check input data\n", lcnames[lc]);
+					fail("%s st fraction sum is zero. Check input data\n", LC_NAMES[lc]);
 				}
 			}
 
@@ -1587,8 +1586,8 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 
 				if((ratio < 0.99 || ratio > 1.01) && printyear) {	// warn if sum is significantly different from 1.0 
 					log_info("WARNING ! %s st fraction sum is %7.5f for input year %d while LC fraction is %7.5f", 
-						(char*)lcnames[lc], sum, year, gridcell.landcover.frac[lc]);
-					log_info("Rescaling %s  fractions year %d !", lcnames[lc], date.get_calendar_year());
+						(char*)LC_NAMES[lc], sum, year, gridcell.landcover.frac[lc]);
+					log_info("Rescaling %s  fractions year %d !", LC_NAMES[lc], date.get_calendar_year());
 				}
 			}
 /// frac_nextyear used for tree init procedure
@@ -1614,8 +1613,8 @@ void LandcoverInput::getlandcover(Gridcell& gridcell) {
 
 				if((ratio < 0.99 || ratio > 1.01) && printyear) {	// warn if sum is significantly different from 1.0 
 					log_info("WARNING ! %s st fraction sum is %7.5f for input year %d while LC fraction is %7.5f", 
-						(char*)lcnames[lc], sum_nextyear, (year + 1), gridcell.landcover.frac_nextyear[lc]);
-					log_info("Rescaling %s fractions for next year %d !", lcnames[lc], (date.get_calendar_year() + 1));
+						(char*)LC_NAMES[lc], sum_nextyear, (year + 1), gridcell.landcover.frac_nextyear[lc]);
+					log_info("Rescaling %s fractions for next year %d !", LC_NAMES[lc], (date.get_calendar_year() + 1));
 				}
 			}
 		}

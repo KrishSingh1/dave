@@ -37,6 +37,7 @@
 #include "somdynam.h"
 #include "simfire.h"
 #include "guessmath.h"
+#include "log_scope.h"
 #include <random>
 #include <iostream>
 
@@ -486,7 +487,7 @@ double survival_probability(Patch& patch, Individual& indiv) {
 				survival_probability = survival_probability_savanna(height, fire_line_intensity);
 			}
 			else {
-				dprintf("Biome %d not found in BLAZE\n", biome);
+				log_error("Biome %d not found in BLAZE", biome);
 				survival_probability = 1.;
 			}
 		}
@@ -552,7 +553,7 @@ double survival_probability_SF2(Patch& patch, Individual& indiv) {
                 }
             }
             else if(biome != SF2_NOVEG) {
-                dprintf("Biome %d not found in BLAZE\n",biome);
+                log_error("Biome %d not found in BLAZE", biome);
                 survival_probability = 1.;
             }
         }
@@ -642,7 +643,8 @@ bool blaze(Patch& patch, Climate& climate, bool force_prescribed_fire_today) {
 	if(force_prescribed_fire_today) {
 		patch.fire_line_intensity = patch.fire_line_intensity_year_max;
 		if(patch.fire_line_intensity < 0.0) {
-			dprintf("Negative fire_line_intensity=%f, setting to zero\n",  patch.fire_line_intensity);
+			log_error("Negative fire_line_intensity=%f, setting to zero",
+				      patch.fire_line_intensity);
 			patch.fire_line_intensity = 0.0;
 		}
 	}
@@ -690,8 +692,9 @@ bool blaze(Patch& patch, Climate& climate, bool force_prescribed_fire_today) {
 
 	get_combustion_rates(patch,fli_index,gridcell.k_tun_litter);
 	if(fli_index < 0) {
-		dprintf("fli_index=%d for stand %d year %d\n", fli_index, patch.stand.id, date.get_calendar_year());
-		dprintf("fire_line_intensity=%f, k_tun_litter=%f\n", patch.fire_line_intensity, gridcell.k_tun_litter);
+		log_error("fli_index=%d", fli_index);
+		log_error("fire_line_intensity=%f, k_tun_litter=%f",
+			      patch.fire_line_intensity, gridcell.k_tun_litter);
 	}
 	// Compute fluxes from soil litter pools to atmosphere first
 	// as they are patch-specific. The fluxes to
@@ -769,6 +772,8 @@ bool blaze(Patch& patch, Climate& climate, bool force_prescribed_fire_today) {
 		vegetation.firstobj();
 		while (vegetation.isobj) {
 			Individual& indiv = vegetation.getobj();
+			LogScope scope(indiv);
+
 			if (!indiv.alive) {
 				vegetation.nextobj();
 				continue;
@@ -1297,15 +1302,15 @@ void Individual::blaze_reduce_biomass(Patch& patch, double frac_survive, bool pr
 	}
 
 	if(printyear) {
-		dprintf("Negative ncont happened in BLAZE  year %d\n", date.get_calendar_year());
-/*		dprintf("nleaf2met=%f nleaf2str=%f nsapw2str=%f nhrtw2str=%f nsapw2fwd=%f nhrtw2cwd=%f nroot2met=%f nroot2str=%f\n",nleaf2met, nleaf2str, nsapw2str, nhrtw2str, nsapw2fwd, nhrtw2cwd, nroot2met, nroot2str);
-		dprintf("wtotw =%f fab =%f wood_to_atm =%f wood_to_str =%f wood_to_fwd =%f wood_to_cwd =%f nmass_leaf=%f nmass_sap=%f\n", patch.wood_to_atm + patch.wood_to_str + patch.wood_to_fwd + patch.wood_to_cwd, fab, wood_to_atm, wood_to_str, wood_to_fwd, wood_to_cwd, nmass_leaf + nleaf2atm + nleaf2met + nleaf2str, nmass_sap + nsapw2atm + nsapw2str + nsapw2fwd);
-		dprintf("cleaf2met=%f cleaf2str=%f csapw2str=%f chrtw2str=%f csapw2fwd=%f chrtw2cwd=%f croot2met=%f croot2str=%f\n",cleaf2met, cleaf2str, csapw2str, chrtw2str, csapw2fwd, chrtw2cwd, croot2met, croot2str);
-*/
+		log_error("Negative ncont happened in BLAZE");
+		log_diagnostic("nleaf2met=%f nleaf2str=%f nsapw2str=%f nhrtw2str=%f nsapw2fwd=%f nhrtw2cwd=%f nroot2met=%f nroot2str=%f",nleaf2met, nleaf2str, nsapw2str, nhrtw2str, nsapw2fwd, nhrtw2cwd, nroot2met, nroot2str);
+		log_diagnostic("wtotw =%f fab =%f wood_to_atm =%f wood_to_str =%f wood_to_fwd =%f wood_to_cwd =%f nmass_leaf=%f nmass_sap=%f", patch.wood_to_atm + patch.wood_to_str + patch.wood_to_fwd + patch.wood_to_cwd, fab, wood_to_atm, wood_to_str, wood_to_fwd, wood_to_cwd, nmass_leaf + nleaf2atm + nleaf2met + nleaf2str, nmass_sap + nsapw2atm + nsapw2str + nsapw2fwd);
+		log_diagnostic("cleaf2met=%f cleaf2str=%f csapw2str=%f chrtw2str=%f csapw2fwd=%f chrtw2cwd=%f croot2met=%f croot2str=%f",cleaf2met, cleaf2str, csapw2str, chrtw2str, csapw2fwd, chrtw2cwd, croot2met, croot2str);
+
 		if(!negative_nmass_before)
-			dprintf("nmass values were normal before blaze_reduce_biomass()\n");
+			log_diagnostic("nmass values were normal before blaze_reduce_biomass()");
 		else
-			dprintf("nmass values were negative before blaze_reduce_biomass()\n");
+			log_diagnostic("nmass values were negative before blaze_reduce_biomass()");
 	}
 
 

@@ -545,6 +545,7 @@ void phenology_grass_dave(Vegetation& vegetation, Climate& climate) {
 
 		// Retrieve information about cohort
 		Individual& indiv = vegetation.getobj();
+		LogScope scope(indiv);
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = vegetation.patch.pft[indiv.pft.id];
 
@@ -797,24 +798,14 @@ void tree_phenology_grote(Individual& indiv) {
 			leaf_growth = true; // it is a whole year growth PFT
 			break;
 		default:
-			fail("%s: missing implementation of phen leaf state handling for phenology type %d\n", indiv.pft.phenology);
+			fail("%s: missing implementation of phen leaf state handling for phenology type %d\n",
+				(const char*)indiv.pft.name, indiv.pft.phenology);
 	}
 	
 	indiv.leaf_out = leaf_out;
 	indiv.leaf_senesced = leaf_senesced;
 	indiv.leaf_full_switch_summer = leaf_full_switch_summer;
 	indiv.leaf_growth = leaf_growth;
-#if VERBOSE > 1
-	if (date.get_calendar_year() >= 1901)
-		dprintf("%d leave: lo %d lg %d lfsw %d sd %d sen %d\n",
-						date.day,
-						(int) indiv.leaf_out,
-						(int) indiv.leaf_growth,
-						(int) indiv.leaf_full_switch_summer,
-						(int) indiv.leaf_senesced,
-						(int) indiv.senescence.active);
-#endif
-
 }
 
 void leaf_phenology(Patch& patch, Climate& climate) {
@@ -3309,6 +3300,7 @@ void growth(Stand& stand, Patch& patch) {
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
+		LogScope scope(indiv);
 		Patchpft& ppft = patch.pft[indiv.pft.id];
 
 		if (indiv.pft.dave_allocation()) {
@@ -4888,6 +4880,7 @@ void storage_growth_partitioning_dave(Vegetation& vegetation) {
 			vegetation.nextobj();
 			continue;
 		}
+
 		size_t nobj = vegetation.nobj;
 		if (indiv.pft.is_grass() || indiv.pft.lifeform == MOSS) {
 			storage_growth_partitioning_grass(indiv);

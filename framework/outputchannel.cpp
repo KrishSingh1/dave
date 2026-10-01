@@ -541,8 +541,8 @@ GZFileOutputChannel::~GZFileOutputChannel() {
         } else {
             if (!printed_header[i]) {
                 const TableDescriptor& descriptor = get_table_descriptor(i);
-                dprintf("warning! no output created for table %s\n"
-                    , descriptor.name().c_str());
+                log_warning("No output created for table %s",
+					        descriptor.name().c_str());
             }
         }
     }
@@ -577,7 +577,8 @@ void GZFileOutputChannel::close_table(Table& table) {
     else {
         if (!printed_header[table.id()]) {
             const TableDescriptor& descriptor = get_table_descriptor(table);
-            dprintf("warning! no output created for table %s\n", descriptor.name().c_str());
+            log_warning("No output created for table %s",
+				        descriptor.name().c_str());
         }
     }
 }

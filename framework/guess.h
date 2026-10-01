@@ -317,6 +317,8 @@ typedef enum { EGG, LARVA1, LARVA2, LARVA3, LARVA4, PUPA, TENERAL_ADULT, OVIPOSI
 
 extern const char *LC_NAMES[NLANDCOVERTYPES];
 
+extern const char *DIST_TYPE_NAMES[NDISTURBANCETYPES];
+
 //#define USE_DAYLENGTH_LIMIT_DIAPAUSE
 // STORM number of days in 30 years, used for limit in windload calculation
 #define WIND_30Y_NDAYS 10950

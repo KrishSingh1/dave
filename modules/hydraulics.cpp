@@ -349,7 +349,9 @@ void tree_hydraulics(const Day &day, Individual &indiv) {
         indiv.lwp[day.period] = -psi2; // - 0.01 * indiv.height; // height adjustment is to account for gravitational head
    
         if (indiv.lwp[day.period] < pft.p88) {
-            log_info("Hydraulic failure for indiv %d (%s)", indiv.id, (const char *)pft.name);
+            if (!indiv.hydraulic_failure) {
+                log_diagnostic("Hydraulic failure threshold reached for %s", (const char *)pft.name);
+            }
             indiv.lwp[day.period] = pft.p88;
             indiv.hydraulic_failure = true;
         }
@@ -414,22 +416,22 @@ void hydraulic_mortality(Patch &patch) {
 
     while(vegetation.isobj) {
         Individual &indiv = vegetation.getobj();
+		LogScope log_scope(indiv);
 		Pft &pft = indiv.pft;
 
         if (!pft.dave_allocation() && !(date.islastday && date.islastmonth)) {
             vegetation.nextobj();
             continue;
         }
-		LogScope log_scope(indiv);
 
         if (indiv.hydraulic_failure) {
             double densindiv = indiv.densindiv;
             if (indiv.densindiv > KILL_THRESHOLD) {
-                log_info("Indiv %d (%s): biomass loss due to hydraulic failure", indiv.id, (const char *)pft.name);
+                log_info("%s: biomass loss due to hydraulic failure", (const char *)pft.name);
                 indiv.reduce_biomass(MORT_FRAC, 0, 0, 0, 0, 0, false, indiv.closs_hydraulic, indiv.nloss_hydraulic);
                 indiv.hydraulic_failure = false;
             } else {
-                log_info("Indiv %d (%s): mortality due to hydraulic failure", indiv.id, (const char *)indiv.pft.name);
+                log_info("%s: mortality due to hydraulic failure", (const char *)indiv.pft.name);
                 indiv.kill(MORT_OTHER);
                 vegetation.killobj();
             }

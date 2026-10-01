@@ -1323,6 +1323,7 @@ void photosynthesis_gs(Patch& patch) {
 
 		// Retrieve information about cohort
 		Individual& indiv = vegetation[i];
+		LogScope log_scope(indiv);
 		Pft& pft = indiv.pft;
 		Patchpft &ppft = patch.pft[indiv.pft.id];
 
@@ -1330,16 +1331,14 @@ void photosynthesis_gs(Patch& patch) {
 		    is_zero(indiv.get_wscal())) {
 			continue;
 		}
-		LogScope log_scope(indiv);
-
 		// TODO: find another home for this check. It doesn't belong here.
 		double lai_layer_sum = 0;
 		for (size_t j = 0; j < indiv.canopy.size(); j++) {
 			lai_layer_sum += indiv.canopy[j].lai;
 		}
 		if (!equal(lai_layer_sum, indiv.lai_today())) {
-			log_warning("Individual %d (%s): layerwise LAI sum (%g) does not equal total LAI (%g) (phen=%g)",
-						i, (const char *)pft.name, lai_layer_sum,
+			log_warning("%s: layerwise LAI sum (%g) does not equal total LAI (%g) (phen=%g)",
+						(const char *)pft.name, lai_layer_sum,
 						indiv.lai_today(), indiv.phen);
 		}
 
@@ -1417,11 +1416,11 @@ void photosynthesis_gs(Patch& patch) {
 				// is effectively only an output.
 				if (energy_balance_maxiter > 1) {
 					if (balance.get_converged()) {
-						log_debug("Energy balance solver converged for individual %d (%s) in layer %d at day period %d in %d iterations.",
-									indiv.id, (const char *)pft.name, j, day.period, balance.get_niter());
+						log_debug("Energy balance solver converged for %s in layer %zu at day period %d in %d iterations.",
+									(const char *)pft.name, j, day.period, balance.get_niter());
 					} else {
-						log_diagnostic("Energy balance solver did not converge for individual %d (%s) in layer %d at day period %d after %d iterations (tleaf_diff = %g).",
-									indiv.id, (const char *)pft.name, j, day.period,
+						log_diagnostic("Energy balance solver did not converge for %s in layer %zu at day period %d after %d iterations (tleaf_diff = %g).",
+									(const char *)pft.name, j, day.period,
 									balance.get_niter(), balance.get_delta_tleaf());
 					}
 				}
@@ -1479,8 +1478,8 @@ void photosynthesis_gs(Patch& patch) {
 
 			// Calculate mean for some variables.
 			if (lai_layer_sum == 0) {
-				log_warning("Individual %d (%s): Total layerwise LAI is zero (%g) (indiv.lai = %g)",
-					        indiv.id, (const char *)pft.name, lai_layer_sum,
+				log_warning("%s: Total layerwise LAI is zero (%g) (indiv.lai = %g)",
+					        (const char *)pft.name, lai_layer_sum,
 							indiv.lai_today());
 			} else {
 				ci_canopy /= lai_layer_sum;
@@ -2298,7 +2297,9 @@ void partition_canopy_dave(Patch &patch) {
 
 	// Verify canopy vs canopy2.
 	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
-		patch.vegetation[i].validate_canopy();
+		const Individual &indiv = patch.vegetation[i];
+		LogScope log_scope(indiv);
+		indiv.validate_canopy();
 	}
 }
 
@@ -2333,13 +2334,12 @@ void leaf_damage_dave(Patch &patch) {
 
 	for (size_t i = 0; i < patch.vegetation.nobj; i++) {
 		Individual &indiv = patch.vegetation[i];
+		LogScope log_scope(indiv);
 		const Pft &pft = indiv.pft;
 
 		if (is_zero(indiv.lai_today())) {
 			continue;
 		}
-		LogScope log_scope(indiv);
-
 		double lai_loss = 0;
 		for (size_t j = 0; j < indiv.energy_balance_layerwise.size(); j++) {
 			for (size_t k = 0; k < indiv.energy_balance_layerwise[j].size(); k++) {
@@ -2360,8 +2360,8 @@ void leaf_damage_dave(Patch &patch) {
 		// indiv.lai_today(), but over the course of the day it could in theory,
 		// so we need to guard against that.
 		if (frac_loss >= 1.0) {
-			log_warning("Individual %d (%s): LAI loss (%g) exceeds total LAI (%g), setting LAI loss to total LAI. This isn't mathematically impossible, and probably indicates sustained high temperatures over the course of the day.",
-						indiv.id, (const char *)pft.name, lai_loss, indiv.lai_today());
+			log_warning("%s: LAI loss (%g) exceeds total LAI (%g), setting LAI loss to total LAI. This isn't mathematically impossible, and probably indicates sustained high temperatures over the course of the day.",
+						(const char *)pft.name, lai_loss, indiv.lai_today());
 			frac_loss = 1.0;
 		}
 

@@ -84,7 +84,7 @@ double snowcond(double imass, double wmass, double depth) {
 void Snowlayer::update_temp(double add_temp, double add_mass, double add_Ch) {
 
 	if (negligible(thickness * Ch + add_mass * add_Ch))
-		dprintf("Year %d Day %d Error snow temp \n",date.year,date.day);
+		log_error("Error snow temp update: thickness %g Ch %g add_mass %g add_Ch %g", thickness, Ch, add_mass, add_Ch);
 
 	// New snow layer but haven't updated snow properties yet 
 	if (!negligible(thickness) && negligible(Ch)) {
@@ -290,21 +290,21 @@ void Snowlayer::phase_change(bool toplayer) {
 	}
 
 	if (temp > 0.0 && imass > 0.0)
-		dprintf("ERROR: SNOW Phase Change Year %d Day %d Temp %g imass %g\n", date.year, date.day, temp, imass);
+		log_error("SNOW Phase Change Temp %g imass %g", temp, imass);
 
 	// No negative wmass
 	if (wmass < -EPS)
-		fail("ERROR: Negative wmass at end of snow phase_change! Year %d Day %d wmass %g\n", date.year, date.day, wmass);
+		fail("ERROR: Negative wmass at end of snow phase_change! Year %d Day %d wmass %g", date.year, date.day, wmass);
 
 	// No negative imass
 	if (imass < -EPS)
-		fail("ERROR: Negative imass at end of snow phase_change! Year %d Day %d imass %g\n", date.year, date.day, imass);
+		fail("ERROR: Negative imass at end of snow phase_change! Year %d Day %d imass %g", date.year, date.day, imass);
 
 	double wtotal_final = wmass + imass;
 
 	// water balance checks:
 	if ((fabs(wtotal_initial - wtotal_final)) > EPS) {
-		fail("ERROR: Water mass balance during freezing (%d) or thawing (%d) in Snow::phase_change. Init %g, Final %g, Diff %g \n", 
+		fail("ERROR: Water mass balance during freezing (%d) or thawing (%d) in Snow::phase_change. Init %g, Final %g, Diff %g",
 			ifFreeze, ifThaw, wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
 	}
 
@@ -1722,8 +1722,8 @@ void Soillayer::update_properties(double& wmass_move, double& imass_move, bool m
 		double rock_frac = coarse_volume / thickness;
 
 		if (fabs(organic_volume + mineral_volume + coarse_volume + root_volume - thickness) > 1.0e-12)
-			dprintf("Year %d Day %d ERROR in soil volume (%g) compared to thickness (%g)\n", 
-				date.year,date.day, organic_volume + mineral_volume + coarse_volume + root_volume, thickness);
+			log_error("ERROR in soil volume (%g) compared to thickness (%g)",
+				organic_volume + mineral_volume + coarse_volume + root_volume, thickness);
 
 		wsats = (min_frac * wsats_min + org_frac * wsats_org + rock_frac * wsats_rock) * thickness;
 		awc = (min_frac * awc_min + org_frac * awc_org + rock_frac * awc_rock) * thickness;
@@ -1805,7 +1805,7 @@ double Soillayer::fclay(mincalctype type) {
 		return clay_frac * mineral_volume / thickness;
 	}
 	else {
-		fail("ERROR! Can't calculate clay fraction\n");
+		fail("ERROR! Can't calculate clay fraction");
 		return clay_frac;
 	}
 }
@@ -1825,7 +1825,7 @@ double Soillayer::fsand(mincalctype type) {
 		return sand_frac * mineral_volume / thickness;
 	}
 	else {
-		fail("ERROR! Can't calculate sand fraction\n");
+		fail("ERROR! Can't calculate sand fraction");
 		return clay_frac;
 	}
 }
@@ -1845,7 +1845,7 @@ double Soillayer::fsilt(mincalctype type) {
 		return silt_frac * mineral_volume / thickness;
 	}
 	else {
-		fail("ERROR! Can't calculate silt fraction\n");
+		fail("ERROR! Can't calculate silt fraction");
 		return silt_frac;
 	}
 }
@@ -2080,25 +2080,24 @@ void Soillayer::phase_change() {
 	
 	// Water balance checks
 	if ((fabs(wtotal_initial - wtotal_final)) > EPS) {
-		fail("Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n",
+		fail("Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g",
 			wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
 	}
 
 	// Ice despite positive temperature
 	if (temp > 0.0 && imass > 0.0) {
-		dprintf("ERROR: Phase Change Year %d Day %d Depth %g Temp %g imass %g\n",
-			date.year, date.day, depth_mid, temp, imass);
+		log_error("Phase Change Depth %g Temp %g imass %g", depth_mid, temp, imass);
 	}
 
 	// No negative wmass
 	if (wmass < -EPS) {
-		fail("ERROR: Negative wmass at end of phase_change! Year %d Day %d depth_mid %g thickness %g delta_T %g wmass %g imass %g\n",
+		fail("ERROR: Negative wmass at end of phase_change! Year %d Day %d depth_mid %g thickness %g delta_T %g wmass %g imass %g",
 			date.year, date.day, depth_mid, thickness, delta_T, wmass, imass);
 	}
 
 	// No negative imass
 	if (imass < -EPS) {
-		fail("ERROR: Negative imass at end of phase_change! Year %d Day %d depth_mid %g thickness %g delta_T %g wmass %g imass %g\n",
+		fail("ERROR: Negative imass at end of phase_change! Year %d Day %d depth_mid %g thickness %g delta_T %g wmass %g imass %g",
 			date.year, date.day, depth_mid, thickness, delta_T, wmass, imass);
 	}
 }
@@ -2268,8 +2267,8 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 		// Very small negative residual, add missing N as NO3 flux
 		else if (negligible(residual, -10) || date.year < freenyears) {
 			if (date.year >= freenyears && residual < -1.0e-12) {
-				dprintf("ERROR year %d and day %d! NH4 and NO3 mass %f is smaller than N substr %f with the residual %g. Adding residual as NO flux\n",
-					date.year, date.day, nmass_tot, nmass, residual);
+				log_error("NH4 and NO3 mass %f is smaller than N substr %f with the residual %g. Adding residual as NO flux",
+					nmass_tot, nmass, residual);
 			}
 			NO3_mass = 0.0;
 			NH4_mass = 0.0;
@@ -2277,7 +2276,7 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 		}
 		// Large negative residual, fail model
 		else {
-			fail("Fail in year %d and day %d for stand %d and patch %d at depth %g!\nTried to subtract more N (NO) than available (residual %g)\n",
+			fail("Fail in year %d and day %d for stand %d and patch %d at depth %g!\nTried to subtract more N (NO) than available (residual %g)",
 				date.year, date.day, (*soil).patch.stand.id, (*soil).patch.id, depth_mid, residual);
 		}
 	}
@@ -2290,15 +2289,15 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 		// Very small negative residual, add missing N as NO3 flux
 		else if (negligible(residual, -10) || date.year < freenyears) {
 			if (date.year >= freenyears && residual < -1.0e-12) {
-				dprintf("ERROR year %d and day %d! NH4 mass %f is smaller than N substr %f with the residual %g. Adding residual as NH3 flux\n",
-					date.year, date.day, NH4_mass, nmass, residual);
+				log_error("NH4 mass %f is smaller than N substr %f with the residual %g. Adding residual as NH3 flux",
+					      NH4_mass, nmass, residual);
 			}
 			NH4_mass = 0.0;
 			(*soil).patch.fluxes.report_flux(Fluxes::NH3_SOIL, -residual);
 		}
 		// Large negative residual, fail model
 		else {
-			fail("Fail in year %d and day %d for stand %d and patch %d at depth %g!\nTried to subtract more N (NH4) than available (residual %g)\n",
+			fail("Fail in year %d and day %d for stand %d and patch %d at depth %g!\nTried to subtract more N (NH4) than available (residual %g)",
 				date.year, date.day, (*soil).patch.stand.id, (*soil).patch.id, depth_mid, residual);
 		}
 	}
@@ -2311,15 +2310,15 @@ void Soillayer::nmass_subtract(double nmass, n_pref_type pref) {
 		// Very small negative residual, add missing N as NO flux
 		else if (negligible(residual, -10) || date.year < freenyears) {
 			if (date.year >= freenyears && residual < -1.0e-12) {
-				dprintf("ERROR year %d and day %d! NO3 mass %f is smaller than N substr %f with the residual %g. Adding residual as NO flux\n",
-					date.year, date.day, NO3_mass, nmass, residual);
+				log_error("NO3 mass %f is smaller than N substr %f with the residual %g. Adding residual as NO flux",
+					      NO3_mass, nmass, residual);
 			}
 			NO3_mass = 0.0;
 			(*soil).patch.fluxes.report_flux(Fluxes::NO_SOIL, -residual);
 		}
 		// Large negative residual, fail model
 		else {
-			fail("Fail in year %d and day %d for stand %d and patch %d at depth %g!\nTried to subtract more N (NO3) than available (residual %g)\n",
+			fail("Fail in year %d and day %d for stand %d and patch %d at depth %g!\nTried to subtract more N (NO3) than available (residual %g)",
 				date.year, date.day, (*soil).patch.stand.id, (*soil).patch.id, depth_mid, residual);
 		}
 	}
@@ -2370,7 +2369,8 @@ double Soillayer::nmass_saturation(double NMASS_SAT) {
 void Soillayer::update_temp(double add_temp, double add_mass, double add_Ch) {
 
 	if (negligible((thickness * Ch - add_mass * Cp_air) + add_mass * add_Ch))
-		dprintf("ERROR: Year %d Day %d Updating soil temperature\n", date.year, date.day);
+		log_error("Updating soil temperature: depth_mid %g thickness %g temp %g add_temp %g add_mass %g add_Ch %g",
+			depth_mid, thickness, temp, add_temp, add_mass, add_Ch);
 
 	// Update temperature
 	temp = (temp * (thickness * Ch - add_mass * Cp_air) + add_temp * add_mass * add_Ch) / ((thickness * Ch - add_mass * Cp_air) + add_mass * add_Ch);
@@ -2472,7 +2472,7 @@ void Soillayer::update_thermal_properties() {
 	Stot = mineral + organic + ice + water + peat + coarse_root;
 
 	if (fabs(1.0 - (Stot + air) / combined_depth) > 1.0e-6)
-		fail("Year %d Day %d SID %d PID %d Profile depth %g Illegal total fraction (%g) + air fraction (%g) value in update_heat_diff_and_cond(): %g\n", 
+		fail("Year %d Day %d SID %d PID %d Profile depth %g Illegal total fraction (%g) + air fraction (%g) value in update_heat_diff_and_cond(): %g",
 			date.year, date.day, (*soil).patch.stand.id, (*soil).patch.id, depth_mid,
 			Stot / combined_depth, air / combined_depth, (Stot + air) / combined_depth);
 
@@ -3988,7 +3988,7 @@ void Soil::snow_or_rainfall(double airT, double& prec, double u10, double& rain_
 
 	double w_end = ssw.water_and_ice_content() + snow.water_and_ice_content() + rain_melt;
 	if (fabs(w_begin - w_end) > 1.0e-10) {
-		dprintf("Year %d Day %d ERROR: Snow snow_or_rainfall diff %g\n", date.year, date.day, w_begin - w_end);
+		log_error("Snow snow_or_rainfall diff %g", w_begin - w_end);
 	}
 }
 
@@ -4264,8 +4264,7 @@ void Soil::compute_evap_infilt_and_runoff(double dtsub, double wflux_rain_melt, 
 	double wbudget = wflux_evap + wflux_soil + wflux_ssw_drain + wflux_runoff_surf + wflux_runoff_ssw + wflux_ssw - wflux_rain_melt;
 
 	if (fabs(wbudget) > EPS) {
-		dprintf("Year %d Day %d ERROR: Infiltration water budget off: %g\n", 
-			date.year, date.day, wbudget);
+		log_error("Infiltration water budget off: %g", wbudget);
 	}
 }
 
@@ -4941,7 +4940,9 @@ void belda(double surf_temp, double dt, int nlayers_all, double temp_all[NLAYERS
 	}
 
 	if (fabs(final_cum_energy - init_cum_energy) > 1.0e-12 * final_cum_energy)
-		dprintf("Year %d Day %d TS %g Diff %g Final %g Initial %g\n", date.year, date.day, dt, fabs(final_cum_energy - init_cum_energy), final_cum_energy, init_cum_energy);
+		log_error("TS %g Diff %g Final %g Initial %g", dt,
+			      fabs(final_cum_energy - init_cum_energy), final_cum_energy,
+				  init_cum_energy);
 
 	// Update temp_all
 	for (int lyr = 1; lyr < nlayers_all; lyr++) {
@@ -5370,8 +5371,7 @@ void Soil::hydrology_peat(const Climate& climate, double fevap) {
 
 		// If negative total water, then take water from standing, runoff, and evap until it is zero 
 		if (wtot_acrotelm < 0.0) {
-			dprintf("Year %d Day %d ERROR: Peat surface water balance negative (%g)\n", 
-				date.year, date.day, wtot_acrotelm);
+			log_error("Peat surface water balance negative: %g", wtot_acrotelm);
 		}
 
 		rain_melt = 0.0;
@@ -5846,7 +5846,8 @@ void Soil::hydrology_wetland(const Climate& climate, double fevap) {
 	double wmass_end = get_sum(&Soillayer::wmass) + runoff_surf + evap + aet_total - wmass_wetland_added;
 
 	if (fabs(wmass_begin - wmass_end) > 1.0e-10)
-		dprintf("Year %d Day %d WMASS ERROR: Diff %g Begin %g End %g\n", date.year, date.day, wmass_begin - wmass_end, wmass_begin, wmass_end);
+		log_error("Diff %g Begin %g End %g", wmass_begin - wmass_end,
+				   wmass_begin, wmass_end);
 }
 
 /// Updates the water content for each soil layer
@@ -6068,7 +6069,8 @@ void Soil::hydrology_gerten(const Climate& climate, double fevap) {
 	// Water balance check
 	double wafter = get_sum(&Soillayer::wmass) + runoff_surf + get_sum(&Soillayer::runoff_drain) + get_sum(&Soillayer::runoff_baseflow) + aet_total + evap;
 	if (fabs(wbefore-wafter) > 1.0e-10)
-		dprintf("Year %d Day %d BUCKETWATER Before %g After %g Diff %g Rain_melt %g\n",date.year,date.day, wbefore, wafter, wbefore - wafter, rain_melt);
+		log_error("BUCKETWATER Before %g After %g Diff %g Rain_melt %g",
+			      wbefore, wafter, wbefore - wafter, rain_melt);
 
 	// Reset rain_melt
 	rain_melt = 0.0;
@@ -7344,8 +7346,8 @@ void Soil::check_error(double dwat[NSOILLAYERS_MAX], double dz[NSOILLAYERS_MAX],
 				for (int lyr = 0; lyr < nsoillayers_sim; lyr++) {
 					if (soillayers[lyr].wmass + dwat[lyr] * dz[lyr] < 0.0) {
 						// Negative water mass
-						dprintf("ERROR!!! Negative wmass! Year %d Day %d lyr %d wmass %g\n",
-							date.year, date.day, lyr, soillayers[lyr].wmass + dwat[lyr] * dz[lyr]);
+						log_error("Negative wmass! lyr %d wmass %g",
+							lyr, soillayers[lyr].wmass + dwat[lyr] * dz[lyr]);
 
 						dwat[lyr] = -soillayers[lyr].wmass / dz[lyr];
 					}
@@ -7692,12 +7694,12 @@ void SSW::phase_change() {
 	// Water balance checks
 	if ((fabs(wtotal_initial - wtotal_final)) > EPS_warning) {
 		if ((fabs(wtotal_initial - wtotal_final)) > EPS_fail) {
-			fail("Fail! Year %d Day %d. Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n",
+			fail("Fail! Year %d Day %d. Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g",
 				date.year, date.day, wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
 		}
 		else {
-			dprintf("WARNING! Year %d Day %d. Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g \n",
-				date.year, date.day, wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
+			log_warning("Water mass balance during freezing or thawing in Soil::phase_change. Init %g, Final %g, Diff %g",
+				        wtotal_initial, wtotal_final, wtotal_initial - wtotal_final);
 		}
 	}
 
@@ -7706,19 +7708,18 @@ void SSW::phase_change() {
 
 	// Ice despite positive temperature
 	if (temp > 0.0 && imass > 0.0) {
-		dprintf("ERROR: Phase Change Stand Year %d Day %d Temp %g imass %g\n",
-			date.year, date.day, temp, imass);
+		log_error("Phase Change Stand Temp %g imass %g", temp, imass);
 	}
 
 	// No negative wmass
 	if (wmass < -EPS_warning) {
-		fail("ERROR: Negative wmass at end of ssw phase_change! Year %d Day %d depth %g delta_T %g wmass %g imass %g\n",
+		fail("ERROR: Negative wmass at end of ssw phase_change! Year %d Day %d depth %g delta_T %g wmass %g imass %g",
 			date.year, date.day, depth, delta_T, wmass, imass);
 	}
 
 	// No negative imass
 	if (imass < -EPS_warning) {
-		fail("ERROR: Negative imass at end of ssw phase_change! Year %d Day %d depth %g delta_T %g wmass %g imass %g\n",
+		fail("ERROR: Negative imass at end of ssw phase_change! Year %d Day %d depth %g delta_T %g wmass %g imass %g",
 			date.year, date.day, depth, delta_T, wmass, imass);
 	}
 }
@@ -8468,7 +8469,8 @@ void Soil::vertical_movement() {
 					diff_volume -= min_volume * frac_min + org_volume * frac_org;
 
 					if (diff_volume > 1.0e-12) {
-						dprintf("Year %d Day %d Lyr %d ERROR in vertical movement! No more volume to move (%g).\n", date.year, date.day, lyr, diff_volume);
+						log_error("Lyr %d ERROR in vertical movement! No more volume to move %g",
+							      lyr, diff_volume);
 					}
 
 					// Update organic carbon density in layer below
@@ -8684,8 +8686,8 @@ void Soil::vertical_movement() {
 		}
 
 		if (fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)) > 1.0e-10) {
-			dprintf("Year %d Day %d Lyr %d VERTMOVE VOLUME ERROR %g Eff %g Volume %g\n",
-				date.year, date.day, lyr, fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)),
+			log_error("Lyr %d VERTMOVE VOLUME ERROR %g Eff %g Volume %g",
+				lyr, fabs(eff_volume - (soillayer.mineral_volume + soillayer.organic_volume)),
 				eff_volume, soillayer.mineral_volume + soillayer.organic_volume);
 		}
 
@@ -8697,11 +8699,13 @@ void Soil::vertical_movement() {
 	double wcont_after = water_and_ice_content();
 
 	if (fabs(ccont_after - ccont_before) > 1.0e-10) {
-		dprintf("Year %d ERROR VERTMOVE C before %g after %g Diff %g\n", date.year, ccont_before, ccont_after, ccont_before - ccont_after);
+		log_error("VERTMOVE C before %g after %g Diff %g", ccont_before,
+				  ccont_after, ccont_before - ccont_after);
 	}
 
 	if (fabs((wcont_after - wadd) - wcont_before) > 1.0e-10) {
-		dprintf("Year %d ERROR VERTMOVE W before %g after %g Diff %g\n", date.year, wcont_before, wcont_after, wcont_before - wcont_after);
+		log_error("VERTMOVE W before %g after %g Diff %g", wcont_before,
+			      wcont_after, wcont_before - wcont_after);
 	}
 }
 
@@ -8794,7 +8798,7 @@ void Soil::serialize(ArchiveStream& arch) {
 	}
 
 	if (nsoillayers < 1 || nsoillayers > NSOILLAYERS_MAX) {
-		fail("ERROR: Soil::serialize() nsoillayers %d out of range [1, %d]\n", nsoillayers, NSOILLAYERS_MAX);
+		fail("ERROR: Soil::serialize() nsoillayers %d out of range [1, %d]", nsoillayers, NSOILLAYERS_MAX);
 	}
 
 	if (!arch.save()) {

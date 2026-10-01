@@ -47,14 +47,23 @@ const double Fluxes::N2_FIRERATIO  = 0.722;
 double SOILDEPTH_EVAP = SOILDEPTH_EVAP_TRUNK;
 
 
-const char* LC_NAMES[NLANDCOVERTYPES]= {
+const char* LC_NAMES[NLANDCOVERTYPES] = {
 	"URBAN",
 	"CROPLAND",
 	"PASTURE",
 	"FOREST",
 	"NATURAL",
 	"PEATLAND",
-	"BARREN"};
+	"BARREN"
+};
+
+const char *DIST_TYPE_NAMES[NDISTURBANCETYPES] = {
+	"CLEARCUT",
+	"CLEARCUT_PRESCRIBED",
+	"FIRE",
+	"WIND",
+	"BARKBEETLE"
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 // Implementation of PhotosynthesisResult member functions
@@ -1324,7 +1333,6 @@ void Stand::set_selection_params() {
   * Rules for reestablishment (after sowing or planting) are set by the parameter reestab, "none", "restricted"(only planted pft:s)
   */
 void Stand::set_management(bool savetrees_force) {
-
 	StandType& st = stlist[stid];
 	ManagementType& mt = get_current_management();
 
@@ -1696,7 +1704,7 @@ void Stand::set_management(bool savetrees_force) {
 				fail("Set all PFTs in selection to include 1 in instruction file !\n");
 		}
 		else {
-			dprintf("Warning: stand type %d planting selection not defined !\n", stid);
+			log_warning("Planting selection is not defined for stand type %d", stid);
 		}
 	}
 	else if(mt.planting_system != "") {
@@ -2789,8 +2797,10 @@ void nstore_adjust(double cmass_leaf_litter, double cmass_root_litter, double cm
 
 	double nafter = nmass_leaf_litter + nmass_root_litter + nmass_sap_litter + nmass_heart_litter + NH4_mass;
 
-	if (fabs(nbefore - nafter) > 1.0e-16)
-		dprintf("Year %d ADJNLIM Diff %g B %g A %g\n", date.year, nbefore - nafter, nbefore, nafter);
+	if (fabs(nbefore - nafter) > 1.0e-16) {
+		log_debug("N store adjustment changed total N: difference=%g, before=%g, after=%g",
+			nbefore - nafter, nbefore, nafter);
+	}
 }
 
 //MORT
@@ -4000,8 +4010,10 @@ void Individual::partition_nstore(double& NH4_mass) {
 
 	double nafter = ncont() + NH4_mass;
 
-	if (fabs(nbefore - nafter) > 1.0e-16)
-		dprintf("Year %d %s IID %d Diff %g Before %g After %g\n", date.year, (char*)pft.name, id, nbefore - nafter, nbefore, nafter);
+	if (fabs(nbefore - nafter) > 1.0e-16) {
+		log_debug("%s N store partition changed total N: difference=%g, before=%g, after=%g",
+			(const char*)pft.name, nbefore - nafter, nbefore, nafter);
+	}
 }
 
 /// Help function for kill(), partitions wood biomass into litter and harvest
@@ -4540,15 +4552,14 @@ const Historic<double,30> &Individual::get_wscal_30() const {
 }
 
 void Individual::validate_canopy() const {
-	LogScope log_scope(*this);
 	double lai_sum = 0;
 	for (size_t j = 0; j < canopy.size(); j++) {
 		lai_sum += canopy[j].lai;
 		if (j > 0) {
 			// fipar should decrease as we go down the canopy.
 			if (canopy[j].fipar > canopy[j - 1].fipar) {
-				log_fatal("Invalid canopy for individual %d (%s): fipar should decrease as we go down the canopy, but fipar in layer %d is %g and in layer %d is %g.",
-						  id, (const char *)pft.name, j, canopy[j].fipar,
+				log_fatal("Invalid canopy for %s: fipar should decrease as we go down the canopy, but fipar in layer %zu is %g and in layer %zu is %g.",
+						  (const char *)pft.name, j, canopy[j].fipar,
 						  j - 1, canopy[j - 1].fipar);
 			}
 		}
@@ -4556,8 +4567,8 @@ void Individual::validate_canopy() const {
 
 	// Ensure that entire LAI is allocated across layers.
 	if (!equal(lai_sum, lai_today())) {
-		log_fatal("Invalid canopy for individual %d (%s): total LAI across layers (%g) does not match today's LAI (%g).",
-				  id, (const char *)pft.name, lai_sum, lai_today());
+		log_fatal("Invalid canopy for %s: total LAI across layers (%g) does not match today's LAI (%g).",
+				  (const char *)pft.name, lai_sum, lai_today());
 	}
 }
 
@@ -4813,10 +4824,6 @@ void Gridcellift::calc_insect_phenology(Gridcell& gridcell) {	// Use crop day-in
 		pop_ind_new = 0.0;
 		storm_rand = randfrac(gridcell.seed);
 
-		// Simple insect phenology output of for evaluation
-		//if (date.get_calendar_year() > 1950)
-		//	dprintf("Phen %i %i %i %i %5.1f %4.3f %5.4f\n", date.get_calendar_year(), last_flightday, swarming_start[1][0], asp, asp30.mean(), phen_ind, storm_rand);
-
 		// Calculate last potential swarming day with diapause requirement
 		double heat_sum_backwards_count = 0.0;
 		for (int i = 0;i < date.MAX_YEAR_LENGTH;i++) {
@@ -4937,14 +4944,6 @@ void Gridcellift::calc_insect_phenology_lifestage_regniere(Gridcell& gridcell) {
 			temp_hour = (climate.tmax + add_temp_max + climate.tmin + add_temp_min) / 2.0 + (climate.tmax + add_temp_max - climate.tmin - add_temp_min) / 2.0 * sin(double(h) / 24.0 * 2 * PI - PI / 2.0);
 		}
 
-		/*		if(date.year==0 && date.day==0 && h==0) {
-					dprintf("%d\t%.2f\n", h, climate.temp);
-					dprintf("%d\t%.2f\n", h, climate.tmin);
-					dprintf("%d\t%.2f\n\n", h, climate.tmax);
-				}
-				if(date.year==0 && date.day==0)
-					dprintf("%d\t%.2f\n", h, temp_hour);
-		*/
 		double t_max = 0.0;
 		double t_base = 0.0;
 		double psi = 0.0;
@@ -4959,7 +4958,7 @@ void Gridcellift::calc_insect_phenology_lifestage_regniere(Gridcell& gridcell) {
 				if (print_lifestage_at_coldest_day) {
 					if (date.day == climate.coldestday) {
 						if (h == 0)
-							dprintf("Year %d: Coldest day: lifestage %d %.2f\n", date.get_calendar_year(), i, cum_development_lifestage[i]);
+							log_diagnostic("Insect development on coldest day: lifestage %d, cumulative development %.2f", i, cum_development_lifestage[i]);
 					}
 				}
 
@@ -5015,11 +5014,11 @@ t_base = 21;
 
 					if (print_extra_timings) {
 						if (date.year == reset_year + 1 && waitforspring && max(0.0, phenology_regniere_a6(temp_hour, t_base, delta_b, t_max, delta_m, omega, psi))) {
-							dprintf("Stage4 restart Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+							log_debug("Insect stage 4 restarted on day %d", date.day);
 							waitforspring = false;
 						};
 						if ((date.year == reset_year || date.year == reset_year + 1) && !cum_development_lifestage[i] && max(0.0, phenology_regniere_a6(temp_hour, t_base, delta_b, t_max, delta_m, omega, psi)))
-							dprintf("Stage4 start Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+							log_debug("Insect stage 4 started on day %d", date.day);
 					}
 					cum_development_lifestage[i] += max(0.0, phenology_regniere_a6(temp_hour, t_base, delta_b, t_max, delta_m, omega, psi)) / 24;
 					break;
@@ -5031,11 +5030,7 @@ t_base = 21;
 					omega = 0.153;
 					psi = 0.0205;
 					cum_development_lifestage[i] += max(0.0, phenology_regniere_a6(temp_hour, t_base, delta_b, t_max, delta_m, omega, psi)) / 24;
-					/*						if(climate.tmin < -18) {
-												reset_lifestage_to_prepupal();
-												dprintf("Year %d day %d hour %d: Pupae killed by temperature < -18degC\n", date.get_calendar_year(), date.day, h);
-											}
-					*/						break;
+					break;
 				case 6:					// Teneral adult
 					t_base = 4.2;
 					delta_b = 0.1;
@@ -5062,23 +5057,23 @@ t_base = 21;
 					cum_development_lifestage[i] = 1.0;	// Discard hourly overshoot
 					if (print_extra_timings) {
 						if (i == LARVA2 && date.year == reset_year)
-							dprintf("Stage3 start Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+							log_debug("Insect stage 3 started on day %d", date.day);
 						if (i == LARVA3 && (date.year == reset_year || date.year == reset_year + 1))
-							dprintf("Stage3 end Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+							log_debug("Insect stage 3 ended on day %d", date.day);
 						if (i == LARVA4 && (date.year == reset_year || date.year == reset_year + 1))
-							dprintf("Stage4 end Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+							log_debug("Insect stage 4 ended on day %d", date.day);
 					}
 					if (i == OVIPOSITION) {
 						for (int r = 0;r < NLIFESTAGES;r++) {
 							cum_development_lifestage[r] = 0.0;
 						}
 						if (print_oviposition_day)
-							dprintf("Oviposition Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+							log_diagnostic("Insect oviposition on day %d", date.day);
 						else if (print_ndays_season)
-							dprintf("Season length year %d %d\n", date.get_calendar_year(), generation_ndays);
+							log_diagnostic("Insect season length: %d days", generation_ndays);
 						if (print_extra_timings) {
 							if (date.year == reset_year + 1 || date.year == reset_year + 2)
-								dprintf("Oviposition Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+								log_debug("Insect oviposition on day %d", date.day);
 						}
 						oviposition_day = date.day;
 						generation_ndays_latest = generation_ndays;
@@ -5102,16 +5097,15 @@ t_base = 21;
 		if (print_oviposition_day) {
 			//		if(development_start[0][0] == -1)
 			if (oviposition_day == -1)				// TESTA !
-				dprintf("Oviposition Year, day: %d  %d\n", date.get_calendar_year(), -1);
+				log_diagnostic("No insect oviposition this year");
 			else if (novipositions > 1)
-				dprintf("Oviposition Year, day: %d  %d\n", date.get_calendar_year(), -25);
+				log_diagnostic("Multiple insect ovipositions this year");
 		}
 		else if (print_ndays_season) {
-			;//			dprintf("Season length year %d %d\n", date.get_calendar_year(), generation_ndays_latest);
 			if (oviposition_day == -1)				// TESTA !
-				dprintf("Season length year %d %d\n", date.get_calendar_year(), -1);
+				log_diagnostic("Insect season length unavailable: no oviposition this year");
 			else if (novipositions > 1)
-				dprintf("Season length year %d %d\n", date.get_calendar_year(), -25);
+				log_diagnostic("Insect season length unavailable: multiple ovipositions this year");
 		}
 	}
 }
@@ -5174,7 +5168,7 @@ void Gridcellift::calc_insect_phenology_lifestage_bentz(Gridcell& gridcell) {	//
 				if (print_lifestage_at_coldest_day) {
 					if (date.day == climate.coldestday) {
 						if (h == 0)
-							dprintf("Year %d: Coldest day: lifestage %d\n", date.get_calendar_year(), i);
+							log_diagnostic("Insect development on coldest day: lifestage %d", i);
 					}
 				}
 
@@ -5216,7 +5210,6 @@ void Gridcellift::calc_insect_phenology_lifestage_bentz(Gridcell& gridcell) {	//
 					t_add = temp_hour - dev_temp_base; // allow this to be minus
 //						if(temp_hour >= dev_temp_base)
 					cum_development_lifestage[i] += max(0.0, phenology_logan2(t_add, p_1, p_2, p_3, p_4, p_5)) / 24;	// "blogan" Logan et al. 1976 (eq.10), Logan and Bentz 1999
-//						dprintf("Year, day: %d  %d: d=%.3f\n", date.get_calendar_year(), date.day, max(0.0, phenology_logan2(t_add, p_1, p_2, p_3, p_4, p_5)));
 					break;
 				case 3:					// Larva 3: Logan TM1
 					p_1 = 0.078989;
@@ -5229,7 +5222,6 @@ void Gridcellift::calc_insect_phenology_lifestage_bentz(Gridcell& gridcell) {	//
 					t_add = temp_hour - dev_temp_base; // allow this to be minus
 //						if(temp_hour >= dev_temp_base)
 					cum_development_lifestage[i] += max(0.0, phenology_logan1(t_add, p_1, p_2, p_3, p_4)) / 24;
-					//						dprintf("Larva3, Year, day, temp: %d  %d %.1f : d=%.3f\n", date.get_calendar_year(), date.day, temp_hour, max(0.0, phenology_logan1(t_add, p_1, p_2, p_3, p_4)));
 					break;
 				case 4:					// Larva 4: Linear
 					p_1 = 10.93365;	// ((t_base)
@@ -5281,11 +5273,9 @@ void Gridcellift::calc_insect_phenology_lifestage_bentz(Gridcell& gridcell) {	//
 							cum_development_lifestage[r] = 0.0;
 						}
 						if (print_oviposition_day)
-							dprintf("Oviposition Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+							log_diagnostic("Insect oviposition on day %d", date.day);
 						else if (print_ndays_season)
-							dprintf("Season length year %d %d\n", date.get_calendar_year(), generation_ndays);
-						//						if(date.year == reset_year + 1 || date.year == reset_year + 2)
-						//							dprintf("Oviposition Year, day: %d  %d\n", date.get_calendar_year(), date.day);
+							log_diagnostic("Insect season length: %d days", generation_ndays);
 						////					development_start[0][0] = date.day;
 						oviposition_day = date.day;
 						generation_ndays_latest = generation_ndays;
@@ -5310,16 +5300,15 @@ void Gridcellift::calc_insect_phenology_lifestage_bentz(Gridcell& gridcell) {	//
 		if (print_oviposition_day) {
 			//			if(development_start[0][0] == -1)
 			if (oviposition_day == -1)				// TESTA !
-				dprintf("Oviposition Year, day: %d  %d\n", date.get_calendar_year(), -1);
+				log_diagnostic("No insect oviposition this year");
 			else if (novipositions > 1)
-				dprintf("Oviposition Year, day: %d  %d\n", date.get_calendar_year(), -25);
+				log_diagnostic("Multiple insect ovipositions this year");
 		}
 		else if (print_ndays_season) {
-			;//			dprintf("Season length year %d %d\n", date.get_calendar_year(), generation_ndays_latest);
 			if (oviposition_day == -1)				// TESTA !
-				dprintf("Season length year %d %d\n", date.get_calendar_year(), -1);
+				log_diagnostic("Insect season length unavailable: no oviposition this year");
 			else if (novipositions > 1)
-				dprintf("Season length year %d %d\n", date.get_calendar_year(), -25);
+				log_diagnostic("Insect season length unavailable: multiple ovipositions this year");
 		}
 	}
 }
@@ -5672,6 +5661,7 @@ void Gridcell::soillayer_thickness(double lyr_thickness[NSOILLAYERS_MAX], int& n
 Stand& Gridcell::create_stand_lu(StandType& st, double fraction, int no_patch, bool suppress_disturbance, bool savetrees_force, int current_rot) {
 
 	Stand& stand = create_stand(st.landcover, no_patch);
+	LogScope scope(stand);
 	stand.init_stand_lu(st, fraction, suppress_disturbance, savetrees_force, current_rot);
 
 	return stand;
@@ -5931,10 +5921,9 @@ bool MassBalance::check_indiv_C(Individual& indiv, bool check_harvest) {
 		ccont_zero = ccont_zero_scaled;
 
 	if (date.year >= nyear_spinup && !negligible(ccont - ccont_zero + cflux - cflux_zero, -10)) {
-		dprintf("\nStand %d Patch %d Indiv %d C balance year %d day %d: %.10f\n", patch.stand.id, patch.id, indiv.id,
-			date.year, date.day, ccont - ccont_zero + cflux - cflux_zero);
-		dprintf("C pool change: %.10f\n", ccont - ccont_zero);
-		dprintf("C flux: %.10f\n\n",  cflux - cflux_zero);
+		log_error("Individual C balance failed (simulation year %d, day %d): imbalance=%.10f, pool change=%.10f, flux=%.10f",
+			date.year, date.day, ccont - ccont_zero + cflux - cflux_zero,
+			ccont - ccont_zero, cflux - cflux_zero);
 		balance = false;
 	}
 
@@ -5957,10 +5946,9 @@ bool MassBalance::check_indiv_N(Individual& indiv, bool check_harvest) {
 		ncont_zero = ncont_zero_scaled;
 
 	if (date.year >= nyear_spinup && !negligible(ncont - ncont_zero + nflux - nflux_zero, -14)) {
-		dprintf("\nStand %d Patch %d Indiv %d N balance year %d day %d: %.10f\n", patch.stand.id, patch.id, indiv.id,
-			date.year, date.day, ncont - ncont_zero + nflux - nflux_zero);
-		dprintf("N pool change: %.14f\n", ncont - ncont_zero);
-		dprintf("N flux: %.14f\n\n",  nflux - nflux_zero);
+		log_error("Individual N balance failed (simulation year %d, day %d): imbalance=%.14f, pool change=%.14f, flux=%.14f",
+			date.year, date.day, ncont - ncont_zero + nflux - nflux_zero,
+			ncont - ncont_zero, nflux - nflux_zero);
 		balance = false;
 	}
 
@@ -6019,10 +6007,9 @@ bool MassBalance::check_patch_C(Patch& patch, bool check_harvest) {
 		ccont_zero = ccont_zero_scaled;
 
 	if (date.year >= nyear_spinup && !negligible(ccont - ccont_zero + cflux - cflux_zero, -10)) {
-		dprintf("\nStand %d Patch %d C balance year %d day %d: %.10f\n", patch.stand.id, patch.id, date.year, date.day,
-			ccont - ccont_zero + cflux - cflux_zero);
-		dprintf("C pool change: %.10f\n", ccont - ccont_zero);
-		dprintf("C flux: %.10f\n\n",  cflux - cflux_zero);
+		log_error("Patch C balance failed (simulation year %d, day %d): imbalance=%.10f, pool change=%.10f, flux=%.10f",
+			date.year, date.day, ccont - ccont_zero + cflux - cflux_zero,
+			ccont - ccont_zero, cflux - cflux_zero);
 		balance = false;
 	}
 
@@ -6046,10 +6033,9 @@ bool MassBalance::check_patch_N(Patch& patch, bool check_harvest) {
 		ncont_zero = ncont_zero_scaled;
 
 	if (date.year >= nyear_spinup && !negligible(ncont - ncont_zero + nflux - nflux_zero, -14)) {
-		dprintf("\nStand %d Patch %d N balance year %d day %d: %.14f\n", patch.stand.id, patch.id, date.year, date.day,
-			ncont - ncont_zero + nflux - nflux_zero);
-		dprintf("N pool change: %.14f\n", ncont - ncont_zero);
-		dprintf("N flux: %.14f\n\n", nflux - nflux_zero);
+		log_error("Patch N balance failed (simulation year %d, day %d): imbalance=%.14f, pool change=%.14f, flux=%.14f",
+			date.year, date.day, ncont - ncont_zero + nflux - nflux_zero,
+			ncont - ncont_zero, nflux - nflux_zero);
 		balance = false;
 	}
 
@@ -6064,9 +6050,9 @@ bool MassBalance::check_patch_water(Patch& patch) {
 	double water_flux = patch.water_flux(Period::YEAR);
 
 	if (date.year >= nyear_spinup && !negligible(water_content - water_cont_zero + water_flux - water_flux_zero, -8)) {
-		dprintf("\nStand %d Patch %d Water balance year %d day %d: %.9f\n", patch.stand.id, patch.id, date.year, date.day, water_content - water_cont_zero + water_flux - water_flux_zero);
-		dprintf("Water pool change: %.10f\n", water_content - water_cont_zero);
-		dprintf("Water flux: %.10f\n\n", water_flux - water_flux_zero);
+		log_error("Patch water balance failed (simulation year %d, day %d): imbalance=%.9f, pool change=%.10f, flux=%.10f",
+			date.year, date.day, water_content - water_cont_zero + water_flux - water_flux_zero,
+			water_content - water_cont_zero, water_flux - water_flux_zero);
 		balance = false;
 	}
 
@@ -6103,10 +6089,8 @@ void MassBalance::check_year_N(Gridcell& gridcell) {
 		if (!all_fracs_const)
 			epsilon_biomass = 50 * INPUT_RESOLUTION;
 		if (fabs(ncont_year - ncont + nflux_year) > epsilon_biomass) {
-			dprintf("\n(%.2f, %.2f): N balance year %d: %.9f\n", gridcell.get_lon(), gridcell.get_lat(), date.year,
-				ncont_year - ncont + nflux_year);
-			dprintf("N pool change: %.9f\n", ncont_year - ncont);
-			dprintf("N flux: %.9f\n", nflux_year);
+			log_error("Annual gridcell N balance failed (simulation year %d): imbalance=%.9f, pool change=%.9f, flux=%.9f",
+				date.year, ncont_year - ncont + nflux_year, ncont_year - ncont, nflux_year);
 		}
 	}
 
@@ -6185,11 +6169,8 @@ void MassBalance::check_day_c(Gridcell &gridcell) {
 
 		double err = ccont - expected_ccont;
 		if (fabs(err) > epsilon) {
-			dprintf("\n(%.2f, %.2f): C balance error year %d day %d: %.10f\n"
-				, gridcell.get_lon(), gridcell.get_lat(),
-				date.year, date.day, err);
-			dprintf("C pool change: %.10f\n", ccont - ccont_yesterday);
-			dprintf("C flux: %.10f\n", cflux);
+			log_error("Daily gridcell C balance failed (simulation year %d, day %d): imbalance=%.10f, pool change=%.10f, flux=%.10f",
+				date.year, date.day, err, ccont - ccont_yesterday, cflux);
 		}
 	}
 
@@ -6208,11 +6189,8 @@ void MassBalance::check_day_n(Gridcell &gridcell) {
 
 		double err = ncont - expected_ncont;
 		if (fabs(err) > epsilon) {
-			dprintf("\n(%.2f, %.2f): N balance year %d day %d: %.10f\n"
-				, gridcell.get_lon(), gridcell.get_lat(),
-				date.year, date.day, err);
-			dprintf("N pool change: %.10f\n", ncont - ncont_yesterday);
-			dprintf("N flux: %.10f\n", nflux);
+			log_error("Daily gridcell N balance failed (simulation year %d, day %d): imbalance=%.10f, pool change=%.10f, flux=%.10f",
+				date.year, date.day, err, ncont - ncont_yesterday, nflux);
 		}
 	}
 
@@ -6230,11 +6208,8 @@ void MassBalance::check_day_water(Gridcell &gridcell) {
 		// Ensure wcont matches yesterday's value + today's water flux.
 		double err = wcont - expected_wcont;
 		if (fabs(err) > EPS_WATER) {
-			dprintf("\n(%.2f, %.2f): Water balance year %d day %d: %.10f\n"
-				, gridcell.get_lon(), gridcell.get_lat(),
-				date.year, date.day, err);
-			dprintf("Water content change: %.10f\n", wcont - water_cont_yesterday);
-			dprintf("Water flux: %.10f\n", wflux);
+			log_error("Daily gridcell water balance failed (simulation year %d, day %d): imbalance=%.10f, pool change=%.10f, flux=%.10f",
+				date.year, date.day, err, wcont - water_cont_yesterday, wflux);
 		}
 	}
 
@@ -6258,11 +6233,8 @@ void MassBalance::check_year_C(Gridcell& gridcell) {
 		if (!all_fracs_const)
 			epsilon_biomass = 50 * INPUT_RESOLUTION;
 		if (fabs(ccont_year - ccont + cflux_year) > epsilon_biomass) {
-			dprintf("\n(%.2f, %.2f): C balance year %d: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), date.year,
-				ccont_year - ccont + cflux_year);
-			dprintf("C pool change: %.5f\n", ccont_year - ccont);
-			dprintf("C flux: %.5f\n",  cflux_year);
-			dprintf("Imbalance: %.9f\n", ccont_year - ccont + cflux_year);
+			log_error("Annual gridcell C balance failed (simulation year %d): imbalance=%.10f, pool change=%.10f, flux=%.10f",
+				date.year, ccont_year - ccont + cflux_year, ccont_year - ccont, cflux_year);
 		}
 	}
 
@@ -6283,10 +6255,9 @@ void MassBalance::check_year_water(Gridcell& gridcell) {
 
 		// Water balance check:
 		if (!negligible(water_cont_year - water_cont + water_flux_year, -3)) {
-			dprintf("\n(%.2f, %.2f): Water balance year %d: %.6f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, water_cont_year - water_cont + water_flux_year);
-			dprintf("Water pool change: %.7f\n", water_cont_year - water_cont);
-			dprintf("Water flux: %.7f\n", water_flux_year);
-			dprintf("On year, day: %4d, %4d \n", date.year, date.day);
+			log_error("Annual gridcell water balance failed (simulation year %d, day %d): imbalance=%.7f, pool change=%.7f, flux=%.7f",
+				date.year, date.day, water_cont_year - water_cont + water_flux_year,
+				water_cont_year - water_cont, water_flux_year);
 		}
 	}
 
@@ -6317,25 +6288,22 @@ void MassBalance::check_period(Gridcell& gridcell) {
 
 	// C balance check:
 	if (fabs(ccont - ccont_zero + cflux) > epsilon_biomass) {
-		dprintf("\nWARNING: (%.2f, %.2f): Period C balance: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), ccont - ccont_zero + cflux);
-		dprintf("C pool change: %.10f\n", ccont - ccont_zero);
-		dprintf("C fluxes: %.10f\n",  cflux);
+		log_warning("Period gridcell C balance failed: imbalance=%.10f, pool change=%.10f, flux=%.10f",
+			ccont - ccont_zero + cflux, ccont - ccont_zero, cflux);
 	}
 	// Cropland without N-limitation is not balanced in N, fertilisation gives poorer N-balance
 	// For natural vegetation or unfertilised N-limited cropland, the check can be much stricter
 	
 	// N balance check:
 	if ((ncont - ncont_zero + nflux) > epsilon_biomass) {
-		dprintf("\nWARNING: (%.2f, %.2f): Period N balance year %d: %.10f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ncont - ncont_zero + nflux);
-		dprintf("N pool change: %.10f\n", ncont - ncont_zero);
-		dprintf("N fluxes: %.10f\n", nflux);
+		log_warning("Period gridcell N balance failed (simulation year %d): imbalance=%.10f, pool change=%.10f, flux=%.10f",
+			date.year, ncont - ncont_zero + nflux, ncont - ncont_zero, nflux);
 	}
 
 	// Water balance check:
 	if (!negligible(water_cont - water_cont_zero + water_flux, -2)) { // NB! Not too strict as small errors can accumulate in time
-		dprintf("\nWARNING: (%.2f, %.2f): Period water balance: %.5f\n", gridcell.get_lon(), gridcell.get_lat(), water_cont - water_cont_zero + water_flux);
-		dprintf("Water pool change: %.6f\n", water_cont - water_cont_zero);
-		dprintf("Water fluxes: %.6f\n", water_flux);
+		log_warning("Period gridcell water balance failed: imbalance=%.6f, pool change=%.6f, flux=%.6f",
+			water_cont - water_cont_zero + water_flux, water_cont - water_cont_zero, water_flux);
 	}
 }
 
@@ -6356,26 +6324,25 @@ void MassBalance::check(Gridcell& gridcell) {
 	double cflux = gridcell.cflux(Period::YEAR);
 
 	if (!negligible(ccont - ccont_zero + cflux, -5)) {
-		dprintf("\n(%.2f, %.2f): C balance year %d: %.5f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ccont - ccont_zero + cflux);
-		dprintf("C pool change: %.5f\n", ccont - ccont_zero);
-		dprintf("C flux: %.5f\n\n",  cflux);
+		log_error("Gridcell C balance failed (simulation year %d): imbalance=%.5f, pool change=%.5f, flux=%.5f",
+			date.year, ccont - ccont_zero + cflux, ccont - ccont_zero, cflux);
 	}
 
 	double ncont = gridcell.ncont();
 	double nflux = gridcell.nflux(Period::YEAR);
 
 	if (!negligible(ncont - ncont_zero + nflux, -5)) {
-		dprintf("\n(%.2f, %.2f): N balance year %d: %.5f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, ncont - ncont_zero + nflux);
-		dprintf("N pool change: %.5f\n", ncont - ncont_zero);
+		log_error("Gridcell N balance failed (simulation year %d): imbalance=%.5f, pool change=%.5f, flux=%.5f",
+			date.year, ncont - ncont_zero + nflux, ncont - ncont_zero, nflux);
 	}
 
 	double water_content = gridcell.water_content();
 	double water_flux = gridcell.water_flux(Period::YEAR);
 
 	if (!negligible(water_content - water_cont_zero + water_flux, -4)) {
-		dprintf("\n(%.2f, %.2f): Water balance year %d: %.6f\n", gridcell.get_lon(), gridcell.get_lat(), date.year, water_content - water_cont_zero + water_flux);
-		dprintf("Water pool change: %.7f\n", water_content - water_cont_zero);
-		dprintf("Water flux: %.7f\n\n", water_flux);
+		log_error("Gridcell water balance failed (simulation year %d): imbalance=%.7f, pool change=%.7f, flux=%.7f",
+			date.year, water_content - water_cont_zero + water_flux,
+			water_content - water_cont_zero, water_flux);
 	}
 }
 

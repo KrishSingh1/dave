@@ -1990,6 +1990,7 @@ void manage_forests(Gridcell& gridcell) {
 	Gridcell::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
 		Stand& stand = *gc_itr;
+		LogScope scope(stand);
 
 		// Avoid calling manage_forest() when converting harvest biomass input to man_strength
 		// (harvest_secondary_to_new_stand = false, not currently implemented).
@@ -2038,6 +2039,7 @@ void manage_forests(Gridcell& gridcell) {
 			vegetation.firstobj();
 			while (vegetation.isobj) {
 				Individual& indiv = vegetation.getobj();
+				LogScope scope(indiv);
 
 				bool killed = false;
 				harvest_forest(indiv, indiv.pft, indiv.alive, 0.0, killed);
@@ -2050,20 +2052,20 @@ void manage_forests(Gridcell& gridcell) {
 				for(unsigned int i = 0; i < patch.pft.nobj; i++)
 					thinned_c += patch.pft[i].cmass_thin_killed;
 				if(thinned_c > 0.0) {
-					log_info("Thinning in year %d, stand %d (%s), patch %d: removed %.6f kgC/m2 from %d selected tree cohorts.",
-						date.get_calendar_year(), stand.id, (char*)stlist[stand.stid].name, patch.id, thinned_c, selected_trees);
+					log_info("Thinning in year %d, stand type %s: removed %.6f kgC/m2 from %d selected tree cohorts.",
+						date.get_calendar_year(), (char*)stlist[stand.stid].name, thinned_c, selected_trees);
 				}
 				else if(harvestable_stem_c <= 0.0) {
-					log_warning("Thinning skipped in year %d, stand %d (%s), patch %d: no harvestable stem carbon; check tree PFT harv_eff, stem_frac and twig_frac.",
-						date.get_calendar_year(), stand.id, (char*)stlist[stand.stid].name, patch.id);
+					log_warning("Thinning skipped in year %d, stand type %s: no harvestable stem carbon; check tree PFT harv_eff, stem_frac and twig_frac.",
+						date.get_calendar_year(), (char*)stlist[stand.stid].name);
 				}
 				else if(!selected_trees) {
-					log_warning("Thinning skipped in year %d, stand %d (%s), patch %d: no tree cohorts selected for cutting.",
-						date.get_calendar_year(), stand.id, (char*)stlist[stand.stid].name, patch.id);
+					log_warning("Thinning skipped in year %d, stand type %s: no tree cohorts selected for cutting.",
+						date.get_calendar_year(), (char*)stlist[stand.stid].name);
 				}
 				else {
-					log_warning("Thinning skipped in year %d, stand %d (%s), patch %d: %d tree cohorts selected but no biomass removed.",
-						date.get_calendar_year(), stand.id, (char*)stlist[stand.stid].name, patch.id, selected_trees);
+					log_warning("Thinning skipped in year %d, stand type %s: %d tree cohorts selected but no biomass removed.",
+						date.get_calendar_year(), (char*)stlist[stand.stid].name, selected_trees);
 				}
 			}
 			stand.nextobj();

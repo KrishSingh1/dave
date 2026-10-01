@@ -152,7 +152,11 @@ runs/run2/out/lai.out ├──> output/lai.out
 runs/run3/out/lai.out ┘
 ```
 
-Check the top-level job log after every run. LPJ-GUESS jobs typically cost
+Check the worker `guess.log` files first when the model fails or produces
+unexpected results. `verbosity` in the `.ins` file controls their detail;
+use at least `3` for investigation, or `4`/`5` for more detail. Check the
+top-level job log for PBS errors and resource usage after every run.
+LPJ-GUESS jobs typically cost
 around **0.005–0.01 SU per patch**, where the total number of patches is
 `npatch × number of gridcells`. A substantially higher or lower cost should be
 investigated.

@@ -114,7 +114,7 @@ DaveOutput::DaveOutput() {
 
 	// Annual stand-level outputs.
 	add_stand_output("file_dave_stand_frac"                     , ANNUAL, "fraction", [](const Stand &s) { return s.get_gridcell_fraction(); }, "Fraction of the gridcell occupied by each stand");
-	add_stand_output("file_dave_stand_type"                     , ANNUAL, "type", [](const Stand &s) { return (double)s.landcover; }, "Stand landcover types");
+	add_stand_output("file_dave_stand_type"                     , ANNUAL, get_stand_type_cols, "Annual stand ID, stand type, landcover, and gridcell area fraction");
 
 	// Annual stand-level per-pft outputs.
 	add_spft_output("file_dave_anetps_ff_max"                   , ANNUAL, [](const Standpft &spft) { return spft.anetps_ff_max; }, "Maximum recorded annual net photosynthesis at forest-floor conditions (kgC/m2)",  false, true);
@@ -258,7 +258,7 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_frepr_cstorage"      , DAILY, [](const Individual &i) { return i.frepr_cstorage; }, "Ratio of reproductive biomass to storage capacity", mean, false, true);
 	add_aggregated_indiv_output("file_dave_growth_demand"       , DAILY, [](const Individual &i) { return i.growth_demand; }, "Growth Demand (0-1)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_cmass_germ"          , DAILY, [](const Individual &i) { return i.cmass_germ; }, "Germinated C Mass (kgC/m2)", sum, true);
-	add_aggregated_indiv_output("file_dave_transpiration"       , DAILY, [](const Individual &i) { return i.aet; }, "Daily individual-level transpiration (mm/day)", sum, true, true);
+	add_aggregated_indiv_output("file_dave_transpiration"       , DAILY, [](const Individual &i) { return sum(i.transpiration); }, "Daily individual-level transpiration (mm/day)", sum, true, true);
 	add_aggregated_indiv_output("file_dave_nscal"               , DAILY, [](const Individual &i) { return i.nscal_5.lastadd(); }, "N stress scalar (0-1)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_nscal_mean"          , DAILY, [](const Individual &i) { return i.nscal_5.mean(); }, "N stress scalar 5 day running mean (0-1)", mean, false, true);
 	add_aggregated_indiv_output("file_dave_ltor"            	, DAILY, [](const Individual &i) { return i.ltor; }, "Daily leaf to root ratio (unitless)", mean, true);
@@ -437,6 +437,8 @@ DaveOutput::DaveOutput() {
 
 	add_indiv_layer_timestep_output("file_dave_ps_diagnostics", ps_diagnostics_cols(), "Subdaily layered cohort-level photosynthesis diagnostics");
 
+	add_indiv_layer_timestep_output("file_dave_hydraulic_curve", hydraulic_curve_cols(), "Cohort-timestep hydraulic curve and solver diagnostics; psi and integrated areas in MPa, E in mmol/m2 ground/s; kmax is per xylem area for trees or leaf area for grasses, conducting_area is Ax or LAI");
+
 	// Daily patch-level array outputs.
 	// One row per array element per patch per timestep, multiple data columns (tall/long table).
 	add_tall_patch_array_output("file_dave_soil_state"               , DAILY, "layer", [](const Patch &p) { return (size_t)p.soil.nsoillayers; }, soil_state_cols(), "Soil water content as fraction of available water holding capacity");
@@ -567,6 +569,17 @@ void DaveOutput::add_stand_output(
 	bool sum,
 	bool mean) {
 	StandLevelOutput *output = new StandLevelOutput(name, get_columns, description, sum, mean);
+	register_output(output, timestep);
+}
+
+void DaveOutput::add_stand_output(
+	std::string name,
+	timestep_t timestep,
+	std::vector<ColumnDefinition<Stand>> columns,
+	std::string description,
+	bool sum,
+	bool mean) {
+	StandLevelOutput *output = new StandLevelOutput(name, columns, description, sum, mean);
 	register_output(output, timestep);
 }
 
@@ -880,12 +893,17 @@ void DaveOutput::OutputFile::write_output(OutputChannel *channel, int value)
 	}
 }
 
-void DaveOutput::OutputFile::write_output(OutputChannel *channel, const char *value)
+void DaveOutput::OutputFile::write_output(OutputChannel *channel, const std::string &value)
 {
 	assert_table_open();
 	if (should_write(channel)) {
 		channel->add_value(*table, value);
 	}
+}
+
+void DaveOutput::OutputFile::write_output(OutputChannel *channel, const char *value)
+{
+	write_output(channel, std::string(value));
 }
 
 void DaveOutput::OutputFile::finish_row(OutputChannel *channel, double lon, double lat, int year, int day) {
@@ -1056,42 +1074,49 @@ void DaveOutput::StandLevelOutput::write_rows(
 	int year = date.get_calendar_year();
 	int day = date.day;
 
-	// Each vector of this vector represents a single stand. Each element in the
-	// sub-vectors represents a value which will be written for column i of that
-	// particular stand. This is only really required for write_stats mode.
+	const bool per_stand = write_stand_rows();
+	// In statistics mode, each inner vector contains only numeric values for one stand.
 	std::vector<std::vector<double>> data;
 
 	for (auto gc_itr = gridcell.begin(); gc_itr != gridcell.end(); gc_itr++) {
 		Stand &stand = *gc_itr;
-		std::vector<double> stand_data = write_stand(stand);
-		if (write_stats()) {
-			data.push_back(stand_data);
-		} else {
-			// The code would be cleaner if we were to use the 2d data array in
-			// both cases, but I suspect that performance will be better with
-			// this shortcut when the number of stands is high.
-
-			// Write stand ID.
-			// todo: would it be better to write the stand name instead?
+		if (per_stand) {
 			write_output(channel, stand.id);
+		}
 
-			// Write stand data.
+		std::vector<double> stand_data;
+		for (const ColumnDefinition<Stand> &column : columns) {
+			if (column.get_type() == TEXT) {
+				if (per_stand) {
+					write_output(channel, column.read_text_value(stand));
+				}
+			} else {
+				double value = column.read_value(stand);
+				stand_data.push_back(value);
+				if (per_stand) {
+					write_output(channel, value);
+				}
+			}
+		}
+
+		if (per_stand) {
 			double total = 0;
 			for (double x : stand_data) {
-				write_output(channel, x);
 				total += x;
 			}
 			if (write_sum) {
 				write_output(channel, total);
 			}
 			if (write_mean) {
-				write_output(channel, total / stand_data.size());
+				write_output(channel, stand_data.empty() ? 0 : total / stand_data.size());
 			}
 			finish_row(output_channel, lon, lat, year, day);
+		} else {
+			data.push_back(stand_data);
 		}
 	}
 
-	if (write_stats() && data.size()) {
+	if (!per_stand && data.size()) {
 		// Each element of data contains all columns for each stand. We want
 		// to write one column at a time.
 
@@ -1102,7 +1127,6 @@ void DaveOutput::StandLevelOutput::write_rows(
 		for (size_t j = 0; j < ncol; j++) {
 			// Get this column's value for each stand.
 			std::vector<double> column_data;
-			double total = 0;
 			for (size_t i = 0; i < data.size(); i++) {
 				column_data.push_back(data[i][j]);
 			}
@@ -1119,7 +1143,7 @@ void DaveOutput::StandLevelOutput::write_rows(
 			for (size_t i = 0; i < data.size(); i++) {
 				// Calculate the total for the i-th stand.
 				double total = 0;
-				for (size_t j = 0; j < data[i].size(); i++) {
+				for (size_t j = 0; j < data[i].size(); j++) {
 					total += data[i][j];
 				}
 				totals.push_back(total);
@@ -1132,9 +1156,9 @@ void DaveOutput::StandLevelOutput::write_rows(
 				write_output(channel, sd);
 			}
 			if (write_mean) {
-				write_output(channel, mean / ncol);
-				write_output(channel, median / ncol);
-				write_output(channel, sd / ncol);
+				write_output(channel, ncol ? mean / ncol : 0);
+				write_output(channel, ncol ? median / ncol : 0);
+				write_output(channel, ncol ? sd / ncol : 0);
 			}
 		}
 		finish_row(output_channel, lon, lat, year, day);
@@ -1143,39 +1167,60 @@ void DaveOutput::StandLevelOutput::write_rows(
 
 ColumnDescriptors DaveOutput::StandLevelOutput::get_cols() {
 	ColumnDescriptors descriptors;
-	if (!write_stats()) {
-		add_column(descriptors, COLNAME_STAND, COLUMN_WIDTH, 0);
-	}
 
 	// Only invoke get_column_definitions if necessary.
 	if (get_column_definitions) {
 		columns = get_column_definitions();
 	}
+	const bool per_stand = write_stand_rows();
+	if (per_stand) {
+		descriptors += ColumnDescriptor(COLNAME_STAND, COLUMN_WIDTH, 0);
+	}
 
 	for (const ColumnDefinition<Stand> &column : columns) {
 		std::string name = column.get_name();
 		int width = max((size_t)COLUMN_WIDTH, name.length() + 1);
-		add_column(descriptors, name.c_str(), width, NUMERIC_PRECISION);
+		if (column.get_type() == TEXT) {
+			size_t min_width = column.get_min_width();
+			if (min_width > 0) {
+				width = max(width, (int)min_width);
+			}
+			descriptors += ColumnDescriptor(name.c_str(), width, 0, TEXT);
+		} else if (per_stand) {
+			descriptors += ColumnDescriptor(name.c_str(), width, NUMERIC_PRECISION);
+		} else {
+			add_column(descriptors, name.c_str(), width, NUMERIC_PRECISION);
+		}
 	}
 
 	if (write_sum) {
-		add_column(descriptors, COLNAME_TOTAL, COLUMN_WIDTH, NUMERIC_PRECISION);
+		if (per_stand) {
+			descriptors += ColumnDescriptor(COLNAME_TOTAL, COLUMN_WIDTH, NUMERIC_PRECISION);
+		} else {
+			add_column(descriptors, COLNAME_TOTAL, COLUMN_WIDTH, NUMERIC_PRECISION);
+		}
 	}
 	if (write_mean) {
-		add_column(descriptors, COLNAME_MEAN, COLUMN_WIDTH, NUMERIC_PRECISION);
+		if (per_stand) {
+			descriptors += ColumnDescriptor(COLNAME_MEAN, COLUMN_WIDTH, NUMERIC_PRECISION);
+		} else {
+			add_column(descriptors, COLNAME_MEAN, COLUMN_WIDTH, NUMERIC_PRECISION);
+		}
 	}
 
 	return descriptors;
 }
 
-std::vector<double> DaveOutput::StandLevelOutput::write_stand(
-		const Stand &stand) {
-	std::vector<double> data;
-	for (ColumnDefinition<Stand> &column : columns) {
-		double value = column.read_value(stand);
-		data.push_back(value);
+bool DaveOutput::StandLevelOutput::write_stand_rows() const {
+	if (!write_stats()) {
+		return true;
 	}
-	return data;
+	for (const ColumnDefinition<Stand> &column : columns) {
+		if (column.get_type() == TEXT) {
+			return true;
+		}
+	}
+	return false;
 }
 
 // #############################################################################
@@ -1426,8 +1471,9 @@ ColumnDescriptors DaveOutput::IndividualOutput::get_cols() {
 DaveOutput::IndivLayerTimestepOutput::IndivLayerTimestepOutput(
 		std::string param_name,
 		std::vector<Column> columns,
-		std::string description)
-	: OutputFile(param_name, description), columns(columns) { }
+		std::string description,
+		bool per_layer)
+	: OutputFile(param_name, description), columns(columns), per_layer(per_layer) { }
 
 void DaveOutput::IndivLayerTimestepOutput::write_rows(OutputChannel *channel, Gridcell &gridcell) {
 	double lon = gridcell.get_lon();
@@ -1447,16 +1493,18 @@ void DaveOutput::IndivLayerTimestepOutput::write_rows(OutputChannel *channel, Gr
 			for (size_t i = 0; i < vegetation.nobj; i++) {
 				const Individual &indiv = vegetation[i];
 
-				int ntimesteps = (int)indiv.ps_inputs_layerwise.size();
+				int ntimesteps = per_layer ? (int)indiv.ps_inputs_layerwise.size() :
+				                 (int)indiv.hydraulic_diagnostics.size();
 				for (int t = 0; t < ntimesteps; t++) {
-					int nlayers = (int)indiv.ps_inputs_layerwise[t].size();
+					if (!per_layer && !indiv.hydraulic_diagnostics[t].valid) continue;
+					int nlayers = per_layer ? (int)indiv.ps_inputs_layerwise[t].size() : 1;
 					for (int l = 0; l < nlayers; l++) {
 						write_output(channel, stand.id);
 						write_output(channel, patch.id);
 						write_output(channel, indiv.id);
 						write_output(channel, indiv.pft.name);
 						write_output(channel, t);
-						write_output(channel, l);
+						if (per_layer) write_output(channel, l);
 
 						for (const Column &col : columns) {
 							write_output(channel, col.read(indiv, t, l));
@@ -1481,7 +1529,7 @@ ColumnDescriptors DaveOutput::IndivLayerTimestepOutput::get_cols() {
 	descriptors += ColumnDescriptor(COLNAME_INDIV_ID, COLUMN_WIDTH,     0);
 	descriptors += ColumnDescriptor(COLNAME_PFT,      COLUMN_WIDTH + 2, 0, TEXT);
 	descriptors += ColumnDescriptor(COLNAME_TIMESTEP, COLUMN_WIDTH,     0);
-	descriptors += ColumnDescriptor(COLNAME_LAYER,    COLUMN_WIDTH,     0);
+	if (per_layer) descriptors += ColumnDescriptor(COLNAME_LAYER, COLUMN_WIDTH, 0);
 
 	for (const Column &col : columns) {
 		int width = max((size_t)COLUMN_WIDTH, col.name.length() + 1);

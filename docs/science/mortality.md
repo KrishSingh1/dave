@@ -263,7 +263,10 @@ mortality equations in `mortality_guess()`, and so are not documented here.
 ### Why are my trees dying?
 
 First, check the simulation log file: **guess.log**, written to the same
-directory as the top-level instruction file.
+directory from which the model was run (usually beside the top-level
+instruction file). Set `verbosity 3` or higher in that `.ins` file to see
+informational mortality messages; `4` and `5` provide more detail. For
+parallel runs, check each worker's `runN/guess.log`.
 
 All mortality events should be logged in this file along with causes. Searching
 through this log is a quick and easy way to see which high-level process is

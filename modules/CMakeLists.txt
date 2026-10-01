@@ -35,7 +35,6 @@ set(headers
   daveoutputhelpers.h
   hydraulics.h
   davephotosynthesis.h
-  kdtree.h
   storm.h
   )
 

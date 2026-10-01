@@ -314,6 +314,11 @@ const double EPS_WATER = 1e-6;
 const int NGENERATIONS_MAX = 10;
 const int NREEMERGENCES_MAX = 1;
 typedef enum { EGG, LARVA1, LARVA2, LARVA3, LARVA4, PUPA, TENERAL_ADULT, OVIPOSITION, NLIFESTAGES } insect_life_stages;
+
+extern const char *LC_NAMES[NLANDCOVERTYPES];
+
+extern const char *DIST_TYPE_NAMES[NDISTURBANCETYPES];
+
 //#define USE_DAYLENGTH_LIMIT_DIAPAUSE
 // STORM number of days in 30 years, used for limit in windload calculation
 #define WIND_30Y_NDAYS 10950
@@ -906,8 +911,9 @@ public:
 	// Whether stomata are open (at all). If FALSE, stomata are fully closed.
 	bool stomata_open;
 
-	// Predawn leaf water potential (MPa)
-	double predawn_lwp;
+	// Leaf water potential (MPa). Previous timestep for cohorts, soil water
+	// potential for forest floor.
+	double lwp;
 
 	// Sensitivity parameter indicating steepness of decline in Vcmax with water stress (Zhou 2014)
 	double s_f;
@@ -915,6 +921,15 @@ public:
 	// Reference value at which Vcmax or Jmax is half it's non-water-stresed value (Zhou 2014)
 	double psi_f;
 
+	// Predawn leaf water potential (MPa)
+	double predawn_lwp;
+
+	// Leaf water potential at stomatal closure (MPa)
+	double stom_clos;
+
+	// Turgor loss point (MPa)
+	double tlp;
+	
 	/// Tgrowth, mean air temperature of preceding 30 d.
 	double tgrowth;
 
@@ -2861,7 +2876,7 @@ public:
 	double emax;
 	/// maintenance respiration coefficient (0-1)
 	double respcoeff;
-	/// water potential at 12% loss of hydraulic conductance
+	/// Leaf water potential at stomatal closure (MPa)
 	double stom_clos;
 	/// water potential at 50% loss of hydraulic conductance
 	double p50;
@@ -3970,9 +3985,13 @@ public:
 
 	bool get_psi_from_transpiration(double transpiration, double &psi) const;
 	bool get_transpiration_lower_bound(double psi, double &transpiration) const;
+	double hydraulic_curve_max_psi() const { return transpiration_max_psi; }
+	double hydraulic_curve_max_area() const { return transpiration_max_area; }
 private:
 	Interpolator psi_from_transpiration;
 	Interpolator transpiration_from_psi;
+	double transpiration_max_psi = 0.0;
+	double transpiration_max_area = 0.0;
 	double proportion_of_conductivity(double psi) const;
 };
 
@@ -4253,6 +4272,24 @@ struct cropindiv_struct : public Serializable {
 	void serialize(ArchiveStream& arch);
 };
 
+
+struct HydraulicDiagnostic {
+	bool valid = false;
+	bool stomata_open_start = false;
+	bool stomata_open_end = false;
+	bool start_lookup_ok = false;
+	bool end_lookup_ok = false;
+	double psi_start = 0.0;
+	double weighted_soil_psi = 0.0;
+	double area_start = 0.0;
+	double transpiration = 0.0;
+	double kmax = 0.0;
+	double conducting_area = 0.0;
+	double area_requested = 0.0;
+	double area_full = 0.0;
+	double psi_end_lookup = 0.0;
+	double lwp_end = 0.0;
+};
 
 /// A vegetation individual.
 /** In population mode this is the average individual of a PFT population;
@@ -4948,11 +4985,11 @@ public:
 	/// hydraulic resistance between soil and roots (mmol/m/s/MPa)
 	double Rs_r[NSOILLAYERS_MAX];
 
-	// predawn leaf water potential calculated using hydraulics module
+	// predawn leaf water potential (same as weighted soil water potential, MPa)
 	double predawn_lwp;
 	// leaf water potential at subdaily timescale (MPa)
 	std::vector<double> lwp;
-	// leaf water potential (MPa) from previous timestep (for plant water storage)
+	// leaf water potential (MPa) from previous timestep (saved for use in canexch)
 	double lwp_previous;
 	// loss of hydraulic conductance at subdaily timescale (mol/m2/s/MPa)
 	std::vector<double> k_loss;
@@ -4962,6 +4999,7 @@ public:
 
 	// individual-level transpiration, mm (includes cuticular conductance when roots are disconnected)
 	std::vector<double> transpiration;
+	std::vector<HydraulicDiagnostic> hydraulic_diagnostics;
 
 	private:
 	/// Adaptive N-day moving avegage of wscal.

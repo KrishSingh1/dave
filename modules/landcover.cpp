@@ -15,6 +15,7 @@
 #include "config.h"
 #include "landcover.h"
 #include "guessmath.h"
+#include "log_scope.h"
 
 enum {SECONDARY_MATURE, SECONDARY_YOUNG, PRIMARY, NFORESTCLASSES};
 
@@ -317,6 +318,7 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 				for(unsigned int i = 0; i < gridcell.size(); i++) {
 
 					Stand& stand = gridcell[i];
+					LogScope log_scope(stand);
 
 					if(stand.stid == gcst.id) {
 
@@ -325,9 +327,10 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 
 						if(gcst.gross_frac_decrease > stand_frac) {
 
-							if((gcst.gross_frac_decrease - stand_frac > INPUT_RESOLUTION))
+							if((gcst.gross_frac_decrease - stand_frac > INPUT_RESOLUTION)) {
 								log_warning("No more stand area left of stand type %d ! Residual reduction demand %.15f ignored.",
 									stand.stid, gcst.gross_frac_decrease - stand_frac);
+							}
 							gcst.gross_frac_decrease = stand_frac;
 						}
 						stand.frac_change = -gcst.gross_frac_decrease;
@@ -353,6 +356,7 @@ void reduce_stands(Gridcell& gridcell, double* st_frac_transfer, forest_st_frac_
 	}
 	for(unsigned int j = 0; j < gridcell.nbr_stands(); j++) {
 		Stand& stand = gridcell[j];
+		LogScope log_scope(stand);
 		StandType& st = stlist[stand.stid];
 		Gridcellst& gcst = gridcell.st[stand.stid];
 		double stand_frac = stand.get_gridcell_fraction();
@@ -569,6 +573,7 @@ bool reduce_forestry_stands(Gridcell& gridcell, double* st_frac_transfer, forest
 	}
 	for(unsigned int j = 0; j < gridcell.nbr_stands(); j++) {
 		Stand& stand = gridcell[j];
+		LogScope log_scope(stand);
 		StandType& st = stlist[stand.stid];
 		Gridcellst& gcst = gridcell.st[stand.stid];
 		double stand_frac = stand.get_gridcell_fraction();
@@ -1052,7 +1057,7 @@ void set_st_change_array(Gridcell& gridcell, double lc_frac_transfer[][NLANDCOVE
 
 									// This shouldn't happen really...
 									if(reduce[i] < 0.0)
-										log_info("st %d reduce[from] = %.15f !", date.get_calendar_year(), i, reduce[i]);
+										log_info("st %d reduce[from] = %.15f !", i, reduce[i]);
 
 									double transfer = reduce[i] * net_transfer_remain_initial[from][to] / net_lc_decrease[from]
 										* (gcst_receptor.frac / gridcell.landcover.frac[to]);
@@ -2291,6 +2296,7 @@ double transfer_to_new_stand_from_stand(Gridcell& gridcell, double* st_frac_tran
 	for(unsigned int i=0; i<gridcell.nbr_stands(); i++) {
 
 		Stand& stand = gridcell[i];
+		LogScope scope(stand);
 		double transfer_area = stand.transfer_area_st[stid_receptor];
 
 		if(transfer_area > 0.0 && (stand.stid == stid_donor || stid_donor < 0)) {
@@ -2305,9 +2311,11 @@ double transfer_to_new_stand_from_stand(Gridcell& gridcell, double* st_frac_tran
 				if(copy_type == CLONESTAND || copy_type == CLONESTAND_KILLTREES) {
 
 					Stand& new_stand = stand.clone(stlist[stid_receptor], transfer_area, suppress_disturbance);
+					LogScope log_scope(new_stand);
 
-					if(stand.landcover == NATURAL && (stlist[stid_receptor].naturalveg == ""))
+					if(stand.landcover == NATURAL && (stlist[stid_receptor].naturalveg == "")) {
 						log_warning("Cloning natural stand without allowing natural pfts to grow in the new stand. Was this intended?");
+					}
 
 					new_stand.cloned = true;
 					new_stand.gross_frac_increase = 0.0;
@@ -2835,10 +2843,11 @@ bool check_fractions2(Gridcell& gridcell, double* st_change_array) {
 	for(unsigned int i=0; i<gridcell.nbr_stands(); i++) {
 
 		Stand& stand = gridcell[i];
+		LogScope log_scope(stand);
 
 		if(stand.frac_change - (stand.gross_frac_increase - stand.gross_frac_decrease) > INPUT_RESOLUTION * 10.0) {
-			log_error("Check 10: Year %d: frac_change is not equal to gross_frac_increase + gross_frac_decrease for stand %d",
-				date.year, stand.id);
+			log_error("Check 10: Year %d: frac_change is not equal to gross_frac_increase + gross_frac_decrease",
+				date.year);
 			log_error("dif=%.15f", fabs(stand.frac_change - (stand.gross_frac_increase - stand.gross_frac_decrease)));
 			log_error("frac_change=%.15f, gross_frac_increase=%.15f, gross_frac_decrease=%.15f",
 				stand.frac_change, stand.gross_frac_increase, stand.gross_frac_decrease);

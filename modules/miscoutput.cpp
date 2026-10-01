@@ -1968,7 +1968,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 						break;
 					default:
 						if (date.year == nyear_spinup)
-							dprintf("Modify code to deal with landcover output!\n");
+							log_warning("Modify code to deal with landcover output!");
 					}
 				}
 			}
@@ -4464,7 +4464,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					break;
 				default:
 					if (date.year == nyear_spinup)
-						dprintf("Modify code to deal with landcover output!\n");
+						log_warning("Modify code to deal with landcover output!");
 				}
 
 				// N2O info output per landcover
@@ -4564,7 +4564,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					break;
 				default:
 					if (date.year == nyear_spinup)
-						dprintf("Modify code to deal with landcover output!\n");
+						log_warning("Modify code to deal with landcover output!");
 				}
 
 				if (table_p) {
@@ -4680,7 +4680,7 @@ void MiscOutput::outannual(Gridcell& gridcell) {
 					break;
 				default:
 					if (date.year == nyear_spinup)
-						dprintf("Modify code to deal with landcover output!\n");
+						log_warning("Modify code to deal with landcover output!");
 				}
 
 				if (table_p) {

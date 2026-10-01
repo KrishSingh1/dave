@@ -18,6 +18,7 @@
 #include "logging.h"
 #include <fstream>
 #include <sstream>
+#include <utility>
 
 
 namespace {
@@ -283,7 +284,8 @@ void SoilInput::init_depth(const char* fname, const std::vector<coord>& gridlist
 	}
 
 	std::string line;
-	std::vector<point<double, 2>> depth_coords;
+	std::vector<KDTree<double>::Entry> depth_entries;
+	std::set<coord> found;
 
 	while (getline(ifs, line)) {
 		std::istringstream iss(line);
@@ -295,30 +297,30 @@ void SoilInput::init_depth(const char* fname, const std::vector<coord>& gridlist
 			if (!coords.empty() && coords.count(c) == 0) {
 				continue;
 			}
-			depth_coords.push_back({lon, lat});
-			depth_map[c] = depth;
-			if (depth_map.size() == coords.size()) {
+			depth_entries.push_back({{lon, lat}, depth});
+			if (!coords.empty() && found.insert(c).second && found.size() == coords.size()) {
 				break;
 			}
 		}
 	}
 
-	if (depth_map.empty()) {
+	if (depth_entries.empty()) {
 		fail("No soil depth data could be read from file %s"
 			 " (file may be empty or malformed)", fname);
 	}
 
-	depth_kdtree = std::make_unique<kdtree<double, 2>>(std::begin(depth_coords), std::end(depth_coords));
+	depth_index = std::make_unique<KDTree<double>>(std::move(depth_entries));
 	ifs.close();
 
-	log_diagnostic("Loaded soil depth for %d locations.", (int)depth_map.size());
+	log_diagnostic("Loaded soil depth for %d locations.", (int)depth_index->size());
 }
 
 // Initialises the soil input class and determines the format of the supplied input file.
 void SoilInput::init_slope(const char* fname, const std::vector<coord>& gridlist) {
 
 	std::set<coord> coords(gridlist.begin(), gridlist.end());
-	std::vector<point<double, 2>> slope_coords;
+	std::vector<KDTree<double>::Entry> slope_entries;
+	std::set<coord> found;
 
 	std::ifstream ifs(fname, std::ifstream::in);
 	if (!ifs) {
@@ -335,25 +337,24 @@ void SoilInput::init_slope(const char* fname, const std::vector<coord>& gridlist
 		double slope_mean, slope_median, slope_max, slope_min, slope_std;
 		if (iss >> lon >> lat >> slope_mean >> slope_median >> slope_max >> slope_min >> slope_std) {
 			coord c(lon, lat);
-			slope_coords.push_back({lon, lat});
 			if (!coords.empty() && coords.count(c) == 0) {
 				continue;
 			}
-			slope_map[c] = slope_median;
-			if (slope_map.size() == coords.size()) {
+			slope_entries.push_back({{lon, lat}, slope_median});
+			if (!coords.empty() && found.insert(c).second && found.size() == coords.size()) {
 				break;
 			}
 		}
 	}
 
-	if (slope_map.empty()) {
+	if (slope_entries.empty()) {
 		fail("No soil slope data could be read from file %s"
 			 " (file may be empty or malformed)", fname);
 	}
 
-	slope_kdtree = std::make_unique<kdtree<double, 2>>(std::begin(slope_coords), std::end(slope_coords));
+	slope_index = std::make_unique<KDTree<double>>(std::move(slope_entries));
 	ifs.close();
-	log_diagnostic("Loaded soil slope for %d locations.", (int)slope_map.size());
+	log_diagnostic("Loaded soil slope for %d locations.", (int)slope_index->size());
 }
 
 // Read in routine for text file with LPJ soil codes.
@@ -557,43 +558,31 @@ SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 }
 
 double SoilInput::get_soil_depth(const coord &c) {
-	if (!depth_kdtree) {
+	if (!depth_index) {
 		fail("Soil depth map not loaded.\n");
 	}
 
 	// Find closest point within search radius.
-	point<double, 2> closest = depth_kdtree->nearest({c.first, c.second});
-	double distance = closest.distance({c.first, c.second});
-	if (distance > searchradius_soil) {
+	const auto nearest = depth_index->nearest({c.first, c.second});
+	if (nearest.distance > searchradius_soil) {
 		fail("Coordinate at %f, %f could not be found in the soil depth map within search radius %f.", c.first, c.second, searchradius_soil);
 	}
-	double depth = depth_map[std::make_pair(closest.get(0), closest.get(1))];
-	log_info("Gridcell (%f, %f): Found closest soil depth %f m from (%f, %f) with distance %f.", c.first, c.second, depth, closest.get(0), closest.get(1), distance);
-	return depth;
+	log_info("Gridcell (%f, %f): Found closest soil depth %f m from (%f, %f) with distance %f.", c.first, c.second, nearest.value, nearest.point.get(0), nearest.point.get(1), nearest.distance);
+	return nearest.value;
 }
 
 double SoilInput::get_soil_slope(const coord &c) {
-	if (!slope_kdtree) {
+	if (!slope_index) {
 		fail("Soil slope map not loaded.\n");
 	}
 
-	if (slope_map.size()) {
-		slope = slope_map[c];
-	}
-	else {
-		// No input data for slope. Set it to 2 degree as default
-		slope = 2.0;
-	}
-
 	// Find closest point within search radius.
-	point<double, 2> closest = slope_kdtree->nearest({c.first, c.second});
-	double distance = closest.distance({c.first, c.second});
-	if (distance > searchradius_soil) {
+	const auto nearest = slope_index->nearest({c.first, c.second});
+	if (nearest.distance > searchradius_soil) {
 		fail("Coordinate at %f, %f could not be found in the soil slope map within search radius %f.", c.first, c.second, searchradius_soil);
 	}
-	double slope = slope_map[std::make_pair(closest.get(0), closest.get(1))];
-	log_info("Gridcell (%f, %f): Found closest soil slope %f degrees from (%f, %f) with distance %f.", c.first, c.second, slope, closest.get(0), closest.get(1), distance);
-	return slope;
+	log_info("Gridcell (%f, %f): Found closest soil slope %f degrees from (%f, %f) with distance %f.", c.first, c.second, nearest.value, nearest.point.get(0), nearest.point.get(1), nearest.distance);
+	return nearest.value;
 }
 
 void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {

@@ -508,8 +508,8 @@ double check_harvest_cmass(Stand& stand, bool stem_cmass_only, bool check_select
  *									pool and burn all wood of trees below the same diameter limit.
  *   - ifslowharvestpool			whether a fraction of harvested wood is put into a product pool
  *  \param pft						reference to a Pft containing the following public members:
- *   - stem_frac    				fraction of wood cmass that belongs to stems
- *   - twig_frac    				fraction of wood cmass that belongs to twigs
+ *   - stem_frac    				fraction of above-ground wood cmass that belongs to stems
+ *   - twig_frac    				fraction of above-ground wood cmass that belongs to twigs
  *   - lifeform	    				life form (tree or grass)
  *   - harvest_slow_frac			fraction of harvested products that goes to long-lived products
  *   - leafphysiognomy 				leaf physiognomy (needleleaf, broadleaf)
@@ -561,9 +561,9 @@ void harvest_wood(Harvest_CN& i, double diam, Pft& pft, bool alive, double frac_
 	double stem_harvest = 0.0;
 	double residue_outtake = 0.0;
 	// Fraction of wood cmass that are stems
-	double stem_frac = pft.ag_woody_frac * pft.stem_frac / (pft.stem_frac + pft.twig_frac);
+	double stem_frac = pft.ag_woody_frac * pft.stem_frac;
 	// Fraction of wood cmass that are twigs
-	double twig_frac = pft.ag_woody_frac * pft.twig_frac / (pft.stem_frac + pft.twig_frac);
+	double twig_frac = pft.ag_woody_frac * pft.twig_frac();
 	// Fraction of wood cmass that are coarse roots, including stumps
 	double coarse_root_frac = 1.0 - pft.ag_woody_frac;
 	// Fraction of leaves adhering to twigs at the time of removal (provisional value, typical for situation for harvested spruce in Sweden)

@@ -32,8 +32,8 @@ TEST_CASE("Management harvests one tree", "[harvest][emission][litter]") {
     Pft tree = pftlist.createobj();
     tree.k_allom2 = 40.0;
     tree.k_allom3 = 0.67;
-    tree.stem_frac = 0.65;
-    tree.twig_frac = 0.13;
+    tree.stem_frac = 5.0 / 6.0; // Old 65/13/22 stem/twig/root split
+    tree.ag_woody_frac = 0.78;
     tree.harvest_slow_frac = 0.0;
     tree.lifeform = TREE;
     tree.wooddens = 0;

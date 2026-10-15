@@ -1718,7 +1718,7 @@ void constrain_growth(
 	const double FGROWTH_MAX = 0.999;
 
 	double cgrow_pot = cgrow;
-	cgrow = cgrow_pot * (1.0 - frac_resp);
+	cgrow = cgrow_pot / (1.0 + frac_resp);
 	resp_growth = cgrow_pot - cgrow;
 
 	if ( ngrow < (cgrow / cton_max)) {

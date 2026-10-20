@@ -236,7 +236,8 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_sapwood_depth"       , DAILY, [](const Individual &i) { return i.sapwood_depth; }, "Sapwood depth sum over individuals (m)", sum, true);
 	add_aggregated_indiv_output("file_dave_latosa"              , DAILY, [](const Individual &i) { return i.latosa /1000; }, "leaf area to sapwood area ratio / 1000 (unitless)", mean, true);
 	add_aggregated_indiv_output("file_dave_fpar"                , DAILY, [](const Individual &i) { return i.fpar; }, "Daily fpar [0-1]", sum, true);
-	add_aggregated_indiv_output("file_dave_indiv_gpp"           , DAILY, [](const Individual &i) { return i.dgpp * G_PER_KG; }, "Daily GPP (gC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_pft_gpp"             , DAILY, [](const Individual &i) { return i.dgpp * G_PER_KG; }, "Daily GPP (gC/m2/day)", sum, true);
+	add_aggregated_indiv_output("file_dave_pft_npp"             , DAILY, [](const Individual &i) { return i.dnpp * G_PER_KG; }, "Daily NPP (gC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_resp_autotrophic"    , DAILY, [](const Individual &i) { return (i.dgpp - i.dnpp) * G_PER_KG; }, "Daily autotrophic respiration (gC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_resp_maintenance"    , DAILY, [](const Individual &i) { return i.resp_maintenance * G_PER_KG; }, "Daily maintenance respiration (gC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_resp_growth"         , DAILY, [](const Individual &i) { return i.resp_growth * G_PER_KG; }, "Daily growth respiration (gC/m2/day)", sum, true);
@@ -244,7 +245,6 @@ DaveOutput::DaveOutput() {
 	add_aggregated_indiv_output("file_dave_resp_crown"          , DAILY, [](const Individual &i) { return i.resp_crown * G_PER_KG; }, "Daily crown respiration (gC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_resp_root"           , DAILY, [](const Individual &i) { return i.resp_root * G_PER_KG; }, "Daily root respiration (gC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_resp_sap"            , DAILY, [](const Individual &i) { return i.resp_sap * G_PER_KG; }, "Daily sapwood respiration (gC/m2/day)", sum, true);
-	add_aggregated_indiv_output("file_dave_indiv_npp"           , DAILY, [](const Individual &i) { return i.dnpp * G_PER_KG; }, "Daily NPP (gC/m2/day)", sum, true);
 	add_aggregated_indiv_output("file_dave_fpc"                 , DAILY, [](const Individual &i) { return i.fpc; }, "Daily FPC ()", mean, false, true);
 	add_aggregated_indiv_output("file_dave_crownarea"           , DAILY, [](const Individual &i) { return i.crownarea; }, "Daily Crown Area (m2)", sum, true);
 	add_aggregated_indiv_output("file_dave_agd_g"               , DAILY, [](const Individual &i) { return i.photosynthesis.agd_g; }, "Daily gross photosynthesis (gC/m2/day)", sum, true);
@@ -382,8 +382,8 @@ DaveOutput::DaveOutput() {
 	add_indiv_output("file_dave_indiv_cgrow_sap"          	    , DAILY, "cgrow_sap", [](const Individual &i) { return i.cgrow_sap; }, "daily sapwood allocation of individual (kgC/m2/d)");
 	add_indiv_output("file_dave_indiv_cgrow_repr"     		    , DAILY, "cgrow_repr", [](const Individual &i) { return i.cgrow_repr; }, "daily reproduction allocation of individual (kgC/m2/d)");
 	add_indiv_output("file_dave_indiv_cgrow_storage"     	    , DAILY, "cgrow_storage", [](const Individual &i) { return i.cgrow_storage; }, "daily storage allocation of individual (kgC/m2/d)");
-	add_indiv_output("file_dave_cohort_gpp"     	            , DAILY, "gpp", [](const Individual &i) { return i.dgpp; }, "daily gpp (kgC/m2/d)");
-	add_indiv_output("file_dave_cohort_npp"     	            , DAILY, "npp", [](const Individual &i) { return i.dnpp; }, "daily npp (kgC/m2/d)");
+	add_indiv_output("file_dave_indiv_gpp"       	            , DAILY, "gpp", [](const Individual &i) { return i.dgpp; }, "Daily cohort-level GPP (kgC/m2/d)");
+	add_indiv_output("file_dave_indiv_npp"       	            , DAILY, "npp", [](const Individual &i) { return i.dnpp; }, "Daily cohort-level NPP (kgC/m2/d)");
 	add_indiv_output("file_dave_indiv_litter_pools"             , DAILY, get_pft_litter_pools, "Total Daily PFT-Level C Mass in Litter (kgC/m2)", true);
 	add_indiv_output("file_dave_indiv_sapwood_area"             , DAILY, "sapwood_area", [](const Individual &i) { return i.sa; }, "Sapwood area (m2)");
 	add_indiv_output("file_dave_indiv_sapwood_depth"            , DAILY, "sapwood_depth", [](const Individual &i) { return i.sapwood_depth; }, "Sapwood depth (m)");

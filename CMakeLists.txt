@@ -5,7 +5,7 @@
 # If it's not installed it can be downloaded for free from www.cmake.org.
 #
 
-cmake_minimum_required(VERSION 2.8.12.2...3.5.2)
+cmake_minimum_required(VERSION 3.10...4.4.2)
 project(guess)
 # C++ standard 14 rather than 11 is needed to compile guess on mac.
 set(CMAKE_CXX_STANDARD 14)

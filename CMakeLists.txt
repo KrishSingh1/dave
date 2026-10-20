@@ -9,8 +9,8 @@ cmake_minimum_required(VERSION 3.10...4.4.4)
 
 project(guess)
 
-# C++ standard 14 rather than 11 is needed to compile guess on mac.
-set(CMAKE_CXX_STANDARD 14)
+# C++ standard 17 for std::filesystem and other features.
+set(CMAKE_CXX_STANDARD 17)
 
 # Output compression is only possible if zlib is available.
 set(COMPRESS_OUTPUT 0 BOOL "Compress output or not")
@@ -233,9 +233,6 @@ target_link_libraries(${guess_command_name} ${LIBS})
 # Rule for building the unit test binary
 add_executable(runtests ${test_sources} $<TARGET_OBJECTS:guess_core>)
 target_link_libraries(runtests ${LIBS})
-
-# Some unit tests require C++14
-set_property(TARGET runtests PROPERTY CXX_STANDARD 14)
 
 if (WIN32)
   # Create guess.dll (used with the graphical Windows shell)

@@ -141,16 +141,16 @@ file_cmass_clearcut_killed_sts "cmass_clearcut_killed_sts.out"
 
 group "EdenClearCutOnly" (
     harvest_system "clearcut"
-	cutinterval 30
+	cutinterval 23
 	suppress_fire 1
 	suppress_disturbance 1
 )
 
 group "EdenFrequentThin" (
 	harvest_system "clearcut"
-	cutinterval 30
+	cutinterval 23
 	thintime 0.2 0.4 0.6 0.8 1.0 
-	thinstrength 0.5 0.5 0.5 0.5 0.5
+	thinstrength 0.2 0.2 0.2 0.2 0.2
 	thinselectdiam 1 1 1 1 1  ! The last 1 doesn't do anything because the last one will be a clearcut anyways 
 	suppress_fire 1
 	suppress_disturbance 1
@@ -158,7 +158,7 @@ group "EdenFrequentThin" (
 
 group "EdenManagement" (
 	harvest_system "clearcut"
-	cutinterval 30
+	cutinterval 23
 	thintime 0.5 0.0 0.0 0.0 0.0 
 	thinstrength 0.5 0.0 0.0 0.0 0.0
 	thinselectdiam 1 0 0 0 0  ! The last 1 doesn't do anything because the last one will be a clearcut anyways 
@@ -170,19 +170,19 @@ group "EdenManagement" (
 !///////////////////////////////////////////////////////////////////////////////////////
 
 mt "Forest_init" (
-    firstmanageyear 1985
+    firstmanageyear 1981
 	cutfirstyear 1
     EdenClearCutOnly
 )
 
 mt "MT01" (
-	firstmanageyear 1985
+	firstmanageyear 1981
 	cutfirstyear 1
 	EdenFrequentThin
 )
 
 mt "Eden01" (
-	firstmanageyear 1985
+	firstmanageyear 1981
 	cutfirstyear 1
 	EdenManagement
 )
@@ -194,21 +194,21 @@ mt "Eden01" (
 
 mt "Forest_postinit" (
     cutfirstyear 0
-	firstmanageyear 1985
+	firstmanageyear 1981
     planting_system "selection"
     EdenClearCutOnly
 )
 
 mt "MTinit" (
     cutfirstyear 0
-	firstmanageyear 1985
+	firstmanageyear 1981
     planting_system "selection"
 	EdenFrequentThin
 )
 
 mt "Eden01_init" (
     cutfirstyear 0
-	firstmanageyear 1985
+	firstmanageyear 1981
     planting_system "selection"
 	EdenManagement
 )
@@ -225,7 +225,7 @@ st "EdenFrequentThinnings" (
 
     management1 "MT01"
     management2 "MTinit"
-    file_treeinit_st "EdenNSFI.treeinit.txt"
+    file_treeinit_st "PEE120_tree_init.txt"
 )
 
 st "EdenClearCutNoThin" (
@@ -234,10 +234,9 @@ st "EdenClearCutNoThin" (
     landcover "forest" ! Landcover type for this stand type.
     naturalveg "all"   ! Allow natural PFTs as well as forest PFTs. This is useful in here
 
-    
     management1 "Forest_init"
     management2 "Forest_postinit"
-    file_treeinit_st "EdenNSFI.treeinit.txt"
+    file_treeinit_st "PEE120_tree_init.txt"
 )
 
 st "EdenManage" (
@@ -248,5 +247,5 @@ st "EdenManage" (
 
     management1 "Eden01"
     management2 "Eden01_init"
-    file_treeinit_st "EdenNSFI.treeinit.txt"
+    file_treeinit_st "PEE120_tree_init.txt"
 )

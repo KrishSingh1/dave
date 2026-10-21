@@ -19,7 +19,7 @@ ifdailytree              1   ! Daily allocation for trees and shrubs
 ifdavephotosyn 		     1   ! DAVE photosynthesis scheme (in need of a better name...)
 ifdavegrowth             1   ! DAVE growth scheme
 ifdavehydrology          1   ! DAVE hydrology updates
-ifdavehydraulics         1   ! DAVE hydraulics scheme (requires davephotosyn and davehydrology)
+ifdavehydraulics         0   ! DAVE hydraulics scheme (requires davephotosyn and davehydrology)
 ifzhou                   1   ! Zhou response of photosynthesis to water stress (via water potential). Requires ifdavehydrology
 ifapproximate_C4         1   ! Use approximation of von Caemmerer 2000 C4 photosynthesis model?
 use_mean_annual_co2      1   ! If true, each day's CO2 value will be the mean annual co2 for the current year. Otherwise, a mean of that day's subdaily data will be used.
@@ -36,8 +36,6 @@ ifstoreuptake            1   ! Whether tree N uptake goes into long-term storage
 ifdailycstarvmort        1   ! Turn on/off daily carbon starvation mortality in trees (Dave)
 penman_monteith          1   ! Whether to use penman-monteith equation to calculate transpiration, or the relationship with VPD.
 est_live_repr            0   ! Whether to use live reproductive biomass (1) or total annual allocation to reproduction (0) for spatial mass effect.
-ifstorm                  0   ! Whether to use storm damage model (1) or not (0).
-ifinsect                 0   ! Whether to use insect damage model (1) or not (0).
 
 ! Soil Data, homogenous with depth.
 file_soildata         		  "../forcing/soilmap_center_interpolated.dat"        ! Relative to the main .ins file, not this one
@@ -62,7 +60,7 @@ slope -1
 ! Soil depth can be read in or set from the .ins file. Depth affects how much
 ! water the soil can hold, how organic matter and roots are distributed, and
 ! many other things.
-param "file_soildepth"        (str "../forcing/soil/soildepth.ozflux.txt")
+param "file_soildepth"        (str "..\forcing\soil\Soildepth_log_mean.txt")
 
 ! Soil depth (mm) (0 = use soil depth input data, >0 fixed soil depth according
 ! to depth_soil).
@@ -132,7 +130,7 @@ file_co2                      "../forcing/global_co2_ann_1700_2040.txt" ! note e
 !file_co2                     "../forcing/co2_rcp85_1765_2500.dat"
 
 ! Maximum number of cohorts allowed to coexist per pft (0 = unlimited)
-nindiv_max               1
+nindiv_max               0
 
 ! Set to 1 to force all individuals to use constant/fixed LAI.
 ! The monthly LAI values are defined at the bottom of canexch.h.
@@ -199,7 +197,7 @@ energy_balance_eps           5
 ! The first year after the spinup period. During spinup, all met data before
 ! this year is cycled. If not set, all available data will be cycled during the
 ! spinup.
-!simulation_start_year       2020
+!simulation_start_year       2000
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! RUN PARAMETERS AND OPTIONS
@@ -238,17 +236,7 @@ ifbvoc 0                         ! Whether to include BVOC calculations (1) or n
 !///////////////////////////////////////////////////////////////////////////////
 ! Disturbance
 !///////////////////////////////////////////////////////////////////////////////
-!
-! Generic/Dave disturbance is patch-destroying: when a patch is disturbed,
-! all vegetation objects in that patch are killed and patch age is reset to 0.
-! "DETERMINISTIC" uses file_disturb to choose fixed disturbance years.
-!
-! Prescribed disturbance inputs (file_dist_clearcut/fire/wind/barkbeetle)
-! use a different European-applications pathway. They allocate externally
-! supplied disturbed area to stands and apply harvest/fire handling, not the
-! generic disturbance() function. During active prescribed-disturbance input
-! years, the generic/Dave patch-destroying disturbance path is suppressed.
-ifdisturb    1          ! Whether generic patch-destroying disturbances enabled
+ifdisturb    0          ! Whether generic patch-destroying disturbances enabled
 disttype     "DETERMINISTIC"     ! Disturbance regime ("NONE", "STOCHASTIC" (requires distinterval), "DETERMINISTIC" (requires file_disturb))
 
 distinterval 30        ! Average return time for generic patch-destroying disturbances
@@ -419,8 +407,8 @@ import "landcover.ins"
 !import "warra_pfts.ins"
 ! also, comment out pft_commons.ins
 
-import "pft_clare.ins"
-import "outputs_clare.ins"
+import "pft_dave.ins"
+import "outputs.ins"
 
 ! Uncomment this (and comment out all other pft .ins files) to use the standard
 ! (global) pfts. This should always be done when using trunk allocation.

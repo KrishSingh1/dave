@@ -2686,10 +2686,6 @@ public:
 	/// fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen longterm storage scalar
 	double fnstorage;
 
-	/// Michaelis-Menten kinetic parameters
-	/** Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000) */
-	double km_volume;
-
 	/// Development and Growth parameters
     /// temperature below which plants fall dormant (degC)
 	double temp_dormancy;

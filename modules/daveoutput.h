@@ -15,6 +15,7 @@
 
 #include "outputmodule.h"
 #include "guess.h"
+#include "stopwatch.h"
 
 namespace GuessOutput {
 
@@ -1466,9 +1467,9 @@ class GridcellLevelOutput : public OutputFile {
 	void declare_parameters(std::vector<std::unique_ptr<OutputFile>> &outputs);
 
 	/*
-	Total time spent in dave output code.
+	Stopwatch for measuring time spent in the output module.
 	*/
-	double total_time;
+	Stopwatch stopwatch;
 };
 
 /*

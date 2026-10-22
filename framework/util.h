@@ -42,9 +42,4 @@ Format an exception and any nested exceptions as an indented message chain.
 */
 xtring get_nested_error_msg(const std::exception& e);
 
-/*
-Return current time (in μs since unix epoch).
-*/
-double get_wall_time();
-
 #endif // _UTIL_H_

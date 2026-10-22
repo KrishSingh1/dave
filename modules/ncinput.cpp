@@ -15,6 +15,7 @@
 #include "ncvariable.h"
 #include "variableresolver.h"
 #include "logging.h"
+#include "stopwatch.h"
 
 ResolveOptions to_resolve_options(const NCInputOptions &options) {
     ResolveOptions resolve_options;
@@ -661,7 +662,7 @@ int NCInput::get_simulation_start_year() const {
 }
 
 double NCInput::calculate_thome(double lon, double lat) const {
-    double calc_thome_start = get_wall_time();
+    Stopwatch stopwatch;
     if (variables.find(Variable::Temp) == variables.end()) {
         throw std::runtime_error("Cannot calculate thome: temperature data is not open");
     }
@@ -721,9 +722,12 @@ double NCInput::calculate_thome(double lon, double lat) const {
         throw std::runtime_error("Cannot calculate thome: no monthly temperature data was found");
     }
 
-    double calc_thome_end = get_wall_time();
-    log_info("Calculated thome: %f for gridcell (%f, %f) in %f ms",
-             thome, lon, lat, (calc_thome_end - calc_thome_start) * 1000.0);
+    stopwatch.stop();
+    double elapsed_walltime = stopwatch.get_elapsed_walltime();
+    double elapsed_cputime = stopwatch.get_elapsed_cputime();
+    log_info("Calculated THome: %f for gridcell (%f, %f)", thome, lon, lat);
+    log_diagnostic("THome walltime: %.2f ms", elapsed_walltime * 1000.0);
+    log_diagnostic("THome CPU time: %.2f ms", elapsed_cputime * 1000.0);
     return thome;
 }
 

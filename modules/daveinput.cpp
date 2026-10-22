@@ -48,7 +48,7 @@ xtring format_gridcell_exception(const std::exception& e, double lon, double lat
 }
 
 DaveInput::DaveInput() {
-	double ctor_start = get_wall_time();
+	auto timer = stopwatch.start();
 
 	// Register instruction file parameters.
 
@@ -139,10 +139,6 @@ DaveInput::DaveInput() {
 	use_lamarque = true;
 	use_mean_annual_co2 = false;
 
-	double ctor_end = get_wall_time();
-	double ctor_duration = (ctor_end - ctor_start) * 1000;
-	ncinput_walltime_use = ctor_duration;
-
 	progress_newline = false;
 }
 
@@ -152,7 +148,7 @@ DaveInput::~DaveInput() {
 
 void DaveInput::init(void) {
 	try {
-		double init_start = get_wall_time();
+		auto timer = stopwatch.start();
 
 		// Parse the gridlist.
 		if (file_gridlist == "") {
@@ -235,10 +231,6 @@ void DaveInput::init(void) {
 		progress_progress_timer.settimer(progress_interval);
 	}
 
-	double init_end = get_wall_time();
-	double init_duration = (init_end - init_start) * 1000;
-	ncinput_walltime_use += init_duration;
-
 	} catch (const std::exception& error) {
 		fail(get_nested_error_msg(error));
 	}
@@ -246,11 +238,16 @@ void DaveInput::init(void) {
 
 bool DaveInput::getgridcell(Gridcell& gridcell) {
 	try {
-		double getgridcell_start = get_wall_time();
+		auto timer = stopwatch.start();
 
 		if (current_gridcell == gridlist.end()) {
-			log_diagnostic("Total time spent in dave  input: %.2fs\n",
-					       ncinput_walltime_use / 1000);
+			stopwatch.stop();
+			double elapsed_walltime = stopwatch.get_elapsed_walltime();
+			double elapsed_cputime = stopwatch.get_elapsed_cputime();
+			log_diagnostic("Total walltime spent in dave  input: %.2fs\n",
+					       elapsed_walltime);
+			log_diagnostic("Total CPU time spent in dave input: %.2fs\n",
+					       elapsed_cputime);
 			return false;
 		}
 
@@ -294,10 +291,6 @@ bool DaveInput::getgridcell(Gridcell& gridcell) {
 		// Increment gridlist iterator (it now points to the next grid cell).
 		current_gridcell++;
 
-		double getgridcell_end = get_wall_time();
-		double getgridcell_duration = (getgridcell_end - getgridcell_start) * 1000;
-		ncinput_walltime_use += getgridcell_duration;
-
 		return true;
 	} catch (const std::exception& e) {
 		fail(format_gridcell_exception(e, current_gridcell->lon, current_gridcell->lat,
@@ -308,7 +301,7 @@ bool DaveInput::getgridcell(Gridcell& gridcell) {
 
 bool DaveInput::getclimate(Gridcell& gridcell) {
 try {
-	double getclimate_start = get_wall_time();
+	auto timer = stopwatch.start();
 
 	// Shorthand access to some variables.
 	Climate& climate = gridcell.climate;
@@ -393,9 +386,6 @@ try {
 
 	// rads and pars are calculated automatically in daylengthinsoleet().
 	// gtemps are calculated in respiration_temperature_response().
-
-	double getclimate_duration = (get_wall_time() - getclimate_start) * 1000;
-	ncinput_walltime_use += getclimate_duration;
 
 	// Progress reporting.
 	if (progress_interval == -1 ||

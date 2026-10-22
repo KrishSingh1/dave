@@ -21,6 +21,7 @@
 #include "parameters.h"
 #include "util.h"
 #include "logging.h"
+#include "stopwatch.h"
 
 namespace GuessOutput {
 
@@ -32,7 +33,7 @@ REGISTER_OUTPUT_MODULE("dave", DaveOutput)
 // #############################################################################
 
 DaveOutput::DaveOutput() {
-	double t_start = get_wall_time();
+	auto timer = stopwatch.start();
 
 	// Annual gridcell-level outputs.
 	add_gridcell_aggregated_indiv_output("file_aagb"             , ANNUAL, [](const Individual &i) { return i.aboveground_biomass(); }, sum, "Annual gridcell-level above-ground biomass (kg/m2)", true);
@@ -466,19 +467,17 @@ DaveOutput::DaveOutput() {
 
 	// Register instruction file parameters.
 	declare_parameters();
-
-	total_time = get_wall_time() - t_start;
 }
 
 DaveOutput::~DaveOutput() {
-	log_diagnostic("Total time spent in dave output: %.2fs\n", total_time);
+	log_diagnostic("Total walltime spent in dave output: %.2fs\n", stopwatch.get_elapsed_walltime());
+	log_diagnostic("Total CPU time spent in dave output: %.2fs\n", stopwatch.get_elapsed_cputime());
 }
 
 void DaveOutput::init() {
-	double t_start = get_wall_time();
+	auto timer = stopwatch.start();
 	// rows = new OutputRows(output_channel, -1, -1, -1, -1);
 	open_outfiles();
-	total_time += get_wall_time() - t_start;
 }
 
 void DaveOutput::write_outputs(Gridcell &gridcell, std::vector<std::unique_ptr<OutputFile>> &outputs) {
@@ -505,19 +504,17 @@ bool write_stats() {
 }
 
 void DaveOutput::outannual(Gridcell &gridcell) {
-	double t0 = get_wall_time();
+	auto timer = stopwatch.start();
 	if (should_write_today()) {
 		write_outputs(gridcell, annual_outputs);
 	}
-	total_time += get_wall_time() - t0;
 }
 
 void DaveOutput::outdaily(Gridcell &gridcell) {
-	double t0 = get_wall_time();
+	auto timer = stopwatch.start();
 	if (should_write_today()) {
 		write_outputs(gridcell, daily_outputs);
 	}
-	total_time += get_wall_time() - t0;
 }
 
 void DaveOutput::add_patch_output(

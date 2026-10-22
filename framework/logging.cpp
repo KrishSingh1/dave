@@ -6,6 +6,7 @@
 #include "shell.h"
 #include "guess.h"
 #include "util.h"
+#include "stopwatch.h"
 
 #define write_message(level, fmt) \
     do { \
@@ -26,25 +27,32 @@ const char *PFX_TRACE = " TRACE";
 uint64_t log_message_count = 0;
 uint64_t error_count = 0;
 uint64_t warning_count = 0;
-double start_time = get_wall_time();
+Stopwatch stopwatch;
 
 void logging_reset_run_stats() {
     log_message_count = 0;
     error_count = 0;
     warning_count = 0;
-    start_time = get_wall_time();
+    stopwatch.reset();
 }
 
 void logging_get_run_stats(uint64_t *out_log_message_count,
-    uint64_t *out_error_count, uint64_t *out_warning_count, double *out_elapsed_time) {
+    uint64_t *out_error_count, uint64_t *out_warning_count,
+    double *out_elapsed_time, double *out_cpu_time) {
     *out_log_message_count = log_message_count;
     *out_error_count = error_count;
     *out_warning_count = warning_count;
-    *out_elapsed_time = get_wall_time() - start_time;
+    *out_elapsed_time = stopwatch.get_elapsed_walltime();
+    *out_cpu_time = stopwatch.get_elapsed_cputime();
 }
 
 void logging_print_run_summary() {
-    double elapsed_time = get_wall_time() - start_time;
+    double elapsed_time = stopwatch.get_elapsed_walltime();
+    double cpu_time = stopwatch.get_elapsed_cputime();
+
+    log_info("Wall time: %.2f seconds", elapsed_time);
+    log_info("CPU time: %.2f seconds", cpu_time);
+
     printf("\n\nSimulation completed in %.2f seconds with %lu errors and %lu warnings.\n",
              elapsed_time, error_count, warning_count);
     printf("See guess.log for full details\n");

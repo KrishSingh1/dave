@@ -29,6 +29,7 @@ set(headers
   logging.h
   ncfile.h
   kdtree.h
+  stopwatch.h
 )
 
 set(source
@@ -59,6 +60,7 @@ set(source
   logging.cpp
   guessmath.cpp
   ncfile.cpp
+  stopwatch.cpp
 )
 
 include(add_guess_sources)

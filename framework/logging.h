@@ -90,16 +90,6 @@ count.
 void logging_reset_run_stats();
 
 /*
-Retrieves the current run statistics, including log message count, error count,
-and warning count.
-
-@param out_log_message_count: Pointer to a variable to receive the log message count.
-@param out_error_count: Pointer to a variable to receive the error count.
-@param out_warning_count: Pointer to a variable to receive the warning count.
-*/
-void logging_get_run_stats(uint64_t *out_log_message_count, uint64_t *out_error_count, uint64_t *out_warning_count);
-
-/*
 Prints a summary of the run, including total log messages, errors, and warnings.
 */
 void logging_print_run_summary();

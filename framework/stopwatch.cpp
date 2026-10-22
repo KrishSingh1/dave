@@ -32,28 +32,8 @@ std::string GetLastErrorAsString() {
 #else
 
 #include <sys/resource.h>
-#include <time.h>
-#include <sys/time.h>
 
 #endif
-
-/*
-Return current time (in μs since unix epoch).
-*/
-double get_wall_time() {
-#ifdef _WIN32
-	// The C standard specifies clock() as CPU time, but Microsoft actually
-	// implements it as wall time.
-	return 1.0 * clock() / CLOCKS_PER_SEC;
-#else
-    struct timeval time;
-    if (gettimeofday(&time,NULL)){
-        //  Handle error
-        return 0;
-    }
-    return (double)time.tv_sec + (double)time.tv_usec * .000001;
-#endif
-}
 
 /*
 Return current CPU time (in seconds) used by the process. This is the sum of
@@ -69,10 +49,10 @@ double get_cpu_time() {
 		return 0;
 	}
 
-	ULARGE_INTEGER user_time_ularge;
-	user_time_ularge.LowPart = user_time.dwLowDateTime;
-	user_time_ularge.HighPart = user_time.dwHighDateTime;
-	return (double)user_time_ularge.QuadPart * 1e-7;
+	ULARGE_INTEGER time_ularge;
+	time_ularge.LowPart = user_time.dwLowDateTime + kernel_time.dwLowDateTime;
+	time_ularge.HighPart = user_time.dwHighDateTime + kernel_time.dwHighDateTime;
+	return (double)time_ularge.QuadPart * 1e-7;
 #else
     struct rusage usage;
     if (getrusage(RUSAGE_SELF, &usage) != 0) {

@@ -3560,7 +3560,7 @@ bool Individual::has_daily_turnover() const {
 /// Partition stored N between plant compartments to prevent unrealistic C:N ratios in litter when killed
 void Individual::partition_nstore(double& NH4_mass) {
 
-	double nbefore = ncont() + NH4_mass;
+	double nbefore = ncont(1.0, false, true) + NH4_mass;
 
 	// If compartment are above maximum allowed N concentration, move excess N mass to storage
 	if (nmass_leaf > cmass_leaf / pft.cton_leaf_min) {
@@ -3614,7 +3614,7 @@ void Individual::partition_nstore(double& NH4_mass) {
 	// Add leftover stored N to NH4 pool
 	NH4_mass += ndist;
 
-	double nafter = ncont() + NH4_mass;
+	double nafter = ncont(1.0, false, true) + NH4_mass;
 
 	if (fabs(nbefore - nafter) > 1.0e-16)
 		dprintf("Year %d %s IID %d Diff %g Before %g After %g\n", date.year, (char*)pft.name, id, nbefore - nafter, nbefore, nafter);

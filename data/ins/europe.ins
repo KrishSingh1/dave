@@ -121,7 +121,7 @@ ifcalccton 1          		! Whether to calculate leaf C:N min from leaf longevity
                       		! (PFT-specific value can be specified in this file instead)
 firemodel "BLAZE"		! BLAZE, GLOBFIRM, NOFIRE
 weathergenerator "GWGEN"	! GWGEN, INTERP
-hydrology "GERTEN"		! GERTEN, MILLER, RICHARDS
+hydrology "RICHARDS"		! GERTEN, MILLER, RICHARDS
 energy "CNSTEP_FULL"		! CNSTEP_FULL, CNSTEP, BELDA
 npatch 25             		! Number of replicate patches to simulate
 patcharea 1000        		! Patch area (m2)
@@ -154,11 +154,40 @@ ifdailytree 0
 
 ifcentury 1			! Whether to use CENTURY SOM dynamics (mandatory for N cycling)
 ifnlim 1			! Whether plant growth limited by available N
+ifdailynretrans 1		! Whether daily leaf N retranslocation is allowed
 freenyears 100			! Number of years to spin up without N limitation (needed to build up a N pool)
 nfix_a 0.102			! First term in N fixation eqn (Conservative 0.102, Central 0.234, Upper 0.367)
 nfix_b 0.524			! Second term in N fixation eqn (Conservative 0.524, Central -0.172, Upper -0.754)
 nrelocfrac 0.5			! Fraction of N retranslocated prior to leaf and root shedding
 
+
+!///////////////////////////////////////////////////////////////////////////////////////
+! PROCESS SETTINGS SPECIFIC TO SOIL
+!///////////////////////////////////////////////////////////////////////////////////////
+
+depth_soil 1500			! Soil depth (mm) (0 - use soil depth input data, >0 fixed soil depth according to depth_soil
+textured_soil 1	     		! Whether to use silt/sand fractions specific to soiltype (1), or not (0)
+slope 0     			! Whether to use fixed slope value (>=0 degree) or input data (<0)
+b_infilt 0.2			! Variable infiltration capacity parameter (Global value 0.2 (Schaperow et al. 2021), higher value gives lower infiltration and more surface runoff)
+C_dw 1.0			! Calibration parameter for lateral drainage
+ifbedrock 1			! Whether to consider bedrock as lower boundary condition (1), or not (0) for multilayer soil hydrology
+ifsupercooled 1			! Whether to consider supercooled soil water. 0 - not, 1 - Niu et al. 2006 (CLM, default), 2 - Jin et al. 2020
+homrootdistfrac 0.0		! Fraction of fine roots to be homogenously distributed in soil column. 0 - none, 0.5 - 50%, 1 - all 
+rootfrac_of_deep_soil 0.0	! Fraction of deep soil, beyond 1500 mm, that roots have access to
+receiver_frac 0.5 		! Fraction of organic matter to move from receiver layer
+ifmultilayersnow 1 		! 0 is the old, single-layer scheme. 1 by default (applies to all stand types)
+ifsoaksnow 1			! Whether to soak snowpack with melted water (1), or not (0)
+top_thickness 100.0		! Additional thickness ontop of snowpack to account for radiation energy
+iforganicsoilproperties 1	! Whether to update physical soil properties using soil carbon content (1), or not (0)
+ifeffvolume 1			! Whether soil layer volume is affected by coarse root biomass taking up space (1), or not (0)
+ifdepthdecaymod 1               ! Whether to use depth soil organic matter decay rate modifier
+ifcarbonfreeze 1		! Whether to allow some decomposition below 0 degC in upland soils (1 by default), or not (0)
+ifthawaffectrootdist 1          ! Whether thaw depth affects root distribution (1 by default), or not (0)
+moistdecay "YAN"		! FRIEND (standard), YAN
+
+surf_li_scalar 1.0 !0.4
+soil_om_scalar 2.0 !2.05 !2.5
+moist_mod_anaerobic 0.075
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! ARCTIC AND WETLAND SWITCHES
@@ -174,7 +203,8 @@ wetland_runon 0			! Extra daily water input to (>0), or output from (<0), wetlan
 				! 0 by default, non-zero for site specific studies.
 ifmethane 0			! Whether to run the methane model and calculate methane fluxes
 ifsaturatewetlands 1		! Whether to take water from runoff in association with the (default) 
-				! saturation of low latitude wetlands (1), or not (0)
+                   			! saturation of low latitude wetlands (1), or not (0)
+peat_age 0                  ! Age of peat (0 peatland will be spun up to equilibrium)
 
 !///////////////////////////////////////////////////////////////////////////////////////
 ! SERIALIZATION SETTINGS
@@ -245,6 +275,14 @@ group "common" (
 	gdd0_min 0		! [degC day] min GDD0, i.e. No restriction here
 	has_aerenchyma 0	! PFTs do not have aerenchyma for gas transport by default
 	stem_frac 1
+
+	! Lignin fraction in root (0 - 0.5). Value from Comins & McMurtrie 1993.
+	! TODO: verify these with the team.
+	ligcfrac_root 0.16
+
+	! Lignin fraction in wood (0 - 0.5). Value from Friend et al 1997.
+	ligcfrac_wood 0.3
+	ag_woody_frac 1.0
 )
 
 group "tree" (

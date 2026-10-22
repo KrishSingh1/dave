@@ -2458,7 +2458,6 @@ void plib_callback(int callback) {
 
 			if (!ppft->dave_allocation()) {
 				if (!itemparsed("nuptoroot")) badins("nuptoroot");
-				if (!itemparsed("km_volume")) badins("km_volume");
 				if (!itemparsed("fnstorage")) badins("fnstorage");
 				if (ppft->lifeform == TREE) {
 					if (!itemparsed("cton_root")) badins("cton_root");

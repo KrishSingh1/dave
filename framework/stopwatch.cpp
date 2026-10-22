@@ -23,6 +23,11 @@ std::string GetLastErrorAsString() {
 		0,
 		NULL);
 
+    if (size == 0) {
+        // If FormatMessage fails, return a generic error message.
+        return "Unknown error";
+    }
+
 	std::string message(messageBuffer, size);
 
 	LocalFree(messageBuffer);
@@ -49,10 +54,15 @@ double get_cpu_time() {
 		return 0;
 	}
 
-	ULARGE_INTEGER time_ularge;
-	time_ularge.LowPart = user_time.dwLowDateTime + kernel_time.dwLowDateTime;
-	time_ularge.HighPart = user_time.dwHighDateTime + kernel_time.dwHighDateTime;
-	return (double)time_ularge.QuadPart * 1e-7;
+	ULARGE_INTEGER user, kernel;
+    user.LowPart = user_time.dwLowDateTime;
+    user.HighPart = user_time.dwHighDateTime;
+
+    kernel.LowPart = kernel_time.dwLowDateTime;
+    kernel.HighPart = kernel_time.dwHighDateTime;
+
+	return (static_cast<double>(user.QuadPart) +
+            static_cast<double>(kernel.QuadPart)) * 1e-7;
 #else
     struct rusage usage;
     if (getrusage(RUSAGE_SELF, &usage) != 0) {

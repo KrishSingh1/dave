@@ -103,7 +103,8 @@
 		"${workspaceRoot}/libraries/gutil",
 		"${workspaceRoot}/libraries/guessnc",
 		"${workspaceRoot}/cru/guessio",
-		"${workspaceRoot}/libraries/plib"
+		"${workspaceRoot}/libraries/plib",
+		"${workspaceRoot}/build/tests/generated"
 	],
 	"C_Cpp.default.defines": [
 		"HAVE_NETCDF",

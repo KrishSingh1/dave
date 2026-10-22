@@ -65,8 +65,6 @@ private:
 	
 	double searchradius_soil;
 
-	coord find_closest_point(double searchradius, coord C);
-
 	struct SoilProperties {
 
 		// empirical parameter in percolation equation (k1) (mm/day)
@@ -133,8 +131,8 @@ private:
 		std::vector<double> depth_lyr;
 	};
 
-	std::map<coord, int> lpj_map;
-	std::map<coord, SoilDataMineral> mineral_map;
+	std::unique_ptr<KDTree<SoilDataMineral>> mineral_index;
+	std::unique_ptr<KDTree<int>> lpj_index;
 	std::unique_ptr<KDTree<double>> depth_index;
 	std::unique_ptr<KDTree<double>> slope_index;
 	double get_soil_depth(const coord &c);
@@ -144,7 +142,9 @@ private:
 		const std::set<coord>& coords,
 		std::ifstream& prop,
 		std::map<coord, SoilDataMineral>& mineral_map,
-		std::vector<double> SoilDataMineral::* member);
+		std::vector<double> SoilDataMineral::* member,
+	    const char *name,
+	    std::vector<double> depths);
 
 	// Reads only the header and extracts the depth values
 	std::vector<double> extract_layer_depths(std::ifstream& prop);

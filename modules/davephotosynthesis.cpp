@@ -261,13 +261,8 @@ void store_vcmax_values(Vegetation &vegetation) {
 * @param max_depth: Maximum depth (mm).
 */
 double calc_water_stress_dave(const Soil &soil, const double weight[NSOILLAYERS_MAX], double max_depth = -1) {
-	if (max_depth < 0) {
+	if (max_depth < 0 || max_depth > soil.depth) {
 		max_depth = soil.depth;
-	}
-
-	if (max_depth > soil.depth) {
-		fail("calc_water_stress_dave(): max_depth (%d) cannot be greater than soil depth (%d)",
-			 max_depth, soil.depth);
 	}
 
 	double wstress = 0;

@@ -6,7 +6,7 @@
 # script without arguments.
 #
 
-cmake_command="cmake -D CMAKE_BUILD_TYPE=Release -D BENCHMARK=True -D VERBOSE=True"
+cmake_command="cmake -D CMAKE_BUILD_TYPE=Release -D VERBOSE=True"
 make_command="make -j"
 bbox_command="bbox"
 pp_walltime=1:00:00
@@ -166,7 +166,7 @@ function build {
     rm -rf $build_path
     mkdir -p $build_path/output
 
-    source_dirs="framework modules cru libraries command_line_version parallel_version cmake"
+    source_dirs="framework modules cru libraries command_line_version parallel_version cmake tests"
     # Copy with tar so we can exclude svn directories
     (cd ..; tar cf - --exclude=".svn" $source_dirs) | (cd $build_path; tar xf -)
 

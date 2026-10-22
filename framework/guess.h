@@ -2956,10 +2956,6 @@ public:
 	/// fraction of sapwood (root for herbaceous pfts) that can be used as a nitrogen longterm storage scalar
 	double fnstorage;
 
-	/// Michaelis-Menten kinetic parameters
-	/** Half saturation concentration for N uptake [kgN l-1] (Rothstein 2000) */
-	double km_volume;
-
 	/// Development and Growth parameters
     /// temperature below which plants fall dormant (degC)
 	double temp_dormancy;
@@ -3292,10 +3288,10 @@ public:
 	double harvest_slow_frac;
 	/// yearly turnover fraction of patchpft.harvested_products_slow (goes to gridcell.acflux_harvest_slow)
 	double turnover_harv_prod;
-	/// Fraction of wood cmass that belongs to stems
+	/// Fraction of above-ground wood cmass that belongs to stems
 	double stem_frac;
-	/// Fraction of wood cmass that belongs to twigs
-	double twig_frac;
+	/// Fraction of above-ground wood cmass that belongs to twigs
+	double twig_frac() const { return 1.0 - stem_frac; };
 	/// whether pft may grow as cover crop
 	bool isintercropgrass;
 	/// whether autumn temperature dependent sowing date is calculated

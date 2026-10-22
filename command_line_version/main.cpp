@@ -18,6 +18,7 @@
 #include "logging.h"
 #include "util.h"
 #include <stdlib.h>
+#include <filesystem>
 
 #ifdef __unix__
 // includes needed for umask()
@@ -78,8 +79,14 @@ int main(int argc,char* argv[]) {
 		xtring path;
 		path.printf("./run%d", GuessParallel::get_rank()+1);
 
-		if (change_directory(path) != 0) {
-			fprintf(stderr, "Failed to change to run directory\n");
+		try
+		{
+			std::filesystem::current_path(path.str());
+		}
+		catch (const std::exception& err)
+		{
+			fprintf(stderr, "Failed to change to run directory:\n");
+			fprintf(stderr, "%s\n", err.what());
 			return EXIT_FAILURE;
 		}
 	}

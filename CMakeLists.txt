@@ -5,11 +5,14 @@
 # If it's not installed it can be downloaded for free from www.cmake.org.
 #
 
-cmake_minimum_required(VERSION 2.8.12.2...3.5.2)
-project(guess)
-# C++ standard 14 rather than 11 is needed to compile guess on mac.
-set(CMAKE_CXX_STANDARD 14)
+cmake_minimum_required(VERSION 3.10...4.4.4)
 
+project(guess)
+
+# C++ standard 17 for std::filesystem and other features.
+set(CMAKE_CXX_STANDARD 17)
+
+# Output compression is only possible if zlib is available.
 set(COMPRESS_OUTPUT 0 BOOL "Compress output or not")
 find_package(ZLIB QUIET)
 if(ZLIB_FOUND)
@@ -117,16 +120,8 @@ if (WIN32)
   endif()
 endif()
 
-# NetCDF - look for libraries and include files, and use them if found.
-# If this CMakeList script does not find the path to the NetCDF library on
-# your system, then consult LPJ-GUESS/reference/guessdoc.doc.
-# On easybuild systems, it may help to use the same line as for lunarc here.
-# i.e. set(CMAKE_PREFIX_PATH "$ENV{EBROOTNETCDF}").
-if ("$ENV{ARCH}" STREQUAL "lunarc")
-  set(CMAKE_PREFIX_PATH "$ENV{EBROOTNETCDF}")
-endif()
+# NetCDF - used if found.
 find_package(NetCDF QUIET)
-
 if (NETCDF_FOUND)
   include_directories(${NETCDF_INCLUDE_DIRS})
   set(LIBS ${LIBS} ${NETCDF_LIBRARIES})
@@ -136,14 +131,14 @@ else()
   message("NETCDF disabled." )
 endif()
 
-# MPI - used if found (not needed on Windows)
+# MPI - used if found (not needed on Windows).
 if (NOT CMAKE_HOST_WIN32)
   find_package(MPI QUIET)
 endif()
 
 # These are deprecated according to documentation in the FindMPI module,
 # but for some reason not hidden. Let's not display them for the typical
-# LPJ-GUESS user who hasn't got MPI installed.
+# LPJ-GUESS user who doesn't have MPI installed.
 mark_as_advanced(MPI_LIBRARY MPI_EXTRA_LIBRARY)
 
 if (MPI_FOUND)
@@ -162,7 +157,6 @@ if (!MSVC)
   # of noise about the usage of std::auto_ptr, which is something that's being
   # worked on but not something we need to be informed of repeatedly.
   set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
-
 endif()
 
 # Use CCache if it's available.
@@ -195,8 +189,14 @@ if (ENABLE_ASAN)
   endif()
 endif()
 
-# Where the compiler should search for header files
-include_directories(${guess_SOURCE_DIR}/framework ${guess_SOURCE_DIR}/libraries/gutil ${guess_SOURCE_DIR}/libraries/plib ${guess_SOURCE_DIR}/libraries/guessnc ${guess_SOURCE_DIR}/modules ${guess_SOURCE_DIR}/cru/guessio)
+# Setup the include paths.
+include_directories(
+  ${guess_SOURCE_DIR}/framework
+  ${guess_SOURCE_DIR}/libraries/gutil
+  ${guess_SOURCE_DIR}/libraries/plib
+  ${guess_SOURCE_DIR}/libraries/guessnc
+  ${guess_SOURCE_DIR}/modules
+  ${guess_SOURCE_DIR}/cru/guessio)
 
 # The following directories contain source code and 
 # additional CMakeLists.txt files
@@ -208,11 +208,7 @@ if (WIN32)
   add_subdirectory(windows_version)
 endif()
 
-if (BENCHMARK)
-  message("We are in benchmarks, not copying tests.")
-else()
-  add_subdirectory(tests)
-endif()
+add_subdirectory(tests)
 
 # Add the command line program's target
 if (WIN32)
@@ -235,16 +231,14 @@ add_executable(${guess_command_name}
 target_link_libraries(${guess_command_name} ${LIBS})
 
 # Rule for building the unit test binary
-if(BENCHMARK)
-  message("We are in benchmarks, not creating executable for tests.")
-else()
-  add_executable(runtests
-    ${test_sources}
-    $<TARGET_OBJECTS:guess_core>)
-  target_link_libraries(runtests ${LIBS})
-  # Some unit tests require C++14
-  set_property(TARGET runtests PROPERTY CXX_STANDARD 14)
-endif()
+add_executable(runtests ${test_sources} $<TARGET_OBJECTS:guess_core>)
+target_link_libraries(runtests ${LIBS})
+
+# Add the include path for the generated config.hpp file, which is created
+# from config.hpp.in by the configure_file command above.
+target_include_directories(runtests PRIVATE
+  "${CMAKE_CURRENT_BINARY_DIR}/tests/generated"
+)
 
 if (WIN32)
   # Create guess.dll (used with the graphical Windows shell)
@@ -282,15 +276,6 @@ if (UNIT_TESTS)
     COMMAND runtests 
     COMMENT "Running tests")
 endif()
-
-if (UNIX)
-   # pgCC 6 doesn't seem to recognize -rdynamic, so remove it
-   # (we shouldn't need it anyway)
-   # It seems the CMake developers have fixed this in newer versions
-   # (sometime after 2.8)
-   SET(CMAKE_SHARED_LIBRARY_LINK_C_FLAGS "")
-   SET(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "")
-endif(UNIX)
 
 if (UNIX)
   # Set default build type to Release on Unix

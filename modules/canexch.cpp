@@ -2638,7 +2638,7 @@ void respiration(double gtemp_air, double gtemp_soil, lifeformtype lifeform,
 	// resp_leaf is an input (calculated in photosynthesis routine)
 	resp_maintenance = resp_leaf + resp_culm + resp_root + resp_repr + resp_crown + resp_sap;
 	
-	if (lifeform == TREE) {
+	if (lifeform == TREE && ifdailytree && ifdavegrowth) {
 		// always have a minimum respiration rate. Reason: so small cohorts (with 
 		// low storage) won't survive.
 		resp_maintenance = max(base_resp, resp_maintenance);

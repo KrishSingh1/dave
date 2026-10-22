@@ -15,6 +15,7 @@ default:
   script:
     - cmake -B build_ci -S .
     - cmake --build build_ci -- -j$(nproc)
+    - build_ci/runtests
   cache:
     key: cmake-$CI_COMMIT_REF_SLUG
     paths:

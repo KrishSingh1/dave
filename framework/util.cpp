@@ -1,4 +1,5 @@
 #include "util.h"
+#include <string>
 
 namespace {
 
@@ -20,17 +21,6 @@ xtring get_nested_error_msg(const std::exception& e, int level) {
 
 xtring get_nested_error_msg(const std::exception& e) {
        return get_nested_error_msg(e, 0);
-}
-
-xtring join_items(const std::set<xtring> &items) {
-	xtring result;
-	for (std::set<xtring>::const_iterator it = items.begin(); it != items.end(); it++) {
-		if (it != items.begin()) {
-			result += ", ";
-		}
-		result += *it;
-	}
-	return result;
 }
 
 xtring join_items(const std::set<xtring> &items) {

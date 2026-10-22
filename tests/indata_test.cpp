@@ -76,7 +76,7 @@ const char* const local_yearly_headerless =
 class InputFile {
 public:
     explicit InputFile(const std::string& contents)
-        : path(std::filesystem::path(directory.get_path()) / "input.txt") {
+        : path((std::filesystem::path(directory.get_path()) / "input.txt").string()) {
         std::ofstream output(path.c_str(), std::ios::binary);
         output << contents;
         output.close();

@@ -28,7 +28,6 @@ group "common" (
 	gdd0_min 0			! [degC day] min GDD0, i.e. No restriction here
 	has_aerenchyma 0		! PFTs do not have aerenchyma for gas transport by default
 	stem_frac 1
-	twig_frac 0
 
 	! davephotosyn parameters
 	gcutic 0.0005 ! cuticular conductance (about 10% of g0, dark stomatal conductance, Duursma et al. (2019))
@@ -63,7 +62,6 @@ group "tree" (
 	cton_root 29
 	cton_sap 330
 	nuptoroot 0.0028
-	km_volume 0.000001477
 	pathway "c3"
 	respcoeff 1.0
 	kest_repr 200
@@ -79,8 +77,7 @@ group "tree" (
 	turnover_harv_prod 0.04 ! Turnover rate for long-lived harvested products (wood): 
 				! 0.04 corresponds to a 25-year turnover time (as in Bondeau 2007)
 	harvest_slow_frac 0.33	! Bondeau 0.33
-	stem_frac 0.65
-	twig_frac 0.13
+	stem_frac 0.833
 	turnover_repr_litter 0.25
 )
 
@@ -99,7 +96,6 @@ group "shrub" (
 	cton_root 29
 	cton_sap 330
 	nuptoroot 0.0028
-	km_volume 0.000001477
 	fnstorage 0.3
 	pathway "c3"
 	kest_repr 200
@@ -135,7 +131,6 @@ group "grass" (
 	!cton_leaf_min 16
 	cton_root 29
 	nuptoroot 0.00551
-	km_volume 0.000001876
 	fnstorage 0.3
 	litterme 0.2
 	parff_min 1000000

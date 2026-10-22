@@ -11,6 +11,8 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
+#include <filesystem>
+
 #include "config.h"
 #include "miscoutput.h"
 #include "parameters.h"
@@ -1138,8 +1140,8 @@ void MiscOutput::define_output_tables() {
 		char dirname[200]={'\0'};
 		// Put files in separate directory only on Windows for now.
 #ifdef _MSC_VER
-		strcpy(dirname, "st_output\\");
-		make_directory(dirname);
+		strcpy(dirname, "st_output/");
+		std::filesystem::create_directories(dirname);
 #endif
 		out_cmass_pft_st = new Table[nst];
 		out_cmass_harv_killed_pft_st = new Table[nst];
@@ -4816,7 +4818,7 @@ void MiscOutput::openlocalfiles(Gridcell& gridcell, int coordinates_precision) {
 #else
 	strcpy(dirname, "../stand_output/");
 #endif
-	make_directory(dirname);
+	std::filesystem::create_directories(dirname);
 
 	if (!date.year || restart && date.year == state_year) {
 		for(int id=0;id<MAXNUMBER_STANDS;id++) {

@@ -29,6 +29,7 @@
 #include "globalco2file.h"
 #include "thome.h"
 #include "ncinput.h"
+#include "stopwatch.h"
 
 /*
 NC Input: An input module which reads gridded met forcing data from a single
@@ -436,9 +437,9 @@ private:
 	bool strict_math;
 
 	/*
-	Total walltime spent in ncinput (cumulatively) (ms).
+	Stopwatch used to track the total time spent in this input module.
 	*/
-	double ncinput_walltime_use;
+	Stopwatch stopwatch;
 
 	/*
 	Fixed/constant air pressure to use, in Pa.

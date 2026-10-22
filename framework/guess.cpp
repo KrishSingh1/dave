@@ -106,6 +106,8 @@ void Climate::serialize(ArchiveStream& arch) {
 	arch & temp
 		& rad
 		& par
+		// The lifetime maximum drives relative PAR on subsequent days.
+		& par_max
 		& prec
 		& aprec
 		& aprec_lastyear
@@ -455,6 +457,13 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& ftemp_cum
 		& wscal_30
 		& airtemp_10
+		& wcont_germ_4
+		& wcont_germ_14
+		& wcont_germ_30
+		& tsoil_germ_4
+		& tsoil_germ_14
+		& dormancy_depth_historical
+		& wscal_historical
 		& anetps_ff_est
 		& anetps_ff_est_initial
 		& wscal_mean_est
@@ -502,6 +511,10 @@ void Patchpft::serialize(ArchiveStream& arch) {
 		& nmass_litter_repr
 		& nmass_harvested_products_slow
 		& nmass_litter_NH4
+		& cmass_wood_clearcut
+		// Retain the initialized/thaw-adjusted profile when Patch::serialize
+		// reconstructs Patchpft objects on restart.
+		& rootdist
 		& swindow
 		& wmass_deficit_y
 		& inund_count
@@ -1996,6 +2009,9 @@ void Stand::serialize(ArchiveStream& arch) {
 		& lc_origin
 		& st_origin
 		& landcover
+		// Grazing rotations can span the year-end checkpoint.
+		& days_grazed
+		& patches_grazed
 		& storm_init_done
 		& seed
 		& harvest_seed;
@@ -2145,6 +2161,11 @@ Individual::Individual(int i,Pft& p,Vegetation& v):pft(p),vegetation(v),id(i) {
 	frepr_cstorage    = 0.0;
 	fdev_growth       = 1.0;
 	cmass_crown_flowering = 0.0;
+	// Daily tree establishment sets these later; other allocation modes
+	// still need defined values when writing a checkpoint.
+	meanleafage       = 0.0;
+	meanrootage       = 0.0;
+	meansapage        = 0.0;
 	fdev_senesc       = 1.0;
 	senesc_root       = 0.0;
 	growth_stage_days = 0;
@@ -2488,6 +2509,41 @@ void Individual::serialize(ArchiveStream& arch) {
 		& cmass_root_limit
 		& cmass_sap_limit
 		& last_turnover_day
+		// DAVE state carried between days, including histories whose ring
+		// positions and adaptive capacities must survive a restart.
+		& meanleafage
+		& meanrootage
+		& meansapage
+		& c_d_diam
+		& cmass_crown_flowering
+		& fdev_growth
+		& growth_stage_days
+		& cmass_repr_10
+		& soiltemp_dynamic
+		& wscal_dynamic
+		& wscal
+		& wscal_5
+		& wscal_10
+		& wscal_30
+		& root_beta
+		& rootdist
+		& dphen_activity_max
+		& max_mobil_cstorage
+		& temp_dormancy
+		& alpha_leaf_trend
+		& alpha_root_trend
+		& alpha_sap_trend
+		& alpha_storage_trend
+		& sa
+		& sapwood_depth
+		& latosa
+		// Closed stomata retain the previous day's final subdaily LWP;
+		// drought damage persists even after growth resumes.
+		& stomata_open
+		& lwp
+		& lwp_previous
+		& kmax_drought_affected
+		& hydraulic_failure
 		& fpc
 		& fpc_greenbrown
 		& fpc_daily
@@ -3380,7 +3436,7 @@ double Individual::ncont(double scale_indiv, bool luc, bool ignore_alive) const 
 
 	double ncont = 0.0;
 
-	if (alive || !(date.islastday && date.islastmonth)) {
+	if (alive || !(date.islastday && date.islastmonth) || ignore_alive) {
 
 		if (luc) {
 
@@ -3954,7 +4010,7 @@ bool Individual::has_daily_turnover() const {
 /// Partition stored N between plant compartments to prevent unrealistic C:N ratios in litter when killed
 void Individual::partition_nstore(double& NH4_mass) {
 
-	double nbefore = ncont() + NH4_mass;
+	double nbefore = ncont(1.0, false, true) + NH4_mass;
 
 	// If compartment are above maximum allowed N concentration, move excess N mass to storage
 	if (nmass_leaf > cmass_leaf / pft.cton_leaf_min) {
@@ -4008,7 +4064,7 @@ void Individual::partition_nstore(double& NH4_mass) {
 	// Add leftover stored N to NH4 pool
 	NH4_mass += ndist;
 
-	double nafter = ncont() + NH4_mass;
+	double nafter = ncont(1.0, false, true) + NH4_mass;
 
 	if (fabs(nbefore - nafter) > 1.0e-16) {
 		log_debug("%s N store partition changed total N: difference=%g, before=%g, after=%g",
@@ -5847,6 +5903,12 @@ void Sompool::serialize(ArchiveStream& arch) {
 		& ligcfrac
 		& fracremain
 		& ntoc
+		// Trend-based SOM equilibration spans multiple simulation years.
+		& cmass_init
+		& multi
+		& sign_trend
+		& same_trend
+		& changed_trend
 		& litterme
 		& fireresist
 		& mfracremain_mean;

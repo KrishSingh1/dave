@@ -29,6 +29,7 @@ set(headers
   logging.h
   ncfile.h
   kdtree.h
+  stopwatch.h
   equationsolvers.h
   log_scope.h
 )
@@ -61,6 +62,7 @@ set(source
   logging.cpp
   guessmath.cpp
   ncfile.cpp
+  stopwatch.cpp
   equationsolvers.cpp
   log_scope.cpp
 )

@@ -48,96 +48,13 @@ bool format_input_header(const char* fname) {
 
 const double PERC_EXP_DAVE = 4.0;
 
-coord SoilInput::find_closest_point(double searchradius, coord C) {
-
-	// First try the exact coordinate
-	bool found = soil_code ? lpj_map.count(C) > 0 :
-							 mineral_map.count(C) > 0;
-	
-	if (found) {
-		return C;
-	}
-
-	double lon = C.first;
-	double lat = C.second;
-
-	if (searchradius == 0) {
-		// Don't try to search
-		fail("Coordinate at %f, %f could not be found in the soil map, and no search radius specified.\n",lon,lat);
-		return C;
-	}
-
-	// Search all coordinates in a square around (lon, lat), but first go down to
-	// multiple of 0.5
-	double center_lon = floor(lon * 2) / 2 + 0.25;
-	double center_lat = floor(lat * 2) / 2 + 0.25;
-
-	// Enumerate all coordinates within the square, place them in a vector of
-	// pairs where the first element is distance from center to allow easy
-	// sorting.
-	using std::pair;
-	using std::make_pair;
-	std::vector<pair<double, coord> > search_points;
-
-	
-	const double EPS = 1e-15;
-
-	for (double y = center_lon - searchradius; y <= center_lon + searchradius + EPS; y += STEP) {
-		for (double x = center_lat - searchradius; x <= center_lat + searchradius + EPS; x += STEP) {
-			double xdist = x - lat;
-			double ydist = y - lon;
-			double dist = sqrt(xdist * xdist + ydist * ydist);
-
-			if (dist <= searchradius + EPS) {
-				search_points.push_back(make_pair(dist, make_pair(y, x)));
-			}
-		}
-	}
-
-	// Sort by increasing distance
-	std::sort(search_points.begin(), search_points.end());
-
-	// Find closest coordinate which can be found
-	for (unsigned int i = 0; i < search_points.size(); i++) {
-		coord search_point = search_points[i].second;
-
-		found = soil_code ? lpj_map.count(search_point) > 0 :
-							mineral_map.count(search_point) > 0;
-
-		if (found) {
-			return search_point;
-		}
-	}
-
-	// Try a closest-match.
-	const double EXACT_MATCH_EPS = 1e-3;
-	double dist_min = 1e100;
-	if (!soil_code) {
-		// Search through the map
-		for (std::map<coord, SoilDataMineral>::iterator it = mineral_map.begin(); it != mineral_map.end(); ++it) {
-			coord search_point = it->first;
-			double xdist = search_point.second - lat;
-			double ydist = search_point.first - lon;
-			double dist = sqrt(xdist * xdist + ydist * ydist);
-
-			dist_min = min(dist, dist_min);
-			if (dist <= EXACT_MATCH_EPS) {
-				return search_point;
-			}
-		}
-	}
-
-	fail("Coordinate at %f, %f could not be found in the soil map.\n",lon,lat);
-	return C;
-}
-
 // Initialises the soil input class and determines the format of the supplied input file.
 void SoilInput::init(const char* fname, const std::vector<coord>& gridlist) {
 
 	std::set<coord> coords(gridlist.begin(), gridlist.end());
 
-	xtring soilClay = param["file_soilclay"].str;
-	xtring soilSand = param["file_soilsand"].str;
+	xtring soilClay = param.isparam("file_soilclay") ? param["file_soilclay"].str : "";
+	xtring soilSand = param.isparam("file_soilsand") ? param["file_soilsand"].str : "";
 
 	// Have soil depth varying properties
 	if (soilClay.len() && soilSand.len()) {
@@ -151,7 +68,10 @@ void SoilInput::init(const char* fname, const std::vector<coord>& gridlist) {
 		soil_varying = false;
 
 		soil_code = format_input_header(fname);
-		init_depth(param["file_soildepth"].str, gridlist);
+
+		if (param.isparam("file_soildepth")) {
+			init_depth(param["file_soildepth"].str, gridlist);
+		}
 
 		if (soil_code) {
 			load_lpj_soilcodes(fname, coords);
@@ -160,7 +80,12 @@ void SoilInput::init(const char* fname, const std::vector<coord>& gridlist) {
 			load_mineral_soils(fname, coords);
 		}
 	}
-	init_slope(param["file_soilslope"].str, gridlist);
+
+	if (param.isparam("file_soilslope")) {
+	    init_slope(param["file_soilslope"].str, gridlist);
+	} else if (slope < 0) {
+		fail("Soil slope is not specified in the input file or in the parameter file.");
+	}
 }
 
 // Helper: extract depths from header
@@ -190,12 +115,20 @@ void SoilInput::get_depth_varying_prop(
 	const std::set<coord>& coords,
 	std::ifstream& prop,
 	std::map<coord, SoilDataMineral>& mineral_map,
-	std::vector<double> SoilDataMineral::* member) {
+	std::vector<double> SoilDataMineral::* member,
+	const char* name,
+    std::vector<double> depths) {
 	if (!prop.is_open())
 		return;
 
 	// Read and parse header to extract layer depths
 	std::vector<double> lyr_depth = extract_layer_depths(prop);
+
+	if (lyr_depth != depths) {
+		fail("Soil property %s has layer depths which don't match clay depths.",
+			 name);
+	}
+
 	const int nr_layers = static_cast<int>(lyr_depth.size());
 
 	std::vector<double> T(nr_layers);
@@ -213,13 +146,14 @@ void SoilInput::get_depth_varying_prop(
 		if (!coords.empty() && coords.count(c) == 0)
 			continue;
 
-		for (double& val : T)
-			iss >> val;
+		for (double& val : T) {
+			if (!(iss >> val) || !std::isfinite(val)) {
+				fail("Invalid soil property value at (%g, %g) in depth-varying "
+					"%s soil input file.", lon, lat, name);
+			}
+		}
 
-		SoilDataMineral& soildata = mineral_map[c];
-		(soildata.*member).resize(nr_layers);
-		for (int lyr = 0; lyr < nr_layers; ++lyr)
-			(soildata.*member)[lyr] = T[lyr];
+		mineral_map[c].*member = T;
 
 		sites++;
 
@@ -243,21 +177,25 @@ void SoilInput::assign_depths(
 void SoilInput::init_depth_varying(const std::set<coord>& coords) {
 
 	soil_varying = true;
+	std::map<coord, SoilDataMineral> soils;
 
 	// Assign depths once
 	std::ifstream clayHeader(param["file_soilclay"].str);
 	std::vector<double> depths = extract_layer_depths(clayHeader);
-	assign_depths(coords, mineral_map, depths);
+	assign_depths(coords, soils, depths);
 
 	std::ifstream clayFile(param["file_soilclay"].str);
-	get_depth_varying_prop(coords, clayFile, mineral_map, &SoilDataMineral::clay_lyr);
+	get_depth_varying_prop(coords, clayFile, soils, &SoilDataMineral::clay_lyr,
+		                   "clay", depths);
 
 	std::ifstream sandFile(param["file_soilsand"].str);
-	get_depth_varying_prop(coords, sandFile, mineral_map, &SoilDataMineral::sand_lyr);
+	get_depth_varying_prop(coords, sandFile, soils, &SoilDataMineral::sand_lyr,
+		                   "sand", depths);
 
 	std::ifstream coarseFile(param["file_soilcoarse"].str);
 	if (coarseFile) {
-		get_depth_varying_prop(coords, coarseFile, mineral_map, &SoilDataMineral::coarse_lyr);
+		get_depth_varying_prop(coords, coarseFile, soils,
+							   &SoilDataMineral::coarse_lyr, "coarse", depths);
 	}
 	else {
 		dprintf("Using soil depth varying properties, but not coarse fragments!\n");
@@ -265,11 +203,66 @@ void SoilInput::init_depth_varying(const std::set<coord>& coords) {
 
 	std::ifstream pHFile(param["file_soilpH"].str);
 	if (pHFile) {
-		get_depth_varying_prop(coords, pHFile, mineral_map, &SoilDataMineral::pH_lyr);
+		get_depth_varying_prop(coords, pHFile, soils, &SoilDataMineral::pH_lyr,
+							   "pH", depths);
 	}
 	else {
 		dprintf("Using soil depth varying properties, but not pH!\n");
 	}
+
+	// Validation of inputs. The above code gives us the union of gridells in
+	// each input file. If the inputs are on different grids, we will have
+	// missing values.
+	if (depths.empty()) {
+		fail("Soil input contains no layer depths.");
+	}
+
+	if (soils.empty()) {
+		fail("No depth-varying soil data was loaded.");
+	}
+
+	for (auto &item : soils) {
+		const coord &c = item.first;
+		SoilDataMineral &soil = item.second;
+
+		auto require_layers = [&](const std::vector<double> &values,
+		                          const char *property) {
+			if (values.size() != depths.size()) {
+				fail("Soil input at (%g, %g): %s has %zu layers; expected %zu "
+					 "layers based on depth input.", c.first, c.second,
+					 property, values.size(), depths.size());
+			}
+		};
+
+		require_layers(soil.clay_lyr, "clay");
+		require_layers(soil.sand_lyr, "sand");
+
+		// Default missing optional properties.
+		if (soil.coarse_lyr.empty()) {
+			soil.coarse_lyr.assign(depths.size(), 0.0);
+		}
+
+		if (soil.pH_lyr.empty()) {
+			soil.pH_lyr.assign(depths.size(), 6.5);
+		}
+
+		require_layers(soil.coarse_lyr, "coarse");
+		require_layers(soil.pH_lyr, "pH");
+
+		soil.depth_lyr = depths;
+	}
+
+	std::vector<KDTree<SoilDataMineral>::Entry> entries;
+	entries.reserve(soils.size());
+
+	for (auto &item : soils) {
+		entries.push_back({
+			{item.first.first, item.first.second},
+			std::move(item.second)
+		});
+	}
+
+	mineral_index = std::make_unique<KDTree<SoilDataMineral>>(std::move(entries));
 }
 
 // Initialises the soil input class and determines the format of the supplied input file.
@@ -362,6 +355,7 @@ void SoilInput::load_lpj_soilcodes(const char* fname, const std::set<coord>& coo
 	std::ifstream ifs(fname, std::ifstream::in);
 
 	std::string line;
+	std::vector<KDTree<int>::Entry> entries;
 
 	while (getline(ifs, line)) {
 		std::istringstream iss(line);
@@ -370,20 +364,18 @@ void SoilInput::load_lpj_soilcodes(const char* fname, const std::set<coord>& coo
 		int classnbr;
 		if (iss >> lon >> lat >> classnbr) {
 			coord c(lon, lat);
-			if (!coords.empty() && coords.count(c) == 0) {
-				continue;
-			}
-			if (classnbr<0 || classnbr>9) {
+
+			if (classnbr < 0 || classnbr > 9) {
 				fail("SoilInput::init: invalid LPJ soil code (%d) for location"
 					" (%g, %g) in file %s", classnbr, lon, lat, fname);
 			}
-			lpj_map[c] = classnbr;
-			if (lpj_map.size() == coords.size()) {
-				break;
-			}
+
+			entries.push_back({{lon, lat}, classnbr});
 		}
 	}
 	ifs.close();
+
+	lpj_index = std::make_unique<KDTree<int>>(std::move(entries));
 }
 
 // Load mineral soil data from text file with columns describing the data. They need to be named:
@@ -445,6 +437,7 @@ void SoilInput::load_mineral_soils(const char* fname, const std::set<coord>& coo
 
 	// Create a empty vector T with header.size-2 elements
 	std::vector<double> T((unsigned int)header.size() - 2);
+	std::vector<KDTree<SoilDataMineral>::Entry> entries;
 
 	while (getline(ifs, line)) {
 
@@ -462,7 +455,7 @@ void SoilInput::load_mineral_soils(const char* fname, const std::set<coord>& coo
 				iss >> *it;
 			}
 
-			SoilDataMineral& soildata = mineral_map[c];
+			SoilDataMineral soildata;
 			soildata.sand = T[sand_i];
 			soildata.clay = T[clay_i];
 			soildata.orgc = T[orgc_i];
@@ -484,21 +477,28 @@ void SoilInput::load_mineral_soils(const char* fname, const std::set<coord>& coo
 				soildata.bulkdensity = T[bd_i];
 			}
 
-			if (mineral_map.size() == coords.size()) {
-				break;
-			}
+			entries.push_back({{lon, lat}, soildata});
 		}
 	}
 
 	ifs.close();
+
+	mineral_index = std::make_unique<KDTree<SoilDataMineral>>(std::move(entries));
 }
 
 // Get and set soil properties based on LPJ soil code.
 SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 
-	coord C = find_closest_point(searchradius_soil, c);
+	auto res = lpj_index->nearest({c.first, c.second});
 
-	int soilcode = lpj_map[C];
+	if (res.distance > searchradius_soil) {
+		fail("Coordinate at %f, %f could not be found in the LPJ soil map "
+			 "within search radius %f. Nearest point is at (%f, %f) with "
+			 "distance %f.", c.first, c.second, searchradius_soil,
+			 res.point.get(0), res.point.get(1), res.distance);
+	}
+
+	int soilcode = res.value;
 	
 	SoilProperties soiltype;
 
@@ -535,9 +535,15 @@ SoilInput::SoilProperties SoilInput::get_lpj(coord c) {
 // Get and set soil properties based on mineral soil input.
 SoilInput::SoilProperties SoilInput::get_mineral(coord c) {
 
-	coord C = find_closest_point(searchradius_soil, c);
+	auto res = mineral_index->nearest({c.first, c.second});
+	if (res.distance > searchradius_soil) {
+		fail("Coordinate at %f, %f could not be found in the mineral soil map "
+			 "within search radius %f. Nearest point is at (%f, %f) with "
+			 "distance %f.", c.first, c.second, searchradius_soil,
+			 res.point.get(0), res.point.get(1), res.distance);
+	}
 
-	SoilDataMineral& soil = mineral_map[C];
+	const SoilDataMineral &soil = res.value;
 
 	SoilProperties soiltype;
 
@@ -655,7 +661,8 @@ void SoilInput::get_soil(double lon, double lat, Gridcell& gridcell) {
 		// Inhomogeneous soil profile when it comes to minerals and pH
 		soiltype.soil_input = VARYING;
 
-		SoilDataMineral& soil = mineral_map[c];
+		Point<double, 2> point = {c.first, c.second};
+		const SoilDataMineral &soil = mineral_index->nearest(point).value;
 
 		int nr_lyr = (int)soil.depth_lyr.size();
 

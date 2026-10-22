@@ -1284,8 +1284,7 @@ void plib_declarations(int id,xtring setname) {
 			"Fraction of harvested products that goes into carbon depository for long-lived products like wood");
 		declareitem("turnover_harv_prod",&ppft->turnover_harv_prod,0.0,1.0,1,CB_NONE,"Harvested products turnover (fraction/year)");
 		declareitem("res_outtake",&ppft->res_outtake,0.0,1.0,1,CB_NONE,"Fraction of residue outtake at harvest");
-		declareitem("stem_frac",&ppft->stem_frac,0.0,1.0,1,CB_NONE,"Fraction of wood cmass that belongs to stems");
-		declareitem("twig_frac",&ppft->twig_frac,0.0,1.0,1,CB_NONE,"Fraction of wood cmass that belongs to twigs");
+		declareitem("stem_frac",&ppft->stem_frac,0.0,1.0,1,CB_NONE,"Fraction of above-ground wood cmass that belongs to stems");
 		declareitem("plantdensity",&ppft->plantdensity,0.0,10000.0,1,CB_NONE,"Plant density after clearcut (seedlings/ha)");
 
 		declareitem("sdatenh",&ppft->sdatenh,1,365,1,CB_NONE,"sowing day northern hemisphere");
@@ -2749,7 +2748,6 @@ void plib_callback(int callback) {
 
 			if (!ppft->is_grass() && run_landcover && ppft->landcover != NATURAL) {
 				if (!itemparsed("stem_frac")) badins("stem_frac");
-				if (!itemparsed("twig_frac")) badins("twig_frac");
 			}
 
 			if (ifdavegrowth) {

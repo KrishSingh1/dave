@@ -1,4 +1,4 @@
-import "../../data/ins/europe_cf.ins"
+import "{{SOURCE_ROOT}}/data/ins/europe_cf.ins"
 
 firemodel "NOFIRE"
 nyear_spinup 100
@@ -13,18 +13,18 @@ ifstochmort 0
 
 weathergenerator "GWGEN"
 
-outputdirectory "../tests/test_outputs/"
+outputdirectory "{{WORK_DIR}}/test_outputs/"
 
-param "file_gridlist_cf" (str "../tests/test_insfiles/cfinput_test_gridlist_cf.txt")
-param "file_gridlist" (str "../tests/test_insfiles/cfinput_test_gridlist_cf.txt")
+param "file_gridlist_cf" (str "{{SOURCE_ROOT}}/tests/test_insfiles/cfinput_test_gridlist_cf.txt")
+param "file_gridlist" (str "{{SOURCE_ROOT}}/tests/test_insfiles/cfinput_test_gridlist_cf.txt")
 
-param "file_co2"      (str "../tests/test_insfiles/dummy_co2.txt")
+param "file_co2"      (str "{{SOURCE_ROOT}}/tests/test_insfiles/dummy_co2.txt")
 param "file_ndep"     (str "")
 
 
-param "file_temp"     (str "../tests/test_insfiles/dummy_temp.nc")
-param "file_prec"     (str "../tests/test_insfiles/dummy_pr.nc")
-param "file_insol"     (str "../tests/test_insfiles/dummy_rad.nc")
+param "file_temp"     (str "{{SOURCE_ROOT}}/tests/test_insfiles/dummy_temp.nc")
+param "file_prec"     (str "{{SOURCE_ROOT}}/tests/test_insfiles/dummy_pr.nc")
+param "file_insol"     (str "{{SOURCE_ROOT}}/tests/test_insfiles/dummy_rad.nc")
 param "variable_temp" (str "temp")
 param "variable_prec" (str "pr")
 param "variable_insol"  (str "rad")
@@ -46,6 +46,6 @@ param "file_max_temp"      (str "")
 param "variable_max_temp"  (str "")
 param "file_simfire"  (str "")
 
-param "file_soildata" (str "../data/env/soils_lpj.dat")
+param "file_soildata" (str "{{SOURCE_ROOT}}/data/env/soils_lpj.dat")
 
 searchradius_soil 1

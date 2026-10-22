@@ -1,0 +1,6 @@
+#pragma once
+
+namespace config {
+    // inline variables only available in C++17 and later
+    /*inline */constexpr auto source_root = R"(@PROJECT_SOURCE_DIR@)";
+}

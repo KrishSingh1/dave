@@ -632,7 +632,13 @@ private:
 /// New Historic class with the possibility to define 
 // length as input.
 template<typename T>
-class HistoricDynamic : public Serializable {
+class HistoricDynamic;
+
+template<typename T>
+ArchiveStream& operator&(ArchiveStream& stream, HistoricDynamic<T>& data);
+
+template<typename T>
+class HistoricDynamic {
 	static_assert(std::is_arithmetic<T>::value, "HistoricDynamic can only be used with arithmetic types.");
 public:
 	HistoricDynamic() {
@@ -778,6 +784,8 @@ public:
 		}
 	}
 private:
+	friend ArchiveStream& operator&<T>(ArchiveStream& stream, HistoricDynamic<T>& data);
+
 	void clear() {
 		if (values) {
 			free(values);
@@ -797,6 +805,31 @@ private:
 	/// Whether we've reached the maximum number of values.
 	bool full;
 };
+
+/// Preserve the ring buffer's physical order as well as its capacity and cursor.
+/// Serializing the object as raw bytes would save its allocation pointer.
+template<typename T>
+ArchiveStream& operator&(ArchiveStream& stream, HistoricDynamic<T>& data) {
+	size_t capacity = data.capacity;
+	stream & capacity;
+	if (!stream.save()) {
+		data.clear();
+		data.capacity = capacity;
+		data.values = capacity ? static_cast<T*>(calloc(capacity, sizeof(T))) : NULL;
+		if (capacity && !data.values) {
+			fail("HistoricDynamic: Failed to allocate restart history with capacity %zu", capacity);
+		}
+	}
+	stream & data.current_index & data.full;
+	if ((capacity == 0 && (data.current_index != 0 || data.full)) ||
+	    (capacity != 0 && data.current_index >= capacity)) {
+		fail("HistoricDynamic: Invalid restart history cursor");
+	}
+	for (size_t i = 0; i < data.size(); ++i) {
+		stream & data.values[i];
+	}
+	return stream;
+}
 
 
 /// Serialization support for Historic

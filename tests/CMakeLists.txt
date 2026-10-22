@@ -25,6 +25,7 @@ set(source
   management_test.cpp
   demo_integration_test.cpp
   demo_state_test.cpp
+  serialization_test.cpp
   fluxes_test.cpp
   temporary_directory.cpp
   simulation_helper.cpp

@@ -1,4 +1,9 @@
+#include <stdexcept>
+#include <string.h>
+#include <string>
+
 #include "stopwatch.h"
+#include "logging.h"
 
 #ifdef _WIN32
 
@@ -37,6 +42,7 @@ std::string GetLastErrorAsString() {
 #else
 
 #include <sys/resource.h>
+#include <errno.h>
 
 #endif
 
@@ -66,10 +72,9 @@ double get_cpu_time() {
 #else
     struct rusage usage;
     if (getrusage(RUSAGE_SELF, &usage) != 0) {
-        // Handle error
-        return 0;
+        std::string msg = strerror(errno);
+        throw std::runtime_error("getrusage failed: " + msg);
     }
-	// Get ru_stime
 
     return (double)usage.ru_utime.tv_sec + (double)usage.ru_utime.tv_usec * .000001 +
 		   (double)usage.ru_stime.tv_sec + (double)usage.ru_stime.tv_usec * .000001;
@@ -80,16 +85,32 @@ StopwatchScope::StopwatchScope(Stopwatch &sw) : stopwatch(sw) {
 }
 
 StopwatchScope::~StopwatchScope() {
-    stopwatch.stop();
+    try {
+        stopwatch.stop();
+    } catch (const std::exception &e) {
+        // log_* is a bad idea here because this can be called before logging is
+        // initialised. Need to rethink this.
+        fprintf(stderr, "Failed to stop stopwatch: %s\n", e.what());
+    }
 }
 
 Stopwatch::Stopwatch() {
-    reset();
+    try {
+        reset();
+    } catch (const std::exception &e) {
+        // A failure here leaves us in a mostly-valid state, although CPU time
+        // will be wrong.
+        fprintf(stderr, "Failed to initialize stopwatch: %s\n", e.what());
+    }
 }
 
 StopwatchScope Stopwatch::start() {
-    unsafe_start();
-    return StopwatchScope{*this};
+    try {
+        unsafe_start();
+    } catch (const std::exception &e) {
+        fprintf(stderr, "Failed to start stopwatch: %s\n", e.what());
+    }
+    return StopwatchScope(*this);
 }
 
 void Stopwatch::unsafe_start() {
@@ -102,14 +123,14 @@ void Stopwatch::unsafe_start() {
 
 void Stopwatch::stop() {
     if (running) {
+        running = false;
+
         auto now = std::chrono::steady_clock::now();
         std::chrono::duration<double> elapsed = now - start_time_wall;
         accumulated_walltime += elapsed.count();
 
         double now_cpu = get_cpu_time();
         accumulated_cputime += (now_cpu - start_time_cpu);
-
-        running = false;
     }
 }
 

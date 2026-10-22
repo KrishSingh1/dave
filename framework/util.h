@@ -50,10 +50,4 @@ xtring get_nested_error_msg(const std::exception& e);
  */
 xtring join_items(const std::set<xtring> &items);
 
-/**
- * \return a string containing the concatenation of all items in the set,
- * separated by commas.
- */
-xtring join_items(const std::set<xtring> &items);
-
 #endif // _UTIL_H_

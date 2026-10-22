@@ -765,6 +765,10 @@ bool xtring::operator>=(char c) const {
 	return false;
 }
 
+std::string xtring::str() const {
+	return std::string(ptext);
+}
+
 
 void unixtime(xtring& result) {
 

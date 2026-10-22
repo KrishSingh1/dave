@@ -10,6 +10,8 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
+#include <filesystem>
+
 #include "config.h"
 #include "framework.h"
 #include "commandlinearguments.h"
@@ -30,7 +32,6 @@
 #include "bvoc.h"
 #include "commonoutput.h"
 #include "soilmethane.h"
-#include "util.h"
 #include "hydraulics.h" 
 
 #include <memory>
@@ -232,7 +233,7 @@ int framework(const CommandLineArguments& args) {
 
 	if (save_state) {
 		// Create state_path if it doesn't already exist.
-		mkdir_p((const char *)state_path);
+		std::filesystem::create_directories((const char *)state_path);
         serializer = std::make_unique<GuessSerializer>(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes());
 	}
 

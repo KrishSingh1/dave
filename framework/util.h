@@ -38,14 +38,6 @@ Throw a nested exception using the specified format string and arguments.
 	std::throw_with_nested(std::runtime_error((const char *)tmp_msg));
 
 /*
-Attempt to create the specified directory tree (equivalent to mkdir -p). Will
-throw upon failure, but "directory already exists" is considered success.
-
-@param path: The directory tree to be created.
-*/
-void mkdir_p(const char *path);
-
-/*
 Format an exception and any nested exceptions as an indented message chain.
 */
 xtring get_nested_error_msg(const std::exception& e);

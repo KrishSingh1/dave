@@ -27,6 +27,8 @@
 #include <string.h>
 #include <stdarg.h>
 
+#include <string>
+
 void fail();
 
 /// XTRING class - pointer-free manipulation of character strings in C++.
@@ -159,6 +161,9 @@ public:
 	 ~xtring();
 	 operator char*();
 	 operator const char*() const;
+
+	 // Returns a copy of the string as a standard C++ string
+	 std::string str() const;
 
 	 /// Adjusts memory allocation
 	 /** Expands or contracts the memory allocation to the current xtring object

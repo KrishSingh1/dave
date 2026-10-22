@@ -10,10 +10,11 @@
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
 
+#include <filesystem>
+
 #include "config.h"
 #include "outputmodule.h"
 #include "parameters.h"
-#include "util.h"
 #include "guess.h"
 
 namespace GuessOutput {
@@ -62,7 +63,7 @@ void OutputModuleContainer::init() {
 	}
 
 	// Create output directory if it doesn't already exist.
-	mkdir_p(outputdirectory.c_str());
+	std::filesystem::create_directories(outputdirectory);
 
 	// Create the output channel
 #ifdef COMPRESS_OUTPUT

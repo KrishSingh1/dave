@@ -234,6 +234,12 @@ target_link_libraries(${guess_command_name} ${LIBS})
 add_executable(runtests ${test_sources} $<TARGET_OBJECTS:guess_core>)
 target_link_libraries(runtests ${LIBS})
 
+# Add the include path for the generated config.hpp file, which is created
+# from config.hpp.in by the configure_file command above.
+target_include_directories(runtests PRIVATE
+  "${CMAKE_CURRENT_BINARY_DIR}/tests/generated"
+)
+
 if (WIN32)
   # Create guess.dll (used with the graphical Windows shell)
   add_library(guess SHARED

@@ -4431,7 +4431,11 @@ void SSW::serialize(ArchiveStream& arch) {
 		& slope_sigma
 		& sigma_sqrt2
 		& sigma_sqrt2pi
-		& sigma2;
+		& sigma2
+		// These are initialized only when the patch's slope is set; mature
+		// patches do not run that initialization again after a restart.
+		& wmass_frac_thresh
+		& wmass_thresh;
 }
 
 /// Crank-Nicholson timestepper algorithm for temperature diffusion equation.

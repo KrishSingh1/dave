@@ -2990,7 +2990,7 @@ double Individual::ncont(double scale_indiv, bool luc, bool ignore_alive) const 
 
 	double ncont = 0.0;
 
-	if (alive || !(date.islastday && date.islastmonth)) {
+	if (alive || !(date.islastday && date.islastmonth) || ignore_alive) {
 
 		if (luc) {
 

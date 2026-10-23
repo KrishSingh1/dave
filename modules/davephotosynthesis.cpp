@@ -1666,7 +1666,36 @@ void prevent_wuptake_oversubscription(Patch &patch) {
 			indiv_uptake += uptake[j][i];
 		}
 
-		// A hydraulically isolated individual deliberately has no soil uptake.
+	if (!(negligible(indiv_uptake) || equal(indiv_uptake, original_aet[j]))) {
+		printf("--------------------------------\n");
+		printf("Assertion violation year %d day %d indiv %d (%s)\n",
+		date.year, date.day, indiv.id, (const char *)indiv.pft.name);
+		printf("ncohorts=%d\n", indiv.vegetation.nobj);
+		printf("indiv_uptake=%.17g\n", indiv_uptake);
+		printf("original_aet=%.17g\n", original_aet[j]);
+		printf("indiv.aet=%.17g\n", indiv.aet);
+		printf("sum(fwuptake)=%.17g\n", sum(indiv.fwuptake, soil.nsoillayers));
+		printf("sum(fwuptake) (all)=%.17g\n", sum(indiv.fwuptake, NSOILLAYERS_MAX));
+		printf("indiv.cmass_root=%.17g\n", indiv.cmass_root);
+		printf("indiv.cmass_leaf=%.17g\n", indiv.get_cmass_leaf());
+		printf("indiv.cmass_sap=%.17g\n", indiv.cmass_sap);
+		printf("indiv.cmass_heart=%.17g\n", indiv.cmass_heart);
+		printf("indiv.cmass_repr=%.17g\n", indiv.cmass_repr);
+		for (size_t i = 0; i < soil.nsoillayers; i++) {
+		printf("  indiv.rootdist[%zu]=%.17g\n", i, indiv.rootdist[i]);
+		printf("  indiv.Rs_r[%zu]=%.17g\n", i, indiv.Rs_r[i]);
+		printf("  indiv.fwuptake[%zu]=%.17g\n", i, indiv.fwuptake[i]);
+		printf("  wcont[%zu]=%.17g\n", i, soil.soillayers[i].wcont());
+		printf("  wp[%zu]=%.17g\n", i, soil.soillayers[i].wp);
+		printf("  wmass[%zu]=%.17g\n", i, soil.soillayers[i].wmass);
+		printf("  awc[%zu]=%.17g\n", i, soil.soillayers[i].awc);
+		printf("  supply[%zu]=%.17g\n", i, supply[i]);
+		printf("  depleted[%zu]=%d\n", i, depleted[i]);
+		}
+		printf("indiv.weighted_psi=%.17g\n", indiv.weighted_psi);
+		printf("indiv.age=%.17g\n", indiv.age);
+}
+
 		assert(negligible(indiv_uptake) || equal(indiv_uptake, original_aet[j]));
 		total_demand += indiv_uptake;
 	}

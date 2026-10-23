@@ -158,7 +158,7 @@ group "EdenFrequentThin" (
 
 group "EdenManagement" (
 	harvest_system "clearcut"
-	cutinterval 23
+	cutinterval 30
 	thintime 0.5 0.0 0.0 0.0 0.0 
 	thinstrength 0.5 0.0 0.0 0.0 0.0
 	thinselectdiam 1 0 0 0 0  ! The last 1 doesn't do anything because the last one will be a clearcut anyways 
@@ -170,19 +170,19 @@ group "EdenManagement" (
 !///////////////////////////////////////////////////////////////////////////////////////
 
 mt "Forest_init" (
-    firstmanageyear 1981
+    firstmanageyear 1989
 	cutfirstyear 1
     EdenClearCutOnly
 )
 
 mt "MT01" (
-	firstmanageyear 1981
+	firstmanageyear 1989
 	cutfirstyear 1
 	EdenFrequentThin
 )
 
 mt "Eden01" (
-	firstmanageyear 1981
+	firstmanageyear 1989
 	cutfirstyear 1
 	EdenManagement
 )
@@ -218,7 +218,7 @@ mt "Eden01_init" (
 !///////////////////////////////////////////////////////////////////////////////////////
 
 st "EdenFrequentThinnings" (  
-    stinclude 1        ! Include this stand type in the simulation.
+    stinclude 0        ! Include this stand type in the simulation.
     common_stand       ! Common defaults from landcover.ins.
     landcover "forest" ! Landcover type for this stand type.
     naturalveg "all"   ! Allow natural PFTs as well as forest PFTs. This is useful in here
@@ -229,7 +229,7 @@ st "EdenFrequentThinnings" (
 )
 
 st "EdenClearCutNoThin" (
-    stinclude 1        ! Include this stand type in the simulation.
+    stinclude 0        ! Include this stand type in the simulation.
     common_stand       ! Common defaults from landcover.ins.
     landcover "forest" ! Landcover type for this stand type.
     naturalveg "all"   ! Allow natural PFTs as well as forest PFTs. This is useful in here

@@ -6,8 +6,8 @@ This page explains how to add or update pages on this documentation site.
 
 The documentation source files are part of the main LPJ-GUESS-DAVE repository
 (the same repository as the model code), not a separate documentation repo.
-All documentation changes should therefore be made and reviewed through normal
-branch + Merge Request workflows in this repository.
+All documentation changes should therefore be made and reviewed through a
+branch and Pull Request in the GitHub mirror while GitLab is unavailable.
 
 The docs are organised under `docs/` and rendered with MkDocs using
 `mkdocs.yml` at the repository root:
@@ -23,8 +23,8 @@ The docs are organised under `docs/` and rendered with MkDocs using
 1. Write or edit a Markdown file under `docs/`
 2. Preview it locally (in VSCode or with `mkdocs serve`)
 3. Commit and push to a branch
-4. Open a Merge Request on GitLab
-5. Once the MR is merged, the site rebuilds automatically
+4. Open a Pull Request on GitHub
+5. Once the PR is merged, the site rebuilds automatically
 
 ## Writing in Markdown
 
@@ -160,17 +160,17 @@ converting from Word.
 Pages not listed under `nav:` are still built but will not appear in the
 sidebar navigation.
 
-## Committing and Raising a Merge Request
+## Committing and Raising a Pull Request
 
 Once you are happy with your changes:
 
 1. Commit the changed files to a branch (see
    [Version Control via SourceTree](sourcetree.md) or
    [Version Control via CLI](git-cli.md))
-2. Push the branch to GitLab
-3. Open a Merge Request targeting the `lpjguess_dave` branch
-4. The CI pipeline runs a compile check; the MR can be merged once checks pass
-5. Merging to `lpjguess_dave` triggers the Pages deployment pipeline, which
-   rebuilds and publishes the site automatically within a few minutes
+2. Push the branch to the GitHub mirror
+3. Open a Pull Request targeting the `lpjguess_dave` branch
+4. The CI pipeline runs a compile check; the PR can be merged once checks pass
+5. Merging to `lpjguess_dave` triggers the GitHub Actions pipeline, which
+   rebuilds and publishes the site to the GitHub Pages mirror automatically
 
 No manual deployment step is needed.

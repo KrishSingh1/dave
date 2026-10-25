@@ -1,0 +1,65 @@
+name: CI and documentation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - lpjguess_dave
+
+permissions:
+  contents: read
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    container: gcc:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: apt-get update -qq && apt-get install -y -qq cmake libnetcdf-dev
+      - name: Build and run tests
+        run: |
+          cmake -B build_ci -S .
+          cmake --build build_ci -- -j$(nproc)
+          build_ci/runtests
+
+  docs:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/lpjguess_dave'
+    needs: compile
+    runs-on: ubuntu-latest
+    container: python:3.12-slim
+    concurrency:
+      group: docs-deploy
+      cancel-in-progress: false
+    steps:
+      - name: Install deployment dependencies
+        run: apt-get update -qq && apt-get install -y -qq git openssh-client rsync
+      - uses: actions/checkout@v4
+      - name: Build documentation
+        run: |
+          pip install --quiet mkdocs pymdown-extensions
+          mkdocs build --site-dir public
+      - name: Publish to GitHub Pages mirror
+        # These source-repository secrets hold an SSH key allowed to push to
+        # hie-dave/dave-docs and verified github.com host keys, respectively.
+        env:
+          DOCS_DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DOCS_DEPLOY_SSH_PRIVATE_KEY }}
+          DOCS_DEPLOY_KNOWN_HOSTS: ${{ secrets.DOCS_DEPLOY_KNOWN_HOSTS }}
+        run: |
+          test -n "$DOCS_DEPLOY_SSH_PRIVATE_KEY"
+          test -n "$DOCS_DEPLOY_KNOWN_HOSTS"
+          install -m 700 -d "$HOME/.ssh"
+          printf '%s\n' "$DOCS_DEPLOY_SSH_PRIVATE_KEY" > "$HOME/.ssh/docs_deploy_key"
+          chmod 600 "$HOME/.ssh/docs_deploy_key"
+          printf '%s\n' "$DOCS_DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          chmod 644 "$HOME/.ssh/known_hosts"
+          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/docs_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
+          git clone --branch gh-pages git@github.com:hie-dave/dave-docs.git github-pages
+          rsync -a --delete --exclude .git public/ github-pages/
+          git -C github-pages config user.name "DAVE documentation deployment"
+          git -C github-pages config user.email "dave-docs-deploy@users.noreply.github.com"
+          git -C github-pages add --all
+          if ! git -C github-pages diff --cached --quiet; then
+            git -C github-pages commit -m "Publish documentation for ${GITHUB_SHA}"
+            git -C github-pages push origin gh-pages
+          fi

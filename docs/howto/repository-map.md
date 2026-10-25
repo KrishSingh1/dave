@@ -10,7 +10,8 @@ configuration changes without first learning the whole codebase.
 |---|---|
 | `README.md` | Short project description and link to this documentation site. |
 | `mkdocs.yml` | Configuration for the documentation website. |
-| `.gitlab-ci.yml` | GitLab pipeline: compile checks and documentation deployment. |
+| `.gitlab-ci.yml` | GitLab pipeline: compile checks; documentation deployment jobs are temporarily disabled. |
+| `.github/workflows/ci.yml` | GitHub Actions pipeline: compile checks and GitHub Pages mirror deployment. |
 | `CMakeLists.txt` | Main build configuration for compiling the model. |
 | `runozflux` | Convenience script for building and running many OzFlux site simulations locally. |
 | `build_gadi` | Convenience script for compiling on Gadi with the expected module environment. |
@@ -26,7 +27,7 @@ configuration changes without first learning the whole codebase.
 | `docs/img/` | Images used by the documentation site. |
 
 Documentation pages are Markdown files (`.md`). After a documentation change is
-merged into `lpjguess_dave`, GitLab Pages rebuilds the published site
+merged into `lpjguess_dave`, GitHub Actions rebuilds the published site
 automatically. See [Contributing to the Documentation](contributing-docs.md)
 for the documentation workflow.
 

@@ -26,6 +26,7 @@ jobs:
   docs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/lpjguess_dave'
     needs: compile
+    environment: docs
     runs-on: ubuntu-latest
     container: python:3.12-slim
     concurrency:
@@ -40,20 +41,17 @@ jobs:
           pip install --quiet mkdocs pymdown-extensions
           mkdocs build --site-dir public
       - name: Publish to GitHub Pages mirror
-        # These source-repository secrets hold an SSH key allowed to push to
-        # hie-dave/dave-docs and verified github.com host keys, respectively.
         env:
           DOCS_DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DOCS_DEPLOY_SSH_PRIVATE_KEY }}
-          DOCS_DEPLOY_KNOWN_HOSTS: ${{ secrets.DOCS_DEPLOY_KNOWN_HOSTS }}
         run: |
           test -n "$DOCS_DEPLOY_SSH_PRIVATE_KEY"
-          test -n "$DOCS_DEPLOY_KNOWN_HOSTS"
           install -m 700 -d "$HOME/.ssh"
           printf '%s\n' "$DOCS_DEPLOY_SSH_PRIVATE_KEY" > "$HOME/.ssh/docs_deploy_key"
           chmod 600 "$HOME/.ssh/docs_deploy_key"
-          printf '%s\n' "$DOCS_DEPLOY_KNOWN_HOSTS" > "$HOME/.ssh/known_hosts"
+          # GitHub's published Ed25519 host key (SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU).
+          printf '%s\n' 'github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl' > "$HOME/.ssh/known_hosts"
           chmod 644 "$HOME/.ssh/known_hosts"
-          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/docs_deploy_key -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
+          export GIT_SSH_COMMAND="ssh -i $HOME/.ssh/docs_deploy_key -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes"
           git clone --branch gh-pages git@github.com:hie-dave/dave-docs.git github-pages
           rsync -a --delete --exclude .git public/ github-pages/
           git -C github-pages config user.name "DAVE documentation deployment"

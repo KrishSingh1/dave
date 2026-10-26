@@ -1733,7 +1733,7 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 					for (i=0;i<nindiv_prev;i++)
 						if (randfrac(stand.seed)<mort) nindiv--;
 
-					if (nindiv_prev)
+					if (nindiv_prev != 0)
 						frac_survive=(double)nindiv/(double)nindiv_prev;
 					else
 						frac_survive=0.0;
@@ -1748,6 +1748,9 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 				// Reduce individual density and biomass on patch area basis
 				// to account for loss of killed individuals
 
+				if (indiv.id == 15 && date.get_calendar_year() == 1990) {
+					printf("\r");
+				}
 				//MORT
 				double mort_greff_frac = mort ? mort_greff_before_self_thin / mort : 0.0;
 				double mort_selfthin_frac = mort ? (mort_greff - mort_greff_before_self_thin) / mort : 0.0;

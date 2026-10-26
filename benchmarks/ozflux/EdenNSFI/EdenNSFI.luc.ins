@@ -61,7 +61,7 @@ run_landcover 1
 
 ! Active landcover classes in this test. Natural and managed forest are enabled;
 ! crops, pasture, urban, peatland, and barren are left out to keep the test small.
-run_natural 1
+run_natural 0
 run_forest 1
 run_crop 0
 run_pasture 0
@@ -225,7 +225,7 @@ st "EdenFrequentThinnings" (
 
     management1 "MT01"
     management2 "MTinit"
-    file_treeinit_st "PEE120_tree_init.txt"
+    file_treeinit_st "eden_pgp_multisite_treeinit.txt"
 )
 
 st "EdenClearCutNoThin" (
@@ -236,7 +236,7 @@ st "EdenClearCutNoThin" (
 
     management1 "Forest_init"
     management2 "Forest_postinit"
-    file_treeinit_st "PEE120_tree_init.txt"
+    file_treeinit_st "eden_pgp_multisite_treeinit.txt"
 )
 
 st "EdenManage" (
@@ -247,5 +247,5 @@ st "EdenManage" (
 
     management1 "Eden01"
     management2 "Eden01_init"
-    file_treeinit_st "PEE120_tree_init.txt"
+    file_treeinit_st "eden_pgp_multisite_treeinit.txt"
 )
